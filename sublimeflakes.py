@@ -143,7 +143,7 @@ def validate(view):
 	errorMessages = {}
 	def addMessage(lineno, message):
 		message = str(message)
-		if lineno in lineMessages:
+		if lineno in errorMessages:
 			errorMessages[lineno].append(message)
 		else:
 			errorMessages[lineno] = [message]

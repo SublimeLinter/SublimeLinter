@@ -229,7 +229,13 @@ def validate_runner(): # this threaded runner keeps it from slowing down UI whil
 		time.sleep(0.5)
 		for vid in dict(queue):
 			if queue[vid] == 0:
-				validate(lookup[vid])
+				v = lookup[vid]
+				def _view():
+					try:
+						validate(v)
+					except RuntimeError, excp:
+						print excp
+				sublime.set_timeout(_view, 100)
 				try: del queue[vid]
 				except: pass
 				try: del lookup[vid]

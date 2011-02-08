@@ -6,11 +6,10 @@ import os
 # * glob modules subfolder for languages and dynamically load - remove the current ugly hardcodedness
 
 import sublimelint.modules.python as python
-import sublimelint.modules.php as php
 
 drawType = 4 | 32
 
-languages = [python, php]
+languages = [python]
 
 global lineMessages
 lineMessages = {}

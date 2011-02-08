@@ -12,7 +12,7 @@ This is located at:
 * Windows:
     %APPDATA%/Sublime Text 2/Packages/User/
 * OS X:
-    ~/Library/Application Support/Packages/User/
+    ~/Library/Application Support/Sublime Text 2/Packages/User/
 * Linux:
     ~/.Sublime Text 2/Packages/User/
 

@@ -43,5 +43,4 @@ def run(code, view, filename='untitled'):
 			lines.add(lineno)
 			addMessage(lineno, error)
 
-	print errorMessages
 	return underline, lines, errorMessages, True

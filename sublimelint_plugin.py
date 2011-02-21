@@ -13,13 +13,14 @@ languages = {}
 basepath = 'sublimelint/modules'
 modpath = basepath.replace('/', '.')
 ignore = '__init__',
+basedir = os.getcwd()
 
-for modf in glob.glob('%s/*.py' % basepath):
-	base, name = os.path.split(modf)
-	name = name.split('.', 1)[0]
-	if name in ignore: continue
-
+def load_module(name):
 	fullmod = '%s.%s' % (modpath, name)
+
+	# make sure the path didn't change on us (this is needed for submodule reload)
+	pushd = os.getcwd()
+	os.chdir(basedir)
 
 	__import__(fullmod)
 
@@ -27,7 +28,10 @@ for modf in glob.glob('%s/*.py' % basepath):
 	# first, we get the actual module from sys.modules, not the base mod returned by __import__
 	# second, we get an updated version with reload() so module development is easier
 	# (save sublimelint_plugin.py to make sublime text reload language submodules)
-	mod = reload(sys.modules[fullmod])
+	mod = sys.modules[fullmod] = reload(sys.modules[fullmod])
+
+	# update module's __file__ to absolute path so we can reload it if saved with sublime text
+	mod.__file__ = os.path.abspath(mod.__file__).rstrip('co')
 
 	try:
 		language = mod.language
@@ -36,6 +40,23 @@ for modf in glob.glob('%s/*.py' % basepath):
 		print 'SublimeLint: Error loading %s - no language specified' % modf
 	except:
 		print 'SublimeLint: General error importing %s' % modf
+	
+	os.chdir(pushd)
+
+def reload_module(module):
+	fullmod = module.__name__
+	if not fullmod.startswith(modpath):
+		return
+	
+	name = fullmod.replace(modpath+'.', '', 1)
+	load_module(name)
+
+for modf in glob.glob('%s/*.py' % basepath):
+	base, name = os.path.split(modf)
+	name = name.split('.', 1)[0]
+	if name in ignore: continue
+
+	load_module(name)
 
 ## bulk of the code
 
@@ -154,6 +175,13 @@ class pyflakes(sublime_plugin.EventListener):
 		validate(view)
 	
 	def on_post_save(self, view):
+		# this will reload submodules if they are saved with sublime text
+		for name, module in languages.items():
+			if module.__file__ == view.file_name():
+				print 'Sublime Lint - Reloading language:', module.language
+				reload_module(module)
+				break
+
 		validate_hit(view)
 	
 	def on_selection_modified(self, view):

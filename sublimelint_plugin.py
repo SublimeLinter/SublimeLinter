@@ -1,15 +1,47 @@
 import sublime, sublime_plugin
-import os
+import os, sys, glob
 
-# todo:
+## todo:
 # * fix lag
 # * glob modules subfolder for languages and dynamically load - remove the current ugly hardcodedness
 
-import sublimelint.modules.python as python
+## language module loading
 
-drawType = 4 | 32
+# mapping of language name to language module
+languages = {}
 
-languages = [python]
+# import config
+basepath = 'sublimelint/modules'
+modpath = basepath.replace('/', '.')
+ignore = '__init__',
+
+for modf in glob.glob('%s/*.py' % basepath):
+	base, name = os.path.split(modf)
+	name = name.split('.', 1)[0]
+	if name in ignore: continue
+
+	fullmod = '%s.%s' % (modpath, name)
+
+	__import__(fullmod)
+
+	# this following line does two things:
+	# first, we get the actual module from sys.modules, not the base mod returned by __import__
+	# second, we get an updated version with reload() so module development is easier
+	# (save sublimelint_plugin.py to make sublime text reload language submodules)
+	mod = reload(sys.modules[fullmod])
+
+	try:
+		language = mod.language
+		languages[language] = mod
+	except AttributeError:
+		print 'SublimeLint: Error loading %s - no language specified' % modf
+	except:
+		print 'SublimeLint: General error importing %s' % modf
+
+## bulk of the code
+
+# TODO: check to see if the types specified after drawType in the codestill work and replace as necessary
+drawType = 4 | 32 # from before ST2 had sublime.DRAW_*
 
 global lineMessages
 lineMessages = {}
@@ -44,9 +76,9 @@ def run(module, view):
 	
 
 def validate(view):
-	for module in languages:
-		if module.language in view.settings().get("syntax"):
-			run(module, view)
+	for language in languages:
+		if language in view.settings().get("syntax"):
+			run(languages[language], view)
 			break
 
 import time, thread
@@ -78,8 +110,8 @@ def validate_hit(view):
 	global lookup
 	global queue
 
-	for module in languages:
-		if module.language in view.settings().get("syntax"):
+	for language in languages:
+		if language in view.settings().get("syntax"):
 			break
 	else:
 		view.erase_regions('lint-syntax')

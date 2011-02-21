@@ -117,7 +117,7 @@ class pyflakes(sublime_plugin.EventListener):
 		self.lastCount[bid] = count
 	
 	def on_load(self, view):
-		validate_hit(view)
+		validate(view)
 	
 	def on_post_save(self, view):
 		validate_hit(view)

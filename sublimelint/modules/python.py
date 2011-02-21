@@ -815,7 +815,7 @@ def run(code, view, filename='untitled'):
 			underlineRange(lineno, start+offset, end-start)
 	
 	def underlineWord(lineno, word):
-		regex = '((and|or|not|if|elif|while|in)\s+|[+\-*^%%<>=({[])*\s*(?P<underline>[\w]*%s[\w]*)' % (word)
+		regex = r'((and|or|not|if|elif|while|in)\s+|[+\-*^%%<>=\(\{])*\s*(?P<underline>[\w\.]*%s[\w]*)' % (word)
 		underlineRegex(lineno, regex, word)
 	
 	def underlineImport(lineno, word):

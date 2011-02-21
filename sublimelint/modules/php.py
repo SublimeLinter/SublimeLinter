@@ -9,7 +9,7 @@ def check(codeString, filename):
 		info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 		info.wShowWindow = subprocess.SW_HIDE
 
-	process = subprocess.Popen(('php', '-l'), stdin=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=info)
+	process = subprocess.Popen(('php', '-l', '-d display_errors=On'), stdin=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=info)
 	result = process.communicate(codeString)[0]
 
 	return result

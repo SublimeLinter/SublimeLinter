@@ -2,12 +2,19 @@ Sublime Lint
 =========
 
 A code-validating plugin with inline highlighting for the [Sublime Text 2](http://sublimetext.com "Sublime Text 2") editor.
-Currently only supports Python, but with near-realtime updates.
+Natively supports Python and supports using PHP via "php -l" if PHP is in your $PATH.
 
-Usage
+Installing
 -----
-Copy sublimelint_plugin.py and the sublimelint/ folder to your Sublime Text "User plugins" directory.
-This is located at:
+
+*Without Git:* Download the latest source and copy sublimelint_plugin.py and the sublimelint/ folder to your Sublime Text "User" packages directory.
+
+*With Git:* Clone the repository in your Sublime Text Packages directory (located one folder above the "User" directory)
+> git clone git://github.com/lunixbochs/sublimelint.git
+
+----
+
+The "User" packages directory is located at:
 
 * Windows:
     %APPDATA%/Sublime Text 2/Packages/User/
@@ -15,4 +22,3 @@ This is located at:
     ~/Library/Application Support/Sublime Text 2/Packages/User/
 * Linux:
     ~/.Sublime Text 2/Packages/User/
-

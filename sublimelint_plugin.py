@@ -102,12 +102,10 @@ def validate(view):
 			break
 
 import time, thread
-global queue, lookup
 queue = {}
 lookup = {}
 
 def validate_runner(): # this threaded runner keeps it from slowing down UI while you type
-	global queue, lookup
 	while True:
 		time.sleep(0.5)
 		for vid in dict(queue):
@@ -127,9 +125,6 @@ def validate_runner(): # this threaded runner keeps it from slowing down UI whil
 				queue[vid] = 0
 
 def validate_hit(view):
-	global lookup
-	global queue
-
 	for language in languages:
 		if language in view.settings().get("syntax"):
 			break

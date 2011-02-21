@@ -2,8 +2,7 @@ import sublime, sublime_plugin
 import os, sys, glob
 
 ## todo:
-# * fix lag
-# * glob modules subfolder for languages and dynamically load - remove the current ugly hardcodedness
+# * fix lag (was partially caused by multiple worker threads - evaluate if it's still an issue)
 
 ## language module loading
 
@@ -124,7 +123,10 @@ def validate_hit(view):
 	lookup[vid] = view
 	queue[vid] = 1
 
-thread.start_new_thread(validate_runner, ())
+# only start the thread once - otherwise the plugin will get laggy when saving it often
+if not 'already' in globals():
+	already = True
+	thread.start_new_thread(validate_runner, ())
 
 class pyflakes(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):

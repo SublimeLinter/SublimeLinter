@@ -781,12 +781,6 @@ def run(code, view, filename='untitled'):
 	underline = []
 
 	def underlineRange(lineno, position, length=1):
-		# if not lineno in underline: underline[lineno] = {}
-		# position += full_line(text, lineno)[0]
-
-		# for i in xrange(length):
-		# 	underline[lineno][position + i]
-		
 		line = view.full_line(view.text_point(lineno, 0))
 		position += line.begin()
 
@@ -849,14 +843,9 @@ def run(code, view, filename='untitled'):
 		addMessage(error.lineno, error)
 		if isinstance(error, OffsetError):
 			underlineRange(error.lineno, error.offset)
-			if len(errors) == 1 and False:
-				outlines = [view.full_line(view.text_point(error.lineno, 0)) for lineno in lines]
-				return outlines, underline, errorMessages, False
 
 		elif isinstance(error, PythonError):
-			if len(errors) == 1 and False:
-				outlines = [view.full_line(view.text_point(error.lineno, 0)) for lineno in lines]
-				return outlines, underline, errorMessages, False
+			pass
 
 		elif isinstance(error, messages.UnusedImport):
 			underlineImport(error.lineno, error.name)

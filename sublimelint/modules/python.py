@@ -820,7 +820,7 @@ def run(code, view, filename='untitled'):
 	
 	def underlineImport(lineno, word):
 		linematch = 'import\s+(?P<match>[^#;]+)'
-		regex = '(\s+|,\s*|as\s+)(?P<underline>[\w]*%s[\w]*)' % word
+		regex = '(^|\s+|,\s*|as\s+)(?P<underline>[\w]*%s[\w]*)' % word
 		underlineRegex(lineno, regex, word, linematch)
 	
 	def underlineForVar(lineno, word):

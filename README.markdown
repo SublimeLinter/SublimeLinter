@@ -2,7 +2,13 @@ Sublime Lint
 =========
 
 A code-validating plugin with inline highlighting for the [Sublime Text 2](http://sublimetext.com "Sublime Text 2") editor.
-Natively supports Python and supports using system-default PHP via "php -l", Perl via "perl -c", and Ruby via "ruby -wc".
+
+Supports the following languages:
+
+* Python - native, moderately-complete lint
+* PHP - syntax checking via "php -l"
+* Perl - syntax+deprecation checking via "perl -c"
+* Ruby - syntax checking via "ruby -wc"
 
 Installing
 -----

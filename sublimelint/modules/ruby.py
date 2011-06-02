@@ -18,7 +18,7 @@ def check(codeString, filename):
   
   return result
 
-# start sublimelint php plugin
+# start sublimelint Ruby plugin
 import re
 __all__ = ['run', 'language']
 language = 'Ruby'

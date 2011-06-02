@@ -70,7 +70,7 @@ def run(module, view):
 	global lineMessages
 	vid = view.id()
 
-	text = view.substr(sublime.Region(0, view.size()))
+	text = view.substr(sublime.Region(0, view.size())).encode('utf-8')
 	
 	if view.file_name():
 		filename = os.path.split(view.file_name())[-1]
@@ -155,7 +155,7 @@ class pyflakes(sublime_plugin.EventListener):
 
 		# alternate method which works alright when we don't have threads/set_timeout
 		# from when I ported to early X beta :P
-		text = view.substr(sublime.Region(0, view.size()))
+		text = view.substr(sublime.Region(0, view.size())).encode('utf-8')
 		count = text.count('\n')
 		if count > 500: return
 		bid = view.buffer_id()

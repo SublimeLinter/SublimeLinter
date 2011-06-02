@@ -748,6 +748,8 @@ def check(codeString, filename):
 				error = PythonError(filename, lineno, msg)
 
 		return [error]
+	except ValueError, e:
+		return [PythonError(filename, 0, e.args[0])]
 	else:
 		# Okay, it's syntactically valid.  Now parse it into an ast and check
 		# it.

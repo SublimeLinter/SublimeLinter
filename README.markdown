@@ -28,4 +28,6 @@ The "User" packages directory is located at:
 * OS X:
     ~/Library/Application Support/Sublime Text 2/Packages/User/
 * Linux:
-    ~/.Sublime Text 2/Packages/User/
+    ~/.config/sublime-text-2/User
+
+You can also use the Preferences menu to open Package directories.

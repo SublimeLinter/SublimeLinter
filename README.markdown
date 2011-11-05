@@ -6,9 +6,15 @@ A code-validating plugin with inline highlighting for the [Sublime Text 2](http:
 Supports the following languages:
 
 * Python - native, moderately-complete lint
+
+NOTE: the following languages may require you to install additional binaries and place them within your PATH (environment variable)
+
+* Coffescript - validation via "coffee --compile"
+* Java - validation via "java -Xlint" and a temporary file
 * PHP - syntax checking via "php -l"
 * Perl - syntax+deprecation checking via "perl -c"
 * Ruby - syntax checking via "ruby -wc"
+            
 
 Installing
 -----

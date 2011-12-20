@@ -183,6 +183,9 @@ class pyflakes(sublime_plugin.EventListener):
 		vid = view.id()
 		lineno = view.rowcol(view.sel()[0].end())[0]
 		if vid in lineMessages and lineno in lineMessages[vid]:
-			view.set_status('pyflakes', '; '.join(lineMessages[vid][lineno]))
+			try: # workaround for issue #18
+				view.set_status('pyflakes', '; '.join(lineMessages[vid][lineno]))
+			except:
+				view.erase_status('pyflakes')
 		else:
 			view.erase_status('pyflakes')

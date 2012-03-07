@@ -19,6 +19,7 @@ class SublimeLint(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):
 		sublime_plugin.EventListener.__init__(self, *args, **kwargs)
 
+		self.loaded = set()
 		self.modules = Modules(cwd, 'languages').load_all()
 		persist.queue.start(self.lint)
 
@@ -50,8 +51,13 @@ class SublimeLint(sublime_plugin.EventListener):
 		self.hit(view)
 	
 	def on_load(self, view):
-		self.hit(view)
+		self.loaded.add(view.id())
 		self.on_new(view)
+
+	def on_activated(self, view):
+		if view.id() in self.loaded:
+			self.loaded.remove(view.id())
+			self.hit(view)
 
 	def on_new(self, view):
 		Linter.assign(view)

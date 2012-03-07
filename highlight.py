@@ -12,23 +12,22 @@ class Highlight:
 
 		# find all the newlines, so we can look for line positions
 		# without merging back into the main thread for APIs
-		self.newlines = newlines = []
-		last = 0
+		self.newlines = newlines = [0]
+		last = -1
 		while True:
 			last = code.find('\n', last+1)
 			if last == -1: break
-			newlines.append(last)
+			newlines.append(last+1)
 
-		newlines.append(len(code)-1)
+		newlines.append(len(code))
 
 	def full_line(self, line):
-		if line > 0:
-			a, b = self.newlines[line-1:line+1]
-			return a, b
-		else:
-			return 0, self.newlines[0]
+		a, b = self.newlines[line:line+2]
+		print line, a, b
+		return a, b
 
 	def range(self, line, pos, length=1):
+		print 'highlight:', line, pos, length
 		a, b = self.full_line(line)
 		pos += a
 
@@ -41,6 +40,7 @@ class Highlight:
 
 		a, b = self.full_line(line)
 		lineText = self.code[a:b]
+		print repr(lineText)
 		if line_match:
 			match = re.match(line_match, lineText)
 			if match:

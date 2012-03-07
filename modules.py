@@ -17,7 +17,7 @@ class Modules:
 		print 'SublimeLint: loading `%s`' % name
 		pushd = os.getcwd()
 		os.chdir(self.base)
-		path = sys.path
+		path = sys.path[:]
 
 		sys.path.insert(0, self.path)
 

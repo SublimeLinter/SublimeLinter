@@ -9,6 +9,10 @@ from highlight import Highlight
 
 syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
 
+import sys
+if not '/usr/local/bin' in sys.path:
+	sys.path.append('/usr/local/bin')
+
 class Tracker(type):
 	def __init__(cls, name, bases, attrs):
 		if bases:
@@ -155,6 +159,8 @@ class Linter:
 			return False
 
 	def error(self, line, error):
+		self.highlight.line(line)
+		
 		error = str(error)
 		if line in self.errors:
 			self.errors[line].append(error)

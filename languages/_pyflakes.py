@@ -1,9 +1,7 @@
-# python.py - Lint checking for Python - given filename and contents of the code:
-# It provides a list of line numbers to outline and offsets to highlight.
-#
+# pyflakes.py - Python code linting
 # This specific module is a derivative of PyFlakes and part of the SublimeLint project.
-# SublimeLint is (c) 2011 Ryan Hileman and licensed under the MIT license.
-# URL: http://bochs.info/
+# SublimeLint is (c) 2012 Ryan Hileman and licensed under the MIT license.
+# URL: https://github.com/lunixbochs/sublimelint
 #
 # The original copyright notices for this file/project follows:
 #
@@ -34,10 +32,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# todo:
-# * fix regex for variable names inside strings (quotes)
-
-import sublime
+import sys
 
 import __builtin__
 import os.path
@@ -759,130 +754,3 @@ def check(codeString, filename):
 		return w.messages
 
 # end pyflakes
-# start sublimelint python plugin
-
-import sys, re
-__all__ = ['run', 'language']
-language = 'Python'
-
-def run(code, view, filename='untitled'):
-	stripped_lines = []
-	good_lines = []
-	lines = code.split('\n')
-	for i in xrange(len(lines)):
-		line = lines[i]
-		if not line.strip() or line.strip().startswith('#'):
-			stripped_lines.append(i)
-		else:
-			good_lines.append(line)
-		
-	text = '\n'.join(good_lines)
-	errors = check(text, filename)
-
-	lines = set()
-	underline = []
-
-	def underlineRange(lineno, position, length=1):
-		line = view.full_line(view.text_point(lineno, 0))
-		position += line.begin()
-
-		for i in xrange(length):
-			underline.append(sublime.Region(position + i))
-
-	def underlineRegex(lineno, regex, wordmatch=None, linematch=None):
-		lines.add(lineno)
-		offset = 0
-		
-		line = view.full_line(view.text_point(lineno, 0))
-		lineText = view.substr(line)
-		if linematch:
-			match = re.match(linematch, lineText)
-			if match:
-				lineText = match.group('match')
-				offset = match.start('match')
-			else:
-				return
-
-		iters = re.finditer(regex, lineText)
-		results = [(result.start('underline'), result.end('underline')) for result in iters if
-											not wordmatch or result.group('underline') == wordmatch]
-
-		for start, end in results:
-			underlineRange(lineno, start+offset, end-start)
-	
-	def underlineWord(lineno, word):
-		regex = r'((and|or|not|if|elif|while|in)\s+|[+\-*^%%<>=\(\{])*\s*(?P<underline>[\w\.]*%s[\w]*)' % (word)
-		underlineRegex(lineno, regex, word)
-	
-	def underlineImport(lineno, word):
-		linematch = '(from\s+[\w_\.]+\s+)?import\s+(?P<match>[^#;]+)'
-		regex = '(^|\s+|,\s*|as\s+)(?P<underline>[\w]*%s[\w]*)' % word
-		underlineRegex(lineno, regex, word, linematch)
-	
-	def underlineForVar(lineno, word):
-		regex = 'for\s+(?P<underline>[\w]*%s[\w*])' % word
-		underlineRegex(lineno, regex, word)
-	
-	def underlineDuplicateArgument(lineno, word):
-		regex = 'def [\w_]+\(.*?(?P<underline>[\w]*%s[\w]*)' % word
-		underlineRegex(lineno, regex, word)
-	
-	errorMessages = {}
-	def addMessage(lineno, message):
-		message = str(message)
-		if lineno in errorMessages:
-			errorMessages[lineno].append(message)
-		else:
-			errorMessages[lineno] = [message]
-
-	for error in errors:
-		error.lineno -= 1
-		for i in stripped_lines:
-			if error.lineno >= i:
-				error.lineno += 1
-		
-		lines.add(error.lineno)
-		addMessage(error.lineno, error)
-		if isinstance(error, OffsetError):
-			underlineRange(error.lineno, error.offset)
-
-		elif isinstance(error, PythonError):
-			pass
-
-		elif isinstance(error, messages.UnusedImport):
-			underlineImport(error.lineno, error.name)
-		
-		elif isinstance(error, messages.RedefinedWhileUnused):
-			underlineWord(error.lineno, error.name)
-
-		elif isinstance(error, messages.ImportShadowedByLoopVar):
-			underlineForVar(error.lineno, error.name)
-
-		elif isinstance(error, messages.ImportStarUsed):
-			underlineImport(error.lineno, '\*')
-
-		elif isinstance(error, messages.UndefinedName):
-			underlineWord(error.lineno, error.name)
-
-		elif isinstance(error, messages.UndefinedExport):
-			underlineWord(error.lineno, error.name)
-
-		elif isinstance(error, messages.UndefinedLocal):
-			underlineWord(error.lineno, error.name)
-
-		elif isinstance(error, messages.DuplicateArgument):
-			underlineDuplicateArgument(error.lineno, error.name)
-
-		elif isinstance(error, messages.RedefinedFunction):
-			underlineWord(error.lineno, error.name)
-
-		elif isinstance(error, messages.LateFutureImport):
-			pass
-
-		elif isinstance(error, messages.UnusedVariable):
-			underlineWord(error.lineno, error.name)
-
-		else:
-			print 'Oops, we missed an error type!'
-	
-	return underline, lines, errorMessages, True

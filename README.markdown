@@ -1,7 +1,7 @@
 Sublime Lint
 =========
 
-A code-validating plugin with inline highlighting for the [Sublime Text 2](http://sublimetext.com "Sublime Text 2") editor.
+A framework for inline lint highlighting in the [Sublime Text 2](http://sublimetext.com "Sublime Text 2") editor.
 
 Supports the following languages:
 
@@ -14,26 +14,27 @@ NOTE: the following languages may require you to install additional binaries and
 * PHP - syntax checking via "php -l"
 * Perl - syntax+deprecation checking via "perl -c"
 * Ruby - syntax checking via "ruby -wc"
-            
+
+It's incredibly easy to add your own Linter. Take a look at `languages/extras.py` and `languages/python.py` for some examples.
 
 Installing
 -----
 
-*Without Git:* Download the latest source and copy sublimelint_plugin.py and the sublimelint/ folder to your Sublime Text "User" packages directory.
+*Without Git:* Download the latest source and extract as a folder to your Sublime Text Packages directory (`Packages/SublimeLint/`).
 
-*With Git:* Clone the repository in your Sublime Text Packages directory (located one folder above the "User" directory)
+*With Git:* Clone the repository into your Sublime Text Packages directory.
 
-> git clone git://github.com/lunixbochs/sublimelint.git
+    git clone git://github.com/lunixbochs/sublimelint.git
 
 ----
 
-The "User" packages directory is located at:
+The "Packages" directory is located here:
 
 * Windows:
-    %APPDATA%/Sublime Text 2/Packages/User/
+    `%APPDATA%/Sublime Text 2/Packages/`
 * OS X:
-    ~/Library/Application Support/Sublime Text 2/Packages/User/
+    `~/Library/Application Support/Sublime Text 2/Packages/`
 * Linux:
-    ~/.config/sublime-text-2/User
+    `~/.Sublime Text 2/Packages/`
 
-You can also use the Preferences menu to open Package directories.
+You can also go to `Preferences -> Browse Packages` from inside Sublime Text.

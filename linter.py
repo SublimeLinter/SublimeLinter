@@ -9,10 +9,6 @@ from highlight import Highlight
 
 syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
 
-import sys
-if not '/usr/local/bin' in sys.path:
-	sys.path.append('/usr/local/bin')
-
 class Tracker(type):
 	def __init__(cls, name, bases, attrs):
 		if bases:
@@ -205,4 +201,12 @@ class Linter:
 			info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 			info.wShowWindow = subprocess.SW_HIDE
 
-		return subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=info)
+		env = os.environ
+		if os.name == 'posix':
+			for path in ('/usr/bin', '/usr/local/bin'):
+				if not path in env['PATH']:
+					env['PATH'] += (':' + path)
+
+		return subprocess.Popen(cmd, stdin=subprocess.PIPE,
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+			startupinfo=info, env=env)

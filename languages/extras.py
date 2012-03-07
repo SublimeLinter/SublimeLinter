@@ -18,6 +18,11 @@ class Java(Linter):
 	def popen(self, cmd):
 		return super(Java, self).popen(cmd)
 
+class JavaScript(Linter):
+	language = 'javascript'
+	cmd = ('jsl', '-stdin')
+	regex = r'^\((?P<line>\d+)\):\s+(?P<error>.+)'
+
 class Perl(Linter):
 	language = 'perl'
 	cmd = ('perl', '-c')

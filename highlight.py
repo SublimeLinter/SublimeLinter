@@ -23,11 +23,9 @@ class Highlight:
 
 	def full_line(self, line):
 		a, b = self.newlines[line:line+2]
-		print line, a, b
 		return a, b
 
 	def range(self, line, pos, length=1):
-		print 'highlight:', line, pos, length
 		a, b = self.full_line(line)
 		pos += a
 
@@ -40,7 +38,6 @@ class Highlight:
 
 		a, b = self.full_line(line)
 		lineText = self.code[a:b]
-		print repr(lineText)
 		if line_match:
 			match = re.match(line_match, lineText)
 			if match:

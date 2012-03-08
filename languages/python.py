@@ -55,11 +55,40 @@ class Python(Linter):
 			self.highlight.regex(lineno, regex, word)
 
 		for error in errors:
+			# we need to adjust line numbers in the error
+			# to make up for stripping blank lines earlier
+			orig_lineno = None
+			if hasattr(error, 'orig_lineno'):
+				orig_lineno = error.orig_lineno - 1
+
 			error.lineno -= 1
 			for i in stripped_lines:
 				if error.lineno >= i:
 					error.lineno += 1
-			
+
+				if orig_lineno is not None:
+					if orig_lineno >= i:
+						orig_lineno += 1
+
+			if orig_lineno is not None:
+				error.orig_lineno = orig_lineno
+				error.message_args = (error.name, int(error.orig_lineno) + 1)
+
+				new = str(error)
+				if isinstance(error, messages.UndefinedLocal):
+					new = new.replace(
+						'local variable %r (referenced on line %r)'
+						'assigned after first reference' % (
+							error.name, error.lineno + 1
+					))
+				else:
+					new = new.replace(
+						'from line %r' % (orig_lineno + 1),
+						'on line %r' % (error.lineno + 1)
+					)
+
+				self.error(orig_lineno, new)
+
 			self.error(error.lineno, error)
 			if isinstance(error, OffsetError):
 				self.highlight.range(error.lineno, error.offset)

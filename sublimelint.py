@@ -9,10 +9,10 @@ import os
 
 import thread
 
-from modules import Modules
-from linter import Linter
-from highlight import Highlight
-import persist
+from lint.modules import Modules
+from lint.linter import Linter
+from lint.highlight import Highlight
+import lint.persist as persist
 
 cwd = os.getcwd()
 

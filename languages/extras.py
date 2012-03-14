@@ -1,6 +1,6 @@
 # extras.py - sublimelint plugin for simple external linters
 
-from linter import Linter
+from lint.linter import Linter
 
 class Coffee(Linter):
 	language = 'coffeescript'

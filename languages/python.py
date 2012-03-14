@@ -7,8 +7,8 @@
 #
 
 from _pyflakes import check, messages, OffsetError, PythonError
-from linter import Linter
-from highlight import Highlight
+from lint.linter import Linter
+from lint.highlight import Highlight
 
 class Python(Linter):
 	language = 'python'

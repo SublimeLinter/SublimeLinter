@@ -203,7 +203,10 @@ class Linter:
 
 		env = os.environ
 		if os.name == 'posix':
-			for path in ('/usr/bin', '/usr/local/bin'):
+			for path in (
+				'/usr/bin', '/usr/local/bin',
+				'/usr/local/php/bin', '/usr/local/php5/bin'
+						):
 				if not path in env['PATH']:
 					env['PATH'] += (':' + path)
 

@@ -2,7 +2,7 @@ import sublime
 import re
 
 class Highlight:
-	def __init__(self, code,
+	def __init__(self, code='',
 			draw_type=sublime.DRAW_EMPTY_AS_OVERWRITE|sublime.DRAW_OUTLINED):
 
 		self.code = code
@@ -63,6 +63,10 @@ class Highlight:
 		start = text.find(near)
 		if start != -1:
 			self.range(line, start, len(near))
+
+	def update(self, other):
+		self.lines.update(other.lines)
+		self.underlines.extend(other.underlines)
 
 	def draw(self, view, prefix='lint'):
 		if self.underlines:

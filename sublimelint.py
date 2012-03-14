@@ -11,6 +11,7 @@ import thread
 
 from modules import Modules
 from linter import Linter
+from highlight import Highlight
 import persist
 
 cwd = os.getcwd()
@@ -33,12 +34,14 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	def finish(self, view, linters):
 		errors = {}
-
+		highlight = Highlight()
 		linters[0].clear()
+
 		for linter in linters:
-			linter.draw()
+			highlight.update(linter.highlight)
 			errors.update(linter.errors)
 
+		highlight.draw(view)
 		persist.errors[view.id()] = errors
 
 	# helpers

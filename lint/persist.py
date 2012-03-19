@@ -8,6 +8,9 @@ from Queue import Queue, Empty
 class Daemon:
 	running = False
 	callback = None
+	q = Queue()
+	views = {}
+	last_run = {}
 
 	def start(self, callback):
 		self.callback = callback
@@ -18,10 +21,6 @@ class Daemon:
 		else:
 			self.running = True
 			thread.start_new_thread(self.loop, ())
-
-		self.q = Queue()
-		self.views = {}
-		self.last_run = {}
 
 	def reenter(self, view_id):
 		sublime.set_timeout(lambda: self.callback(view_id), 0)

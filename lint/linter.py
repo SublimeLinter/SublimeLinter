@@ -46,6 +46,8 @@ class Linter:
 
 		settings = view.settings()
 		syn = settings.get('syntax')
+		if not syn: return
+		
 		match = syntax_re.search(syn)
 
 		if match:

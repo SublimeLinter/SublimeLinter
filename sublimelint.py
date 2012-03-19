@@ -4,9 +4,11 @@
 # Project: https://github.com/lunixbochs/sublimelint
 # License: MIT
 
+import sublime
 import sublime_plugin
-import os
 
+import os
+import time
 import thread
 
 from lint.modules import Modules
@@ -21,8 +23,16 @@ class SublimeLint(sublime_plugin.EventListener):
 		sublime_plugin.EventListener.__init__(self, *args, **kwargs)
 
 		self.loaded = set()
+		self.linted = set()
 		self.modules = Modules(cwd, 'languages').load_all()
 		persist.queue.start(self.lint)
+
+		# this gives us a chance to lint the active view on fresh install
+		sublime.set_timeout(
+			lambda: self.on_activated(sublime.active_window().active_view()), 100
+		)
+
+		self.start = time.time()
 
 	def lint(self, view_id):
 		view = Linter.get_view(view_id)
@@ -47,6 +57,7 @@ class SublimeLint(sublime_plugin.EventListener):
 	# helpers
 
 	def hit(self, view):
+		self.linted.add(view.id())
 		persist.queue.hit(view)
 
 	# callins
@@ -54,15 +65,21 @@ class SublimeLint(sublime_plugin.EventListener):
 		self.hit(view)
 	
 	def on_load(self, view):
-		self.loaded.add(view.id())
 		self.on_new(view)
 
 	def on_activated(self, view):
-		if view.id() in self.loaded:
-			self.loaded.remove(view.id())
+		view_id = view.id()
+		if not view_id in self.linted:
+			if not view_id in self.loaded:
+				# it seems on_activated can be called before loaded on first start
+				if time.time() - self.start < 5: return
+				self.on_new(view)
+
 			self.hit(view)
 
 	def on_new(self, view):
+		self.loaded.add(view.id())
+		
 		Linter.assign(view)
 		settings = view.settings()
 		syntax = settings.get('syntax')
@@ -80,7 +97,8 @@ class SublimeLint(sublime_plugin.EventListener):
 				Linter.reload(name)
 				break
 
-		self.hit(view)
+		# linting here doesn't matter, because we lint on load and on modify
+		# self.hit(view)
 	
 	def on_selection_modified(self, view):
 		vid = view.id()

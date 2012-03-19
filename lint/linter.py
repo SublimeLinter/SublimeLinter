@@ -151,7 +151,10 @@ class Linter:
 
 	@classmethod
 	def can_lint(cls, language):
-		if language.lower() == cls.language:
+		language = language.lower()
+		if isinstance(cls.language, basestring) and language == cls.language:
+			return True
+		elif isinstance(cls.language, (list, tuple, set)) and language in cls.language:
 			return True
 		else:
 			return False

@@ -4,6 +4,7 @@ import tempfile
 
 import sublime
 import re
+import persist
 
 from highlight import Highlight
 
@@ -27,6 +28,7 @@ class Linter:
 		self.view = view
 		self.syntax = syntax
 		self.filename = filename
+
 		if self.regex:
 			self.regex = re.compile(self.regex)
 
@@ -46,8 +48,12 @@ class Linter:
 
 		settings = view.settings()
 		syn = settings.get('syntax')
-		if not syn: return
-		
+		if not syn:
+			if id in cls.linters:
+				del cls.linters[id]
+
+			return
+
 		match = syntax_re.search(syn)
 
 		if match:
@@ -61,7 +67,7 @@ class Linter:
 					return
 
 			linters = set()
-			for entry in cls.languages.values():
+			for name, entry in cls.languages.items():
 				if entry.can_lint(syntax):
 					linter = entry(view, syntax)
 					linters.add(linter)
@@ -71,8 +77,10 @@ class Linter:
 			else:
 				if id in cls.linters:
 					del cls.linters[id]
-					
+
 			return linters
+
+		del cls.linters[id]
 
 	@classmethod
 	def reload(cls, mod):
@@ -121,25 +129,26 @@ class Linter:
 		if not code: return
 
 		output = self.communicate(self.cmd, code)
-		print repr(output)
+		if output:
+			persist.debug('Output:', repr(output))
 
-		for line in output.splitlines():
-			line = line.strip()
+			for line in output.splitlines():
+				line = line.strip()
 
-			match, row, col, message, near = self.match_error(self.regex, line)
-			if match:
-				if row or row is 0:
-					if col or col is 0:
-						self.highlight.range(row, col)
-					elif near:
-						self.highlight.near(row, near)
+				match, row, col, message, near = self.match_error(self.regex, line)
+				if match:
+					if row or row is 0:
+						if col or col is 0:
+							self.highlight.range(row, col)
+						elif near:
+							self.highlight.near(row, near)
+						else:
+							self.highlight.line(row)
+
+					if row in errors:
+						errors[row].append(message)
 					else:
-						self.highlight.line(row)
-
-				if row in errors:
-					errors[row].append(message)
-				else:
-					errors[row] = [message]
+						errors[row] = [message]
 
 	def draw(self, prefix='lint'):
 		self.highlight.draw(self.view, prefix)
@@ -152,16 +161,17 @@ class Linter:
 	@classmethod
 	def can_lint(cls, language):
 		language = language.lower()
-		if isinstance(cls.language, basestring) and language == cls.language:
-			return True
-		elif isinstance(cls.language, (list, tuple, set)) and language in cls.language:
-			return True
-		else:
-			return False
+		if cls.language:
+			if language == cls.language:
+				return True
+			elif language in cls.language:
+				return True
+			else:
+				return False
 
 	def error(self, line, error):
 		self.highlight.line(line)
-		
+
 		error = str(error)
 		if line in self.errors:
 			self.errors[line].append(error)
@@ -182,10 +192,32 @@ class Linter:
 		return match, None, None, '', None
 
 	# popen methods
-
 	def communicate(self, cmd, code):
-		out = self.popen(cmd).communicate(code)
-		return (out[0] or '') + (out[1] or '')
+		out = self.popen(cmd)
+		if out is not None:
+			out = out.communicate(code)
+			return (out[0] or '') + (out[1] or '')
+		else:
+			return ''
+
+	def create_environment(self):
+		env = os.environ
+		if os.name == 'posix':
+			# find PATH using shell --login
+			if 'SHELL' in env and env['SHELL'] in ('/bin/bash', ):
+				shell = (env['SHELL'], '--login', '-c', 'echo _SUBL_ $PATH')
+				path = self.popen(shell, env).communicate()[0]
+				env['PATH'] = path.split('_SUBL_ ', 1)[1].split('\n', 1)[0]
+			# guess PATH
+			else:
+				for path in (
+					'/usr/bin', '/usr/local/bin',
+					'/usr/local/php/bin', '/usr/local/php5/bin'
+							):
+					if not path in env['PATH']:
+						env['PATH'] += (':' + path)
+
+		return env
 
 	def tmpfile(self, cmd, code, suffix=''):
 		f = tempfile.NamedTemporaryFile(suffix=suffix)
@@ -193,10 +225,14 @@ class Linter:
 		f.flush()
 
 		cmd = tuple(cmd) + (f.name,)
-		out = self.popen(cmd).communicate('')
-		return (out[0] or '') + (out[1] or '')
+		out = self.popen(cmd)
+		if out:
+			out = out.communicate('')
+			return (out[0] or '') + (out[1] or '')
+		else:
+			return ''
 
-	def popen(self, cmd):
+	def popen(self, cmd, env=None):
 		if isinstance(cmd, basestring):
 			cmd = cmd,
 
@@ -206,15 +242,13 @@ class Linter:
 			info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 			info.wShowWindow = subprocess.SW_HIDE
 
-		env = os.environ
-		if os.name == 'posix':
-			for path in (
-				'/usr/bin', '/usr/local/bin',
-				'/usr/local/php/bin', '/usr/local/php5/bin'
-						):
-				if not path in env['PATH']:
-					env['PATH'] += (':' + path)
+		if env is None:
+			env = self.create_environment()
 
-		return subprocess.Popen(cmd, stdin=subprocess.PIPE,
-			stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-			startupinfo=info, env=env)
+		try:
+			return subprocess.Popen(cmd, stdin=subprocess.PIPE,
+				stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+				startupinfo=info, env=env)
+		except OSError, err:
+			persist.debug('SublimeLint: Error launching', repr(cmd))
+			persist.debug('Error was:', err.strerror)

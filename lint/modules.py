@@ -5,6 +5,7 @@ import sys
 import glob
 
 import traceback
+import persist
 
 class Modules:
 	def __init__(self, cwd, path):
@@ -14,7 +15,7 @@ class Modules:
 		self.modules = {}
 
 	def load(self, name):
-		print 'SublimeLint: loading `%s`' % name
+		persist.debug('SublimeLint: loading `%s`' % name)
 		pushd = os.getcwd()
 		os.chdir(self.base)
 		path = list(sys.path)
@@ -28,10 +29,10 @@ class Modules:
 			# second, we get an updated version of the module with reload() so development is easier
 			mod = sys.modules[name] = reload(sys.modules[name])
 		except:
-			print 'SublimeLint: Error importing `%s`' % name
-			print '-'*20
-			print traceback.format_exc()
-			print '-'*20
+			persist.debug('SublimeLint: error importing `%s`' % name)
+			persist.debug('-'*20)
+			persist.debug(traceback.format_exc())
+			persist.debug('-'*20)
 
 		self.modules[name] = mod
 
@@ -45,7 +46,6 @@ class Modules:
 
 	def reload(self, mod):
 		name = mod.__name__
-		print 'SublimeLint: reloading `%s`' % name
 		if name in self.modules:
 			return self.load(name)
 

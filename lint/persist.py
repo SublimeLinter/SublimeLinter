@@ -12,6 +12,14 @@ class Daemon:
 	views = {}
 	last_run = {}
 
+	def __init__(self):
+		self.settings = sublime.load_settings('SublimeLint.sublime-settings')
+		self.settings.add_on_change('lint-persist-settings', self.update_settings)
+		self.update_settings()
+
+	def update_settings(self):
+		self.debug = self.settings.get('debug', False)
+
 	def start(self, callback):
 		self.callback = callback
 
@@ -51,14 +59,14 @@ class Daemon:
 
 				elif isinstance(item, basestring):
 					if item == 'reload':
-						print 'SublimeLint daemon detected a reload'
+						self.printf('SublimeLint daemon detected a reload')
 				else:
-					print 'SublimeLint: Unknown message sent to daemon:', item
+					self.printf('SublimeLint: Unknown message sent to daemon:', item)
 			except:
-				print 'Error in SublimeLint daemon:'
-				print '-'*20
-				print traceback.format_exc()
-				print '-'*20
+				self.printf('Error in SublimeLint daemon:')
+				self.printf('-'*20)
+				self.printf(traceback.format_exc())
+				self.printf('-'*20)
 
 	def hit(self, view):
 		self.q.put((view.id(), time.time()))
@@ -66,7 +74,16 @@ class Daemon:
 	def delay(self):
 		self.q.put(0.01)
 
+	def printf(self, *args):
+		if not self.debug: return
+
+		for arg in args:
+			print arg,
+		print
+
 if not 'already' in globals():
 	queue = Daemon()
+	debug = queue.printf
+	
 	errors = {}
 	already = True

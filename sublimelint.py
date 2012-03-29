@@ -22,9 +22,14 @@ class SublimeLint(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):
 		sublime_plugin.EventListener.__init__(self, *args, **kwargs)
 
+		self.settings = sublime.load_settings('SublimeLint.sublime-settings')
+		self.settings.add_on_change('lint-settings', self.update_settings)
+		self.update_settings()
+
 		self.loaded = set()
 		self.linted = set()
 		self.modules = Modules(cwd, 'languages').load_all()
+		self.pending_on_change = set()
 		persist.queue.start(self.lint)
 
 		# this gives us a chance to lint the active view on fresh install
@@ -34,11 +39,14 @@ class SublimeLint(sublime_plugin.EventListener):
 
 		self.start = time.time()
 
+	def update_settings(self):
+		pass
+
 	def lint(self, view_id):
 		view = Linter.get_view(view_id)
 
 		if view is not None:
-			print 'SublimeLint: running on `%s`' % os.path.split(view.file_name() or 'untitled')[1]
+			persist.debug('SublimeLint: running on `%s`' % os.path.split(view.file_name() or 'untitled')[1])
 			code = Linter.text(view)
 			thread.start_new_thread(Linter.lint_view, (view_id, code, self.finish))
 
@@ -58,6 +66,8 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	def hit(self, view):
 		self.linted.add(view.id())
+		if view.size() == 0: return
+		
 		persist.queue.hit(view)
 
 	# callins
@@ -84,15 +94,27 @@ class SublimeLint(sublime_plugin.EventListener):
 		settings = view.settings()
 		syntax = settings.get('syntax')
 		def on_change():
-			if settings.get('syntax') != syntax:
-				Linter.assign(view)
+			# weird, the recursion bug seems to only be happening on one untitled view?
+			if view.id() in self.pending_on_change:
+				return
 
+			try:
+				self.pending_on_change.add(view.id())
+				if settings.get('syntax') != syntax:
+					Linter.assign(view)
+
+			finally:
+				self.pending_on_change.remove(view.id())
+
+		settings.clear_on_change('lint-syntax')
 		settings.add_on_change('lint-syntax', on_change)
 
 	def on_post_save(self, view):
 		# this will reload submodules if they are saved with sublime text
 		for name, module in self.modules.modules.items():
-			if module.__file__ == view.file_name():
+			if os.name == 'posix' and (
+				os.stat(module.__file__).st_ino == os.stat(view.file_name()).st_ino
+			) or module.__file__ == view.file_name():
 				self.modules.reload(module)
 				Linter.reload(name)
 				break

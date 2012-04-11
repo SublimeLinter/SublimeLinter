@@ -46,9 +46,10 @@ class SublimeLint(sublime_plugin.EventListener):
 		view = Linter.get_view(view_id)
 
 		if view is not None:
-			persist.debug('SublimeLint: running on `%s`' % os.path.split(view.file_name() or 'untitled')[1])
+			filename = view.file_name()
+			persist.debug('SublimeLint: running on `%s`' % os.path.split(filename or 'untitled')[1])
 			code = Linter.text(view)
-			thread.start_new_thread(Linter.lint_view, (view_id, code, self.finish))
+			thread.start_new_thread(Linter.lint_view, (view_id, filename, code, self.finish))
 
 	def finish(self, view, linters):
 		errors = {}

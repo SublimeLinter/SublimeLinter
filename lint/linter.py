@@ -102,10 +102,11 @@ class Linter:
 		return view.substr(sublime.Region(0, view.size())).encode('utf-8')
 
 	@classmethod
-	def lint_view(cls, view_id, code, callback):
+	def lint_view(cls, view_id, filename, code, callback):
 		if view_id in cls.linters:
 			linters = tuple(cls.linters[view_id])
 			for linter in linters:
+				linter.filename = filename
 				linter.lint(code)
 
 			# merge our result back to the main thread

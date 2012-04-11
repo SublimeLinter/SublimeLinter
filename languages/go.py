@@ -20,10 +20,21 @@ class Golang(Linter):
 			path = os.path.split(self.filename)[0]
 			cwd = os.getcwd()
 			os.chdir(path)
-			cmds = self.popen(('go', 'build', '-n')).communicate()[0]
+			out = self.popen(('go', 'build', '-n')).communicate()
+			# might have an error determining packages, return if so
+			if out[1].strip(): return out[1]
+
+			cmds = out[0]
 			for line in cmds.split('\n'):
 				if line:
-					compiler = os.path.splitext(os.path.split(shlex.split(line)[0])[1])[0]
+					compiler = shlex.split(line)[0]
+					if not compiler: continue
+
+					compiler = os.path.split(compiler)[1]
+					if not compiler: continue
+
+					compiler = os.path.splitext(compiler)[0]
+
 					if compiler in ('6g', '8g'):
 						break
 			else:

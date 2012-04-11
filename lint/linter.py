@@ -1,5 +1,6 @@
 import subprocess
 import os
+import shutil
 import tempfile
 
 import sublime
@@ -231,6 +232,36 @@ class Linter:
 			return (out[0] or '') + (out[1] or '')
 		else:
 			return ''
+
+	def tmpdir(self, cmd, files, code):
+		filename = os.path.split(self.filename)[1]
+		d = tempfile.mkdtemp()
+
+		for f in files:
+			try: os.makedirs(os.path.split(f)[0])
+			except: pass
+
+			target = os.path.join(d, f)
+			if os.path.split(target)[1] == filename:
+				# source file hasn't been saved since change, so update it from our live buffer
+				f = open(target, 'wb')
+				f.write(code)
+				f.close()
+			else:
+				shutil.copyfile(f, target)
+
+		os.chdir(d)
+		out = self.popen(cmd).communicate()
+		out = (out[0] or '') + '\n' + (out[1] or '')
+
+		shutil.rmtree(d, True)
+
+		# filter results from build to just this filename
+		# no guarantee all languages are as nice about this as Go
+		# may need to improve later or just defer to communicate()
+		return '\n'.join([
+			line for line in out.split('\n') if filename in line.split(':', 1)[0]
+		])
 
 	def popen(self, cmd, env=None):
 		if isinstance(cmd, basestring):

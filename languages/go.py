@@ -10,6 +10,7 @@ class Golang(Linter):
 	regex = r'.+?:(?P<line>\d+): (?P<error>.+)'
 
 	def communicate(self, cmd, code):
+		posix = (os.name == 'posix')
 		if not self.filename:
 			tools = self.popen(('go', 'tool')).communicate()[0].split('\n')
 			for compiler in ('6g', '8g'):
@@ -27,20 +28,18 @@ class Golang(Linter):
 			cmds = out[0]
 			for line in cmds.split('\n'):
 				if line:
-					compiler = shlex.split(line)[0]
-					if not compiler: continue
-
-					compiler = os.path.split(compiler)[1]
-					if not compiler: continue
-
-					compiler = os.path.splitext(compiler)[0]
+					compiler = os.path.splitext(
+						os.path.split(
+							shlex.split(line, posix=posix)[0]
+						)[1]
+					)[0]
 
 					if compiler in ('6g', '8g'):
 						break
 			else:
 				return
 
-			args = shlex.split(line)
+			args = shlex.split(line, posix=posix)
 			files = [arg for arg in args if arg.startswith(('./', '.\\'))]
 
 			answer = self.tmpdir(cmd, files, code)

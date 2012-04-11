@@ -10,13 +10,14 @@ Supports the following languages:
 NOTE: the following languages may require you to install additional binaries and place them within your PATH (environment variable)
 
 * Coffescript - validation via "coffee --compile"
+* Go - validation via "go build" in a temporary folder
 * Java - validation via "java -Xlint" and a temporary file
 * JavaScript - linting via JSLint command-line "jsl"
 * PHP - syntax checking via "php -l"
 * Perl - syntax+deprecation checking via "perl -c"
 * Ruby - syntax checking via "ruby -wc"
 
-It's incredibly easy to add your own Linter. Take a look at `languages/extras.py` and `languages/python.py` for some examples.
+It's incredibly easy to add your own Linter. Take a look at `languages/extras.py`, `languages/python.py`, and `languages/go.py` for some examples.
 
 Installing
 -----

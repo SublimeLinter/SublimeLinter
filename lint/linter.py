@@ -24,7 +24,7 @@ class Linter:
 	languages = {}
 	linters = {}
 
-	def __init__(self, view, syntax, filename='untitled'):
+	def __init__(self, view, syntax, filename=None):
 		self.view = view
 		self.syntax = syntax
 		self.filename = filename
@@ -69,7 +69,7 @@ class Linter:
 			linters = set()
 			for name, entry in cls.languages.items():
 				if entry.can_lint(syntax):
-					linter = entry(view, syntax)
+					linter = entry(view, syntax, view.file_name())
 					linters.add(linter)
 
 			if linters:
@@ -91,7 +91,7 @@ class Linter:
 			for linter in linters:
 				if linter.__module__ == mod:
 					cls.linters[id].remove(linter)
-					linter = cls.languages[linter.name](linter.view, linter.syntax)
+					linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
 					cls.linters[id].add(linter)
 
 		return

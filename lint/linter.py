@@ -143,13 +143,18 @@ class Linter:
 					if row or row is 0:
 						if col or col is 0:
 							# adjust column numbers to match the linter's tabs if necessary
-							if self.tab_size != 1:
-								code_line = self.highlight.full_line(row)
-								for char in code_line[:col]:
-									if char == '\t':
-										if self.tab_size > 0:
-											col -= self.tab_size + 1
-							
+							if self.tab_size > 1:
+								start, end = self.highlight.full_line(row)
+								code_line = code[start:end]
+								diff = 0
+								for i in xrange(len(code_line)):
+									if code_line[i] == '\t':
+										diff += (self.tab_size - 1)
+
+									if col - diff <= i:
+										col = i
+										break
+
 							self.highlight.range(row, col)
 						elif near:
 							self.highlight.near(row, near)
@@ -199,7 +204,7 @@ class Linter:
 
 			row = int(row) - 1
 			if col:
-				col = int(col)
+				col = int(col) - 1
 
 			return match, row, col, error, near
 

@@ -23,7 +23,7 @@ class Highlight:
 
 	def full_line(self, line):
 		a, b = self.newlines[line:line+2]
-		return a, b
+		return a, b + 1
 
 	def range(self, line, pos, length=1):
 		self.lines.add(line)

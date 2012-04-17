@@ -26,6 +26,7 @@ class Highlight:
 		return a, b
 
 	def range(self, line, pos, length=1):
+		self.lines.add(line)
 		a, b = self.full_line(line)
 		pos += a
 

@@ -189,7 +189,8 @@ class Linter:
 			error, row, col, near = [items[k] for k in ('error', 'line', 'col', 'near')]
 
 			row = int(row) - 1
-			return match, row, col, error, near
+			# TODO: columns wrt spaces vs tabs
+			return match, row, int(col), error, near
 
 		return match, None, None, '', None
 

@@ -21,15 +21,15 @@ class Linter:
 	language = ''
 	cmd = ()
 	regex = ''
+	tab_size = 1
 
 	languages = {}
 	linters = {}
 
-	def __init__(self, view, syntax, filename=None, tab_size=None):
+	def __init__(self, view, syntax, filename=None):
 		self.view = view
 		self.syntax = syntax
 		self.filename = filename
-		self.tab_size = tab_size
 
 		if self.regex:
 			self.regex = re.compile(self.regex)
@@ -93,7 +93,7 @@ class Linter:
 			for linter in linters:
 				if linter.__module__ == mod:
 					cls.linters[id].remove(linter)
-					linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename, linter.tab_size)
+					linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
 					cls.linters[id].add(linter)
 
 		return
@@ -103,12 +103,11 @@ class Linter:
 		return view.substr(sublime.Region(0, view.size())).encode('utf-8')
 
 	@classmethod
-	def lint_view(cls, view_id, filename, tab_size, code, callback):
+	def lint_view(cls, view_id, filename, code, callback):
 		if view_id in cls.linters:
 			linters = tuple(cls.linters[view_id])
 			for linter in linters:
 				linter.filename = filename
-				linter.tab_size = tab_size
 				linter.lint(code)
 
 			# merge our result back to the main thread
@@ -143,11 +142,13 @@ class Linter:
 				if match:
 					if row or row is 0:
 						if col or col is 0:
-							# expand tab characters in column number
-							code_line = self.highlight.full_line(row)
-							for char in code_line[:col]:
-								if char == '\t':
-									col += self.tab_size - 1
+							# adjust column numbers to match the linter's tabs if necessary
+							if tab_size != 1:
+								code_line = self.highlight.full_line(row)
+								for char in code_line[:col]:
+									if char == '\t':
+										if tab_size > 0:
+											col -= self.tab_size + 1
 							
 							self.highlight.range(row, col)
 						elif near:

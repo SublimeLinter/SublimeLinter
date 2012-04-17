@@ -223,6 +223,9 @@ class Linter:
 		return env
 
 	def tmpfile(self, cmd, code, suffix=''):
+		if isinstance(cmd, basestring):
+			cmd = cmd,
+		
 		f = tempfile.NamedTemporaryFile(suffix=suffix)
 		f.write(code)
 		f.flush()

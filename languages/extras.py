@@ -15,8 +15,8 @@ class Java(Linter):
 	def communicate(self, *args):
 		return self.tmpfile(*args, suffix='.java')
 
-	def popen(self, cmd):
-		return super(Java, self).popen(cmd)
+	def popen(self, cmd, env=None):
+		return super(Java, self).popen(cmd, env)
 
 class JavaScript(Linter):
 	language = 'javascript'

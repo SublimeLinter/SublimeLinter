@@ -143,11 +143,11 @@ class Linter:
 					if row or row is 0:
 						if col or col is 0:
 							# adjust column numbers to match the linter's tabs if necessary
-							if tab_size != 1:
+							if self.tab_size != 1:
 								code_line = self.highlight.full_line(row)
 								for char in code_line[:col]:
 									if char == '\t':
-										if tab_size > 0:
+										if self.tab_size > 0:
 											col -= self.tab_size + 1
 							
 							self.highlight.range(row, col)

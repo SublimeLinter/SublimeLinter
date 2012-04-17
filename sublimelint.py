@@ -63,6 +63,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
 		highlight.draw(view)
 		persist.errors[view.id()] = errors
+		self.on_selection_modified(view)
 
 	# helpers
 
@@ -127,12 +128,23 @@ class SublimeLint(sublime_plugin.EventListener):
 	def on_selection_modified(self, view):
 		vid = view.id()
 		lineno = view.rowcol(view.sel()[0].end())[0]
-		if vid in persist.errors and lineno in persist.errors[vid]:
-			try: # workaround for issue #18
-				view.set_status('sublimelint', '; '.join(persist.errors[vid][lineno]))
-			except:
-				view.erase_status('sublimelint')
-		else:
-			view.erase_status('sublimelint')
+
+		view.erase_status('sublimelint')
+		if vid in persist.errors:
+			errors = persist.errors[vid]
+			if errors:
+				plural = 's' if len(errors) > 1 else ''
+				if lineno in errors:
+					status = ''
+					if plural:
+						num = sorted(list(errors)).index(lineno) + 1
+						status += '%i/%i errors: ' % (num, len(errors))
+
+					# sublime statusbar can't hold unicode
+					status += '; '.join(errors[lineno]).encode('ascii', 'replace')
+				else:
+					status = '%i error%s' % (len(errors), plural)
+
+				view.set_status('sublimelint', status)
 
 		persist.queue.delay()

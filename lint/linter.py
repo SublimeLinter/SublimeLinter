@@ -34,6 +34,8 @@ class Linter:
 		if self.regex:
 			self.regex = re.compile(self.regex)
 
+		self.highlight = Highlight()
+
 	@classmethod
 	def add_subclass(cls, sub, name, attrs):
 		if name:
@@ -46,14 +48,15 @@ class Linter:
 		find a linter for a specified view if possible, then add it to our mapping of view <--> lint class and return it
 		each view has its own linter to make it feasible for linters to store persistent data about a view
 		'''
-		id = view.id()
+		try:
+			vid = view.id()
+		except RuntimeError:
+			pass
 
 		settings = view.settings()
 		syn = settings.get('syntax')
 		if not syn:
-			if id in cls.linters:
-				del cls.linters[id]
-
+			cls.remove(vid)
 			return
 
 		match = syntax_re.search(syn)
@@ -64,8 +67,8 @@ class Linter:
 			syntax = syn
 
 		if syntax:
-			if id in cls.linters and cls.linters[id]:
-				if tuple(cls.linters[id])[0].syntax == syntax:
+			if vid in cls.linters and cls.linters[vid]:
+				if tuple(cls.linters[vid])[0].syntax == syntax:
 					return
 
 			linters = set()
@@ -75,14 +78,18 @@ class Linter:
 					linters.add(linter)
 
 			if linters:
-				cls.linters[id] = linters
-			else:
-				if id in cls.linters:
-					del cls.linters[id]
+				cls.linters[vid] = linters
+				return linters
 
-			return linters
+		cls.remove(vid)
 
-		del cls.linters[id]
+	@classmethod
+	def remove(cls, vid):
+		if vid in cls.linters:
+			for linter in cls.linters[vid]:
+				linter.clear()
+
+			del cls.linters[vid]
 
 	@classmethod
 	def reload(cls, mod):

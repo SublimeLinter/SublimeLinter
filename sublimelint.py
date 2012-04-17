@@ -29,7 +29,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		self.loaded = set()
 		self.linted = set()
 		self.modules = Modules(cwd, 'languages').load_all()
-		self.pending_on_change = set()
+		self.last_syntax = {}
 		persist.queue.start(self.lint)
 
 		# this gives us a chance to lint the active view on fresh install
@@ -72,14 +72,29 @@ class SublimeLint(sublime_plugin.EventListener):
 		
 		persist.queue.hit(view)
 
+	def check_syntax(self, view, lint=False):
+		vid = view.id()
+		syntax = view.settings().get('syntax')
+
+		# syntax either has never been set or just changed
+		if not vid in self.last_syntax or self.last_syntax[vid] != syntax:
+			self.last_syntax[vid] = syntax
+
+			# assign a linter, then maybe trigger a lint if we get one
+			if Linter.assign(view) and lint:
+				self.hit(view)
+
 	# callins
 	def on_modified(self, view):
+		self.check_syntax(view)
 		self.hit(view)
 	
 	def on_load(self, view):
 		self.on_new(view)
 
 	def on_activated(self, view):
+		sublime.set_timeout(lambda: self.check_syntax(view, True), 50)
+		
 		view_id = view.id()
 		if not view_id in self.linted:
 			if not view_id in self.loaded:
@@ -90,26 +105,10 @@ class SublimeLint(sublime_plugin.EventListener):
 			self.hit(view)
 
 	def on_new(self, view):
-		self.loaded.add(view.id())
-		
+		vid = view.id()
+		self.loaded.add(vid)
+		self.last_syntax[vid] = view.settings().get('syntax')
 		Linter.assign(view)
-		settings = view.settings()
-		syntax = settings.get('syntax')
-		def on_change():
-			# weird, the recursion bug seems to only be happening on one untitled view?
-			if view.id() in self.pending_on_change:
-				return
-
-			try:
-				self.pending_on_change.add(view.id())
-				if settings.get('syntax') != syntax:
-					Linter.assign(view)
-
-			finally:
-				self.pending_on_change.remove(view.id())
-
-		settings.clear_on_change('lint-syntax')
-		settings.add_on_change('lint-syntax', on_change)
 
 	def on_post_save(self, view):
 		# this will reload submodules if they are saved with sublime text

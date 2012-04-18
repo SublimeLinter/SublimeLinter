@@ -27,11 +27,12 @@ class HighlightSet:
 class Highlight:
 	def __init__(self, code='',
 			draw_type=sublime.DRAW_EMPTY_AS_OVERWRITE|sublime.DRAW_OUTLINED,
-			scope='keyword'):
+			scope='keyword', outline=True):
 
 		self.code = code
 		self.draw_type = draw_type
 		self.scope = scope
+		self.outline = outline
 		self.underlines = []
 		self.lines = set()
 
@@ -51,7 +52,8 @@ class Highlight:
 		return a, b + 1
 
 	def range(self, line, pos, length=1):
-		self.lines.add(line)
+		if self.outline:
+			self.lines.add(line)
 		a, b = self.full_line(line)
 		pos += a
 
@@ -59,7 +61,8 @@ class Highlight:
 			self.underlines.append(sublime.Region(pos + i))
 
 	def regex(self, line, regex, word_match=None, line_match=None):
-		self.lines.add(line)
+		if self.outline:
+			self.lines.add(line)
 		offset = 0
 
 		a, b = self.full_line(line)
@@ -82,7 +85,8 @@ class Highlight:
 			self.range(line, start+offset, end-start)
 
 	def near(self, line, near):
-		self.lines.add(line)
+		if self.outline:
+			self.lines.add(line)
 		a, b = self.full_line(line)
 		text = self.code[a:b]
 
@@ -91,14 +95,15 @@ class Highlight:
 			self.range(line, start, len(near))
 
 	def update(self, other):
-		self.lines.update(other.lines)
+		if self.outline:
+			self.lines.update(other.lines)
 		self.underlines.extend(other.underlines)
 
 	def draw(self, view, prefix='lint'):
 		if self.underlines:
 			view.add_regions('%s-%s-underline' % (prefix, self.scope), self.underlines, self.scope, self.draw_type)
 		
-		if self.lines:
+		if self.lines and self.outline:
 			outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
 			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, self.scope, self.draw_type)
 
@@ -107,4 +112,5 @@ class Highlight:
 		view.erase_regions('%s-%s-outline' % (prefix, self.scope))
 
 	def line(self, line):
-		self.lines.add(line)
+		if self.outline:
+			self.lines.add(line)

@@ -8,20 +8,12 @@
 
 from _pyflakes import check, messages, OffsetError, PythonError
 from lint.linter import Linter
-from lint.highlight import Highlight
 
 class Python(Linter):
 	language = 'python'
 
-	def lint(self, code=None):
-		self.highlight = Highlight(code, scope=self.scope)
-		self.errors = {}
-
-		if code is None:
-			code = Linter.text(self.view)
-
-		if code:
-			self.check(code)
+	def lint(self, code):
+		self.check(code)
 
 	def check(self, code, filename='untitled'):
 		stripped_lines = []

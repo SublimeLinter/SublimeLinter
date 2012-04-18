@@ -7,6 +7,8 @@ import sublime
 import re
 import persist
 
+from Queue import Queue
+
 from highlight import Highlight
 
 syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
@@ -22,10 +24,13 @@ class Linter:
 	cmd = ()
 	regex = ''
 	tab_size = 1
+	
+	scope = 'keyword'
+	outline = True
+	needs_api = False
 
 	languages = {}
 	linters = {}
-	scope = 'keyword'
 
 	def __init__(self, view, syntax, filename=None):
 		self.view = view
@@ -118,7 +123,7 @@ class Linter:
 			linters = tuple(cls.linters[view_id])
 			for linter in linters:
 				linter.filename = filename
-				linter.lint(code)
+				linter.pre_lint(code)
 
 			# merge our result back to the main thread
 			sublime.set_timeout(lambda: callback(linters[0].view, linters), 0)
@@ -135,17 +140,29 @@ class Linter:
 
 		return ()
 
-	def lint(self, code=None):
+	def pre_lint(self, code):
+		self.errors = {}
+		self.highlight = Highlight(code, scope=self.scope, outline=self.outline)
+		if not code: return
+		
+		# if this linter needs the api, we want to merge back into the main thread
+		# but stall this thread until it's done so we still have the return
+		if self.needs_api:
+			q = Queue()
+			def callback():
+				q.get()
+				self.lint()
+				q.task_done()
+
+			q.put(1)
+			sublime.set_timeout(callback, 1)
+			q.join()
+		else:
+			self.lint(code)
+
+	def lint(self, code):
 		if not (self.language and self.cmd and self.regex):
 			raise NotImplementedError
-
-		if code is None:
-			code = Linter.text(self.view)
-
-		self.highlight = Highlight(code, scope=self.scope)
-		self.errors = errors = {}
-
-		if not code: return
 
 		output = self.communicate(self.cmd, code)
 		if output:
@@ -177,10 +194,7 @@ class Linter:
 						else:
 							self.highlight.line(row)
 
-					if row in errors:
-						errors[row].append(message)
-					else:
-						errors[row] = [message]
+					self.error(row, message)
 
 	def draw(self, prefix='lint'):
 		self.highlight.draw(self.view, prefix)

@@ -14,7 +14,7 @@ class Python(Linter):
 	language = 'python'
 
 	def lint(self, code=None):
-		self.highlight = Highlight(code)
+		self.highlight = Highlight(code, scope=self.scope)
 		self.errors = {}
 
 		if code is None:

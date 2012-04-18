@@ -25,6 +25,7 @@ class Linter:
 
 	languages = {}
 	linters = {}
+	scope = 'keyword'
 
 	def __init__(self, view, syntax, filename=None):
 		self.view = view
@@ -34,7 +35,7 @@ class Linter:
 		if self.regex:
 			self.regex = re.compile(self.regex)
 
-		self.highlight = Highlight()
+		self.highlight = Highlight(scope=self.scope)
 
 	@classmethod
 	def add_subclass(cls, sub, name, attrs):
@@ -99,9 +100,11 @@ class Linter:
 		for id, linters in cls.linters.items():
 			for linter in linters:
 				if linter.__module__ == mod:
+					linter.clear()
 					cls.linters[id].remove(linter)
 					linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
 					cls.linters[id].add(linter)
+					linter.draw()
 
 		return
 
@@ -125,6 +128,12 @@ class Linter:
 		if view_id in self.linters:
 			return tuple(self.linters[view_id])[0].view
 
+	@classmethod
+	def get_linters(self, view_id):
+		if view_id in self.linters:
+			return tuple(self.linters[view_id])
+
+		return ()
 
 	def lint(self, code=None):
 		if not (self.language and self.cmd and self.regex):
@@ -133,7 +142,7 @@ class Linter:
 		if code is None:
 			code = Linter.text(self.view)
 
-		self.highlight = Highlight(code)
+		self.highlight = Highlight(code, scope=self.scope)
 		self.errors = errors = {}
 
 		if not code: return

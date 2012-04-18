@@ -13,7 +13,7 @@ import thread
 
 from lint.modules import Modules
 from lint.linter import Linter
-from lint.highlight import Highlight
+from lint.highlight import HighlightSet
 import lint.persist as persist
 
 default_user_settings = '''{
@@ -57,14 +57,14 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	def finish(self, view, linters):
 		errors = {}
-		highlight = Highlight()
-		linters[0].clear()
+		highlights = HighlightSet()
 
 		for linter in linters:
-			highlight.update(linter.highlight)
+			highlights.add(linter.highlight)
 			errors.update(linter.errors)
 
-		highlight.draw(view)
+		highlights.clear(view)
+		highlights.draw(view)
 		persist.errors[view.id()] = errors
 		self.on_selection_modified(view)
 
@@ -72,7 +72,11 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	def hit(self, view):
 		self.linted.add(view.id())
-		if view.size() == 0: return
+		if view.size() == 0:
+			for l in Linter.get_linters(view.id()):
+				l.clear()
+			
+			return
 		
 		persist.queue.hit(view)
 

@@ -5,7 +5,7 @@ from lint import persist
 def error_command(f):
 	def run(self, edit, **kwargs):
 		vid = self.view.id()
-		if vid in persist.errors:
+		if vid in persist.errors and persist.errors[vid]:
 			f(self, self.view, persist.errors[vid], **kwargs)
 
 	return run

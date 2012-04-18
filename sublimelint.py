@@ -16,6 +16,10 @@ from lint.linter import Linter
 from lint.highlight import Highlight
 import lint.persist as persist
 
+default_user_settings = '''{
+	"debug": false
+}
+'''
 cwd = os.getcwd()
 
 class SublimeLint(sublime_plugin.EventListener):
@@ -105,6 +109,13 @@ class SublimeLint(sublime_plugin.EventListener):
 			self.hit(view)
 
 	def on_new(self, view):
+		# handle new user preferences file
+		if view.file_name() and os.path.split(view.file_name())[1] == 'SublimeLint.sublime-settings':
+			if view.size() == 0:
+				edit = view.begin_edit()
+				view.insert(edit, 0, default_user_settings)
+				view.end_edit(edit)
+
 		vid = view.id()
 		self.loaded.add(vid)
 		self.last_syntax[vid] = view.settings().get('syntax')

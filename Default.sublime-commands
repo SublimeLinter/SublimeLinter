@@ -12,5 +12,17 @@
         {
             "file": "${packages}/User/SublimeLint.sublime-settings"
         }
+    },
+    {
+        "caption": "SublimeLint: Show All Errors",
+        "command": "sublimelint_all_errors"
+    },
+    {
+        "caption": "SublimeLint: Next Error",
+        "command": "sublimelint_next_error"
+    },
+    {
+        "caption": "SublimeLint: Previous Error",
+        "command": "sublimelint_next_error", "args": {"direction": -1}
     }
 ]

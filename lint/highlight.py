@@ -36,6 +36,9 @@ class Highlight:
 		self.underlines = []
 		self.lines = set()
 
+		self.line_offset = 0
+		self.char_offset = 0
+
 		# find all the newlines, so we can look for line positions
 		# without merging back into the main thread for APIs
 		self.newlines = newlines = [0]
@@ -52,17 +55,15 @@ class Highlight:
 		return a, b + 1
 
 	def range(self, line, pos, length=1):
-		if self.outline:
-			self.lines.add(line)
+		self.line(line)
 		a, b = self.full_line(line)
 		pos += a
 
 		for i in xrange(length):
-			self.underlines.append(sublime.Region(pos + i))
+			self.underlines.append(sublime.Region(pos + i + self.char_offset))
 
 	def regex(self, line, regex, word_match=None, line_match=None):
-		if self.outline:
-			self.lines.add(line)
+		self.line(line)
 		offset = 0
 
 		a, b = self.full_line(line)
@@ -85,8 +86,7 @@ class Highlight:
 			self.range(line, start+offset, end-start)
 
 	def near(self, line, near):
-		if self.outline:
-			self.lines.add(line)
+		self.line(line)
 		a, b = self.full_line(line)
 		text = self.code[a:b]
 
@@ -101,7 +101,8 @@ class Highlight:
 
 	def draw(self, view, prefix='lint'):
 		if self.underlines:
-			view.add_regions('%s-%s-underline' % (prefix, self.scope), self.underlines, self.scope, self.draw_type)
+			underlines = [sublime.Region(u.a, u.b) for u in self.underlines]
+			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, self.scope, self.draw_type)
 		
 		if self.lines and self.outline:
 			outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
@@ -113,4 +114,8 @@ class Highlight:
 
 	def line(self, line):
 		if self.outline:
-			self.lines.add(line)
+			self.lines.add(line + self.line_offset)
+
+	def shift(self, line, char):
+		self.line_offset = line
+		self.char_offset = char

@@ -49,19 +49,30 @@ class SublimeLint(sublime_plugin.EventListener):
 	def lint(self, view_id):
 		view = Linter.get_view(view_id)
 
+		sections = {}
+		for sel, _ in Linter.get_selectors(view_id):
+			sections[sel] = []
+			for result in view.find_by_selector(sel):
+				sections[sel].append(
+					(view.rowcol(result.a)[0], result.a, result.b)
+				)
+
 		if view is not None:
 			filename = view.file_name()
 			persist.debug('SublimeLint: running on `%s`' % os.path.split(filename or 'untitled')[1])
 			code = Linter.text(view)
-			thread.start_new_thread(Linter.lint_view, (view_id, filename, code, self.finish))
+			thread.start_new_thread(Linter.lint_view, (view_id, filename, code, sections, self.finish))
 
 	def finish(self, view, linters):
 		errors = {}
 		highlights = HighlightSet()
 
 		for linter in linters:
-			highlights.add(linter.highlight)
-			errors.update(linter.errors)
+			if linter.highlight:
+				highlights.add(linter.highlight)
+				
+			if linter.errors:
+				errors.update(linter.errors)
 
 		highlights.clear(view)
 		highlights.draw(view)

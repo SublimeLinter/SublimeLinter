@@ -26,11 +26,14 @@ class Linter:
 	tab_size = 1
 	
 	scope = 'keyword'
+	selector = None
 	outline = True
 	needs_api = False
 
 	languages = {}
 	linters = {}
+	errors = None
+	highlight = None
 
 	def __init__(self, view, syntax, filename=None):
 		self.view = view
@@ -118,31 +121,52 @@ class Linter:
 		return view.substr(sublime.Region(0, view.size())).encode('utf-8')
 
 	@classmethod
-	def lint_view(cls, view_id, filename, code, callback):
+	def lint_view(cls, view_id, filename, code, sections, callback):
 		if view_id in cls.linters:
+			selectors = Linter.get_selectors(view_id)
+
 			linters = tuple(cls.linters[view_id])
 			for linter in linters:
-				linter.filename = filename
-				linter.pre_lint(code)
+				if not linter.selector:
+					linter.filename = filename
+					linter.pre_lint(code)
+
+			for sel, linter in selectors:
+				if sel in sections:
+					highlight = Highlight(code, scope=linter.scope, outline=linter.outline)
+					for line_offset, left, right in sections[sel]:
+						highlight.shift(line_offset, left)
+						linter.pre_lint(code[left:right], highlight=highlight)
+
+						tmp = {}
+						for line, error in linter.errors.items():
+							tmp[line+line_offset] = error
+
+						linter.errors = tmp
 
 			# merge our result back to the main thread
 			sublime.set_timeout(lambda: callback(linters[0].view, linters), 0)
 
 	@classmethod
-	def get_view(self, view_id):
-		if view_id in self.linters:
-			return tuple(self.linters[view_id])[0].view
+	def get_view(cls, view_id):
+		if view_id in cls.linters:
+			return tuple(cls.linters[view_id])[0].view
 
 	@classmethod
-	def get_linters(self, view_id):
-		if view_id in self.linters:
-			return tuple(self.linters[view_id])
+	def get_linters(cls, view_id):
+		if view_id in cls.linters:
+			return tuple(cls.linters[view_id])
 
 		return ()
 
-	def pre_lint(self, code):
+	@classmethod
+	def get_selectors(cls, view_id):
+		return [(linter.selector, linter) for linter in cls.get_linters(view_id) if linter.selector]
+
+	def pre_lint(self, code, highlight=None):
 		self.errors = {}
-		self.highlight = Highlight(code, scope=self.scope, outline=self.outline)
+		self.highlight = highlight or Highlight(code, scope=self.scope, outline=self.outline)
+
 		if not code: return
 		
 		# if this linter needs the api, we want to merge back into the main thread
@@ -151,7 +175,7 @@ class Linter:
 			q = Queue()
 			def callback():
 				q.get()
-				self.lint()
+				self.lint(code)
 				q.task_done()
 
 			q.put(1)

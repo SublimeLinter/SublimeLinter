@@ -134,15 +134,16 @@ class Linter:
 			for sel, linter in selectors:
 				if sel in sections:
 					highlight = Highlight(code, scope=linter.scope, outline=linter.outline)
+					errors = {}
+
 					for line_offset, left, right in sections[sel]:
 						highlight.shift(line_offset, left)
 						linter.pre_lint(code[left:right], highlight=highlight)
 
-						tmp = {}
 						for line, error in linter.errors.items():
-							tmp[line+line_offset] = error
+							errors[line+line_offset] = error
 
-						linter.errors = tmp
+					linter.errors = errors
 
 			# merge our result back to the main thread
 			sublime.set_timeout(lambda: callback(linters[0].view, linters), 0)

@@ -37,9 +37,11 @@ class SublimeLint(sublime_plugin.EventListener):
 		persist.queue.start(self.lint)
 
 		# this gives us a chance to lint the active view on fresh install
-		sublime.set_timeout(
-			lambda: self.on_activated(sublime.active_window().active_view()), 100
-		)
+		window = sublime.active_window()
+		if window:
+			sublime.set_timeout(
+				lambda: self.on_activated(window.active_view()), 100
+			)
 
 		self.start = time.time()
 

@@ -1,11 +1,7 @@
-import subprocess
-import os
-import shutil
-import tempfile
-
 import sublime
 import re
 import persist
+import util
 
 from Queue import Queue
 
@@ -265,97 +261,15 @@ class Linter:
 
 		return match, None, None, '', None
 
-	# popen methods
+	# popen wrappers
 	def communicate(self, cmd, code):
-		out = self.popen(cmd)
-		if out is not None:
-			out = out.communicate(code)
-			return (out[0] or '') + (out[1] or '')
-		else:
-			return ''
-
-	def create_environment(self):
-		env = os.environ
-		if os.name == 'posix':
-			# find PATH using shell --login
-			if 'SHELL' in env and env['SHELL'] in ('/bin/bash', ):
-				shell = (env['SHELL'], '--login', '-c', 'echo _SUBL_ $PATH')
-				path = self.popen(shell, env).communicate()[0]
-				env['PATH'] = path.split('_SUBL_ ', 1)[1].split('\n', 1)[0]
-			# guess PATH
-			else:
-				for path in (
-					'/usr/bin', '/usr/local/bin',
-					'/usr/local/php/bin', '/usr/local/php5/bin'
-							):
-					if not path in env['PATH']:
-						env['PATH'] += (':' + path)
-
-		return env
+		return util.communicate(cmd, code)
 
 	def tmpfile(self, cmd, code, suffix=''):
-		if isinstance(cmd, basestring):
-			cmd = cmd,
-
-		f = tempfile.NamedTemporaryFile(suffix=suffix)
-		f.write(code)
-		f.flush()
-
-		cmd = tuple(cmd) + (f.name,)
-		out = self.popen(cmd)
-		if out:
-			out = out.communicate('')
-			return (out[0] or '') + (out[1] or '')
-		else:
-			return ''
+		return util.tmpfile(cmd, code, suffix)
 
 	def tmpdir(self, cmd, files, code):
-		filename = os.path.split(self.filename)[1]
-		d = tempfile.mkdtemp()
-
-		for f in files:
-			try: os.makedirs(os.path.split(f)[0])
-			except: pass
-
-			target = os.path.join(d, f)
-			if os.path.split(target)[1] == filename:
-				# source file hasn't been saved since change, so update it from our live buffer
-				f = open(target, 'wb')
-				f.write(code)
-				f.close()
-			else:
-				shutil.copyfile(f, target)
-
-		os.chdir(d)
-		out = self.popen(cmd).communicate()
-		out = (out[0] or '') + '\n' + (out[1] or '')
-
-		shutil.rmtree(d, True)
-
-		# filter results from build to just this filename
-		# no guarantee all languages are as nice about this as Go
-		# may need to improve later or just defer to communicate()
-		return '\n'.join([
-			line for line in out.split('\n') if filename in line.split(':', 1)[0]
-		])
+		return util.tmpdir(cmd, files, self.filename, code)
 
 	def popen(self, cmd, env=None):
-		if isinstance(cmd, basestring):
-			cmd = cmd,
-
-		info = None
-		if os.name == 'nt':
-			info = subprocess.STARTUPINFO()
-			info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-			info.wShowWindow = subprocess.SW_HIDE
-
-		if env is None:
-			env = self.create_environment()
-
-		try:
-			return subprocess.Popen(cmd, stdin=subprocess.PIPE,
-				stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-				startupinfo=info, env=env)
-		except OSError, err:
-			persist.debug('SublimeLint: Error launching', repr(cmd))
-			persist.debug('Error was:', err.strerror)
+		return util.popen(cmd, env)

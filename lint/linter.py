@@ -231,7 +231,7 @@ class Linter:
 		if cls.language:
 			if language == cls.language:
 				return True
-			elif language in cls.language:
+			elif isinstance(cls.language, (tuple, list)) and language in cls.language:
 				return True
 			else:
 				return False

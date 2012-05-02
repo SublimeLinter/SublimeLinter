@@ -13,6 +13,7 @@ NOTE: the following languages may require you to install additional binaries and
 * Go - validation via "go build" in a temporary folder
 * Java - validation via "java -Xlint" and a temporary file
 * JavaScript - linting via JSLint command-line "jsl"
+* NASM - validation via "nasm" and a temporary file
 * PHP - syntax checking via "php -l"
 * Perl - syntax+deprecation checking via "perl -c"
 * Ruby - syntax checking via "ruby -wc"

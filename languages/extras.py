@@ -1,6 +1,7 @@
 # extras.py - sublimelint plugin for simple external linters
 
 from lint.linter import Linter
+import os
 
 class Coffee(Linter):
 	language = 'coffeescript'
@@ -22,6 +23,14 @@ class JavaScript(Linter):
 	language = 'javascript'
 	cmd = ('jsl', '-stdin')
 	regex = r'^\((?P<line>\d+)\):\s+(?P<error>.+)'
+
+class Nasm(Linter):
+	language = 'x86 assembly'
+	cmd = ('nasm', '-X', 'gnu', '-f', 'elf', '-I.', '-o', os.devnull)
+	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
+
+	def communicate(self, *args):
+		return self.tmpfile(*args, suffix='.asm')
 
 class Perl(Linter):
 	language = 'perl'

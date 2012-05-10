@@ -152,25 +152,28 @@ class SublimeLint(sublime_plugin.EventListener):
 		# self.hit(view)
 	
 	def on_selection_modified(self, view):
-		vid = view.id()
-		lineno = view.rowcol(view.sel()[0].end())[0]
+		def defer():
+			vid = view.id()
+			lineno = view.rowcol(view.sel()[0].end())[0]
 
-		view.erase_status('sublimelint')
-		if vid in persist.errors:
-			errors = persist.errors[vid]
-			if errors:
-				plural = 's' if len(errors) > 1 else ''
-				if lineno in errors:
-					status = ''
-					if plural:
-						num = sorted(list(errors)).index(lineno) + 1
-						status += '%i/%i errors: ' % (num, len(errors))
+			view.erase_status('sublimelint')
+			if vid in persist.errors:
+				errors = persist.errors[vid]
+				if errors:
+					plural = 's' if len(errors) > 1 else ''
+					if lineno in errors:
+						status = ''
+						if plural:
+							num = sorted(list(errors)).index(lineno) + 1
+							status += '%i/%i errors: ' % (num, len(errors))
 
-					# sublime statusbar can't hold unicode
-					status += '; '.join(errors[lineno]).encode('ascii', 'replace')
-				else:
-					status = '%i error%s' % (len(errors), plural)
+						# sublime statusbar can't hold unicode
+						status += '; '.join(errors[lineno]).encode('ascii', 'replace')
+					else:
+						status = '%i error%s' % (len(errors), plural)
 
-				view.set_status('sublimelint', status)
+					view.set_status('sublimelint', status)
 
-		persist.queue.delay()
+			persist.queue.delay()
+
+		sublime.set_timeout(defer, 1);

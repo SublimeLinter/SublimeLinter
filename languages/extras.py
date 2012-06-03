@@ -21,6 +21,14 @@ class JavaScript(Linter):
 	cmd = ('jsl', '-stdin')
 	regex = r'^\((?P<line>\d+)\):\s+(?P<error>.+)'
 
+class Lua(Linter):
+	language = 'lua'
+	cmd = ('luac', '-p')
+	regex = '^luac: [^:]+:(?P<line>\d+): (?P<error>.+?)(?P<near> near .+)?'
+
+	def communicate(self, cmd, code):
+		return self.tmpfile(cmd, code, suffix='.lua')
+
 class Nasm(Linter):
 	language = 'x86 assembly'
 	cmd = ('nasm', '-X', 'gnu', '-I.', '-o', os.devnull)

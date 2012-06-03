@@ -23,11 +23,11 @@ class JavaScript(Linter):
 
 class Nasm(Linter):
 	language = 'x86 assembly'
-	cmd = ('nasm', '-X', 'gnu', '-f', 'elf', '-I.', '-o', os.devnull)
+	cmd = ('nasm', '-X', 'gnu', '-I.', '-o', os.devnull)
 	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
 
-	def communicate(self, *args):
-		return self.tmpfile(*args, suffix='.asm')
+	def communicate(self, cmd, code):
+		return self.tmpfile(cmd, code, suffix='.asm')
 
 class Perl(Linter):
 	language = 'perl'

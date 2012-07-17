@@ -17,26 +17,47 @@ def memoize(f):
 	wrap.__name__ = f.__name__
 	return wrap
 
+def extract_path(cmd, delim=':'):
+	path = popen(cmd, os.environ).communicate()[0]
+	path = path.split('__SUBL__', 1)[1].strip('\r\n')
+	return ':'.join(path.split(delim))
+
+def find_path(env):
+	# find PATH using shell --login
+	if 'SHELL' in env:
+		shell_path = env['SHELL']
+		shell = os.path.basename(shell_path)
+
+		if shell == 'bash':
+			return extract_path(
+				('bash', '--login', '-c', 'echo __SUBL__ $PATH')
+			)
+		elif shell == 'fish':
+			return extract_path(
+				(shell_path, '--login', '-c', 'echo __SUBL__; for p in $PATH; echo $p; end'),
+				'\n'
+			)
+		elif shell == 'zsh':
+			pass # TODO
+
+	# guess PATH if we haven't returned yet
+	split = env['PATH'].split(':')
+	p = env['PATH']
+	for path in (
+		'/usr/bin', '/usr/local/bin',
+		'/usr/local/php/bin', '/usr/local/php5/bin'
+				):
+		if not path in split:
+			p += (':' + path)
+
+	return p
+
 @memoize
 def create_environment():
-	env = os.environ
 	if os.name == 'posix':
-		# find PATH using shell --login
-		if 'SHELL' in env and env['SHELL'] in ('/bin/bash', ):
-			shell = (env['SHELL'], '--login', '-c', 'echo _SUBL_ $PATH')
-			path = popen(shell, env).communicate()[0]
-			env['PATH'] = path.split('_SUBL_ ', 1)[1].split('\n', 1)[0]
-		# guess PATH
-		else:
-			split = env['PATH'].split(':')
-			for path in (
-				'/usr/bin', '/usr/local/bin',
-				'/usr/local/php/bin', '/usr/local/php5/bin'
-						):
-				if not path in split:
-					env['PATH'] += (':' + path)
+		os.environ['PATH'] = find_path(os.environ)
 
-	return env
+	return os.environ
 
 # popen methods
 def communicate(cmd, code):

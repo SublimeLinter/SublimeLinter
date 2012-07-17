@@ -28,17 +28,15 @@ def find_path(env):
 		shell_path = env['SHELL']
 		shell = os.path.basename(shell_path)
 
-		if shell == 'bash':
+		if shell in ('bash', 'zsh'):
 			return extract_path(
-				('bash', '--login', '-c', 'echo __SUBL__ $PATH')
+				(shell_path, '--login', '-c', 'echo __SUBL__ $PATH')
 			)
 		elif shell == 'fish':
 			return extract_path(
 				(shell_path, '--login', '-c', 'echo __SUBL__; for p in $PATH; echo $p; end'),
 				'\n'
 			)
-		elif shell == 'zsh':
-			pass # TODO
 
 	# guess PATH if we haven't returned yet
 	split = env['PATH'].split(':')

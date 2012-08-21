@@ -68,8 +68,8 @@ class Python(Linter):
 
 				new = str(error)
 				if isinstance(error, messages.UndefinedLocal):
-					new = new.replace(
-						'local variable %r (referenced on line %r)'
+					new = (
+						'local variable %r (referenced on line %r) '
 						'assigned after first reference' % (
 							error.name, error.lineno + 1
 					))

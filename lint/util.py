@@ -11,8 +11,8 @@ def memoize(f):
 	def wrap(*args):
 		if not args in rets:
 			rets[args] = f(*args)
-		else:
-			return rets[args]
+
+		return rets[args]
 
 	wrap.__name__ = f.__name__
 	return wrap

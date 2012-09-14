@@ -30,7 +30,7 @@ def find_path(env):
 
 		if shell in ('bash', 'zsh'):
 			return extract_path(
-				(shell_path, '--login', '-c', 'echo __SUBL__ $PATH')
+				(shell_path, '--login', '-c', 'echo __SUBL__$PATH')
 			)
 		elif shell == 'fish':
 			return extract_path(

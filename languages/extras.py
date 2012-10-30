@@ -8,13 +8,14 @@ class Coffee(Linter):
 	cmd = ('coffee', '--compile', '--stdio')
 	regex = r'^[A-Za-z]+: (?P<error>.+) on line (?P<line>\d+)'
 
-class Java(Linter):
-	language = 'java'
-	cmd = ('javac', '-Xlint')
-	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
-
-	def communicate(self, *args):
-		return self.tmpfile(*args, suffix='.java')
+# this doesn't work very well with projects/imports
+# class Java(Linter):
+# 	language = 'java'
+# 	cmd = ('javac', '-Xlint')
+# 	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
+# 
+# 	def communicate(self, *args):
+# 		return self.tmpfile(*args, suffix='.java')
 
 class JavaScript(Linter):
 	language = 'javascript'

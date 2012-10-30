@@ -8,6 +8,18 @@ class Coffee(Linter):
 	cmd = ('coffee', '--compile', '--stdio')
 	regex = r'^[A-Za-z]+: (?P<error>.+) on line (?P<line>\d+)'
 
+class CSS(Linter):
+	language = 'css'
+	cmd = ('csslint',)
+	regex = (
+		r'^\d+: (?P<type>(error|warning)) at line (?P<line>\d+), col (?P<col>\d+)$\W'
+		r'^(?P<error>.*)$'
+	)
+	multiline = True
+
+	def communicate(self, cmd, code):
+		return self.tmpfile(cmd, code, suffix='.css')
+
 # this doesn't work very well with projects/imports
 # class Java(Linter):
 # 	language = 'java'

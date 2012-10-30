@@ -19,6 +19,7 @@ class Linter:
 	language = ''
 	cmd = ()
 	regex = ''
+	flags = 0
 	tab_size = 1
 	
 	scope = 'keyword'
@@ -37,7 +38,10 @@ class Linter:
 		self.filename = filename
 
 		if self.regex:
-			self.regex = re.compile(self.regex)
+			if self.multiline:
+				self.flags |= re.MULTILINE
+
+			self.regex = re.compile(self.regex, self.flags)
 
 		self.highlight = Highlight(scope=self.scope)
 
@@ -189,10 +193,7 @@ class Linter:
 		if output:
 			persist.debug('Output:', repr(output))
 
-			for line in output.splitlines():
-				line = line.strip()
-
-				match, row, col, message, near = self.match_error(self.regex, line)
+			for match, row, col, message, near in self.find_errors(output):
 				if match:
 					if row or row is 0:
 						if col or col is 0:
@@ -245,9 +246,19 @@ class Linter:
 		else:
 			self.errors[line] = [error]
 
-	def match_error(self, r, line):
-		match = r.match(line)
+	def find_errors(self, output):
+		if self.multiline:
+			errors = self.regex.finditer(output)
+			if errors:
+				for error in errors:
+					yield self.split_match(error)
+			else:
+				yield self.split_match(None)
+		else:
+			for line in output.splitlines():
+				yield self.match_error(self.regex, line.strip())
 
+	def split_match(self, match):
 		if match:
 			items = {'row':None, 'col':None, 'error':'', 'near':None}
 			items.update(match.groupdict())
@@ -260,6 +271,9 @@ class Linter:
 			return match, row, col, error, near
 
 		return match, None, None, '', None
+
+	def match_error(self, r, line):
+		return self.split_match(r.match(line))
 
 	# popen wrappers
 	def communicate(self, cmd, code):

@@ -20,6 +20,11 @@ class CSS(Linter):
 	def communicate(self, cmd, code):
 		return self.tmpfile(cmd, code, suffix='.css')
 
+class HAML(Linter):
+	language = 'ruby haml'
+	cmd = ('haml', '-c')
+	regex = r'^.*line (?P<line>\d+):\s*(?P<error>.+)$'
+
 # this doesn't work very well with projects/imports
 # class Java(Linter):
 # 	language = 'java'

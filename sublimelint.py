@@ -167,7 +167,7 @@ class SublimeLint(sublime_plugin.EventListener):
 						status += '%i/%i errors: ' % (num, len(errors))
 
 					# sublime statusbar can't hold unicode
-					status += '; '.join(errors[lineno]).encode('ascii', 'replace')
+					status += '; '.join(set(errors[lineno])).encode('ascii', 'replace')
 				else:
 					status = '%i error%s' % (len(errors), plural)
 

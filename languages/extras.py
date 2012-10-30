@@ -77,3 +77,8 @@ class Ruby(Linter):
 	language = 'ruby'
 	cmd = ('ruby', '-wc')
 	regex = r'^.+:(?P<line>\d+):\s+(?P<error>.+)'
+
+class XML(Linter):
+	language = 'xml'
+	cmd = ('xmllint', '-noout', '-')
+	regex = r'^.+:(?P<line>\d+):\s+(parser error : )?(?P<error>.+)'

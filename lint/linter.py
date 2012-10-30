@@ -19,6 +19,7 @@ class Linter:
 	language = ''
 	cmd = ()
 	regex = ''
+	multiline = False
 	flags = 0
 	tab_size = 1
 	

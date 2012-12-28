@@ -8,8 +8,9 @@ import sublime
 import sublime_plugin
 
 import os
-import time
 import thread
+import traceback
+import time
 
 from lint.modules import Modules
 from lint.linter import Linter

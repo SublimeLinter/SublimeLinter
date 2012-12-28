@@ -22,6 +22,7 @@ class Modules:
 
 		sys.path.insert(0, self.path)
 
+		mod = None
 		try:
 			__import__(name)
 
@@ -33,6 +34,9 @@ class Modules:
 			persist.debug('-'*20)
 			persist.debug(traceback.format_exc())
 			persist.debug('-'*20)
+
+		if not mod:
+			return
 
 		self.modules[name] = mod
 

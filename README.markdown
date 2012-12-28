@@ -13,6 +13,7 @@ NOTE: the following languages may require you to install additional binaries and
 * CSS - linting via `csslint`
 * Go - validation via `go build` in a temporary folder
 * HAML - checking via `haml -c`
+* Java - linting via Eclipse command-line `eclim`
 * JavaScript - linting via JSLint command-line `jsl`
 * Lua - syntax checking via `luac -p`
 * NASM - validation via `nasm` and a temporary file

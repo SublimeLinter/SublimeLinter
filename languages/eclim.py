@@ -3,7 +3,7 @@ import os
 import tempfile
 
 from lint.linter import Linter
-from lint.util import communicate, memoize, which
+from lint.util import communicate, memoize
 
 def climb(top):
     right = True
@@ -24,12 +24,6 @@ class Java(Linter):
     regex = r'.'
 
     def communicate(self, cmd, code):
-        if not which('eclim'):
-            # if we can't find eclim in path
-            # then we want safer behavior
-	    # in case nuking the file below is bad
-            return
-
         project = find(os.path.dirname(self.filename), '.project')
         filename = self.filename.replace(project, '', 1).lstrip(os.sep)
         project = os.path.basename(project)

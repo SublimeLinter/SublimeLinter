@@ -21,7 +21,6 @@ def find(top, filename):
 class Java(Linter):
     language = 'java'
     cmd = ('eclim', '-command', 'java_src_update')
-    regex = r'.'
 
     def communicate(self, cmd, code):
         project = find(os.path.dirname(self.filename), '.project')

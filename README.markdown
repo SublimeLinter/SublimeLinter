@@ -25,7 +25,7 @@ NOTE: the following languages may require you to install additional binaries and
 
 It's incredibly easy to add your own Linter. Take a look at `languages/extras.py`, `languages/python.py`, and `languages/go.py` for some examples.
 
-Installing
+Installation
 -----
 
 Find it in [Package Control](http://wbond.net/sublime_packages/package_control "Package Control").

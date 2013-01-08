@@ -17,6 +17,19 @@ def memoize(f):
 	wrap.__name__ = f.__name__
 	return wrap
 
+def climb(top):
+    right = True
+    while right:
+        top, right = os.path.split(top)
+        yield top
+
+@memoize
+def find(top, name):
+    for d in climb(top):
+        name = os.path.join(d, name)
+        if os.path.exists(name):
+            return d
+
 def extract_path(cmd, delim=':'):
 	path = popen(cmd, os.environ).communicate()[0]
 	path = path.split('__SUBL__', 1)[1].strip('\r\n')

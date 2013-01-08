@@ -3,20 +3,7 @@ import os
 import tempfile
 
 from lint.linter import Linter
-from lint.util import communicate, memoize
-
-def climb(top):
-    right = True
-    while right:
-        top, right = os.path.split(top)
-        yield top
-
-@memoize
-def find(top, filename):
-    for d in climb(top):
-        name = os.path.join(d, filename)
-        if os.path.isfile(name):
-            return d
+from lint.util import communicate, find
 
 class Java(Linter):
     language = 'java'

@@ -9,7 +9,8 @@ Supports the following languages:
 
 NOTE: the following languages may require you to install additional binaries and place them within your PATH (environment variable)
 
-* Coffescript - validation via `coffee --compile`
+* C - validation via `clang`
+* CoffeeScript - validation via `coffee --compile`
 * CSS - linting via `csslint`
 * Go - validation via `go build` in a temporary folder
 * HAML - checking via `haml -c`
@@ -17,8 +18,8 @@ NOTE: the following languages may require you to install additional binaries and
 * JavaScript - linting via JSLint command-line `jsl`
 * Lua - syntax checking via `luac -p`
 * NASM - validation via `nasm` and a temporary file
-* PHP - syntax checking via `php -l`
 * Perl - syntax+deprecation checking via `perl -c`
+* PHP - syntax checking via `php -l`
 * Ruby - syntax checking via `ruby -wc`
 * XML - linting via `xmllint`
 
@@ -27,21 +28,4 @@ It's incredibly easy to add your own Linter. Take a look at `languages/extras.py
 Installing
 -----
 
-*Without Git:* Download the latest source and extract as a folder to your Sublime Text Packages directory (`Packages/SublimeLint/`).
-
-*With Git:* Clone the repository into your Sublime Text Packages directory.
-
-    git clone git://github.com/lunixbochs/sublimelint.git
-
-----
-
-The "Packages" directory is located here:
-
-* Windows:
-    `%APPDATA%/Sublime Text 2/Packages/`
-* OS X:
-    `~/Library/Application Support/Sublime Text 2/Packages/`
-* Linux:
-    `~/.Sublime Text 2/Packages/`
-
-You can also go to `Preferences -> Browse Packages` from inside Sublime Text.
+Find it in [Package Control](http://wbond.net/sublime_packages/package_control "Package Control").

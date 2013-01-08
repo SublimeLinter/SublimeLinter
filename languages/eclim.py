@@ -10,7 +10,10 @@ class Java(Linter):
     cmd = ('eclim', '-command', 'java_src_update')
 
     def communicate(self, cmd, code):
-        project = find(os.path.dirname(self.filename), '.project')
+        project = find(os.path.dirname(self.filename), '.project', True)
+        if not project:
+            return
+
         filename = self.filename.replace(project, '', 1).lstrip(os.sep)
         project = os.path.basename(project)
 

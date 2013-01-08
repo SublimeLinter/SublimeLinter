@@ -24,11 +24,14 @@ def climb(top):
         yield top
 
 @memoize
-def find(top, name):
+def find(top, name, parent=False):
     for d in climb(top):
-        name = os.path.join(d, name)
-        if os.path.exists(name):
-            return d
+        target = os.path.join(d, name)
+        if os.path.exists(target):
+            if parent:
+                return d
+
+            return target
 
 def extract_path(cmd, delim=':'):
 	path = popen(cmd, os.environ).communicate()[0]

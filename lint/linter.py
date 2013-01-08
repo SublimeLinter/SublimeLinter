@@ -140,6 +140,8 @@ class Linter:
 			selectors = Linter.get_selectors(view_id)
 
 			linters = tuple(cls.linters[view_id])
+			linter_text = (', '.join(l.name for l in linters))
+			persist.debug('SublimeLint: `%s` as %s' % (filename or 'untitled', linter_text))
 			for linter in linters:
 				if linter.settings.get('disable'):
 					continue

@@ -10,6 +10,7 @@ Supports the following languages:
 NOTE: the following languages may require you to install additional binaries and place them within your PATH (environment variable)
 
 * C - validation via `clang`
+* C++ - validation via `clang++`
 * CoffeeScript - validation via `coffee --compile`
 * CSS - linting via `csslint`
 * Go - validation via `go build` in a temporary folder

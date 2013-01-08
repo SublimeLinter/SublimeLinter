@@ -13,12 +13,25 @@ class Daemon:
 	last_run = {}
 
 	def __init__(self):
-		self.settings = sublime.load_settings('SublimeLint.sublime-settings')
-		self.settings.add_on_change('lint-persist-settings', self.update_settings)
-		self.update_settings()
+		self.settings = {}
+		self.sub_settings = sublime.load_settings('SublimeLint.sublime-settings')
+		self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
 
 	def update_settings(self):
-		self.debug = self.settings.get('debug', False)
+		settings = self.sub_settings.get('default')
+		user = self.sub_settings.get('user')
+		if user:
+			settings.update(user)
+
+		self.settings.clear()
+		self.settings.update(settings)
+
+		# reattach settings objects to linters
+		import sys
+		import linter
+		linter = sys.modules.get('lint.linter') or linter
+		if linter:
+			linter.Linter.reload()
 
 	def start(self, callback):
 		self.callback = callback
@@ -75,7 +88,7 @@ class Daemon:
 		self.q.put(0.01)
 
 	def printf(self, *args):
-		if not self.debug: return
+		if not self.settings.get('debug'): return
 
 		for arg in args:
 			print arg,
@@ -84,6 +97,8 @@ class Daemon:
 if not 'already' in globals():
 	queue = Daemon()
 	debug = queue.printf
-	
+	settings = queue.settings
+	queue.update_settings()
+
 	errors = {}
 	already = True

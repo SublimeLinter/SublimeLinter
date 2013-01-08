@@ -1,3 +1,10 @@
 {
-	"debug": false
+    "default": {
+        "debug": false,
+        "plugins": {
+            "Java": {
+                "disable": true
+            }
+        }
+    }
 }

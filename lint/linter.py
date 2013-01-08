@@ -46,9 +46,16 @@ class Linter:
 
 		self.highlight = Highlight(scope=self.scope)
 
+	@property
+	def settings(self):
+		return self.__class__.lint_settings
+
 	@classmethod
 	def add_subclass(cls, sub, name, attrs):
 		if name:
+			plugins = persist.settings.get('plugins', {})
+			sub.lint_settings = plugins.get(name, {})
+
 			sub.name = name
 			cls.languages[name] = sub
 
@@ -102,18 +109,24 @@ class Linter:
 			del cls.linters[vid]
 
 	@classmethod
-	def reload(cls, mod):
+	def reload(cls, mod=None):
 		'''
-		reload all linters originating from a specific module (follows a module reload)
+		reload all linters, optionally filtering by module
 		'''
+		plugins = persist.settings.get('plugins', {})
+		for name, linter in cls.languages.items():
+			linter.lint_settings = plugins.get(name, {})
+
 		for id, linters in cls.linters.items():
 			for linter in linters:
-				if linter.__module__ == mod:
-					linter.clear()
-					cls.linters[id].remove(linter)
-					linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
-					cls.linters[id].add(linter)
-					linter.draw()
+				if mod and linter.__module__ != mod:
+					continue
+
+				linter.clear()
+				cls.linters[id].remove(linter)
+				linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
+				cls.linters[id].add(linter)
+				linter.draw()
 
 		return
 
@@ -128,6 +141,9 @@ class Linter:
 
 			linters = tuple(cls.linters[view_id])
 			for linter in linters:
+				if linter.settings.get('disable'):
+					continue
+
 				if not linter.selector:
 					linter.filename = filename
 					linter.pre_lint(code)

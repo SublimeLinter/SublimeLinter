@@ -9,27 +9,19 @@ import sublime_plugin
 
 import os
 import thread
-import traceback
 import time
+import json
 
 from lint.modules import Modules
 from lint.linter import Linter
 from lint.highlight import HighlightSet
 import lint.persist as persist
 
-default_user_settings = '''{
-	"debug": false
-}
-'''
 cwd = os.getcwd()
 
 class SublimeLint(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):
 		sublime_plugin.EventListener.__init__(self, *args, **kwargs)
-
-		self.settings = sublime.load_settings('SublimeLint.sublime-settings')
-		self.settings.add_on_change('lint-settings', self.update_settings)
-		self.update_settings()
 
 		self.loaded = set()
 		self.linted = set()
@@ -45,9 +37,6 @@ class SublimeLint(sublime_plugin.EventListener):
 			)
 
 		self.start = time.time()
-
-	def update_settings(self):
-		pass
 
 	def lint(self, view_id):
 		view = Linter.get_view(view_id)
@@ -73,7 +62,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		for linter in linters:
 			if linter.highlight:
 				highlights.add(linter.highlight)
-				
+
 			if linter.errors:
 				errors.update(linter.errors)
 
@@ -89,9 +78,9 @@ class SublimeLint(sublime_plugin.EventListener):
 		if view.size() == 0:
 			for l in Linter.get_linters(view.id()):
 				l.clear()
-			
+
 			return
-		
+
 		persist.queue.hit(view)
 
 	def check_syntax(self, view, lint=False):
@@ -110,13 +99,13 @@ class SublimeLint(sublime_plugin.EventListener):
 	def on_modified(self, view):
 		self.check_syntax(view)
 		self.hit(view)
-	
+
 	def on_load(self, view):
 		self.on_new(view)
 
 	def on_activated(self, view):
 		sublime.set_timeout(lambda: self.check_syntax(view, True), 50)
-		
+
 		view_id = view.id()
 		if not view_id in self.linted:
 			if not view_id in self.loaded:
@@ -126,14 +115,26 @@ class SublimeLint(sublime_plugin.EventListener):
 
 			self.hit(view)
 
-	def on_new(self, view):
-		# handle new user preferences file
-		if view.file_name() and os.path.split(view.file_name())[1] == 'SublimeLint.sublime-settings':
-			if view.size() == 0:
-				edit = view.begin_edit()
-				view.insert(edit, 0, default_user_settings)
-				view.end_edit(edit)
+	def on_open_settings(self, view):
+		# handle opening user preferences file
+		if view.file_name():
+			filename = view.file_name()
+			dirname = os.path.basename(os.path.dirname(filename))
+			if filename != 'SublimeLint.sublime-settings':
+				return
 
+			if dirname.lower() == 'sublimelint':
+				return
+
+			settings = persist.settings
+			edit = view.begin_edit()
+			view.replace(edit, sublime.Region(0, view.size()),
+				json.dumps({'user': settings}, indent=4)
+			)
+			view.end_edit(edit)
+
+	def on_new(self, view):
+		self.on_open_settings(view)
 		vid = view.id()
 		self.loaded.add(vid)
 		self.last_syntax[vid] = view.settings().get('syntax')
@@ -151,7 +152,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
 		# linting here doesn't matter, because we lint on load and on modify
 		# self.hit(view)
-	
+
 	def on_selection_modified(self, view):
 		vid = view.id()
 		lineno = view.rowcol(view.sel()[0].end())[0]

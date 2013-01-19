@@ -31,5 +31,5 @@ class C(Linter):
 
 class CPP(C):
     language = 'c++'
-    cmd = ('clang++', '-xc++', '-fsyntax-only', '-std=c99', '-Werror',
+    cmd = ('clang++', '-xc++', '-fsyntax-only', '-std=c++11', '-Werror',
         '-pedantic')

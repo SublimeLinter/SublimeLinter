@@ -8,6 +8,7 @@
 
 from _pyflakes import check, messages, OffsetError, PythonError
 from lint.linter import Linter
+from lint import persist
 
 class Python(Linter):
 	language = 'python'
@@ -122,4 +123,4 @@ class Python(Linter):
 				underlineWord(error.lineno, error.name)
 
 			else:
-				print 'SublimeLint (Python): Oops, we missed an error type!'
+				persist.debug('(Python): Oops, we missed an error type!')

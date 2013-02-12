@@ -1,11 +1,12 @@
 # modules.py - loads and reloads plugin scripts from a folder
 
+import glob
+import imp
 import os
 import sys
-import glob
-
 import traceback
-import persist
+
+import lint.persist as persist
 
 class Modules:
 	def __init__(self, cwd, path):
@@ -28,7 +29,7 @@ class Modules:
 
 			# first, we get the actual module from sys.modules, not the base mod returned by __import__
 			# second, we get an updated version of the module with reload() so development is easier
-			mod = sys.modules[name] = reload(sys.modules[name])
+			mod = sys.modules[name] = imp.reload(sys.modules[name])
 		except:
 			persist.debug('SublimeLint: error importing `%s`' % name)
 			persist.debug('-'*20)

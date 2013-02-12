@@ -1,21 +1,18 @@
-import sublime
+from queue import Queue
 import re
-import persist
-import util
+import sublime
 
-from Queue import Queue
-
-from highlight import Highlight
+from lint.highlight import Highlight
+import lint.persist as persist
+import lint.util as util
 
 syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
 
 class Tracker(type):
 	def __init__(cls, name, bases, attrs):
-		if bases:
-			bases[-1].add_subclass(cls, name, attrs)
+		persist.add_language(cls, name, attrs)
 
-class Linter:
-	__metaclass__ = Tracker
+class Linter(metaclass=Tracker):
 	language = ''
 	cmd = ()
 	regex = ''
@@ -28,8 +25,6 @@ class Linter:
 	outline = True
 	needs_api = False
 
-	languages = {}
-	linters = {}
 	errors = None
 	highlight = None
 
@@ -49,15 +44,6 @@ class Linter:
 	@property
 	def settings(self):
 		return self.__class__.lint_settings
-
-	@classmethod
-	def add_subclass(cls, sub, name, attrs):
-		if name:
-			plugins = persist.settings.get('plugins', {})
-			sub.lint_settings = plugins.get(name, {})
-
-			sub.name = name
-			cls.languages[name] = sub
 
 	@classmethod
 	def assign(cls, view):
@@ -84,29 +70,29 @@ class Linter:
 			syntax = syn
 
 		if syntax:
-			if vid in cls.linters and cls.linters[vid]:
-				if tuple(cls.linters[vid])[0].syntax == syntax:
+			if vid in persist.linters and persist.linters[vid]:
+				if tuple(persist.linters[vid])[0].syntax == syntax:
 					return
 
 			linters = set()
-			for name, entry in cls.languages.items():
+			for name, entry in persist.languages.items():
 				if entry.can_lint(syntax):
 					linter = entry(view, syntax, view.file_name())
 					linters.add(linter)
 
 			if linters:
-				cls.linters[vid] = linters
+				persist.linters[vid] = linters
 				return linters
 
 		cls.remove(vid)
 
 	@classmethod
 	def remove(cls, vid):
-		if vid in cls.linters:
-			for linter in cls.linters[vid]:
+		if vid in persist.linters:
+			for linter in persist.linters[vid]:
 				linter.clear()
 
-			del cls.linters[vid]
+			del persist.linters[vid]
 
 	@classmethod
 	def reload(cls, mod=None):
@@ -114,32 +100,32 @@ class Linter:
 		reload all linters, optionally filtering by module
 		'''
 		plugins = persist.settings.get('plugins', {})
-		for name, linter in cls.languages.items():
+		for name, linter in persist.languages.items():
 			linter.lint_settings = plugins.get(name, {})
 
-		for id, linters in cls.linters.items():
+		for id, linters in persist.linters.items():
 			for linter in linters:
 				if mod and linter.__module__ != mod:
 					continue
 
 				linter.clear()
-				cls.linters[id].remove(linter)
-				linter = cls.languages[linter.name](linter.view, linter.syntax, linter.filename)
-				cls.linters[id].add(linter)
+				persist.linters[id].remove(linter)
+				linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
+				persist.linters[id].add(linter)
 				linter.draw()
 
 		return
 
 	@classmethod
 	def text(cls, view):
-		return view.substr(sublime.Region(0, view.size())).encode('utf-8')
+		return str(view.substr(sublime.Region(0, view.size())).encode('utf-8'))
 
 	@classmethod
 	def lint_view(cls, view_id, filename, code, sections, callback):
-		if view_id in cls.linters:
+		if view_id in persist.linters:
 			selectors = Linter.get_selectors(view_id)
 
-			linters = tuple(cls.linters[view_id])
+			linters = tuple(persist.linters[view_id])
 			linter_text = (', '.join(l.name for l in linters))
 			persist.debug('SublimeLint: `%s` as %s' % (filename or 'untitled', linter_text))
 			for linter in linters:
@@ -165,17 +151,17 @@ class Linter:
 					linter.errors = errors
 
 			# merge our result back to the main thread
-			sublime.set_timeout(lambda: callback(linters[0].view, linters), 0)
+			callback(linters[0].view, linters)
 
 	@classmethod
 	def get_view(cls, view_id):
-		if view_id in cls.linters:
-			return tuple(cls.linters[view_id])[0].view
+		if view_id in persist.linters:
+			return tuple(persist.linters[view_id])[0].view
 
 	@classmethod
 	def get_linters(cls, view_id):
-		if view_id in cls.linters:
-			return tuple(cls.linters[view_id])
+		if view_id in persist.linters:
+			return tuple(persist.linters[view_id])
 
 		return ()
 
@@ -199,7 +185,7 @@ class Linter:
 				q.task_done()
 
 			q.put(1)
-			sublime.set_timeout(callback, 1)
+			callback()
 			q.join()
 		else:
 			self.lint(code)

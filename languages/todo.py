@@ -11,14 +11,10 @@ class TODO(Linter):
 
 	def lint(self, code):
 		lines = code.split('\n')
-		for i in xrange(len(lines)):
+		for i in range(len(lines)):
 			if 'TODO' in lines[i]:
 				todo = lines[i].index('TODO')
 				self.highlight.range(i, todo, 4)
 				self.error(i,
 					lines[i].split('TODO', 1)[1].lstrip(': ') or 'TODO'
 				)
-
-# TODO
-
-# TODO

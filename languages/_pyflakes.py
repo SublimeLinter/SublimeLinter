@@ -34,7 +34,6 @@
 
 import sys
 
-import __builtin__
 import os.path
 import compiler
 from compiler import ast
@@ -406,7 +405,7 @@ class Checker(object):
 	def handleNode(self, node, parent):
 		node.parent = parent
 		if self.traceTree:
-			print '  ' * self.nodeDepth + node.__class__.__name__
+			print('  ' * self.nodeDepth + node.__class__.__name__)
 		self.nodeDepth += 1
 		nodeType = node.__class__.__name__.upper()
 		if nodeType not in ('STMT', 'FROM'):
@@ -417,7 +416,7 @@ class Checker(object):
 		finally:
 			self.nodeDepth -= 1
 		if self.traceTree:
-			print '  ' * self.nodeDepth + 'end ' + node.__class__.__name__
+			print('  ' * self.nodeDepth + 'end ' + node.__class__.__name__)
 
 	def ignore(self, node):
 		pass
@@ -715,7 +714,7 @@ def check(codeString, filename):
 			if sys.version_info[:2] == (2, 4):
 				raise SyntaxError(None)
 			raise
-	except (SyntaxError, IndentationError), value:
+	except (SyntaxError, IndentationError) as value:
 		# print traceback.format_exc() # helps debug new cases
 		msg = value.args[0]
 
@@ -743,7 +742,7 @@ def check(codeString, filename):
 				error = PythonError(filename, lineno, msg)
 
 		return [error]
-	except ValueError, e:
+	except ValueError as e:
 		return [PythonError(filename, 0, e.args[0])]
 	else:
 		# Okay, it's syntactically valid.  Now parse it into an ast and check

@@ -66,7 +66,7 @@ class PHP(Linter):
 	regex = r'^Parse error:\s*(?P<type>parse|syntax) error,?\s*(?P<error>.+?)?\s+in\s+.+?\s*line\s+(?P<line>\d+)'
 
 	def match_error(self, r, line):
-		match, row, col, error, near = super(PHP, self).match_error(r, line)
+		match, row, col, error, near = super().match_error(r, line)
 
 		if match and match.group('type') == 'parse' and not error:
 			error = 'parse error'

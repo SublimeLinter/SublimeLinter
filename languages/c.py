@@ -27,7 +27,7 @@ class C(Linter):
 
     def communicate(self, cmd, code):
         cmd += ('-',) + tuple(find_includes(self.filename))
-        return super(C, self).communicate(cmd, code)
+        return super().communicate(cmd, code)
 
 class CPP(C):
     language = 'c++'

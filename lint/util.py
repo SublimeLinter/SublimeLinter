@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import subprocess
 
-import persist
+import lint.persist as persist
 
 def memoize(f):
 	rets = {}
@@ -34,7 +34,7 @@ def find(top, name, parent=False):
             return target
 
 def extract_path(cmd, delim=':'):
-	path = popen(cmd, os.environ).communicate()[0]
+	path = popen(cmd, os.environ).communicate()[0].decode()
 	path = path.split('__SUBL__', 1)[1].strip('\r\n')
 	return ':'.join(path.split(delim))
 
@@ -75,16 +75,17 @@ def create_environment():
 
 # popen methods
 def communicate(cmd, code):
+	code = code.encode('utf8')
 	out = popen(cmd)
 	if out is not None:
 		out = out.communicate(code)
-		return (out[0] or '') + (out[1] or '')
+		return (out[0].decode() or '') + (out[1].decode() or '')
 	else:
 		return ''
 
 
 def tmpfile(cmd, code, suffix=''):
-	if isinstance(cmd, basestring):
+	if isinstance(cmd, str):
 		cmd = cmd,
 
 	f = tempfile.NamedTemporaryFile(suffix=suffix)
@@ -135,7 +136,7 @@ def tmpdir(cmd, files, filename, code):
 	return out
 
 def popen(cmd, env=None):
-	if isinstance(cmd, basestring):
+	if isinstance(cmd, str):
 		cmd = cmd,
 
 	info = None
@@ -151,6 +152,7 @@ def popen(cmd, env=None):
 		return subprocess.Popen(cmd, stdin=subprocess.PIPE,
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE,
 			startupinfo=info, env=env)
-	except OSError, err:
+	except OSError as err:
 		persist.debug('SublimeLint: Error launching', repr(cmd))
 		persist.debug('Error was:', err.strerror)
+		persist.debug('Environment:', env)

@@ -59,7 +59,7 @@ class Highlight:
 		a, b = self.full_line(line)
 		pos += a
 
-		for i in xrange(length):
+		for i in range(length):
 			self.underlines.append(sublime.Region(pos + i + self.char_offset))
 
 	def regex(self, line, regex, word_match=None, line_match=None):
@@ -102,11 +102,11 @@ class Highlight:
 	def draw(self, view, prefix='lint'):
 		if self.underlines:
 			underlines = [sublime.Region(u.a, u.b) for u in self.underlines]
-			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, self.scope, self.draw_type)
+			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, self.scope, flags=self.draw_type)
 		
 		if self.lines and self.outline:
 			outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
-			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, self.scope, self.draw_type)
+			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, self.scope, flags=self.draw_type)
 
 	def clear(self, view, prefix='lint'):
 		view.erase_regions('%s-%s-underline' % (prefix, self.scope))

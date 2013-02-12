@@ -1,25 +1,25 @@
-import thread
+import threading
 import traceback
 import time
 import sublime
 
-from Queue import Queue, Empty
+from queue import Queue, Empty
 
 class Daemon:
 	running = False
 	callback = None
 	q = Queue()
-	views = {}
 	last_run = {}
 
 	def __init__(self):
+		print('init persist!')
 		self.settings = {}
 		self.sub_settings = sublime.load_settings('SublimeLint.sublime-settings')
 		self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
 
 	def update_settings(self):
-		settings = self.sub_settings.get('default')
-		user = self.sub_settings.get('user')
+		settings = self.sub_settings.get('default') or {}
+		user = self.sub_settings.get('user') or {}
 		if user:
 			settings.update(user)
 
@@ -28,9 +28,8 @@ class Daemon:
 
 		# reattach settings objects to linters
 		import sys
-		import linter
-		linter = sys.modules.get('lint.linter') or linter
-		if linter:
+		linter = sys.modules.get('lint.linter')
+		if linter and hasattr(linter, 'persist'):
 			linter.Linter.reload()
 
 	def start(self, callback):
@@ -41,21 +40,23 @@ class Daemon:
 			return
 		else:
 			self.running = True
-			thread.start_new_thread(self.loop, ())
+			threading.Thread(target=self.loop).start()
 
 	def reenter(self, view_id):
-		sublime.set_timeout(lambda: self.callback(view_id), 0)
+		self.callback(view_id)
 
 	def loop(self):
+		views = {}
+
 		while True:
 			try:
 				try:
 					item = self.q.get(True, 0.5)
 				except Empty:
-					for view_id, ts in self.views.items():
+					for view_id, ts in views.copy().items():
 						if ts < time.time() - 0.5:
 							self.last_run[view_id] = time.time()
-							del self.views[view_id]
+							del views[view_id]
 							self.reenter(view_id)
 					
 					continue
@@ -65,7 +66,7 @@ class Daemon:
 					if view_id in self.last_run and ts < self.last_run[view_id]:
 						continue
 
-					self.views[view_id] = ts
+					views[view_id] = ts
 
 				elif isinstance(item, (int, float)):
 					time.sleep(item)
@@ -91,8 +92,8 @@ class Daemon:
 		if not self.settings.get('debug'): return
 
 		for arg in args:
-			print arg,
-		print
+			print(arg, end=' ')
+		print()
 
 if not 'already' in globals():
 	queue = Daemon()
@@ -101,4 +102,13 @@ if not 'already' in globals():
 	queue.update_settings()
 
 	errors = {}
+	languages = {}
+	linters = {}
 	already = True
+
+def add_language(sub, name, attrs):
+	if name:
+		plugins = settings.get('plugins', {})
+		sub.lint_settings = plugins.get(name, {})
+		sub.name = name
+		languages[name] = sub

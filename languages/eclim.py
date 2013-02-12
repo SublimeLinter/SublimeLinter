@@ -11,6 +11,8 @@ class Java(Linter):
     regex = r'.'
 
     def communicate(self, cmd, code):
+        return
+
         project = find(os.path.dirname(self.filename), '.project', True)
         if not project:
             return

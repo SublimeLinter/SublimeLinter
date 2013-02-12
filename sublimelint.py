@@ -8,16 +8,19 @@ import sublime
 import sublime_plugin
 
 import os
-import thread
+import sys
+cwd = os.path.dirname(__file__)
+sys.path.append(cwd)
+
+import threading
 import time
 import json
 
-from lint.modules import Modules
-from lint.linter import Linter
-from lint.highlight import HighlightSet
+from . import lint
+from .lint.modules import Modules
+from .lint.linter import Linter
+from .lint.highlight import HighlightSet
 import lint.persist as persist
-
-cwd = os.getcwd()
 
 class SublimeLint(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):
@@ -32,9 +35,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		# this gives us a chance to lint the active view on fresh install
 		window = sublime.active_window()
 		if window:
-			sublime.set_timeout(
-				lambda: self.on_activated(window.active_view()), 100
-			)
+			self.on_activated(window.active_view())
 
 		self.start = time.time()
 
@@ -52,7 +53,8 @@ class SublimeLint(sublime_plugin.EventListener):
 		if view is not None:
 			filename = view.file_name()
 			code = Linter.text(view)
-			thread.start_new_thread(Linter.lint_view, (view_id, filename, code, sections, self.finish))
+			args = (view_id, filename, code, sections, self.finish)
+			threading.Thread(target=Linter.lint_view, args=args).start()
 
 	def finish(self, view, linters):
 		errors = {}
@@ -68,11 +70,11 @@ class SublimeLint(sublime_plugin.EventListener):
 		highlights.clear(view)
 		highlights.draw(view)
 		persist.errors[view.id()] = errors
-		self.on_selection_modified(view)
 
 	# helpers
 
 	def hit(self, view):
+		self.lint(view.id())
 		self.linted.add(view.id())
 		if view.size() == 0:
 			for l in Linter.get_linters(view.id()):
@@ -96,6 +98,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	# callins
 	def on_modified(self, view):
+		self.on_selection_modified(view)
 		self.check_syntax(view)
 		self.hit(view)
 
@@ -103,8 +106,10 @@ class SublimeLint(sublime_plugin.EventListener):
 		self.on_new(view)
 
 	def on_activated(self, view):
-		sublime.set_timeout(lambda: self.check_syntax(view, True), 50)
+		if not view:
+			return
 
+		self.check_syntax(view, True)
 		view_id = view.id()
 		if not view_id in self.linted:
 			if not view_id in self.loaded:
@@ -113,6 +118,8 @@ class SublimeLint(sublime_plugin.EventListener):
 				self.on_new(view)
 
 			self.hit(view)
+
+		self.on_selection_modified(view)
 
 	def on_open_settings(self, view):
 		# handle opening user preferences file
@@ -156,19 +163,18 @@ class SublimeLint(sublime_plugin.EventListener):
 		vid = view.id()
 		lineno = view.rowcol(view.sel()[0].end())[0]
 
-		view.erase_status('sublimelint')
+		status = ''
 		if vid in persist.errors:
 			errors = persist.errors[vid]
 			if errors:
 				plural = 's' if len(errors) > 1 else ''
 				if lineno in errors:
-					status = ''
 					if plural:
 						num = sorted(list(errors)).index(lineno) + 1
 						status += '%i/%i errors: ' % (num, len(errors))
 
 					# sublime statusbar can't hold unicode
-					status += '; '.join(set(errors[lineno])).encode('ascii', 'replace')
+					status += str('; '.join(set(errors[lineno])).encode('ascii', 'replace'))
 				else:
 					status = '%i error%s' % (len(errors), plural)
 

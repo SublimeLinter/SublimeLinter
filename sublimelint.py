@@ -197,6 +197,8 @@ class SublimeLint(sublime_plugin.EventListener):
 					status = '%i error%s' % (len(errors), plural)
 
 				view.set_status('sublimelint', status)
+			else:
+				view.erase_status('sublimelint')
 
 		persist.queue.delay()
 

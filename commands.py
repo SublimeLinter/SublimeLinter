@@ -55,8 +55,8 @@ class sublimelint_all_errors(sublime_plugin.TextCommand):
 			while messages:
 				option_to_line.append(lineno)
 				options.append(
-					[("%i| %s" % (lineno + 1, line.strip())).encode('ascii', 'replace')] +
-					[m.encode('ascii', 'replace') for m in messages[:2]]
+					[("%i| %s" % (lineno + 1, line.strip()))] +
+					[m for m in messages[:2]]
 				)
 
 				messages = messages[2:]

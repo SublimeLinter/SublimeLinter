@@ -37,7 +37,10 @@ class Linter(metaclass=Tracker):
 			if self.multiline:
 				self.flags |= re.MULTILINE
 
-			self.regex = re.compile(self.regex, self.flags)
+			try:
+				self.regex = re.compile(self.regex, self.flags)
+			except:
+				persist.debug('Error compiling regex for {}'.format(self.language))
 
 		self.highlight = Highlight(scope=self.scope)
 

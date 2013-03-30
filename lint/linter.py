@@ -118,7 +118,7 @@ class Linter(metaclass=Tracker):
 
 	@classmethod
 	def text(cls, view):
-		return str(view.substr(sublime.Region(0, view.size())).encode('utf-8'))
+		return view.substr(sublime.Region(0, view.size()))
 
 	@classmethod
 	def lint_view(cls, view_id, filename, code, sections, callback):

@@ -138,14 +138,14 @@ class SublimeLint(sublime_plugin.EventListener):
 			if dirname.lower() == 'sublimelint':
 				return
 
+			persist.reinit()
 			settings = persist.settings
 			# fill in default plugin settings
 			plugins = settings.pop('plugins', {})
 			for name, language in persist.languages.items():
-				if not name in plugins:
-					plugins[name] = {}
-
-				plugins[name].update(language.get_settings())
+				default = language.get_settings().copy()
+				default.update(plugins.pop(name, {}))
+				plugins[name] = default
 
 			settings['plugins'] = plugins
 			def replace(edit):

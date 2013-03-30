@@ -1,9 +1,11 @@
+from collections import defaultdict
+from queue import Queue, Empty
 import threading
 import traceback
 import time
 import sublime
 
-from queue import Queue, Empty
+from .util import merge_user_settings
 
 class Daemon:
 	running = False
@@ -12,17 +14,20 @@ class Daemon:
 	last_run = {}
 
 	def __init__(self):
-		print('init persist!')
 		self.settings = {}
-		self.sub_settings = sublime.load_settings('SublimeLint.sublime-settings')
-		self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
+		self.sub_settings = None
+
+	def reinit(self):
+		if not self.settings:
+			if self.sub_settings:
+				self.sub_settings.clear_on_change('lint-persist-settings')
+
+			self.sub_settings = sublime.load_settings('SublimeLint.sublime-settings')
+			self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
+			self.update_settings()
 
 	def update_settings(self):
-		settings = self.sub_settings.get('default') or {}
-		user = self.sub_settings.get('user') or {}
-		if user:
-			settings.update(user)
-
+		settings = merge_user_settings(self.sub_settings)
 		self.settings.clear()
 		self.settings.update(settings)
 
@@ -71,7 +76,7 @@ class Daemon:
 				elif isinstance(item, (int, float)):
 					time.sleep(item)
 
-				elif isinstance(item, basestring):
+				elif isinstance(item, str):
 					if item == 'reload':
 						self.printf('SublimeLint daemon detected a reload')
 				else:
@@ -89,6 +94,7 @@ class Daemon:
 		self.q.put(0.01)
 
 	def printf(self, *args):
+		# TODO: appears to be broken
 		if not self.settings.get('debug'): return
 
 		for arg in args:
@@ -99,12 +105,20 @@ if not 'already' in globals():
 	queue = Daemon()
 	debug = queue.printf
 	settings = queue.settings
-	queue.update_settings()
 
 	errors = {}
 	languages = {}
 	linters = {}
+	edits = defaultdict(list)
 	already = True
+
+def reinit():
+	queue.reinit()
+
+def edit(vid, edit):
+	callbacks = edits.pop(vid, [])
+	for c in callbacks:
+		c(edit)
 
 def add_language(sub, name, attrs):
 	if name:

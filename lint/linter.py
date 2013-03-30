@@ -19,7 +19,7 @@ class Linter(metaclass=Tracker):
 	multiline = False
 	flags = 0
 	tab_size = 1
-	
+
 	scope = 'keyword'
 	selector = None
 	outline = True
@@ -27,6 +27,8 @@ class Linter(metaclass=Tracker):
 
 	errors = None
 	highlight = None
+	defaults = None
+	lint_settings = None
 
 	def __init__(self, view, syntax, filename=None):
 		self.view = view
@@ -44,9 +46,16 @@ class Linter(metaclass=Tracker):
 
 		self.highlight = Highlight(scope=self.scope)
 
+	@classmethod
+	def get_settings(cls):
+		plugins = persist.settings.get('plugins', {})
+		settings = cls.defaults or {}
+		settings.update(plugins.get(cls.__name__, {}))
+		return settings
+
 	@property
 	def settings(self):
-		return self.__class__.lint_settings
+		return self.get_settings()
 
 	@classmethod
 	def assign(cls, view):
@@ -104,7 +113,10 @@ class Linter(metaclass=Tracker):
 		'''
 		plugins = persist.settings.get('plugins', {})
 		for name, linter in persist.languages.items():
-			linter.lint_settings = plugins.get(name, {})
+			settings = plugins.get(name, {})
+			defaults = (linter.defaults or {}).copy()
+			defaults.update(settings)
+			linter.lint_settings = defaults
 
 		for id, linters in persist.linters.items():
 			for linter in linters:

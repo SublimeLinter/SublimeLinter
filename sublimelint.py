@@ -25,6 +25,7 @@ import lint.persist as persist
 class SublimeLint(sublime_plugin.EventListener):
 	def __init__(self, *args, **kwargs):
 		sublime_plugin.EventListener.__init__(self, *args, **kwargs)
+		persist.reinit()
 
 		self.loaded = set()
 		self.linted = set()
@@ -105,6 +106,10 @@ class SublimeLint(sublime_plugin.EventListener):
 	def on_load(self, view):
 		self.on_new(view)
 
+	def on_activated_async(self, view):
+		# because it's possible sublime wasn't ready the first time
+		persist.reinit()
+
 	def on_activated(self, view):
 		if not view:
 			return
@@ -126,6 +131,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		if view.file_name():
 			filename = view.file_name()
 			dirname = os.path.basename(os.path.dirname(filename))
+			filename = os.path.basename(filename)
 			if filename != 'SublimeLint.sublime-settings':
 				return
 
@@ -133,11 +139,23 @@ class SublimeLint(sublime_plugin.EventListener):
 				return
 
 			settings = persist.settings
-			edit = view.begin_edit()
-			view.replace(edit, sublime.Region(0, view.size()),
-				json.dumps({'user': settings}, indent=4)
-			)
-			view.end_edit(edit)
+			# fill in default plugin settings
+			plugins = settings.pop('plugins', {})
+			for name, language in persist.languages.items():
+				if not name in plugins:
+					plugins[name] = {}
+
+				plugins[name].update(language.get_settings())
+
+			settings['plugins'] = plugins
+			def replace(edit):
+				if not view.is_dirty():
+					view.replace(edit, sublime.Region(0, view.size()),
+						json.dumps({'user': settings}, indent=4, sort_keys=True)
+					)
+
+			persist.edits[view.id()].append(replace)
+			view.run_command('sublimelint_edit')
 
 	def on_new(self, view):
 		self.on_open_settings(view)
@@ -174,10 +192,14 @@ class SublimeLint(sublime_plugin.EventListener):
 						status += '%i/%i errors: ' % (num, len(errors))
 
 					# sublime statusbar can't hold unicode
-					status += str('; '.join(set(errors[lineno])).encode('ascii', 'replace'))
+					status += '; '.join(set(errors[lineno]))
 				else:
 					status = '%i error%s' % (len(errors), plural)
 
 				view.set_status('sublimelint', status)
 
 		persist.queue.delay()
+
+class sublimelint_edit(sublime_plugin.TextCommand):
+	def run(self, edit):
+		persist.edit(self.view.id(), edit)

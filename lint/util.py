@@ -3,7 +3,23 @@ import shutil
 import tempfile
 import subprocess
 
-import lint.persist as persist
+def merge_user_settings(settings):
+	default = settings.get('default') or {}
+	user = settings.get('user') or {}
+	if user:
+		plugins = default.pop('plugins', {})
+		user_plugins = user.get('plugins', {})
+		for name, data in user_plugins.items():
+			if name in plugins:
+				plugins[name].update(data)
+			else:
+				plugins[name] = data
+		default['plugins'] = plugins
+
+		user.pop('plugins', None)
+		default.update(user)
+
+	return default
 
 def memoize(f):
 	rets = {}
@@ -136,6 +152,7 @@ def tmpdir(cmd, files, filename, code):
 	return out
 
 def popen(cmd, env=None):
+	import lint.persist as persist
 	if isinstance(cmd, str):
 		cmd = cmd,
 

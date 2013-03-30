@@ -26,15 +26,18 @@ class HighlightSet:
 
 class Highlight:
 	def __init__(self, code='',
-			draw_type=sublime.DRAW_EMPTY_AS_OVERWRITE|sublime.DRAW_OUTLINED,
+			underline_flags=sublime.DRAW_SOLID_UNDERLINE|sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE,
+			line_flags=sublime.HIDDEN, icon='dot',
 			scope='keyword', outline=True):
 
 		self.code = code
-		self.draw_type = draw_type
+		self.underline_flags = underline_flags
+		self.line_flags = line_flags
 		self.scope = scope
 		self.outline = outline
 		self.underlines = []
 		self.lines = set()
+		self.icon = icon
 
 		self.line_offset = 0
 		self.char_offset = 0
@@ -103,13 +106,13 @@ class Highlight:
 		if scope is None:
 			scope = self.scope
 
-		if self.underlines:
-			underlines = [sublime.Region(u.a, u.b) for u in self.underlines]
-			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, scope, flags=self.draw_type)
-		
 		if self.lines and self.outline:
 			outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
-			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, scope, flags=self.draw_type)
+			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, scope, self.icon, flags=self.line_flags)
+
+		if self.underlines:
+			underlines = [sublime.Region(u.a, u.a+1) for u in self.underlines]
+			view.add_regions('%s-%s-outline' % (prefix, self.scope), underlines, scope, self.icon, flags=self.underline_flags)
 
 	def clear(self, view, prefix='lint'):
 		view.erase_regions('%s-%s-underline' % (prefix, self.scope))

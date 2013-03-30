@@ -11,13 +11,13 @@ class HighlightSet:
 
 		self.all[h.scope].add(h)
 
-	def draw(self, view, prefix='lint'):
+	def draw(self, view, prefix='lint', scope=None):
 		for scope in self.all:
 			highlight = Highlight(scope=scope)
 			for h in self.all[scope]:
 				highlight.update(h)
 
-			highlight.draw(view, prefix=prefix)
+			highlight.draw(view, prefix=prefix, scope=scope)
 
 	def clear(self, view, prefix='lint'):
 		for scope in self.all:
@@ -99,14 +99,17 @@ class Highlight:
 			self.lines.update(other.lines)
 		self.underlines.extend(other.underlines)
 
-	def draw(self, view, prefix='lint'):
+	def draw(self, view, prefix='lint', scope=None):
+		if scope is None:
+			scope = self.scope
+
 		if self.underlines:
 			underlines = [sublime.Region(u.a, u.b) for u in self.underlines]
-			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, self.scope, flags=self.draw_type)
+			view.add_regions('%s-%s-underline' % (prefix, self.scope), underlines, scope, flags=self.draw_type)
 		
 		if self.lines and self.outline:
 			outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
-			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, self.scope, flags=self.draw_type)
+			view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, scope, flags=self.draw_type)
 
 	def clear(self, view, prefix='lint'):
 		view.erase_regions('%s-%s-underline' % (prefix, self.scope))

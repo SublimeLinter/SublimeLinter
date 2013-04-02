@@ -1,6 +1,8 @@
 import sublime
 import re
 
+word_re = re.compile(r'^([0-9a-zA-Z_]+)')
+
 class HighlightSet:
 	def __init__(self):
 		self.all = {}
@@ -58,10 +60,14 @@ class Highlight:
 		return a, b + 1
 
 	def range(self, line, pos, length=1):
-		self.line(line)
 		a, b = self.full_line(line)
-		pos += a
+		if length == 1:
+			code = self.code[a:b][pos:]
+			match = word_re.search(code)
+			if match:
+				length = len(match.group())
 
+		pos += a
 		for i in range(length):
 			self.underlines.append(sublime.Region(pos + i + self.char_offset))
 

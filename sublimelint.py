@@ -98,7 +98,7 @@ class SublimeLint(sublime_plugin.EventListener):
 				self.hit(view)
 
 	# callins
-	def on_modified(self, view):
+	def on_modified_async(self, view):
 		self.on_selection_modified(view)
 		self.check_syntax(view)
 		self.hit(view)

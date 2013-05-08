@@ -293,6 +293,8 @@ class Linter(metaclass=Tracker):
 		return match, None, None, '', None
 
 	def match_error(self, r, line):
+		if isinstance(line, bytes):
+			line = line.decode('utf8')
 		return self.split_match(r.match(line))
 
 	# popen wrappers

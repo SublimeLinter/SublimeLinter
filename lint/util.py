@@ -121,7 +121,7 @@ def tmpdir(cmd, files, filename, code):
 	d = tempfile.mkdtemp()
 
 	for f in files:
-		try: os.makedirs(os.path.split(f)[0])
+		try: os.makedirs(os.path.join(d, os.path.split(f)[0]))
 		except: pass
 
 		target = os.path.join(d, f)
@@ -137,8 +137,8 @@ def tmpdir(cmd, files, filename, code):
 	out = popen(cmd)
 	if out:
 		out = out.communicate()
-		out = (out[0] or '') + '\n' + (out[1] or '')
-		
+		out = (out[0].decode('utf8') or '') + '\n' + (out[1].decode('utf8') or '')
+
 		# filter results from build to just this filename
 		# no guarantee all languages are as nice about this as Go
 		# may need to improve later or just defer to communicate()

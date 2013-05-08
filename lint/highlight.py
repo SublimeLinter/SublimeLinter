@@ -22,7 +22,7 @@ class HighlightSet:
 			highlight.draw(view, prefix=prefix, scope=scope)
 
 	def clear(self, view, prefix='lint'):
-		for scope in self.all:
+		for scope in set(self.all):
 			view.erase_regions('%s-%s-underline' % (prefix, scope))
 			view.erase_regions('%s-%s-outline' % (prefix, scope))
 

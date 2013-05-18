@@ -75,7 +75,6 @@ class SublimeLint(sublime_plugin.EventListener):
 	# helpers
 
 	def hit(self, view):
-		self.lint(view.id())
 		self.linted.add(view.id())
 		if view.size() == 0:
 			for l in Linter.get_linters(view.id()):
@@ -99,7 +98,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
 	# callins
 	def on_modified_async(self, view):
-		self.on_selection_modified(view)
+		self.on_selection_modified_async(view)
 		self.check_syntax(view)
 		self.hit(view)
 
@@ -107,10 +106,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		self.on_new(view)
 
 	def on_activated_async(self, view):
-		# because it's possible sublime wasn't ready the first time
 		persist.reinit()
-
-	def on_activated(self, view):
 		if not view:
 			return
 
@@ -124,7 +120,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
 			self.hit(view)
 
-		self.on_selection_modified(view)
+		self.on_selection_modified_async(view)
 
 	def on_open_settings(self, view):
 		# handle opening user preferences file
@@ -177,7 +173,7 @@ class SublimeLint(sublime_plugin.EventListener):
 		# linting here doesn't matter, because we lint on load and on modify
 		# self.hit(view)
 
-	def on_selection_modified(self, view):
+	def on_selection_modified_async(self, view):
 		vid = view.id()
 		lineno = view.rowcol(view.sel()[0].end())[0]
 

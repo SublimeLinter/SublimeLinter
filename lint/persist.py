@@ -56,10 +56,10 @@ class Daemon:
 		while True:
 			try:
 				try:
-					item = self.q.get(True, 0.5)
+					item = self.q.get(True, 0.1)
 				except Empty:
 					for view_id, ts in views.copy().items():
-						if ts < time.time() - 0.5:
+						if ts < time.time() - 0.1:
 							self.last_run[view_id] = time.time()
 							del views[view_id]
 							self.reenter(view_id)

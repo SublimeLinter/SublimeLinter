@@ -10,7 +10,7 @@ class Java(Linter):
     cmd = ('eclim', '-command', 'java_src_update')
     regex = r'.'
 
-    def communicate(self, cmd, code):
+    def run(self, cmd, code):
         return
 
         project = find(os.path.dirname(self.filename), '.project', True)

@@ -17,7 +17,7 @@ class CSS(Linter):
 	)
 	multiline = True
 
-	def communicate(self, cmd, code):
+	def run(self, cmd, code):
 		return self.tmpfile(cmd, code, suffix='.css')
 
 class HAML(Linter):
@@ -31,7 +31,7 @@ class HAML(Linter):
 # 	cmd = ('javac', '-Xlint')
 # 	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
 # 
-# 	def communicate(self, *args):
+# 	def run(self, *args):
 # 		return self.tmpfile(*args, suffix='.java')
 
 class JavaScript(Linter):
@@ -44,7 +44,7 @@ class Lua(Linter):
 	cmd = ('luac', '-p')
 	regex = '^luac: [^:]+:(?P<line>\d+): (?P<error>.+?)(?P<near> near .+)?'
 
-	def communicate(self, cmd, code):
+	def run(self, cmd, code):
 		return self.tmpfile(cmd, code, suffix='.lua')
 
 class Nasm(Linter):
@@ -52,7 +52,7 @@ class Nasm(Linter):
 	cmd = ('nasm', '-X', 'gnu', '-I.', '-o', os.devnull)
 	regex = r'^[^:]+:(?P<line>\d+): (?P<error>.*)$'
 
-	def communicate(self, cmd, code):
+	def run(self, cmd, code):
 		return self.tmpfile(cmd, code, suffix='.asm')
 
 class Perl(Linter):

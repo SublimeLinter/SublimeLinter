@@ -209,7 +209,7 @@ class Linter(metaclass=Tracker):
 		if not (self.language and self.cmd and self.regex):
 			raise NotImplementedError
 
-		output = self.communicate(self.cmd, code)
+		output = self.run(self.cmd, code)
 		if output:
 			persist.debug('Output:', repr(output))
 
@@ -296,6 +296,9 @@ class Linter(metaclass=Tracker):
 		if isinstance(line, bytes):
 			line = line.decode('utf8')
 		return self.split_match(r.match(line))
+
+	def run(self, cmd, code):
+		return self.communicate(cmd, code)
 
 	# popen wrappers
 	def communicate(self, cmd, code):

@@ -29,7 +29,7 @@ class C(Linter):
         'include': [],
     }
 
-    def communicate(self, cmd, code):
+    def run(self, cmd, code):
         cmd = tuple(self.settings.get('cmd'),) or self.cmd
         cmd += tuple(self.settings.get('args', []))
         for include in self.settings.get('include', []):

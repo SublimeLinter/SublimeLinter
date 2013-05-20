@@ -16,7 +16,7 @@ class Golang(Linter):
 	cmd = ('go', 'build', '-gcflags', '-eN')
 	regex = r'.+?:(?P<line>\d+): (?P<error>.+)'
 
-	def communicate(self, cmd, code):
+	def run(self, cmd, code):
 		code = code.encode('utf8')
 		if not self.filename:
 			tools = self.popen(('go', 'tool')).communicate()[0].split('\n')

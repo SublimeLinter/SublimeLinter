@@ -17,6 +17,8 @@ import time
 import json
 
 from . import lint
+lint # pyflakes
+
 from .lint.modules import Modules
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet

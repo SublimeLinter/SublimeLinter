@@ -97,10 +97,12 @@ class SublimeLint(sublime_plugin.EventListener):
 				self.hit(view)
 
 	# callins
-	def on_modified_async(self, view):
-		self.on_selection_modified_async(view)
+	def on_modified(self, view):
 		self.check_syntax(view)
 		self.hit(view)
+
+	def on_modified_async(self, view):
+		self.on_selection_modified_async(view)
 
 	def on_load(self, view):
 		self.on_new(view)

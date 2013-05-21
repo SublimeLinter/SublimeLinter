@@ -89,6 +89,18 @@ def create_environment():
 
 	return os.environ
 
+def can_exec(fpath):
+	return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+def which(cmd):
+	env = create_environment()
+	for base in env.get('PATH', '').split(os.pathsep):
+		path = os.path.join(base, cmd)
+		if can_exec(path):
+			return path
+
+	return None
+
 # popen methods
 def communicate(cmd, code):
 	code = code.encode('utf8')

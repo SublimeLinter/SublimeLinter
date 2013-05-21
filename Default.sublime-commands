@@ -24,5 +24,17 @@
     {
         "caption": "SublimeLint: Previous Error",
         "command": "sublimelint_next_error", "args": {"direction": -1}
+    },
+    {
+        "caption": "SublimeLint: Report (Open Files)",
+        "command": "sublimelint_report",
+        "args": {"on": "files"}
     }
+    /* folders not implemented
+    {
+        "caption": "SublimeLint: Report (Open Files and Folders)",
+        "command": "sublimelint_report",
+        "args": {"on": "both"}
+    }
+    */
 ]

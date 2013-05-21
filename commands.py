@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.dirname(__file__))
 
 from . import lint
+from . import sublimelint
 import lint.persist as persist
 
 def error_command(f):
@@ -67,3 +68,51 @@ class sublimelint_all_errors(sublime_plugin.TextCommand):
 				view.show_at_center(view.sel()[0])
 
 		view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
+
+class sublimelint_report(sublime_plugin.WindowCommand):
+	def run(self, on='files'):
+		output = self.window.new_file()
+		output.set_name('SublimeLint')
+		output.set_scratch(True)
+
+		if on == 'files' or on == 'both':
+			for view in self.window.views():
+				self.report(output, view)
+
+		if on == 'folders' or on == 'both':
+			for folder in self.window.folders():
+				self.folder(output, folder)
+
+	def folder(self, output, folder):
+		for root, dirs, files in os.walk(folder):
+			for name in files:
+				path = os.path.join(root, name)
+				# heuristic to speed things up a bit:
+				# ignore files over 256KB
+				if os.stat(path).st_size < 256 * 1024:
+					# TODO: not implemented
+					pass
+
+	def report(self, output, view):
+		def finish_lint(view, linters):
+			if not linters:
+				return
+
+			def insert(edit):
+				if not any(l.errors for l in linters):
+					return
+
+				filename = os.path.basename(linters[0].filename or 'untitled')
+				out = '\n{}:\n'.format(filename)
+				for linter in linters:
+					if linter.errors:
+						for line, errors in sorted(linter.errors.items()):
+							for error in errors:
+								out += '  {}: {}\n'.format(line, error)
+
+				output.insert(edit, output.size(), out)
+
+			persist.edits[output.id()].append(insert)
+			output.run_command('sublimelint_edit')
+
+		sublimelint.SublimeLint.lint(view.id(), callback=finish_lint)

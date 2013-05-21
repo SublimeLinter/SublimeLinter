@@ -40,7 +40,9 @@ class SublimeLint(sublime_plugin.EventListener):
 
 		self.start = time.time()
 
-	def lint(self, view_id):
+	@classmethod
+	def lint(cls, view_id, callback=None):
+		callback = callback or cls.finish
 		view = Linter.get_view(view_id)
 
 		sections = {}
@@ -54,10 +56,11 @@ class SublimeLint(sublime_plugin.EventListener):
 		if view is not None:
 			filename = view.file_name()
 			code = Linter.text(view)
-			args = (view_id, filename, code, sections, self.finish)
+			args = (view_id, filename, code, sections, callback)
 			threading.Thread(target=Linter.lint_view, args=args).start()
 
-	def finish(self, view, linters):
+	@classmethod
+	def finish(cls, view, linters):
 		errors = {}
 		highlights = HighlightSet()
 

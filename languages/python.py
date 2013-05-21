@@ -12,10 +12,14 @@ class Python(Linter):
     def run(self, cmd, code):
         python3 = False
         if (self.filename or '').startswith(sublime.packages_path()):
-            if sys.version_info >= (3, 0) and which('python3'):
+            if sys.version_info >= (3, 0):
                 python3 = True
 
-        if python3:
+        first_line = code.split('\n', 1)[0]
+        if first_line.startswith('#!') and 'python3' in first_line:
+            python3 = True
+
+        if python3 and which('python3'):
             # python 3
             pyflakes = which('pyflakes')
             cmd = ('python3', pyflakes)

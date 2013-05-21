@@ -222,7 +222,7 @@ class Linter(metaclass=Tracker):
 								start, end = self.highlight.full_line(row)
 								code_line = code[start:end]
 								diff = 0
-								for i in xrange(len(code_line)):
+								for i in range(len(code_line)):
 									if code_line[i] == '\t':
 										diff += (self.tab_size - 1)
 

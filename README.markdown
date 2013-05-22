@@ -20,6 +20,7 @@ Supports the following languages:
 * PHP - syntax checking via `php -l`
 * Perl - syntax+deprecation checking via `perl -c`
 * Python - native, moderately-complete lint
+* Puppet - parsing via `puppet parser validate`
 * Ruby - syntax checking via `ruby -wc`
 * XML - linting via `xmllint`
 

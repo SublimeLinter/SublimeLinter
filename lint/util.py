@@ -117,14 +117,14 @@ def tmpfile(cmd, code, suffix=''):
 		cmd = cmd,
 
 	f = tempfile.NamedTemporaryFile(suffix=suffix)
-	f.write(code)
+	f.write(code.encode('utf8'))
 	f.flush()
 
 	cmd = tuple(cmd) + (f.name,)
 	out = popen(cmd)
 	if out:
 		out = out.communicate()
-		return (out[0] or '') + (out[1] or '')
+		return (out[0].decode('utf8', 'replace') or '') + (out[1].decode('utf8', 'replace') or '')
 	else:
 		return ''
 

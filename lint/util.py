@@ -102,12 +102,18 @@ def which(cmd):
 	return None
 
 # popen methods
+def combine_output(out, sep=''):
+	return sep.join((
+		(out[0].decode('utf8') or ''),
+		(out[1].decode('utf8') or ''),
+	))
+
 def communicate(cmd, code):
 	code = code.encode('utf8')
 	out = popen(cmd)
 	if out is not None:
 		out = out.communicate(code)
-		return (out[0].decode() or '') + (out[1].decode() or '')
+		return combine_output(out)
 	else:
 		return ''
 
@@ -124,7 +130,7 @@ def tmpfile(cmd, code, suffix=''):
 	out = popen(cmd)
 	if out:
 		out = out.communicate()
-		return (out[0].decode('utf8', 'replace') or '') + (out[1].decode('utf8', 'replace') or '')
+		return combine_output(out)
 	else:
 		return ''
 
@@ -149,7 +155,7 @@ def tmpdir(cmd, files, filename, code):
 	out = popen(cmd)
 	if out:
 		out = out.communicate()
-		out = (out[0].decode('utf8') or '') + '\n' + (out[1].decode('utf8') or '')
+		out = combine_output(out, '\n')
 
 		# filter results from build to just this filename
 		# no guarantee all languages are as nice about this as Go

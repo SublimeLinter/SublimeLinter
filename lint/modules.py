@@ -17,7 +17,10 @@ class Modules:
 
 	def load(self, name):
 		persist.debug('SublimeLint: loading `%s`' % name)
-		pushd = os.getcwd()
+		try:
+			pushd = os.getcwd()
+		except OSError:
+			pushd = self.base
 		os.chdir(self.base)
 		path = list(sys.path)
 

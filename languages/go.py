@@ -13,7 +13,7 @@ def find_files(root, ext):
 
 class Golang(Linter):
 	language = 'go'
-	cmd = ('go', 'build', '-gcflags', '-eN')
+	cmd = ('go', 'build', '-gcflags', '-e -N')
 	regex = r'.+?:(?P<line>\d+): (?P<error>.+)'
 
 	def run(self, cmd, code):

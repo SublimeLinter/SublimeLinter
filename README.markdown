@@ -13,6 +13,7 @@ Supports the following languages:
 * CoffeeScript - validation via `coffee --compile`
 * Go - validation via `go build` in a temporary folder
 * HAML - checking via `haml -c`
+* HTML - linting via `tidy`
 * Java - linting via Eclipse command-line `eclim`
 * JavaScript - linting via JSLint command-line `jsl`
 * Lua - syntax checking via `luac -p`

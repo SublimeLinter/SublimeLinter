@@ -25,6 +25,11 @@ class HAML(Linter):
 	cmd = ('haml', '-c')
 	regex = r'^.*line (?P<line>\d+):\s*(?P<error>.+)$'
 
+class HTML(Linter):
+	language = 'html'
+	cmd = ('tidy', '-q', '-e', '-utf8')
+	regex = r'^line (?P<line>\d+) column (?P<col>\d+) - (Warning|Error)?\s*:?\s*(?P<error>.+)$'
+
 # this doesn't work very well with projects/imports
 # class Java(Linter):
 # 	language = 'java'

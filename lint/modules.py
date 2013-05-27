@@ -9,64 +9,64 @@ import traceback
 import lint.persist as persist
 
 class Modules:
-	def __init__(self, cwd, path):
-		self.base = cwd
-		self.path = path
-		self.abspath = os.path.abspath(path)
-		self.modules = {}
+    def __init__(self, cwd, path):
+        self.base = cwd
+        self.path = path
+        self.abspath = os.path.abspath(path)
+        self.modules = {}
 
-	def load(self, name):
-		persist.debug('SublimeLint: loading `%s`' % name)
-		try:
-			pushd = os.getcwd()
-		except OSError:
-			pushd = self.base
-		os.chdir(self.base)
-		path = list(sys.path)
+    def load(self, name):
+        persist.debug('SublimeLint: loading `%s`' % name)
+        try:
+            pushd = os.getcwd()
+        except OSError:
+            pushd = self.base
+        os.chdir(self.base)
+        path = list(sys.path)
 
-		sys.path.insert(0, self.path)
+        sys.path.insert(0, self.path)
 
-		mod = None
-		try:
-			__import__(name)
+        mod = None
+        try:
+            __import__(name)
 
-			# first, we get the actual module from sys.modules, not the base mod returned by __import__
-			# second, we get an updated version of the module with reload() so development is easier
-			mod = sys.modules[name] = imp.reload(sys.modules[name])
-		except:
-			persist.debug('SublimeLint: error importing `%s`' % name)
-			persist.debug('-'*20)
-			persist.debug(traceback.format_exc())
-			persist.debug('-'*20)
+            # first, we get the actual module from sys.modules, not the base mod returned by __import__
+            # second, we get an updated version of the module with reload() so development is easier
+            mod = sys.modules[name] = imp.reload(sys.modules[name])
+        except:
+            persist.debug('SublimeLint: error importing `%s`' % name)
+            persist.debug('-'*20)
+            persist.debug(traceback.format_exc())
+            persist.debug('-'*20)
 
-		if not mod:
-			return
+        if not mod:
+            return
 
-		self.modules[name] = mod
+        self.modules[name] = mod
 
-		# update module's __file__ with the absolute path so we know to reload it if Sublime Text saves that path
-		mod.__file__ = os.path.abspath(mod.__file__).rstrip('co') # strip .pyc/.pyo to just .py
+        # update module's __file__ with the absolute path so we know to reload it if Sublime Text saves that path
+        mod.__file__ = os.path.abspath(mod.__file__).rstrip('co') # strip .pyc/.pyo to just .py
 
-		sys.path = path
-		os.chdir(pushd)
+        sys.path = path
+        os.chdir(pushd)
 
-		return mod
+        return mod
 
-	def reload(self, mod):
-		name = mod.__name__
-		if name in self.modules:
-			return self.load(name)
+    def reload(self, mod):
+        name = mod.__name__
+        if name in self.modules:
+            return self.load(name)
 
-	def load_all(self):
-		pushd = os.getcwd()
-		os.chdir(self.base)
-		for mod in glob.glob('%s/*.py' % self.path):
-			base, name = os.path.split(mod)
-			name = name.split('.', 1)[0]
-			if name.startswith('_'):
-				continue
+    def load_all(self):
+        pushd = os.getcwd()
+        os.chdir(self.base)
+        for mod in glob.glob('%s/*.py' % self.path):
+            base, name = os.path.split(mod)
+            name = name.split('.', 1)[0]
+            if name.startswith('_'):
+                continue
 
-			self.load(name)
+            self.load(name)
 
-		os.chdir(pushd)
-		return self
+        os.chdir(pushd)
+        return self

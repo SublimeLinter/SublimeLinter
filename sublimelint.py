@@ -59,7 +59,7 @@ class SublimeLint(sublime_plugin.EventListener):
 			filename = view.file_name()
 			code = Linter.text(view)
 			args = (view_id, filename, code, sections, callback)
-			threading.Thread(target=Linter.lint_view, args=args).start()
+			Linter.lint_view(*args)
 
 	@classmethod
 	def finish(cls, view, linters):

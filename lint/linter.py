@@ -1,4 +1,3 @@
-from queue import Queue
 import re
 import sublime
 
@@ -136,39 +135,6 @@ class Linter(metaclass=Tracker):
 		return view.substr(sublime.Region(0, view.size()))
 
 	@classmethod
-	def lint_view(cls, view_id, filename, code, sections, callback):
-		if view_id in persist.linters:
-			selectors = Linter.get_selectors(view_id)
-
-			linters = tuple(persist.linters[view_id])
-			linter_text = (', '.join(l.name for l in linters))
-			persist.debug('SublimeLint: `%s` as %s' % (filename or 'untitled', linter_text))
-			for linter in linters:
-				if linter.settings.get('disable'):
-					continue
-
-				if not linter.selector:
-					linter.filename = filename
-					linter.pre_lint(code)
-
-			for sel, linter in selectors:
-				if sel in sections:
-					highlight = Highlight(code, scope=linter.scope, outline=linter.outline)
-					errors = {}
-
-					for line_offset, left, right in sections[sel]:
-						highlight.shift(line_offset, left)
-						linter.pre_lint(code[left:right], highlight=highlight)
-
-						for line, error in linter.errors.items():
-							errors[line+line_offset] = error
-
-					linter.errors = errors
-
-			# merge our result back to the main thread
-			callback(linters[0].view, linters)
-
-	@classmethod
 	def get_view(cls, view_id):
 		if view_id in persist.linters:
 			return tuple(persist.linters[view_id])[0].view
@@ -182,61 +148,89 @@ class Linter(metaclass=Tracker):
 
 	@classmethod
 	def get_selectors(cls, view_id):
-		return [(linter.selector, linter) for linter in cls.get_linters(view_id) if linter.selector]
+		return [
+			(linter.selector, linter)
+			for linter in cls.get_linters(view_id)
+			if linter.selector
+		]
 
-	def pre_lint(self, code, highlight=None):
+	@classmethod
+	def lint_view(cls, view_id, filename, code, sections, callback):
+		if not code:
+			return
+
+		filename = filename or 'untitled'
+		if view_id in persist.linters:
+			selectors = Linter.get_selectors(view_id)
+
+			linters = tuple(persist.linters[view_id])
+			linter_text = (', '.join(l.name for l in linters))
+			persist.debug('SublimeLint: `%s` as %s' % (filename, linter_text))
+			for linter in linters:
+				if linter.settings.get('disable'):
+					continue
+
+				if not linter.selector:
+					linter.reset(code, filename=filename)
+					linter.lint()
+
+			for sel, linter in selectors:
+				if sel in sections:
+					linter.reset(code, filename=filename)
+
+					errors = {}
+					for line_offset, left, right in sections[sel]:
+						highlight.shift(line_offset, left)
+						linter.lint(code[left:right])
+
+						for line, error in linter.errors.items():
+							errors[line+line_offset] = error
+
+					linter.errors = errors
+
+			# merge our result back to the main thread
+			callback(linters[0].view, linters)
+
+	def reset(self, code, filename=None, highlight=None):
 		self.errors = {}
-		self.highlight = highlight or Highlight(code, scope=self.scope, outline=self.outline)
+		self.code = code
+		self.filename = filename or self.filename
+		self.highlight = highlight or Highlight(
+			self.code, scope=self.scope, outline=self.outline)
 
-		if not code: return
-		
-		# if this linter needs the api, we want to merge back into the main thread
-		# but stall this thread until it's done so we still have the return
-		if self.needs_api:
-			q = Queue()
-			def callback():
-				q.get()
-				self.lint(code)
-				q.task_done()
-
-			q.put(1)
-			callback()
-			q.join()
-		else:
-			self.lint(code)
-
-	def lint(self, code):
+	def lint(self):
 		if not (self.language and self.cmd and self.regex):
 			raise NotImplementedError
 
-		output = self.run(self.cmd, code)
-		if output:
-			persist.debug('Output:', repr(output))
+		output = self.run(self.cmd, self.code)
+		if not output:
+			return
 
-			for match, row, col, message, near in self.find_errors(output):
-				if match:
-					if row or row is 0:
-						if col or col is 0:
-							# adjust column numbers to match the linter's tabs if necessary
-							if self.tab_size > 1:
-								start, end = self.highlight.full_line(row)
-								code_line = code[start:end]
-								diff = 0
-								for i in range(len(code_line)):
-									if code_line[i] == '\t':
-										diff += (self.tab_size - 1)
+		persist.debug('Output:', repr(output))
 
-									if col - diff <= i:
-										col = i
-										break
+		for match, row, col, message, near in self.find_errors(output):
+			if match and row is not None:
+				if col is not None:
+					# adjust column numbers to match the linter's tabs if necessary
+					if self.tab_size > 1:
+						start, end = self.highlight.full_line(row)
+						code_line = code[start:end]
+						diff = 0
+						for i in range(len(code_line)):
+							if code_line[i] == '\t':
+								diff += (self.tab_size - 1)
 
-							self.highlight.range(row, col)
-						elif near:
-							self.highlight.near(row, near)
-						else:
-							self.highlight.line(row)
+							if col - diff <= i:
+								col = i
+								break
 
-					self.error(row, message)
+					self.highlight.range(row, col)
+				elif near:
+					self.highlight.near(row, near)
+				else:
+					self.highlight.line(row)
+
+				self.error(row, message)
 
 	def draw(self, prefix='lint'):
 		self.highlight.draw(self.view, prefix)
@@ -293,10 +287,9 @@ class Linter(metaclass=Tracker):
 		return match, None, None, '', None
 
 	def match_error(self, r, line):
-		if isinstance(line, bytes):
-			line = line.decode('utf8')
 		return self.split_match(r.match(line))
 
+	# subclasses will override this
 	def run(self, cmd, code):
 		return self.communicate(cmd, code)
 

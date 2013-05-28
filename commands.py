@@ -2,6 +2,7 @@ import sublime
 import sublime_plugin
 
 import os
+from threading import Thread
 
 from . import sublimelint
 from .lint import persist
@@ -112,4 +113,5 @@ class sublimelint_report(sublime_plugin.WindowCommand):
             persist.edits[output.id()].append(insert)
             output.run_command('sublimelint_edit')
 
-        sublimelint.SublimeLint.lint(view.id(), callback=finish_lint)
+        args = (view.id(), finish_lint)
+        Thread(target=sublimelint.SublimeLint.lint, args=args).start()

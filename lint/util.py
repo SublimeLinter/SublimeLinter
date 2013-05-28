@@ -101,6 +101,10 @@ def which(cmd):
 
     return None
 
+def touch(path):
+    with open(path, 'a'):
+        os.utime(path, None)
+
 # popen methods
 def combine_output(out, sep=''):
     return sep.join((

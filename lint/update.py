@@ -7,6 +7,7 @@ from zipfile import ZipFile
 
 from . import persist
 from .modules import Modules
+from .util import touch
 
 API_ENDPOINT = 'https://api.github.com/repos/{}/commits'
 UPDATE_ZIP = 'https://github.com/{}/archive/master.zip'
@@ -47,10 +48,6 @@ def install_update(base, head=None):
     zip_text = fetch_url(UPDATE_ZIP.format(REPO))
     extract_update(zip_text, base, head)
     persist.modules = Modules(base).load_all()
-
-def touch(path):
-    with open(path, 'a') as f:
-        os.utime(path, None)
 
 def update(base):
     if not os.path.exists(base):

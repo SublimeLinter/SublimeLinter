@@ -178,7 +178,10 @@ class SublimeLint(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         vid = view.id()
-        lineno = view.rowcol(view.sel()[0].end())[0]
+        try:
+            lineno = view.rowcol(view.sel()[0].end())[0]
+        except IndexError:
+            lineno = -1
 
         status = ''
         if vid in persist.errors:

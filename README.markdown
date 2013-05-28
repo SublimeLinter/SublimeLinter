@@ -5,7 +5,7 @@ A framework for error highlighting in the [Sublime Text](http://sublimetext.com 
 
 It's easy to add language support. Take a look at the [linter repository](http://github.com/lunixbochs/linters "Linter Repository") for examples.
 
-Linters in your Sublime Text `User/linters` folder will be automatically used.
+Linters in your Sublime Text `User/linters` folder will be automatically used. You can also import `Linter` and subclass it inside `plugin_loaded()` from any other Sublime plugin.
 
 Installation
 -----

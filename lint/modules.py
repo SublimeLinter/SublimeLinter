@@ -37,12 +37,12 @@ class Modules:
         meta_name = 'linters.{}'.format(name)
         path = os.path.join(self.path, name)
         loader = SourceFileLoader(meta_name, path + '.py')
-        persist.debug('SublimeLint: loading `{}`'.format(meta_name))
+        persist.debug('loading `{}`'.format(meta_name))
         mod = None
         try:
             mod = loader.load_module(meta_name)
         except:
-            persist.debug('SublimeLint: error importing `{}`'.format(meta_name))
+            persist.debug('error importing `{}`'.format(meta_name))
             persist.debug('-'*20)
             persist.debug(traceback.format_exc())
             persist.debug('-'*20)

@@ -188,6 +188,6 @@ def popen(cmd, env=None):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:
-        persist.debug('SublimeLint: Error launching', repr(cmd))
+        persist.debug('Error launching', repr(cmd))
         persist.debug('Error was:', err.strerror)
         persist.debug('Environment:', env)

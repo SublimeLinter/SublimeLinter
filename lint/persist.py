@@ -98,7 +98,7 @@ class Daemon:
             return
 
         for arg in args:
-            print(arg, end=' ')
+            print('SublimeLint:', arg, end=' ')
         print()
 
 if not 'already' in globals():

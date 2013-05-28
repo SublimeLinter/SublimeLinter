@@ -165,7 +165,7 @@ class Linter(metaclass=Tracker):
                 return
 
             linter_text = (', '.join(l.name for l in linters))
-            persist.debug('SublimeLint: `{}` as {}'.format(filename, linter_text))
+            persist.debug('`{}` as {}'.format(filename, linter_text))
             for linter in linters:
                 if linter.settings.get('disable'):
                     continue

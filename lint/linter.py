@@ -217,7 +217,7 @@ class Linter(metaclass=Tracker):
                     # adjust column numbers to match the linter's tabs if necessary
                     if self.tab_size > 1:
                         start, end = self.highlight.full_line(row)
-                        code_line = code[start:end]
+                        code_line = self.code[start:end]
                         diff = 0
                         for i in range(len(code_line)):
                             if code_line[i] == '\t':

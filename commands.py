@@ -3,7 +3,7 @@ import sublime_plugin
 
 import os
 
-import sublimelint
+from . import sublimelint
 from .lint import persist
 
 def error_command(f):

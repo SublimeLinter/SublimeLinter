@@ -43,6 +43,15 @@ def extract_update(zip_text, base, revision=None):
             with open(target, 'wb') as f:
                 f.write(data)
 
+def install_update(base, head=None):
+    zip_text = fetch_url(UPDATE_ZIP.format(REPO))
+    extract_update(zip_text, base, head)
+    persist.modules = Modules(base).load_all()
+
+def touch(path):
+    with open(path, 'a') as f:
+        os.utime(path, None)
+
 def update(base):
     if not os.path.exists(base):
         os.makedirs(base)
@@ -55,16 +64,17 @@ def update(base):
         if elapsed < 15 * 60:
             return
 
-    # touch the version file timestamp
-    with open(version_file, 'a'):
-        os.utime(version_file, None)
+    if os.path.exists(version_file):
+        touch(version_file)
 
-    persist.debug('Checking for linter updates (last: {}s).'.format(elapsed))
-    if os.path.exists(base):
-        version = read_safe(version_file)
-        head = get_head_sha(REPO)
-        if head != version:
-            persist.debug('Newer version found. Updating to {}.'.format(head))
-            zip_text = fetch_url(UPDATE_ZIP.format(REPO))
-            extract_update(zip_text, base, head)
-            persist.modules = Modules(base).load_all()
+        persist.debug('Checking for linter updates (last: {}s).'.format(elapsed))
+        if os.path.exists(base):
+            version = read_safe(version_file)
+            head = get_head_sha(REPO)
+            if head != version:
+                persist.debug('Newer version found. Updating to {}.'.format(head))
+                install_update(base, head)
+    else:
+        persist.debug('First run: downloading linters.')
+        touch(version_file)
+        install_update(base)

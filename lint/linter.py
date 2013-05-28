@@ -160,7 +160,7 @@ class Linter(metaclass=Tracker):
         if view_id in persist.linters:
             selectors = Linter.get_selectors(view_id)
 
-            linters = tuple(persist.linters.get(view_id))
+            linters = list(persist.linters.get(view_id))
             if not linters:
                 return
 
@@ -175,6 +175,7 @@ class Linter(metaclass=Tracker):
                     linter.lint()
 
             for sel, linter in selectors:
+                linters.append(linter)
                 if sel in sections:
                     linter.reset(code, filename=filename)
 

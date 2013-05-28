@@ -113,16 +113,27 @@ class Highlight:
             scope = self.scope
 
         if self.lines and self.outline:
-            outlines = [view.full_line(view.text_point(line, 0)) for line in self.lines]
-            view.add_regions('%s-%s-outline' % (prefix, self.scope), outlines, scope, self.icon, flags=self.line_flags)
+            outlines = [view.full_line(view.text_point(line, 0))
+                        for line in self.lines]
+            view.add_regions(
+                '%s-%s-outline' % (prefix, self.scope),
+                outlines, scope, self.icon,
+                flags=self.line_flags,
+            )
 
         if self.underlines:
             underlines = [sublime.Region(u.a, u.a+1) for u in self.underlines]
-            view.add_regions('%s-%s-outline' % (prefix, self.scope), underlines, scope, self.icon, flags=self.underline_flags)
+            view.add_regions(
+                '%s-%s-underline' % (prefix, self.scope),
+                underlines, scope, self.icon,
+                flags=self.underline_flags,
+            )
 
-    def clear(self, view, prefix='lint'):
-        view.erase_regions('%s-%s-underline' % (prefix, self.scope))
-        view.erase_regions('%s-%s-outline' % (prefix, self.scope))
+    def clear(self, view, prefix='lint', scope=None):
+        if scope is None:
+            scope = self.scope
+        view.erase_regions('%s-%s-underline' % (prefix, scope))
+        view.erase_regions('%s-%s-outline' % (prefix, scope))
 
     def line(self, line):
         if self.outline:

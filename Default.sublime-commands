@@ -1,13 +1,13 @@
 [
     {
-        "caption": "Preferences: SublimeLint – Default",
+        "caption": "Preferences: SublimeLint Settings – Default",
         "command": "open_file", "args":
         {
             "file": "${packages}/sublimelint/SublimeLint.sublime-settings"
         }
     },
     {
-        "caption": "Preferences: SublimeLint – User",
+        "caption": "Preferences: SublimeLint Settings – User",
         "command": "open_file", "args":
         {
             "file": "${packages}/User/SublimeLint.sublime-settings"

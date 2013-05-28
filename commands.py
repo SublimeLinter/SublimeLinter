@@ -2,14 +2,9 @@ import sublime
 import sublime_plugin
 
 import os
-import sys
-sys.path.append(os.path.dirname(__file__))
 
-from . import lint
-lint # pyflakes
-
-from . import sublimelint
-import lint.persist as persist
+import sublimelint
+from .lint import persist
 
 def error_command(f):
     def run(self, edit, **kwargs):

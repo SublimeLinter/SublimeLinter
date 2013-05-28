@@ -109,7 +109,9 @@ if not 'already' in globals():
     errors = {}
     languages = {}
     linters = {}
+    views = {}
     edits = defaultdict(list)
+    modules = None
     already = True
 
 def reinit():

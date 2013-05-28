@@ -1,15 +1,16 @@
 import re
 import sublime
 
-from lint.highlight import Highlight
-import lint.persist as persist
-import lint.util as util
+from .highlight import Highlight
+from . import persist
+from . import util
 
 syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
 
 class Tracker(type):
     def __init__(cls, name, bases, attrs):
-        persist.add_language(cls, name, attrs)
+        if bases:
+            persist.add_language(cls, name, attrs)
 
 class Linter(metaclass=Tracker):
     language = ''
@@ -62,10 +63,8 @@ class Linter(metaclass=Tracker):
         find a linter for a specified view if possible, then add it to our mapping of view <--> lint class and return it
         each view has its own linter to make it feasible for linters to store persistent data about a view
         '''
-        try:
-            vid = view.id()
-        except RuntimeError:
-            pass
+        vid = view.id()
+        persist.views[vid] = view
 
         settings = view.settings()
         syn = settings.get('syntax')
@@ -91,9 +90,8 @@ class Linter(metaclass=Tracker):
                     linter = entry(view, syntax, view.file_name())
                     linters.add(linter)
 
-            if linters:
-                persist.linters[vid] = linters
-                return linters
+            persist.linters[vid] = linters
+            return linters
 
         cls.remove(vid)
 
@@ -136,8 +134,7 @@ class Linter(metaclass=Tracker):
 
     @classmethod
     def get_view(cls, view_id):
-        if view_id in persist.linters:
-            return tuple(persist.linters[view_id])[0].view
+        return persist.views.get(view_id)
 
     @classmethod
     def get_linters(cls, view_id):
@@ -163,9 +160,12 @@ class Linter(metaclass=Tracker):
         if view_id in persist.linters:
             selectors = Linter.get_selectors(view_id)
 
-            linters = tuple(persist.linters[view_id])
+            linters = tuple(persist.linters.get(view_id))
+            if not linters:
+                return
+
             linter_text = (', '.join(l.name for l in linters))
-            persist.debug('SublimeLint: `%s` as %s' % (filename, linter_text))
+            persist.debug('SublimeLint: `{}` as {}'.format(filename, linter_text))
             for linter in linters:
                 if linter.settings.get('disable'):
                     continue
@@ -189,7 +189,7 @@ class Linter(metaclass=Tracker):
                     linter.errors = errors
 
             # merge our result back to the main thread
-            callback(linters[0].view, linters)
+            callback(cls.get_view(view_id), linters)
 
     def reset(self, code, filename=None, highlight=None):
         self.errors = {}

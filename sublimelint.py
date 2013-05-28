@@ -1,5 +1,5 @@
 # sublimelint.py
-# SublimeLint is a code linting support framework for Sublime Text 2
+# SublimeLint is a code checking framework for Sublime Text
 #
 # Project: https://github.com/lunixbochs/sublimelint
 # License: MIT
@@ -8,30 +8,26 @@ import sublime
 import sublime_plugin
 
 import os
-import sys
-cwd = os.path.dirname(__file__)
-sys.path.append(cwd)
-
-import threading
 import time
 import json
-
-from . import lint
-lint # pyflakes
 
 from .lint.modules import Modules
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
-import lint.persist as persist
+from .lint import persist
+
+def plugin_loaded():
+    user_path = os.path.join(sublime.packages_path(), 'User', 'linters')
+    persist.modules = Modules(user_path).load_all()
+    persist.reinit()
 
 class SublimeLint(sublime_plugin.EventListener):
     def __init__(self, *args, **kwargs):
         sublime_plugin.EventListener.__init__(self, *args, **kwargs)
-        persist.reinit()
 
         self.loaded = set()
         self.linted = set()
-        self.modules = Modules(cwd, 'languages').load_all()
+
         self.last_syntax = {}
         persist.queue.start(self.lint)
 
@@ -168,12 +164,12 @@ class SublimeLint(sublime_plugin.EventListener):
         Linter.assign(view)
 
     def on_post_save(self, view):
-        # this will reload submodules if they are saved with sublime text
-        for name, module in self.modules.modules.items():
+        # this will reload linters if they are saved with sublime text
+        for name, module in persist.modules.items():
             if os.name == 'posix' and (
                 os.stat(module.__file__).st_ino == os.stat(view.file_name()).st_ino
             ) or module.__file__ == view.file_name():
-                self.modules.reload(module)
+                persist.modules.reload(module)
                 Linter.reload(name)
                 break
 

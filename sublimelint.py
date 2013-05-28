@@ -8,18 +8,21 @@ import sublime
 import sublime_plugin
 
 import os
+from threading import Thread
 import time
 import json
 
 from .lint.modules import Modules
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
+from .lint.update import update
 from .lint import persist
 
 def plugin_loaded():
     user_path = os.path.join(sublime.packages_path(), 'User', 'linters')
     persist.modules = Modules(user_path).load_all()
     persist.reinit()
+    Thread(target=update, args=(user_path,)).start()
 
 class SublimeLint(sublime_plugin.EventListener):
     def __init__(self, *args, **kwargs):

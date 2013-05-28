@@ -44,16 +44,15 @@ def extract_update(zip_text, base, revision=None):
                 f.write(data)
 
 def update(base):
-    print('checking for updates')
     if not os.path.exists(base):
         os.makedirs(base)
 
     version_file = os.path.join(base, '.version')
-    # don't check more than once a minute
+    # don't check more often than every 15 minutes
     elapsed = 0
     if os.path.exists(version_file):
         elapsed = time.time() - os.path.getmtime(version_file)
-        if elapsed < 1:
+        if elapsed < 15 * 60:
             return
 
     # touch the version file timestamp

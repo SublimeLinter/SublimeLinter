@@ -183,6 +183,7 @@ class Linter(metaclass=Tracker):
                     for line_offset, left, right in sections[sel]:
                         linter.highlight.shift(line_offset, left)
                         linter.code = code[left:right]
+                        linter.errors = {}
                         linter.lint()
 
                         for line, error in linter.errors.items():

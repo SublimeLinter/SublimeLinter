@@ -94,8 +94,8 @@ class Daemon:
         self.q.put(0.01)
 
     def printf(self, *args):
-        # TODO: appears to be broken
-        if not self.settings.get('debug'): return
+        if not self.settings.get('debug'):
+            return
 
         for arg in args:
             print(arg, end=' ')

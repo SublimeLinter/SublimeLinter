@@ -6,3 +6,12 @@ from . import (
     persist,
     util,
 )
+
+__all__ = [
+    'highlight',
+    'Linter',
+    'linter',
+    'modules',
+    'persist',
+    'util',
+]

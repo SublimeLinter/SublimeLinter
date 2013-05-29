@@ -152,12 +152,13 @@ class SublimeLint(sublime_plugin.EventListener):
             settings['plugins'] = plugins
             def replace(edit):
                 if not view.is_dirty():
-                    view.replace(edit, sublime.Region(0, view.size()),
-                        json.dumps({'user': settings}, indent=4, sort_keys=True)
-                    )
+                    j = json.dumps({'user': settings}, indent=4, sort_keys=True)
+                    j = j.replace(' \n', '\n')
+                    view.replace(edit, sublime.Region(0, view.size()), j)
 
             persist.edits[view.id()].append(replace)
             view.run_command('sublimelint_edit')
+            view.run_command('save')
 
     def on_new(self, view):
         self.on_open_settings(view)

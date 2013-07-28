@@ -34,6 +34,7 @@ class Daemon:
         # reattach settings objects to linters
         import sys
         linter = sys.modules.get('lint.linter')
+
         if linter and hasattr(linter, 'persist'):
             linter.Linter.reload()
 
@@ -56,7 +57,7 @@ class Daemon:
         while True:
             try:
                 try:
-                    item = self.q.get(True, 0.1)
+                    item = self.q.get(block=True, timeout=0.1)
                 except Empty:
                     for view_id, ts in views.copy().items():
                         if ts < time.time() - 0.1:
@@ -68,6 +69,7 @@ class Daemon:
 
                 if isinstance(item, tuple):
                     view_id, ts = item
+
                     if view_id in self.last_run and ts < self.last_run[view_id]:
                         continue
 
@@ -83,9 +85,9 @@ class Daemon:
                     self.printf('SublimeLint: Unknown message sent to daemon:', item)
             except:
                 self.printf('Error in SublimeLint daemon:')
-                self.printf('-'*20)
+                self.printf('-' * 20)
                 self.printf(traceback.format_exc())
-                self.printf('-'*20)
+                self.printf('-' * 20)
 
     def hit(self, view):
         self.q.put((view.id(), time.time()))
@@ -99,9 +101,10 @@ class Daemon:
 
         for arg in args:
             print('SublimeLint:', arg, end=' ')
+            
         print()
 
-if not 'already' in globals():
+if not 'modules' in globals():
     queue = Daemon()
     debug = queue.printf
     settings = queue.settings
@@ -112,13 +115,13 @@ if not 'already' in globals():
     views = {}
     edits = defaultdict(list)
     modules = None
-    already = True
 
 def reinit():
     queue.reinit()
 
 def edit(vid, edit):
     callbacks = edits.pop(vid, [])
+    
     for c in callbacks:
         c(edit)
 

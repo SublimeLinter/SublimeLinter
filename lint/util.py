@@ -6,14 +6,17 @@ import subprocess
 def merge_user_settings(settings):
     default = settings.get('default') or {}
     user = settings.get('user') or {}
+
     if user:
         plugins = default.pop('plugins', {})
         user_plugins = user.get('plugins', {})
+
         for name, data in user_plugins.items():
             if name in plugins:
                 plugins[name].update(data)
             else:
                 plugins[name] = data
+
         default['plugins'] = plugins
 
         user.pop('plugins', None)
@@ -35,6 +38,7 @@ def memoize(f):
 
 def climb(top):
     right = True
+
     while right:
         top, right = os.path.split(top)
         yield top
@@ -43,6 +47,7 @@ def climb(top):
 def find(top, name, parent=False):
     for d in climb(top):
         target = os.path.join(d, name)
+
         if os.path.exists(target):
             if parent:
                 return d
@@ -73,6 +78,7 @@ def find_path(env):
     # guess PATH if we haven't returned yet
     split = env['PATH'].split(':')
     p = env['PATH']
+
     for path in (
         '/usr/bin', '/usr/local/bin',
         '/usr/local/php/bin', '/usr/local/php5/bin'
@@ -94,6 +100,7 @@ def can_exec(fpath):
 
 def which(cmd):
     env = create_environment()
+
     for base in env.get('PATH', '').split(os.pathsep):
         path = os.path.join(base, cmd)
         if can_exec(path):
@@ -132,6 +139,7 @@ def tmpfile(cmd, code, suffix=''):
 
     cmd = tuple(cmd) + (f.name,)
     out = popen(cmd)
+
     if out:
         out = out.communicate()
         return combine_output(out)
@@ -143,10 +151,13 @@ def tmpdir(cmd, files, filename, code):
     d = tempfile.mkdtemp()
 
     for f in files:
-        try: os.makedirs(os.path.join(d, os.path.split(f)[0]))
-        except: pass
+        try:
+            os.makedirs(os.path.join(d, os.path.split(f)[0]))
+        except:
+            pass
 
         target = os.path.join(d, f)
+
         if os.path.split(target)[1] == filename:
             # source file hasn't been saved since change, so update it from our live buffer
             f = open(target, 'wb')
@@ -157,6 +168,7 @@ def tmpdir(cmd, files, filename, code):
 
     os.chdir(d)
     out = popen(cmd)
+
     if out:
         out = out.communicate()
         out = combine_output(out, '\n')
@@ -175,10 +187,12 @@ def tmpdir(cmd, files, filename, code):
 
 def popen(cmd, env=None):
     import lint.persist as persist
+
     if isinstance(cmd, str):
         cmd = cmd,
 
     info = None
+    
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESHOWWINDOW

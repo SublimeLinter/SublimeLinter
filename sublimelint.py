@@ -47,8 +47,10 @@ class SublimeLint(sublime_plugin.EventListener):
         view = Linter.get_view(view_id)
 
         sections = {}
+
         for sel, _ in Linter.get_selectors(view_id):
             sections[sel] = []
+
             for result in view.find_by_selector(sel):
                 sections[sel].append(
                     (view.rowcol(result.a)[0], result.a, result.b)
@@ -80,6 +82,7 @@ class SublimeLint(sublime_plugin.EventListener):
 
     def hit(self, view):
         self.linted.add(view.id())
+
         if view.size() == 0:
             for l in Linter.get_linters(view.id()):
                 l.clear()
@@ -113,15 +116,19 @@ class SublimeLint(sublime_plugin.EventListener):
 
     def on_activated_async(self, view):
         persist.reinit()
+
         if not view:
             return
 
         self.check_syntax(view, True)
         view_id = view.id()
+
         if not view_id in self.linted:
             if not view_id in self.loaded:
                 # it seems on_activated can be called before loaded on first start
-                if time.time() - self.start < 5: return
+                if time.time() - self.start < 5:
+                    return
+
                 self.on_new(view)
 
             self.hit(view)
@@ -134,6 +141,7 @@ class SublimeLint(sublime_plugin.EventListener):
             filename = view.file_name()
             dirname = os.path.basename(os.path.dirname(filename))
             filename = os.path.basename(filename)
+
             if filename != 'SublimeLint.sublime-settings':
                 return
 
@@ -144,12 +152,14 @@ class SublimeLint(sublime_plugin.EventListener):
             settings = persist.settings
             # fill in default plugin settings
             plugins = settings.pop('plugins', {})
+
             for name, language in persist.languages.items():
                 default = language.get_settings().copy()
                 default.update(plugins.pop(name, {}))
                 plugins[name] = default
 
             settings['plugins'] = plugins
+
             def replace(edit):
                 if not view.is_dirty():
                     j = json.dumps({'user': settings}, indent=4, sort_keys=True)
@@ -188,10 +198,13 @@ class SublimeLint(sublime_plugin.EventListener):
             lineno = -1
 
         status = ''
+
         if vid in persist.errors:
             errors = persist.errors[vid]
+
             if errors:
                 plural = 's' if len(errors) > 1 else ''
+                
                 if lineno in errors:
                     if plural:
                         num = sorted(list(errors)).index(lineno) + 1

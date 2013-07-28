@@ -68,6 +68,7 @@ class Linter(metaclass=Tracker):
 
         settings = view.settings()
         syn = settings.get('syntax')
+
         if not syn:
             cls.remove(vid)
             return
@@ -85,6 +86,7 @@ class Linter(metaclass=Tracker):
                     return
 
             linters = set()
+
             for name, entry in persist.languages.items():
                 if entry.can_lint(syntax):
                     linter = entry(view, syntax, view.file_name())
@@ -109,6 +111,7 @@ class Linter(metaclass=Tracker):
         reload all linters, optionally filtering by module
         '''
         plugins = persist.settings.get('plugins', {})
+
         for name, linter in persist.languages.items():
             settings = plugins.get(name, {})
             defaults = (linter.defaults or {}).copy()
@@ -157,15 +160,17 @@ class Linter(metaclass=Tracker):
             return
 
         filename = filename or 'untitled'
+
         if view_id in persist.linters:
             selectors = Linter.get_selectors(view_id)
-
             linters = list(persist.linters.get(view_id))
+
             if not linters:
                 return
 
             linter_text = (', '.join(l.name for l in linters))
             persist.debug('`{}` as {}'.format(filename, linter_text))
+
             for linter in linters:
                 if linter.settings.get('disable'):
                     continue
@@ -176,10 +181,11 @@ class Linter(metaclass=Tracker):
 
             for sel, linter in selectors:
                 linters.append(linter)
+
                 if sel in sections:
                     linter.reset(code, filename=filename)
-
                     errors = {}
+
                     for line_offset, left, right in sections[sel]:
                         linter.highlight.shift(line_offset, left)
                         linter.code = code[left:right]
@@ -206,6 +212,7 @@ class Linter(metaclass=Tracker):
             raise NotImplementedError
 
         output = self.run(self.cmd, self.code)
+
         if not output:
             return
 
@@ -219,6 +226,7 @@ class Linter(metaclass=Tracker):
                         start, end = self.highlight.full_line(row)
                         code_line = self.code[start:end]
                         diff = 0
+
                         for i in range(len(code_line)):
                             if code_line[i] == '\t':
                                 diff += (self.tab_size - 1)
@@ -246,6 +254,7 @@ class Linter(metaclass=Tracker):
     @classmethod
     def can_lint(cls, language):
         language = language.lower()
+
         if cls.language:
             if language == cls.language:
                 return True
@@ -256,8 +265,8 @@ class Linter(metaclass=Tracker):
 
     def error(self, line, error):
         self.highlight.line(line)
-
         error = str(error)
+
         if line in self.errors:
             self.errors[line].append(error)
         else:
@@ -266,6 +275,7 @@ class Linter(metaclass=Tracker):
     def find_errors(self, output):
         if self.multiline:
             errors = self.regex.finditer(output)
+
             if errors:
                 for error in errors:
                     yield self.split_match(error)
@@ -282,6 +292,7 @@ class Linter(metaclass=Tracker):
             error, row, col, near = [items[k] for k in ('error', 'line', 'col', 'near')]
 
             row = int(row) - 1
+            
             if col:
                 col = int(col) - 1
 

@@ -39,6 +39,7 @@ class Modules:
         loader = SourceFileLoader(meta_name, path + '.py')
         persist.debug('loading `{}`'.format(meta_name))
         mod = None
+
         try:
             mod = loader.load_module(meta_name)
         except:
@@ -58,8 +59,10 @@ class Modules:
 
     def reload(self, mod):
         name = mod.__name__
+
         if name.startswith('linters.'):
             name = name.split('.', 1)[1]
+
         if name in self.modules:
             return self.load(name)
 
@@ -67,6 +70,7 @@ class Modules:
         for mod in glob.glob('{}/*.py'.format(self.path)):
             base, name = os.path.split(mod)
             name = name.split('.', 1)[0]
+
             if name.startswith('_'):
                 continue
 

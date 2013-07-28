@@ -10,7 +10,7 @@ import traceback
 
 from . import persist
 
-class LintModule(importlib.abc.PyLoader):
+class LintModule(importlib.abc.SourceLoader):
     @classmethod
     def find_module(cls, fullname, path=None):
         if fullname == 'lint':
@@ -70,7 +70,7 @@ class Modules:
         for mod in glob.glob('{}/*.py'.format(self.path)):
             base, name = os.path.split(mod)
             name = name.split('.', 1)[0]
-
+            
             if name.startswith('_'):
                 continue
 

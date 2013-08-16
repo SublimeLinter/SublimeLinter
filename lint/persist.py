@@ -1,3 +1,9 @@
+# persist.py
+# Part of SublimeLinter, a code checking framework for Sublime Text 3
+#
+# Project: https://github.com/SublimeLinter/sublimelinter
+# License: MIT
+
 from collections import defaultdict
 from queue import Queue, Empty
 import threading
@@ -6,6 +12,8 @@ import time
 import sublime
 
 from .util import merge_user_settings
+
+plugin_name = 'SublimeLinter'
 
 class Daemon:
     running = False
@@ -17,26 +25,25 @@ class Daemon:
         self.settings = {}
         self.sub_settings = None
 
-    def reinit(self):
+    def load_settings(self):
+        print('load_settings')
         if not self.settings:
             if self.sub_settings:
                 self.sub_settings.clear_on_change('lint-persist-settings')
 
-            self.sub_settings = sublime.load_settings('SublimeLint.sublime-settings')
+            self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
             self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
             self.update_settings()
 
     def update_settings(self):
+        print('update_settings')
         settings = merge_user_settings(self.sub_settings)
         self.settings.clear()
         self.settings.update(settings)
 
-        # reattach settings objects to linters
-        import sys
-        linter = sys.modules.get('lint.linter')
-
-        if linter and hasattr(linter, 'persist'):
-            linter.Linter.reload()
+        # Reattach settings objects to linters
+        from . import linter
+        linter.Linter.reload()
 
     def start(self, callback):
         self.callback = callback
@@ -64,7 +71,7 @@ class Daemon:
                             self.last_run[view_id] = time.time()
                             del views[view_id]
                             self.reenter(view_id)
-                    
+
                     continue
 
                 if isinstance(item, tuple):
@@ -80,11 +87,11 @@ class Daemon:
 
                 elif isinstance(item, str):
                     if item == 'reload':
-                        self.printf('SublimeLint daemon detected a reload')
+                        self.printf('SublimeLinter daemon detected a reload')
                 else:
-                    self.printf('SublimeLint: Unknown message sent to daemon:', item)
+                    self.printf('SublimeLinter: Unknown message sent to daemon:', item)
             except:
-                self.printf('Error in SublimeLint daemon:')
+                self.printf('Error in SublimeLinter daemon:')
                 self.printf('-' * 20)
                 self.printf(traceback.format_exc())
                 self.printf('-' * 20)
@@ -99,35 +106,57 @@ class Daemon:
         if not self.settings.get('debug'):
             return
 
+        print(plugin_name + ': ', end='')
+
         for arg in args:
-            print('SublimeLint:', arg, end=' ')
-            
+            print(arg, end=' ')
+
         print()
 
-if not 'modules' in globals():
+if not 'plugin_is_loaded' in globals():
     queue = Daemon()
     debug = queue.printf
     settings = queue.settings
 
     errors = {}
     languages = {}
-    linters = {}
-    views = {}
-    edits = defaultdict(list)
-    modules = None
 
-def reinit():
-    queue.reinit()
+    # A mapping between view ids and a set of linter instances
+    linters = {}
+
+    # A mapping between view ids and views
+    views = {}
+
+    edits = defaultdict(list)
+
+    # Set to true when the plugin is loaded at startup
+    plugin_is_loaded = False
+
+def load_settings():
+    queue.load_settings()
 
 def edit(vid, edit):
     callbacks = edits.pop(vid, [])
-    
+
     for c in callbacks:
         c(edit)
 
-def add_language(sub, name, attrs):
+def register_linter(linter_class, name, attrs):
+    '''Add a linter class to our mapping of languages <--> linter classes.'''
     if name:
-        plugins = settings.get('plugins', {})
-        sub.lint_settings = plugins.get(name, {})
-        sub.name = name
-        languages[name] = sub
+        linter_settings = settings.get('linters', {})
+        linter_class.lint_settings = linter_settings.get(name, {})
+        linter_class.name = name
+        languages[name] = linter_class
+
+        # The sublime plugin API is not available until plugin_loaded is executed
+        if plugin_is_loaded:
+            load_settings()
+
+            # If a linter is reloaded, we have to reassign linters to all views
+            from . import linter
+
+            for view in views.values():
+                linter.Linter.assign(view, reassign=True)
+
+            debug('{} linter reloaded'.format(name))

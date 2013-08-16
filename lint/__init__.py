@@ -4,7 +4,6 @@ from . import (
     linter,
     modules,
     persist,
-    update,
     util,
 )
 
@@ -14,6 +13,5 @@ __all__ = [
     'linter',
     'modules',
     'persist',
-    'update',
     'util',
 ]

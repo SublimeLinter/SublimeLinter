@@ -1,15 +1,23 @@
+# commands.py
+# Part of SublimeLinter, a code checking framework for Sublime Text 3
+#
+# Project: https://github.com/SublimeLinter/sublimelinter
+# License: MIT
+
 import sublime
 import sublime_plugin
 
 import os
 from threading import Thread
 
-from . import sublimelint
+from . import sublimelinter
 from .lint import persist
 
 def error_command(f):
+    '''A decorator that only executes f if the current view has errors.'''
     def run(self, edit, **kwargs):
         vid = self.view.id()
+
         if vid in persist.errors and persist.errors[vid]:
             f(self, self.view, persist.errors[vid], **kwargs)
 
@@ -21,27 +29,34 @@ def select_line(view, line):
     sel.clear()
     sel.add(view.line(point))
 
-class sublimelint_next_error(sublime_plugin.TextCommand):
+class sublimelinter_next_error(sublime_plugin.TextCommand):
+    '''Select the next line containing an error.'''
     @error_command
     def run(self, view, errors, direction=1):
         self.view.run_command('single_selection')
         sel = view.sel()
+
         if len(sel) == 0:
             sel.add((0, 0))
 
         line = view.rowcol(sel[0].a)[0]
         errors = list(errors)
-        if line in errors: errors.remove(line)
-        errors = sorted(errors + [line])
 
+        if line in errors:
+            errors.remove(line)
+
+        errors = sorted(errors + [line])
         i = errors.index(line) + direction
+
+        # Wrap around if we go past the last error
         if i >= len(errors):
             i -= len(errors)
 
         select_line(view, errors[i])
         view.show_at_center(sel[0])
 
-class sublimelint_all_errors(sublime_plugin.TextCommand):
+class sublimelinter_all_errors(sublime_plugin.TextCommand):
+    '''Show a quick panel with all of the errors in the current view.'''
     @error_command
     def run(self, view, errors):
         options = []
@@ -51,6 +66,7 @@ class sublimelint_all_errors(sublime_plugin.TextCommand):
             line = view.substr(
                 view.full_line(view.text_point(lineno, 0))
             )
+
             while messages:
                 option_to_line.append(lineno)
                 options.append(
@@ -67,10 +83,14 @@ class sublimelint_all_errors(sublime_plugin.TextCommand):
 
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
 
-class sublimelint_report(sublime_plugin.WindowCommand):
+class sublimelinter_report(sublime_plugin.WindowCommand):
+    '''
+    Display a report of all errors in all open files in the current window,
+    in all files in all folders in the current window, or both.
+    '''
     def run(self, on='files'):
         output = self.window.new_file()
-        output.set_name('SublimeLint')
+        output.set_name(persist.plugin_name)
         output.set_scratch(True)
 
         if on == 'files' or on == 'both':
@@ -85,8 +105,8 @@ class sublimelint_report(sublime_plugin.WindowCommand):
         for root, dirs, files in os.walk(folder):
             for name in files:
                 path = os.path.join(root, name)
-                # heuristic to speed things up a bit:
-                # ignore files over 256KB
+
+                # Ignore files over 256K to speed things up a bit
                 if os.stat(path).st_size < 256 * 1024:
                     # TODO: not implemented
                     pass
@@ -102,6 +122,7 @@ class sublimelint_report(sublime_plugin.WindowCommand):
 
                 filename = os.path.basename(linters[0].filename or 'untitled')
                 out = '\n{}:\n'.format(filename)
+
                 for linter in linters:
                     if linter.errors:
                         for line, errors in sorted(linter.errors.items()):
@@ -111,7 +132,7 @@ class sublimelint_report(sublime_plugin.WindowCommand):
                 output.insert(edit, output.size(), out)
 
             persist.edits[output.id()].append(insert)
-            output.run_command('sublimelint_edit')
+            output.run_command('sublimelinter_edit')
 
         args = (view.id(), finish_lint)
-        Thread(target=sublimelint.SublimeLint.lint, args=args).start()
+        Thread(target=sublimelinter.SublimeLinter.lint, args=args).start()

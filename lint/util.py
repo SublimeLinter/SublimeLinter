@@ -1,40 +1,40 @@
+# util.py
+# Part of SublimeLinter, a code checking framework for Sublime Text 3
+#
+# Project: https://github.com/SublimeLinter/sublimelinter
+# License: MIT
+
+from functools import lru_cache
 import os
+import re
 import shutil
 import tempfile
 import subprocess
 
+INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
+INLINE_OPTION_RE = re.compile(r'(\w+)\s*:\s*(.+?)\s*(?:,|$)')
+
 def merge_user_settings(settings):
+    '''Merge the default linter settings with the user's settings.'''
     default = settings.get('default') or {}
     user = settings.get('user') or {}
 
     if user:
-        plugins = default.pop('plugins', {})
-        user_plugins = user.get('plugins', {})
+        linters = default.pop('linters', {})
+        user_linters = user.get('linters', {})
 
-        for name, data in user_plugins.items():
-            if name in plugins:
-                plugins[name].update(data)
+        for name, data in user_linters.items():
+            if name in linters:
+                linters[name].update(data)
             else:
-                plugins[name] = data
+                linters[name] = data
 
-        default['plugins'] = plugins
+        default['linters'] = linters
 
-        user.pop('plugins', None)
+        user.pop('linters', None)
         default.update(user)
 
     return default
-
-def memoize(f):
-    rets = {}
-
-    def wrap(*args):
-        if not args in rets:
-            rets[args] = f(*args)
-
-        return rets[args]
-
-    wrap.__name__ = f.__name__
-    return wrap
 
 def climb(top):
     right = True
@@ -43,7 +43,7 @@ def climb(top):
         top, right = os.path.split(top)
         yield top
 
-@memoize
+@lru_cache()
 def find(top, name, parent=False):
     for d in climb(top):
         target = os.path.join(d, name)
@@ -88,7 +88,7 @@ def find_path(env):
 
     return p
 
-@memoize
+@lru_cache()
 def create_environment():
     if os.name == 'posix':
         os.environ['PATH'] = find_path(os.environ)
@@ -98,11 +98,13 @@ def create_environment():
 def can_exec(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
+@lru_cache()
 def which(cmd):
     env = create_environment()
 
     for base in env.get('PATH', '').split(os.pathsep):
         path = os.path.join(base, cmd)
+
         if can_exec(path):
             return path
 
@@ -112,7 +114,18 @@ def touch(path):
     with open(path, 'a'):
         os.utime(path, None)
 
+def inline_options(code):
+    options = {}
+    m = INLINE_OPTIONS_RE.match(code)
+
+    if m:
+        for option in INLINE_OPTION_RE.findall(m.group(1)):
+            options[option[0]] = option[1]
+
+    return options
+
 # popen methods
+
 def combine_output(out, sep=''):
     return sep.join((
         (out[0].decode('utf8') or ''),
@@ -122,12 +135,12 @@ def combine_output(out, sep=''):
 def communicate(cmd, code):
     code = code.encode('utf8')
     out = popen(cmd)
+
     if out is not None:
         out = out.communicate(code)
         return combine_output(out)
     else:
         return ''
-
 
 def tmpfile(cmd, code, suffix=''):
     if isinstance(cmd, str):
@@ -192,7 +205,7 @@ def popen(cmd, env=None):
         cmd = cmd,
 
     info = None
-    
+
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -206,6 +219,6 @@ def popen(cmd, env=None):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:
-        persist.debug('Error launching', repr(cmd))
-        persist.debug('Error was:', err.strerror)
-        persist.debug('Environment:', env)
+        persist.debug('error launching', repr(cmd))
+        persist.debug('error was:', err.strerror)
+        persist.debug('environment:', env)

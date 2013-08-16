@@ -1,3 +1,9 @@
+# linter.py
+# Part of SublimeLinter, a code checking framework for Sublime Text 3
+#
+# Project: https://github.com/SublimeLinter/sublimelinter
+# License: MIT
+
 import re
 import sublime
 
@@ -5,29 +11,69 @@ from .highlight import Highlight
 from . import persist
 from . import util
 
-syntax_re = re.compile(r'/([^/]+)\.tmLanguage$')
+SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
 
-class Tracker(type):
+class Registrar(type):
+    '''This metaclass registers the linter when the class is declared.'''
     def __init__(cls, name, bases, attrs):
         if bases:
-            persist.add_language(cls, name, attrs)
+            persist.register_linter(cls, name, attrs)
 
-class Linter(metaclass=Tracker):
+class Linter(metaclass=Registrar):
+    '''
+    The base class for linters. Subclasses must at a minimum define
+    the attributes language, cmd, and regex.
+    '''
+
+    #
+    # Public attributes
+    #
+
+    # The name of the linter's language for display purposes.
+    # By convention this is all lowercase.
     language = ''
-    cmd = ()
+
+    # A string, tuple or callable that returns a string or tuple, containing the
+    # command line arguments used to lint.
+    cmd = ''
+
+    # A regex pattern used to extract information from the linter's executable output.
     regex = ''
-    multiline = False
-    flags = 0
-    tab_size = 1
 
+    # Set to True if the linter outputs multiple errors. When True,
+    # regex will be created with the re.MULTILINE flag.
+    multiple_errors = False
+
+    # If you want to set flags on the regex other than re.MULTILINE, set this.
+    re_flags = 0
+
+    # If the linter executable cannot receive from stdin and requires a temp file,
+    # set this attribute to the suffix of the temp file.
+    tempfile_suffix = None
+
+    # Tab width
+    tab_width = 1
+
+    # FIXME: I may be able to eliminate this
     scope = 'keyword'
-    selector = None
-    outline = True
-    needs_api = False
 
+    # If you want to limit the linter to specific portions of the source
+    # based on a scope selector, set this attribute to the selector. For example,
+    # in an html file with embedded php, you would set the selector for a php
+    # linter to 'source.php'.
+    selector = None
+
+    # Set to True if you want errors to be outlined for this linter.
+    outline = True
+
+    # If you want to provide default settings for the linter, set this attribute.
+    defaults = None
+
+    #
+    # Internal class storage, do not set
+    #
     errors = None
     highlight = None
-    defaults = None
     lint_settings = None
 
     def __init__(self, view, syntax, filename=None):
@@ -36,21 +82,22 @@ class Linter(metaclass=Tracker):
         self.filename = filename
 
         if self.regex:
-            if self.multiline:
-                self.flags |= re.MULTILINE
+            if self.multiple_errors:
+                self.re_flags |= re.MULTILINE
 
             try:
-                self.regex = re.compile(self.regex, self.flags)
+                self.regex = re.compile(self.regex, self.re_flags)
             except:
-                persist.debug('Error compiling regex for {}'.format(self.language))
+                persist.debug('error compiling regex for {}'.format(self.language))
 
         self.highlight = Highlight(scope=self.scope)
 
     @classmethod
     def get_settings(cls):
-        plugins = persist.settings.get('plugins', {})
+        '''Return the default settings for this linter, merged with the user settings.'''
+        linters = persist.settings.get('linters', {})
         settings = cls.defaults or {}
-        settings.update(plugins.get(cls.__name__, {}))
+        settings.update(linters.get(cls.__name__, {}))
         return settings
 
     @property
@@ -58,38 +105,42 @@ class Linter(metaclass=Tracker):
         return self.get_settings()
 
     @classmethod
-    def assign(cls, view):
+    def assign(cls, view, reassign=False):
         '''
-        find a linter for a specified view if possible, then add it to our mapping of view <--> lint class and return it
-        each view has its own linter to make it feasible for linters to store persistent data about a view
+        Assign a view to an instance of a linter.
+        Find a linter for a specified view if possible, then add it to our view <--> lint class map and return it.
+        Each view has its own linter so that linters can store persistent data about a view.
         '''
         vid = view.id()
         persist.views[vid] = view
 
         settings = view.settings()
-        syn = settings.get('syntax')
+        syntax = settings.get('syntax')
 
-        if not syn:
+        if not syntax:
             cls.remove(vid)
             return
 
-        match = syntax_re.search(syn)
+        match = SYNTAX_RE.search(syntax)
 
         if match:
-            syntax, = match.groups()
+            syntax = match.group(1)
         else:
-            syntax = syn
+            syntax = ''
 
         if syntax:
-            if vid in persist.linters and persist.linters[vid]:
-                if tuple(persist.linters[vid])[0].syntax == syntax:
-                    return
+            if vid in persist.linters and persist.linters[vid] and not reassign:
+                # If a linter in the set of linters for the given view
+                # already handles the view's syntax, we have nothing more to do.
+                for linter in tuple(persist.linters[vid]):
+                    if linter.syntax == syntax:
+                        return
 
             linters = set()
 
-            for name, entry in persist.languages.items():
-                if entry.can_lint(syntax):
-                    linter = entry(view, syntax, view.file_name())
+            for name, linter_class in persist.languages.items():
+                if linter_class.can_lint(syntax):
+                    linter = linter_class(view, syntax, view.file_name())
                     linters.add(linter)
 
             persist.linters[vid] = linters
@@ -99,106 +150,112 @@ class Linter(metaclass=Tracker):
 
     @classmethod
     def remove(cls, vid):
+        '''Remove a the mapping between a view and its set of linters.'''
         if vid in persist.linters:
-            for linter in persist.linters[vid]:
-                linter.clear()
+            for linters in persist.linters[vid]:
+                linters.clear()
 
             del persist.linters[vid]
 
     @classmethod
     def reload(cls, mod=None):
-        '''
-        reload all linters, optionally filtering by module
-        '''
-        plugins = persist.settings.get('plugins', {})
+        '''Reload all linters, optionally filtering by module.'''
+
+        # Merge linter default settings with user settings
+        linter_settings = persist.settings.get('linters', {})
 
         for name, linter in persist.languages.items():
-            settings = plugins.get(name, {})
+            settings = linter_settings.get(name, {})
             defaults = (linter.defaults or {}).copy()
             defaults.update(settings)
             linter.lint_settings = defaults
 
-        for id, linters in persist.linters.items():
+        for vid, linters in persist.linters.items():
             for linter in linters:
                 if mod and linter.__module__ != mod:
                     continue
 
                 linter.clear()
-                persist.linters[id].remove(linter)
+                persist.linters[vid].remove(linter)
                 linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
-                persist.linters[id].add(linter)
+                persist.linters[vid].add(linter)
                 linter.draw()
 
         return
 
     @classmethod
     def text(cls, view):
+        '''Returns the entire text of a view.'''
         return view.substr(sublime.Region(0, view.size()))
 
     @classmethod
-    def get_view(cls, view_id):
-        return persist.views.get(view_id)
+    def get_view(cls, vid):
+        '''Returns the view object with the given id.'''
+        return persist.views.get(vid)
 
     @classmethod
-    def get_linters(cls, view_id):
-        if view_id in persist.linters:
-            return tuple(persist.linters[view_id])
+    def get_linters(cls, vid):
+        '''Returns a tuple of linters for the view with the given id.'''
+        if vid in persist.linters:
+            return tuple(persist.linters[vid])
 
         return ()
 
     @classmethod
-    def get_selectors(cls, view_id):
+    def get_selectors(cls, vid):
+        '''Returns a list of scope selectors for all linters for the view with the given id.'''
         return [
             (linter.selector, linter)
-            for linter in cls.get_linters(view_id)
+            for linter in cls.get_linters(vid)
             if linter.selector
         ]
 
     @classmethod
-    def lint_view(cls, view_id, filename, code, sections, callback):
-        if not code:
+    def lint_view(cls, vid, filename, code, sections, callback):
+        print('Linter.lint_view({})'.format(vid))
+        if not code or vid not in persist.linters:
+            return
+
+        linters = list(persist.linters.get(vid))
+        print('linters =', linters)
+
+        if not linters:
             return
 
         filename = filename or 'untitled'
+        linter_list = (', '.join(l.name for l in linters))
+        persist.debug('lint \'{}\' as {}'.format(filename, linter_list))
 
-        if view_id in persist.linters:
-            selectors = Linter.get_selectors(view_id)
-            linters = list(persist.linters.get(view_id))
+        for linter in linters:
+            if linter.settings.get('disable'):
+                continue
 
-            if not linters:
-                return
+            if not linter.selector:
+                linter.reset(code, filename=filename)
+                linter.lint()
 
-            linter_text = (', '.join(l.name for l in linters))
-            persist.debug('`{}` as {}'.format(filename, linter_text))
+        selectors = Linter.get_selectors(vid)
 
-            for linter in linters:
-                if linter.settings.get('disable'):
-                    continue
+        for sel, linter in selectors:
+            linters.append(linter)
 
-                if not linter.selector:
-                    linter.reset(code, filename=filename)
+            if sel in sections:
+                linter.reset(code, filename=filename)
+                errors = {}
+
+                for line_offset, left, right in sections[sel]:
+                    linter.highlight.move_to(line_offset, left)
+                    linter.code = code[left:right]
+                    linter.errors = {}
                     linter.lint()
 
-            for sel, linter in selectors:
-                linters.append(linter)
+                    for line, error in linter.errors.items():
+                        errors[line + line_offset] = error
 
-                if sel in sections:
-                    linter.reset(code, filename=filename)
-                    errors = {}
+                linter.errors = errors
 
-                    for line_offset, left, right in sections[sel]:
-                        linter.highlight.shift(line_offset, left)
-                        linter.code = code[left:right]
-                        linter.errors = {}
-                        linter.lint()
-
-                        for line, error in linter.errors.items():
-                            errors[line+line_offset] = error
-
-                    linter.errors = errors
-
-            # merge our result back to the main thread
-            callback(cls.get_view(view_id), linters)
+        # Merge our result back to the main thread
+        callback(cls.get_view(vid), linters)
 
     def reset(self, code, filename=None, highlight=None):
         self.errors = {}
@@ -211,25 +268,33 @@ class Linter(metaclass=Tracker):
         if not (self.language and self.cmd and self.regex):
             raise NotImplementedError
 
-        output = self.run(self.cmd, self.code)
+        if callable(self.cmd):
+            cmd = self.cmd()
+        else:
+            cmd = self.cmd
+
+        if not isinstance(cmd, (tuple, list)):
+            cmd = (cmd,)
+
+        output = self.run(cmd, self.code)
 
         if not output:
             return
 
-        persist.debug('Output:', repr(output))
+        persist.debug('lint output:\n' + output)
 
-        for match, row, col, message, near in self.find_errors(output):
+        for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
                 if col is not None:
-                    # adjust column numbers to match the linter's tabs if necessary
-                    if self.tab_size > 1:
+                    # Adjust column numbers to match the linter's tabs if necessary
+                    if self.tab_width > 1:
                         start, end = self.highlight.full_line(row)
                         code_line = self.code[start:end]
                         diff = 0
 
                         for i in range(len(code_line)):
                             if code_line[i] == '\t':
-                                diff += (self.tab_size - 1)
+                                diff += (self.tab_width - 1)
 
                             if col - diff <= i:
                                 col = i
@@ -253,6 +318,10 @@ class Linter(metaclass=Tracker):
 
     @classmethod
     def can_lint(cls, language):
+        return Linter.linter_can_lint(cls, language)
+
+    @staticmethod
+    def linter_can_lint(cls, language):
         language = language.lower()
 
         if cls.language:
@@ -260,8 +329,8 @@ class Linter(metaclass=Tracker):
                 return True
             elif isinstance(cls.language, (tuple, list)) and language in cls.language:
                 return True
-            else:
-                return False
+
+        return False
 
     def error(self, line, error):
         self.highlight.line(line)
@@ -273,7 +342,7 @@ class Linter(metaclass=Tracker):
             self.errors[line] = [error]
 
     def find_errors(self, output):
-        if self.multiline:
+        if self.multiple_errors:
             errors = self.regex.finditer(output)
 
             if errors:
@@ -287,32 +356,35 @@ class Linter(metaclass=Tracker):
 
     def split_match(self, match):
         if match:
-            items = {'row':None, 'col':None, 'error':'', 'near':None}
+            items = {'line':None, 'col':None, 'type':None, 'error':'', 'near':None}
             items.update(match.groupdict())
-            error, row, col, near = [items[k] for k in ('error', 'line', 'col', 'near')]
+            row, col, error_type, error, near = [items[k] for k in ('line', 'col', 'type', 'error', 'near')]
 
             row = int(row) - 1
-            
+
             if col:
                 col = int(col) - 1
 
-            return match, row, col, error, near
+            return match, row, col, error_type, error, near
 
-        return match, None, None, '', None
+        return match, None, None, None, '', None
 
     def match_error(self, r, line):
         return self.split_match(r.match(line))
 
-    # subclasses will override this
+    # Subclasses may need to override this in complex cases
     def run(self, cmd, code):
-        return self.communicate(cmd, code)
+        if self.tempfile_suffix:
+            return self.tmpfile(cmd, suffix=self.tempfile_suffix)
+        else:
+            return self.communicate(cmd, code)
 
     # popen wrappers
     def communicate(self, cmd, code):
         return util.communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=''):
-        return util.tmpfile(cmd, code, suffix)
+        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix)
 
     def tmpdir(self, cmd, files, code):
         return util.tmpdir(cmd, files, self.filename, code)

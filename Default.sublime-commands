@@ -1,39 +1,39 @@
 [
     {
-        "caption": "Preferences: SublimeLint Settings – Default",
+        "caption": "Preferences: SublimeLinter Settings – Default",
         "command": "open_file", "args":
         {
-            "file": "${packages}/sublimelint/SublimeLint.sublime-settings"
+            "file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings"
         }
     },
     {
-        "caption": "Preferences: SublimeLint Settings – User",
+        "caption": "Preferences: SublimeLinter Settings – User",
         "command": "open_file", "args":
         {
-            "file": "${packages}/User/SublimeLint.sublime-settings"
+            "file": "${packages}/User/SublimeLinter.sublime-settings"
         }
     },
     {
-        "caption": "SublimeLint: Show All Errors",
-        "command": "sublimelint_all_errors"
+        "caption": "SublimeLinter: Show All Errors",
+        "command": "sublimelinter_all_errors"
     },
     {
-        "caption": "SublimeLint: Next Error",
-        "command": "sublimelint_next_error"
+        "caption": "SublimeLinter: Next Error",
+        "command": "sublimelinter_next_error"
     },
     {
-        "caption": "SublimeLint: Previous Error",
-        "command": "sublimelint_next_error", "args": {"direction": -1}
+        "caption": "SublimeLinter: Previous Error",
+        "command": "sublimelinter_next_error", "args": {"direction": -1}
     },
     {
-        "caption": "SublimeLint: Report (Open Files)",
-        "command": "sublimelint_report",
+        "caption": "SublimeLinter: Report (Open Files)",
+        "command": "sublimelinter_report",
         "args": {"on": "files"}
     }
     /* folders not implemented
     {
-        "caption": "SublimeLint: Report (Open Files and Folders)",
-        "command": "sublimelint_report",
+        "caption": "SublimeLinter: Report (Open Files and Folders)",
+        "command": "sublimelinter_report",
         "args": {"on": "both"}
     }
     */

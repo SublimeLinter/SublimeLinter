@@ -13,17 +13,25 @@ from . import util
 
 SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
 
+
 class Registrar(type):
     '''This metaclass registers the linter when the class is declared.'''
     def __init__(cls, name, bases, attrs):
         if bases:
             persist.register_linter(cls, name, attrs)
 
+
 class Linter(metaclass=Registrar):
     '''
     The base class for linters. Subclasses must at a minimum define
     the attributes language, cmd, and regex.
     '''
+
+    #
+    # Error types
+    #
+    WARNING = 0
+    ERROR = 1
 
     #
     # Public attributes
@@ -40,9 +48,9 @@ class Linter(metaclass=Registrar):
     # A regex pattern used to extract information from the linter's executable output.
     regex = ''
 
-    # Set to True if the linter outputs multiple errors. When True,
+    # Set to True if the linter outputs multiple errors or multiline errors. When True,
     # regex will be created with the re.MULTILINE flag.
-    multiple_errors = False
+    multiline = False
 
     # If you want to set flags on the regex other than re.MULTILINE, set this.
     re_flags = 0
@@ -53,9 +61,6 @@ class Linter(metaclass=Registrar):
 
     # Tab width
     tab_width = 1
-
-    # FIXME: I may be able to eliminate this
-    scope = 'keyword'
 
     # If you want to limit the linter to specific portions of the source
     # based on a scope selector, set this attribute to the selector. For example,
@@ -82,7 +87,7 @@ class Linter(metaclass=Registrar):
         self.filename = filename
 
         if self.regex:
-            if self.multiple_errors:
+            if self.multiline:
                 self.re_flags |= re.MULTILINE
 
             try:
@@ -90,7 +95,7 @@ class Linter(metaclass=Registrar):
             except:
                 persist.debug('error compiling regex for {}'.format(self.language))
 
-        self.highlight = Highlight(scope=self.scope)
+        self.highlight = Highlight()
 
     @classmethod
     def get_settings(cls):
@@ -212,12 +217,10 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def lint_view(cls, vid, filename, code, sections, callback):
-        print('Linter.lint_view({})'.format(vid))
         if not code or vid not in persist.linters:
             return
 
         linters = list(persist.linters.get(vid))
-        print('linters =', linters)
 
         if not linters:
             return
@@ -262,7 +265,7 @@ class Linter(metaclass=Registrar):
         self.code = code
         self.filename = filename or self.filename
         self.highlight = highlight or Highlight(
-            self.code, scope=self.scope, outline=self.outline)
+            self.code, outline=self.outline)
 
     def lint(self):
         if not (self.language and self.cmd and self.regex):
@@ -273,6 +276,9 @@ class Linter(metaclass=Registrar):
         else:
             cmd = self.cmd
 
+        if not cmd:
+            return
+
         if not isinstance(cmd, (tuple, list)):
             cmd = (cmd,)
 
@@ -281,7 +287,7 @@ class Linter(metaclass=Registrar):
         if not output:
             return
 
-        persist.debug('lint output:\n' + output)
+        persist.debug('{} output:\n'.format(self.__class__.__name__) + output)
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
@@ -306,7 +312,7 @@ class Linter(metaclass=Registrar):
                 else:
                     self.highlight.line(row)
 
-                self.error(row, message)
+                self.error(row, col, message)
 
     def draw(self, prefix='lint'):
         self.highlight.draw(self.view, prefix)
@@ -332,9 +338,9 @@ class Linter(metaclass=Registrar):
 
         return False
 
-    def error(self, line, error):
+    def error(self, line, col, error):
         self.highlight.line(line)
-        error = str(error)
+        error = ((col or 0), str(error))
 
         if line in self.errors:
             self.errors[line].append(error)
@@ -342,7 +348,7 @@ class Linter(metaclass=Registrar):
             self.errors[line] = [error]
 
     def find_errors(self, output):
-        if self.multiple_errors:
+        if self.multiline:
             errors = self.regex.finditer(output)
 
             if errors:
@@ -356,7 +362,7 @@ class Linter(metaclass=Registrar):
 
     def split_match(self, match):
         if match:
-            items = {'line':None, 'col':None, 'type':None, 'error':'', 'near':None}
+            items = {'line': None, 'col': None, 'type': None, 'error': '', 'near': None}
             items.update(match.groupdict())
             row, col, error_type, error, near = [items[k] for k in ('line', 'col', 'type', 'error', 'near')]
 

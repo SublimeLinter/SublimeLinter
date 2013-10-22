@@ -7,6 +7,7 @@
 import importlib.abc
 import sys
 
+
 class LintModule(importlib.abc.SourceLoader):
     '''
     This class inserts the lint package into the module

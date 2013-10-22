@@ -7,7 +7,8 @@
 import sublime
 import re
 
-WORD_RE = re.compile(r'^([0-9a-zA-Z_]+)')
+WORD_RE = re.compile(r'^(\w+)')
+
 
 class HighlightSet:
     '''A set of Highlight objects which can perform bulk draw/clear.'''
@@ -31,22 +32,27 @@ class HighlightSet:
 
     def clear(self, view, prefix='lint'):
         for scope in set(self.all):
-            view.erase_regions('%s-%s-underline' % (prefix, scope))
-            view.erase_regions('%s-%s-outline' % (prefix, scope))
+            view.erase_regions('{}-{}-marks'.format(prefix, scope))
+            view.erase_regions('{}-{}-lines'.format(prefix, scope))
+
 
 class Highlight:
-    '''A class that represents a highlight of an error and knows how to draw itself.'''
-    def __init__(self, code='',
-            underline_flags=sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE,
-            line_flags=sublime.HIDDEN, icon='dot',
-            scope='keyword', outline=True):
+    '''A class that represents one or more highlights and knows how to draw itself.'''
+    def __init__(
+        self, code='',
+        mark_flags=sublime.DRAW_NO_FILL,
+        line_flags=sublime.HIDDEN,
+        icon='dot',
+        scope='error',
+        outline=True
+    ):
 
         self.code = code
-        self.underline_flags = underline_flags
+        self.mark_flags = mark_flags
         self.line_flags = line_flags
         self.scope = scope
         self.outline = outline
-        self.underlines = []
+        self.marks = []
         self.lines = set()
         self.icon = icon
 
@@ -82,10 +88,8 @@ class Highlight:
             if match:
                 length = len(match.group())
 
-        pos += a
-
-        for i in range(length):
-            self.underlines.append(sublime.Region(pos + i + self.char_offset))
+        pos += a + self.char_offset
+        self.marks.append(sublime.Region(pos, pos + length))
 
     def regex(self, line, regex, word_match=None, line_match=None):
         self.line(line)
@@ -103,14 +107,15 @@ class Highlight:
             else:
                 return
 
-        iters = re.finditer(regex, lineText)
-        results = [(result.start('underline'), result.end('underline'))
-                    for result in iters if
-                    not word_match or
-                    result.group('underline') == word_match]
+        it = re.finditer(regex, lineText)
+        results = [
+            (result.start('mark'), result.end('mark'))
+            for result in it if
+            not word_match or
+            result.group('mark') == word_match]
 
         for start, end in results:
-            self.range(line, start+offset, end-start)
+            self.range(line, start + offset, end - start)
 
     def near(self, line, near):
         self.line(line)
@@ -125,7 +130,7 @@ class Highlight:
         if self.outline:
             self.lines.update(other.lines)
 
-        self.underlines.extend(other.underlines)
+        self.marks.extend(other.marks)
 
     def draw(self, view, prefix='lint', scope=None):
         if scope is None:
@@ -134,26 +139,30 @@ class Highlight:
         if self.lines and self.outline:
             outlines = [view.full_line(view.text_point(line, 0))
                         for line in self.lines]
+
             view.add_regions(
-                '%s-%s-outline' % (prefix, self.scope),
-                outlines, scope, self.icon,
+                '{}-{}-lines'.format(prefix, scope),
+                outlines,
+                'sublimelinter.outline.{}'.format(scope),
+                self.icon,
                 flags=self.line_flags,
             )
 
-        if self.underlines:
-            underlines = [sublime.Region(u.a, u.a+1) for u in self.underlines]
+        if self.marks:
             view.add_regions(
-                '%s-%s-underline' % (prefix, self.scope),
-                underlines, scope, self.icon,
-                flags=self.underline_flags,
+                '{}-{}-marks'.format(prefix, scope),
+                self.marks,
+                'sublimelinter.mark.{}'.format(scope),
+                self.icon,
+                flags=self.mark_flags,
             )
 
     def clear(self, view, prefix='lint', scope=None):
         if scope is None:
             scope = self.scope
 
-        view.erase_regions('%s-%s-underline' % (prefix, scope))
-        view.erase_regions('%s-%s-outline' % (prefix, scope))
+        view.erase_regions('{}-{}-lines'.format(prefix, scope))
+        view.erase_regions('{}-{}-marks'.format(prefix, scope))
 
     def line(self, line):
         if self.outline:

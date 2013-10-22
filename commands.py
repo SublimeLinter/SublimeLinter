@@ -13,6 +13,7 @@ from threading import Thread
 from . import sublimelinter
 from .lint import persist
 
+
 def error_command(f):
     '''A decorator that only executes f if the current view has errors.'''
     def run(self, edit, **kwargs):
@@ -23,11 +24,13 @@ def error_command(f):
 
     return run
 
+
 def select_line(view, line):
     sel = view.sel()
     point = view.text_point(line, 0)
     sel.clear()
     sel.add(view.line(point))
+
 
 class sublimelinter_next_error(sublime_plugin.TextCommand):
     '''Select the next line containing an error.'''
@@ -54,6 +57,7 @@ class sublimelinter_next_error(sublime_plugin.TextCommand):
 
         select_line(view, errors[i])
         view.show_at_center(sel[0])
+
 
 class sublimelinter_all_errors(sublime_plugin.TextCommand):
     '''Show a quick panel with all of the errors in the current view.'''
@@ -82,6 +86,7 @@ class sublimelinter_all_errors(sublime_plugin.TextCommand):
                 view.show_at_center(view.sel()[0])
 
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
+
 
 class sublimelinter_report(sublime_plugin.WindowCommand):
     '''
@@ -126,7 +131,7 @@ class sublimelinter_report(sublime_plugin.WindowCommand):
                 for linter in linters:
                     if linter.errors:
                         for line, errors in sorted(linter.errors.items()):
-                            for error in errors:
+                            for col, error in errors:
                                 out += '  {}: {}\n'.format(line, error)
 
                 output.insert(edit, output.size(), out)

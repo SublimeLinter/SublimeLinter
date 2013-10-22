@@ -15,19 +15,20 @@ from .util import merge_user_settings
 
 plugin_name = 'SublimeLinter'
 
+
 class Daemon:
+    MIN_DELAY = 0.1
     running = False
     callback = None
     q = Queue()
-    last_run = {}
+    last_runs = {}
 
     def __init__(self):
         self.settings = {}
         self.sub_settings = None
 
-    def load_settings(self):
-        print('load_settings')
-        if not self.settings:
+    def load_settings(self, force=False):
+        if force or not self.settings:
             if self.sub_settings:
                 self.sub_settings.clear_on_change('lint-persist-settings')
 
@@ -36,7 +37,6 @@ class Daemon:
             self.update_settings()
 
     def update_settings(self):
-        print('update_settings')
         settings = merge_user_settings(self.sub_settings)
         self.settings.clear()
         self.settings.update(settings)
@@ -59,28 +59,29 @@ class Daemon:
         self.callback(view_id)
 
     def loop(self):
-        views = {}
+        last_runs = {}
 
         while True:
             try:
                 try:
-                    item = self.q.get(block=True, timeout=0.1)
+                    item = self.q.get(block=True, timeout=self.MIN_DELAY)
                 except Empty:
-                    for view_id, ts in views.copy().items():
-                        if ts < time.time() - 0.1:
-                            self.last_run[view_id] = time.time()
-                            del views[view_id]
+                    for view_id, timestamp in last_runs.copy().items():
+                        # If more than the minimum delay has elapsed since the last run, update the view
+                        if time.time() > timestamp + self.MIN_DELAY:
+                            self.last_runs[view_id] = time.time()
+                            del last_runs[view_id]
                             self.reenter(view_id)
 
                     continue
 
                 if isinstance(item, tuple):
-                    view_id, ts = item
+                    view_id, timestamp = item
 
-                    if view_id in self.last_run and ts < self.last_run[view_id]:
+                    if view_id in self.last_runs and timestamp < self.last_runs[view_id]:
                         continue
 
-                    views[view_id] = ts
+                    last_runs[view_id] = timestamp
 
                 elif isinstance(item, (int, float)):
                     time.sleep(item)
@@ -99,8 +100,8 @@ class Daemon:
     def hit(self, view):
         self.q.put((view.id(), time.time()))
 
-    def delay(self):
-        self.q.put(0.01)
+    def delay(self, milliseconds=100):
+        self.q.put(milliseconds / 1000.0)
 
     def printf(self, *args):
         if not self.settings.get('debug'):
@@ -132,14 +133,17 @@ if not 'plugin_is_loaded' in globals():
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
 
-def load_settings():
-    queue.load_settings()
+
+def load_settings(force=False):
+    queue.load_settings(force)
+
 
 def edit(vid, edit):
     callbacks = edits.pop(vid, [])
 
     for c in callbacks:
         c(edit)
+
 
 def register_linter(linter_class, name, attrs):
     '''Add a linter class to our mapping of languages <--> linter classes.'''
@@ -151,7 +155,7 @@ def register_linter(linter_class, name, attrs):
 
         # The sublime plugin API is not available until plugin_loaded is executed
         if plugin_is_loaded:
-            load_settings()
+            load_settings(force=True)
 
             # If a linter is reloaded, we have to reassign linters to all views
             from . import linter

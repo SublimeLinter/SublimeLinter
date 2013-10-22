@@ -16,10 +16,12 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint import persist
 
+
 # In ST3, this is the entry point for a plugin
 def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.load_settings()
+
 
 class SublimeLinter(sublime_plugin.EventListener):
     '''The ST3 plugin class.'''
@@ -50,9 +52,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         # We keep track of the start time to check for race conditions elsewhere
         self.start_time = time.time()
 
-    @classmethod
-    def lint(cls, view_id, callback=None):
-        callback = callback or cls.highlight
+    def lint(self, view_id, callback=None):
+        callback = callback or self.highlight
         view = Linter.get_view(view_id)
 
         if view is None:
@@ -73,8 +74,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         code = Linter.text(view)
         Linter.lint_view(view_id, filename, code, sections, callback)
 
-    @classmethod
-    def highlight(cls, view, linters):
+    def highlight(self, view, linters):
         '''Highlight any errors found during a lint.'''
         errors = {}
         highlights = HighlightSet()
@@ -89,6 +89,9 @@ class SublimeLinter(sublime_plugin.EventListener):
         highlights.clear(view)
         highlights.draw(view)
         persist.errors[view.id()] = errors
+
+        # Update the status
+        self.on_selection_modified_async(view)
 
     def hit(self, view):
         '''Record an activity that could trigger a lint and enqueue a desire to lint.'''
@@ -217,22 +220,36 @@ class SublimeLinter(sublime_plugin.EventListener):
             errors = persist.errors[vid]
 
             if errors:
-                plural = 's' if len(errors) > 1 else ''
+                lines = sorted(list(errors))
+                counts = [len(errors[line]) for line in lines]
+                count = sum(counts)
+                plural = 's' if count > 1 else ''
 
                 if lineno in errors:
-                    if plural:
-                        num = sorted(list(errors)).index(lineno) + 1
-                        status += '%i/%i errors: ' % (num, len(errors))
+                    # Sort the errors by column
+                    line_errors = sorted(errors[lineno], key=lambda error: error[0])
+                    line_errors = [error[1] for error in line_errors]
 
-                    status += '; '.join(set(errors[lineno]))
+                    if plural:
+                        # Sum the errors before the first error on this line
+                        index = lines.index(lineno)
+                        first = sum(counts[0:index]) + 1
+
+                        if len(line_errors) > 1:
+                            status += '{}-{} of {} errors: '.format(first, first + len(line_errors) - 1, count)
+                        else:
+                            status += '{} of {} errors: '.format(first, count)
+
+                    status += '; '.join(line_errors)
                 else:
-                    status = '%i error%s' % (len(errors), plural)
+                    status = '%i error%s' % (count, plural)
 
                 view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
 
-        persist.queue.delay()
+        persist.queue.delay(1.0)  # Delay the queue so movement is smooth
+
 
 class sublimelinter_edit(sublime_plugin.TextCommand):
     '''A plugin command used to generate an edit object for a view.'''

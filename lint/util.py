@@ -12,7 +12,8 @@ import tempfile
 import subprocess
 
 INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
-INLINE_OPTION_RE = re.compile(r'(\w+)\s*:\s*(.+?)\s*(?:,|$)')
+INLINE_OPTION_RE = re.compile(r'([\w\-]+)\s*:\s*(.+?)\s*(?:,|$)')
+
 
 def merge_user_settings(settings):
     '''Merge the default linter settings with the user's settings.'''
@@ -36,12 +37,14 @@ def merge_user_settings(settings):
 
     return default
 
+
 def climb(top):
     right = True
 
     while right:
         top, right = os.path.split(top)
         yield top
+
 
 @lru_cache()
 def find(top, name, parent=False):
@@ -54,10 +57,12 @@ def find(top, name, parent=False):
 
             return target
 
+
 def extract_path(cmd, delim=':'):
     path = popen(cmd, os.environ).communicate()[0].decode()
     path = path.split('__SUBL__', 1)[1].strip('\r\n')
     return ':'.join(path.split(delim))
+
 
 def find_path(env):
     # find PATH using shell --login
@@ -82,11 +87,12 @@ def find_path(env):
     for path in (
         '/usr/bin', '/usr/local/bin',
         '/usr/local/php/bin', '/usr/local/php5/bin'
-                ):
+    ):
         if not path in split:
             p += (':' + path)
 
     return p
+
 
 @lru_cache()
 def create_environment():
@@ -95,8 +101,10 @@ def create_environment():
 
     return os.environ
 
+
 def can_exec(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
 
 @lru_cache()
 def which(cmd):
@@ -110,9 +118,11 @@ def which(cmd):
 
     return None
 
+
 def touch(path):
     with open(path, 'a'):
         os.utime(path, None)
+
 
 def inline_options(code):
     options = {}
@@ -124,6 +134,7 @@ def inline_options(code):
 
     return options
 
+
 # popen methods
 
 def combine_output(out, sep=''):
@@ -131,6 +142,7 @@ def combine_output(out, sep=''):
         (out[0].decode('utf8') or ''),
         (out[1].decode('utf8') or ''),
     ))
+
 
 def communicate(cmd, code):
     code = code.encode('utf8')
@@ -141,6 +153,7 @@ def communicate(cmd, code):
         return combine_output(out)
     else:
         return ''
+
 
 def tmpfile(cmd, code, suffix=''):
     if isinstance(cmd, str):
@@ -158,6 +171,7 @@ def tmpfile(cmd, code, suffix=''):
         return combine_output(out)
     else:
         return ''
+
 
 def tmpdir(cmd, files, filename, code):
     filename = os.path.split(filename)[1]
@@ -198,6 +212,7 @@ def tmpdir(cmd, files, filename, code):
     shutil.rmtree(d, True)
     return out
 
+
 def popen(cmd, env=None):
     import lint.persist as persist
 
@@ -215,7 +230,8 @@ def popen(cmd, env=None):
         env = create_environment()
 
     try:
-        return subprocess.Popen(cmd, stdin=subprocess.PIPE,
+        return subprocess.Popen(
+            cmd, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:

@@ -13,11 +13,11 @@ Thank you for your support!
 
 ## What’s new
 
-SublimeLinter3 is complete rewrite with the following goals:
+SublimeLinter3 is a complete rewrite with the following goals:
 
 ### Flexibility
 
-[SublimeLinter2][sl2] is a monolothic plugin. All of the linters are part of SublimeLinter2, which means you have to wait for us to release a new version to get updates for a single linter. That’s a real bummer when you want to take advantage of a new feature or bug fix is an underlying linter like [jshint](http://jshint.org/about).
+[SublimeLinter2][sl2] is a monolothic plugin. All of the linters are part of SublimeLinter2, which means you have to wait for us to release a new version to get updates for a single linter. That’s a real bummer when you want to take advantage of a new feature or bug fix in an underlying linter like [jshint](http://jshint.org/about).
 
 We want to break that dependency, and to do that we changed the architecture of SublimeLinter3 so that every linter is a **separate** Sublime Text 3 plugin. By doing that, we get some real wins:
 
@@ -37,7 +37,7 @@ SublimeLinter3 takes advantage of the new asynchronous plugin API in Sublime Tex
 
 ### Better support
 
-SublimeLinter3 is based on pioneerinng work done by Ryan Hileman, the author of [sublimelint](https://github.com/lunixbochs/sublimelint), on which SublimeLinter was originally based. We want to join forces with Ryan and merge sublimelint and SublimeLinter3, so we can have more resources available to support the community.
+SublimeLinter3 is based on pioneering work done by Ryan Hileman, the author of [sublimelint](https://github.com/lunixbochs/sublimelint), on which SublimeLinter was originally based. We want to join forces with Ryan and merge sublimelint and SublimeLinter3, so we can have more resources available to support the community.
 
 ### Help make it happen
 

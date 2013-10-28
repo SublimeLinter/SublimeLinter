@@ -9,6 +9,8 @@ This is a work in progress! We want to finish this project quickly so you can ge
 
 [![Donate](http://www.aparajitaworld.com/cappuccino/Donate-button.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55KC77W2MU9VW)
 
+**UPDATE**: As of October 28, we have raised $980 (after fees) from 90 donations. This is enough to get started, but I was  hoping for twice that amount. If you are one of the thousands of happy SublimeLinter users who has not donated, please consider making a small donation to keep this plugin alive. Open source software is not free! It is we the developers who usually end up paying for it.
+
 Thank you for your support!
 
 ## What’s new

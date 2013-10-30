@@ -36,6 +36,16 @@ class Linter(metaclass=Registrar):
     # By convention this is all lowercase.
     language = ''
 
+    # The name of the executable used to do linting. If specified by a linter,
+    # the executable's existence is checked, and if it is not available,
+    # the linter is disabled.
+    executable = None
+
+    # If executable is specified and is available, this is set to the full path
+    # of the executable. If the executable is not available, it is set an empty string.
+    # If executable is not specified, it is None. Subclasses should consider this read only.
+    executable_path = None
+
     # A string, tuple or callable that returns a string or tuple, containing the
     # command line arguments used to lint.
     cmd = ''

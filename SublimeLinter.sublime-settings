@@ -2,54 +2,6 @@
     "default": {
         "debug": false,
         "linters": {
-            "C": {
-                "args": [
-                    "-xc",
-                    "-fsyntax-only",
-                    "-std=c99",
-                    "-Werror",
-                    "-pedantic"
-                ],
-                "cmd": [
-                    "clang"
-                ],
-                "include": []
-            },
-            "CPP": {
-                "args": [
-                    "-xc++",
-                    "-fsyntax-only",
-                    "-std=c++11",
-                    "-Werror",
-                    "-pedantic"
-                ],
-                "cmd": [
-                    "clang++"
-                ],
-                "include": []
-            },
-            "CSS": {},
-            "Coffee": {},
-            "Eclim": {
-                "disable": true
-            },
-            "EmbeddedJS": {},
-            "Golang": {},
-            "HAML": {},
-            "HTML": {},
-            "Java": {
-                "disable": true
-            },
-            "JavaScript": {},
-            "Lua": {},
-            "Nasm": {},
-            "PHP": {},
-            "Perl": {},
-            "Puppet": {},
-            "Python": {},
-            "Ruby": {},
-            "TODO": {},
-            "XML": {}
         }
     }
 }

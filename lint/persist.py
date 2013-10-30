@@ -17,7 +17,7 @@ plugin_name = 'SublimeLinter'
 
 
 class Daemon:
-    MIN_DELAY = 0.1
+    MIN_DELAY = 0.25
     running = False
     callback = None
     q = Queue()

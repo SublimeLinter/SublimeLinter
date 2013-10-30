@@ -13,49 +13,43 @@ WORD_RE = re.compile(r'^(\w+)')
 class HighlightSet:
     '''A set of Highlight objects which can perform bulk draw/clear.'''
     def __init__(self):
-        self.all = {}
+        self.all = set()
 
-    def add(self, h):
-        if not h.scope in self.all:
-            self.all[h.scope] = set()
+    def add(self, highlight):
+        self.all.add(highlight)
 
-        self.all[h.scope].add(h)
+    def draw(self, view):
+        for highlight in self.all:
+            highlight.draw(view)
 
-    def draw(self, view, prefix='lint', scope=None):
-        for scope in self.all:
-            highlight = Highlight(scope=scope)
+    def clear(self, view):
+        for error_type in (Highlight.WARNING, Highlight.ERROR):
+            view.erase_regions('lint-{}-marks'.format(error_type))
 
-            for h in self.all[scope]:
-                highlight.update(h)
-
-            highlight.draw(view, prefix=prefix, scope=scope)
-
-    def clear(self, view, prefix='lint'):
-        for scope in set(self.all):
-            view.erase_regions('{}-{}-marks'.format(prefix, scope))
-            view.erase_regions('{}-{}-lines'.format(prefix, scope))
+        view.erase_regions('lint-gutter-marks')
 
 
 class Highlight:
     '''A class that represents one or more highlights and knows how to draw itself.'''
-    def __init__(
-        self, code='',
-        mark_flags=sublime.DRAW_NO_FILL,
-        line_flags=sublime.HIDDEN,
-        icon='dot',
-        scope='error',
-        outline=True
-    ):
+    #
+    # Error types
+    #
+    WARNING = 'warning'
+    ERROR = 'error'
 
+    def __init__(self, code='', mark_flags=sublime.DRAW_NO_FILL, icon='dot'):
         self.code = code
         self.mark_flags = mark_flags
-        self.line_flags = line_flags
-        self.scope = scope
-        self.outline = outline
-        self.marks = []
-        self.lines = set()
+        self.marks = {self.WARNING: [], self.ERROR: []}
         self.icon = icon
 
+        # Every line that has a mark is kept in this dict, so we know which
+        # lines to mark in the gutter.
+        self.lines = {}
+
+        # These are used when highlighting embedded code, for example PHP.
+        # The embedded code is linted as if it begins at (0, 0), but we
+        # need to keep track of where the actual start is within the source.
         self.line_offset = 0
         self.char_offset = 0
 
@@ -78,7 +72,7 @@ class Highlight:
         a, b = self.newlines[line:line + 2]
         return a, b + 1
 
-    def range(self, line, pos, length=1):
+    def range(self, line, pos, length=1, error_type='error'):
         a, b = self.full_line(line)
 
         if length == 1:
@@ -89,10 +83,9 @@ class Highlight:
                 length = len(match.group())
 
         pos += a + self.char_offset
-        self.marks.append(sublime.Region(pos, pos + length))
+        self.marks[error_type].append(sublime.Region(pos, pos + length))
 
     def regex(self, line, regex, word_match=None, line_match=None):
-        self.line(line)
         offset = 0
 
         a, b = self.full_line(line)
@@ -110,15 +103,14 @@ class Highlight:
         it = re.finditer(regex, lineText)
         results = [
             (result.start('mark'), result.end('mark'))
-            for result in it if
-            not word_match or
-            result.group('mark') == word_match]
+            for result in it
+            if not word_match or result.group('mark') == word_match
+        ]
 
         for start, end in results:
             self.range(line, start + offset, end - start)
 
     def near(self, line, near):
-        self.line(line)
         a, b = self.full_line(line)
         text = self.code[a:b]
         start = text.find(near)
@@ -127,46 +119,59 @@ class Highlight:
             self.range(line, start, len(near))
 
     def update(self, other):
-        if self.outline:
-            self.lines.update(other.lines)
+        for error_type in (self.WARNING, self.ERROR):
+            self.marks[error_type].extend(other.marks[error_type])
 
-        self.marks.extend(other.marks)
+        self.lines.update(other.lines)
 
-    def draw(self, view, prefix='lint', scope=None):
-        if scope is None:
-            scope = self.scope
+    def draw(self, view):
+        gutter_regions = {self.WARNING: [], self.ERROR: []}
 
-        if self.lines and self.outline:
-            outlines = [view.full_line(view.text_point(line, 0))
-                        for line in self.lines]
+        # We use separate regions for the gutter marks so we can use
+        # a scope that will not colorize the gutter icon, and to ensure
+        # that errors will override warnings.
+        for line in self.lines:
+            error_type = self.lines[line]
+            gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
 
-            view.add_regions(
-                '{}-{}-lines'.format(prefix, scope),
-                outlines,
-                'sublimelinter.outline.{}'.format(scope),
-                self.icon,
-                flags=self.line_flags,
-            )
+        for error_type in (self.WARNING, self.ERROR):
+            if self.marks[error_type]:
+                view.add_regions(
+                    'lint-{}-marks'.format(error_type),
+                    self.marks[error_type],
+                    'sublimelinter.mark.{}'.format(error_type),
+                    flags=self.mark_flags
+                )
 
-        if self.marks:
-            view.add_regions(
-                '{}-{}-marks'.format(prefix, scope),
-                self.marks,
-                'sublimelinter.mark.{}'.format(scope),
-                self.icon,
-                flags=self.mark_flags,
-            )
+            if gutter_regions[error_type]:
+                # If the icon is a custom image, don't colorize it.
+                # Otherwise it's a stock image and it is given the color for the current error type.
+                if '/' in self.icon:
+                    scope = 'sublimelinter.gutter-mark'
+                else:
+                    scope = 'sublimelinter.mark.{}'.format(error_type)
 
-    def clear(self, view, prefix='lint', scope=None):
-        if scope is None:
-            scope = self.scope
+                view.add_regions(
+                    'lint-gutter-marks',
+                    gutter_regions[error_type],
+                    scope,
+                    icon=self.icon
+                )
 
-        view.erase_regions('{}-{}-lines'.format(prefix, scope))
-        view.erase_regions('{}-{}-marks'.format(prefix, scope))
+    def clear(self, view):
+        for error_type in (self.WARNING, self.ERROR):
+            view.erase_regions('lint-{}-marks'.format(error_type))
 
-    def line(self, line):
-        if self.outline:
-            self.lines.add(line + self.line_offset)
+        view.erase_regions('lint-gutter-marks')
+
+    def line(self, line, error_type):
+        line += self.line_offset
+
+        # Errors override warnings, if it's already an error leave it
+        if self.lines.get(line) == self.ERROR:
+            return
+
+        self.lines[line] = error_type
 
     def move_to(self, line, char):
         self.line_offset = line

@@ -12,6 +12,7 @@ from . import persist
 from . import util
 
 SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
+WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
 class Registrar(type):
@@ -26,12 +27,6 @@ class Linter(metaclass=Registrar):
     The base class for linters. Subclasses must at a minimum define
     the attributes language, cmd, and regex.
     '''
-
-    #
-    # Error types
-    #
-    WARNING = 0
-    ERROR = 1
 
     #
     # Public attributes
@@ -67,9 +62,6 @@ class Linter(metaclass=Registrar):
     # in an html file with embedded php, you would set the selector for a php
     # linter to 'source.php'.
     selector = None
-
-    # Set to True if you want errors to be outlined for this linter.
-    outline = True
 
     # If you want to provide default settings for the linter, set this attribute.
     defaults = None
@@ -226,8 +218,8 @@ class Linter(metaclass=Registrar):
             return
 
         filename = filename or 'untitled'
-        linter_list = (', '.join(l.name for l in linters))
-        persist.debug('lint \'{}\' as {}'.format(filename, linter_list))
+        #linter_list = (', '.join(l.name for l in linters))
+        #persist.debug('lint \'{}\' as {}'.format(filename, linter_list))
 
         for linter in linters:
             if linter.settings.get('disable'):
@@ -264,8 +256,7 @@ class Linter(metaclass=Registrar):
         self.errors = {}
         self.code = code
         self.filename = filename or self.filename
-        self.highlight = highlight or Highlight(
-            self.code, outline=self.outline)
+        self.highlight = highlight or Highlight(self.code)
 
     def lint(self):
         if not (self.language and self.cmd and self.regex):
@@ -287,10 +278,15 @@ class Linter(metaclass=Registrar):
         if not output:
             return
 
-        persist.debug('{} output:\n'.format(self.__class__.__name__) + output)
+        #print('{} output:\n'.format(self.__class__.__name__) + output)
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
+                if error_type and WARNING_RE.match(error_type) is not None:
+                    error_type = Highlight.WARNING
+                else:
+                    error_type = Highlight.ERROR
+
                 if col is not None:
                     # Adjust column numbers to match the linter's tabs if necessary
                     if self.tab_width > 1:
@@ -306,40 +302,44 @@ class Linter(metaclass=Registrar):
                                 col = i
                                 break
 
-                    self.highlight.range(row, col)
+                    self.highlight.range(row, col, error_type=error_type)
                 elif near:
-                    self.highlight.near(row, near)
-                else:
-                    self.highlight.line(row)
+                    self.highlight.near(row, near, error_type)
 
-                self.error(row, col, message)
+                self.error(row, col, message, error_type)
 
-    def draw(self, prefix='lint'):
-        self.highlight.draw(self.view, prefix)
+    def draw(self):
+        self.highlight.draw(self.view)
 
-    def clear(self, prefix='lint'):
-        self.highlight.clear(self.view, prefix)
+    def clear(self):
+        self.highlight.clear(self.view)
 
-    # helper methods
+    # Helper methods
 
     @classmethod
     def can_lint(cls, language):
+        '''Determines if a linter can lint a given language. Subclasses which '''
         return Linter.linter_can_lint(cls, language)
 
     @staticmethod
     def linter_can_lint(cls, language):
+        can = False
         language = language.lower()
 
         if cls.language:
             if language == cls.language:
-                return True
+                can = True
             elif isinstance(cls.language, (tuple, list)) and language in cls.language:
-                return True
+                can = True
 
-        return False
+        if can and cls.executable and cls.executable_path is None:
+            cls.executable_path = util.which(cls.executable) or ''
+            can = cls.executable_path != ''
 
-    def error(self, line, col, error):
-        self.highlight.line(line)
+        return can
+
+    def error(self, line, col, error, error_type):
+        self.highlight.line(line, error_type)
         error = ((col or 0), str(error))
 
         if line in self.errors:

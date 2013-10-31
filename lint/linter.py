@@ -288,7 +288,7 @@ class Linter(metaclass=Registrar):
         if not output:
             return
 
-        #print('{} output:\n'.format(self.__class__.__name__) + output)
+        persist.debug('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:

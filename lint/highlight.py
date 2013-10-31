@@ -19,14 +19,20 @@ class HighlightSet:
         self.all.add(highlight)
 
     def draw(self, view):
+        if not self.all:
+            return
+
+        all = Highlight()
+
         for highlight in self.all:
-            highlight.draw(view)
+            all.update(highlight)
+
+        all.draw(view)
 
     def clear(self, view):
         for error_type in (Highlight.WARNING, Highlight.ERROR):
-            view.erase_regions('lint-{}-marks'.format(error_type))
-
-        view.erase_regions('lint-gutter-marks')
+            view.erase_regions(Highlight.MARK_KEY_FORMAT.format(error_type))
+            view.erase_regions(Highlight.GUTTER_MARK_KEY_FORMAT.format(error_type))
 
 
 class Highlight:
@@ -36,6 +42,10 @@ class Highlight:
     #
     WARNING = 'warning'
     ERROR = 'error'
+
+    MARK_KEY_FORMAT = 'lint-{}-marks'
+    GUTTER_MARK_KEY_FORMAT = 'lint-{}-gutter-marks'
+    MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
     def __init__(self, code='', mark_flags=sublime.DRAW_NO_FILL, icon='dot'):
         self.code = code
@@ -123,6 +133,7 @@ class Highlight:
             self.marks[error_type].extend(other.marks[error_type])
 
         self.lines.update(other.lines)
+        self.newlines = other.newlines
 
     def draw(self, view):
         gutter_regions = {self.WARNING: [], self.ERROR: []}
@@ -137,9 +148,9 @@ class Highlight:
         for error_type in (self.WARNING, self.ERROR):
             if self.marks[error_type]:
                 view.add_regions(
-                    'lint-{}-marks'.format(error_type),
+                    self.MARK_KEY_FORMAT.format(error_type),
                     self.marks[error_type],
-                    'sublimelinter.mark.{}'.format(error_type),
+                    self.MARK_SCOPE_FORMAT.format(error_type),
                     flags=self.mark_flags
                 )
 
@@ -149,10 +160,10 @@ class Highlight:
                 if '/' in self.icon:
                     scope = 'sublimelinter.gutter-mark'
                 else:
-                    scope = 'sublimelinter.mark.{}'.format(error_type)
+                    scope = self.MARK_SCOPE_FORMAT.format(error_type)
 
                 view.add_regions(
-                    'lint-gutter-marks',
+                    self.GUTTER_MARK_KEY_FORMAT.format(error_type),
                     gutter_regions[error_type],
                     scope,
                     icon=self.icon
@@ -160,9 +171,8 @@ class Highlight:
 
     def clear(self, view):
         for error_type in (self.WARNING, self.ERROR):
-            view.erase_regions('lint-{}-marks'.format(error_type))
-
-        view.erase_regions('lint-gutter-marks')
+            view.erase_regions(self.MARK_KEY_FORMAT.format(error_type))
+            view.erase_regions(self.GUTTER_MARK_KEY_FORMAT.format(error_type))
 
     def line(self, line, error_type):
         line += self.line_offset

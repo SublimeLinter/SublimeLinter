@@ -1,8 +1,12 @@
-# persist.py
-# Part of SublimeLinter, a code checking framework for Sublime Text 3
 #
-# Project: https://github.com/SublimeLinter/sublimelinter
+# persist.py
+# Part of SublimeLinter3, a code checking framework for Sublime Text 3
+#
+# Written by Ryan Hileman and Aparajita Fishman
+#
+# Project: https://github.com/SublimeLinter/SublimeLinter3
 # License: MIT
+#
 
 from collections import defaultdict
 from queue import Queue, Empty

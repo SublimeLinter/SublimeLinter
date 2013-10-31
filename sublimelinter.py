@@ -1,8 +1,12 @@
-# sublimelinter.py
-# SublimeLinter is a code checking framework for Sublime Text 3
 #
-# Project: https://github.com/SublimeLinter/sublimelinter
+# sublimelinter.py
+# Part of SublimeLinter3, a code checking framework for Sublime Text 3
+#
+# Written by Ryan Hileman and Aparajita Fishman
+#
+# Project: https://github.com/SublimeLinter/SublimeLinter3
 # License: MIT
+#
 
 import sublime
 import sublime_plugin
@@ -24,7 +28,7 @@ def plugin_loaded():
 
 
 class SublimeLinter(sublime_plugin.EventListener):
-    '''The ST3 plugin class.'''
+    '''The main ST3 plugin class.'''
 
     # We use this to match linter settings filenames.
     LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')

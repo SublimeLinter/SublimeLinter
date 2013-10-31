@@ -40,19 +40,22 @@ class Linter(metaclass=Registrar):
     # By convention this is all lowercase.
     language = ''
 
-    # The name of the executable used to do linting. If specified by a linter,
-    # the executable's existence is checked, and if it is not available,
-    # the linter is disabled.
-    executable = None
-
-    # If executable is specified and is available, this is set to the full path
-    # of the executable. If the executable is not available, it is set an empty string.
-    # If executable is not specified, it is None. Subclasses should consider this read only.
-    executable_path = None
-
     # A string, tuple or callable that returns a string or tuple, containing the
     # command line arguments used to lint.
     cmd = ''
+
+    # If the name of the executable cannot be determined by the first element of cmd
+    # (for example when cmd is a method that dynamically generates the command line arguments),
+    # this can be set to the name of the executable used to do linting.
+    #
+    # Once the executable's name is determined, its existence is checked in the user's path.
+    # If it is not available, the linter is disabled.
+    executable = None
+
+    # If the executable is available, this is set to the full path of the executable.
+    # If the executable is not available, it is set an empty string.
+    # Subclasses should consider this read only.
+    executable_path = None
 
     # A regex pattern used to extract information from the linter's executable output.
     regex = ''
@@ -65,7 +68,7 @@ class Linter(metaclass=Registrar):
     re_flags = 0
 
     # If the linter executable cannot receive from stdin and requires a temp file,
-    # set this attribute to the suffix of the temp file.
+    # set this attribute to the suffix of the temp file (including leading '.').
     tempfile_suffix = None
 
     # Tab width
@@ -344,9 +347,29 @@ class Linter(metaclass=Registrar):
             elif isinstance(cls.language, (tuple, list)) and language in cls.language:
                 can = True
 
-        if can and cls.executable and cls.executable_path is None:
-            cls.executable_path = util.which(cls.executable) or ''
+        if can and cls.executable_path is None:
+            executable = ''
+
+            if not callable(cls.cmd):
+                if isinstance(cls.cmd, (tuple, list)):
+                    executable = (cls.cmd or [''])[0]
+                else:
+                    executable = cls.cmd
+
+            if not executable and cls.executable:
+                executable = cls.executable
+
+            if executable:
+                cls.executable_path = util.which(executable) or ''
+            else:
+                cls.executable_path = ''
+
             can = cls.executable_path != ''
+            print('{} {}: {}'.format(
+                cls.__name__,
+                'enabled' if can else 'disabled',
+                'using {}'.format(cls.executable_path) if can else 'cannot locate \'{}\''.format(executable)
+            ))
 
         return can
 

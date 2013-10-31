@@ -9,9 +9,9 @@ This is a work in progress! We want to finish this project quickly so you can ge
 
 [![Donate](http://www.aparajitaworld.com/cappuccino/Donate-button.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55KC77W2MU9VW)
 
-**UPDATE**: As of October 28, we have raised $980 (after fees) from 90 donations. This is enough to get started, but I was  hoping for twice that amount. If you are one of the thousands of happy SublimeLinter users who has not donated, please consider making a small donation to keep this plugin alive. Open source software is not free! It is we the developers who usually end up paying for it.
+**UPDATE**: Through October 30, we have raised $2885 (after fees) from 226 donations. Thank you for your support! Development has started, and I’m very excited about this new version! But there is still a [lot of work to do](https://github.com/SublimeLinter/SublimeLinter3/issues/4), and I’m getting new ideas every day.
 
-Thank you for your support!
+So if you are one of the thousands of happy SublimeLinter users who has not donated yet, it isn’t too late to contribute. Please consider making a small donation. Open source software is not free! It is we the developers who usually end up paying for it.
 
 ## What’s new
 
@@ -37,9 +37,19 @@ We want to break that dependency, and to do that we changed the architecture of 
 
 SublimeLinter3 takes advantage of the new asynchronous plugin API in Sublime Text 3. This means that linting your 100K-line documents won’t affect your ability to edit a document smoothly.
 
+### Features
+
+SublimeLinter3 will have a number of new features to make it easier to use, including:
+
+- Mark style chooser
+- Gutter mark theme chooser
+- Updater to insert SublimeLinter styles into the current color scheme
+
 ### Better support
 
 SublimeLinter3 is based on pioneering work done by Ryan Hileman, the author of [sublimelint](https://github.com/lunixbochs/sublimelint), on which SublimeLinter was originally based. We want to join forces with Ryan and merge sublimelint and SublimeLinter3, so we can have more resources available to support the community.
+
+SublimeLinter3 will have *much* better online documentation.
 
 ### Help make it happen
 

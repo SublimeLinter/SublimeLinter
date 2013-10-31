@@ -29,7 +29,8 @@ class HighlightSet:
 
         all.draw(view)
 
-    def clear(self, view):
+    @classmethod
+    def clear(cls, view):
         for error_type in (Highlight.WARNING, Highlight.ERROR):
             view.erase_regions(Highlight.MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(Highlight.GUTTER_MARK_KEY_FORMAT.format(error_type))

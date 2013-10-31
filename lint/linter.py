@@ -218,7 +218,7 @@ class Linter(metaclass=Registrar):
         ]
 
     @classmethod
-    def lint_view(cls, vid, filename, code, sections, callback):
+    def lint_view(cls, vid, filename, code, sections, hit_time, callback):
         if not code or vid not in persist.linters:
             return
 
@@ -228,8 +228,6 @@ class Linter(metaclass=Registrar):
             return
 
         filename = filename or 'untitled'
-        #linter_list = (', '.join(l.name for l in linters))
-        #persist.debug('lint \'{}\' as {}'.format(filename, linter_list))
 
         for linter in linters:
             if linter.settings.get('disable'):
@@ -260,7 +258,7 @@ class Linter(metaclass=Registrar):
                 linter.errors = errors
 
         # Merge our result back to the main thread
-        callback(cls.get_view(vid), linters)
+        callback(cls.get_view(vid), linters, hit_time)
 
     def reset(self, code, filename=None, highlight=None):
         self.errors = {}

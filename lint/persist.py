@@ -17,7 +17,7 @@ plugin_name = 'SublimeLinter'
 
 
 class Daemon:
-    MIN_DELAY = 0.25
+    MIN_DELAY = 0.1
     running = False
     callback = None
     q = Queue()
@@ -55,8 +55,8 @@ class Daemon:
             self.running = True
             threading.Thread(target=self.loop).start()
 
-    def reenter(self, view_id):
-        self.callback(view_id)
+    def reenter(self, view_id, timestamp):
+        self.callback(view_id, timestamp)
 
     def loop(self):
         last_runs = {}
@@ -68,10 +68,10 @@ class Daemon:
                 except Empty:
                     for view_id, timestamp in last_runs.copy().items():
                         # If more than the minimum delay has elapsed since the last run, update the view
-                        if time.time() > timestamp + self.MIN_DELAY:
-                            self.last_runs[view_id] = time.time()
+                        if time.monotonic() > timestamp + self.MIN_DELAY:
+                            self.last_runs[view_id] = time.monotonic()
                             del last_runs[view_id]
-                            self.reenter(view_id)
+                            self.reenter(view_id, timestamp)
 
                     continue
 
@@ -98,7 +98,9 @@ class Daemon:
                 self.printf('-' * 20)
 
     def hit(self, view):
-        self.q.put((view.id(), time.time()))
+        timestamp = time.monotonic()
+        self.q.put((view.id(), timestamp))
+        return timestamp
 
     def delay(self, milliseconds=100):
         self.q.put(milliseconds / 1000.0)

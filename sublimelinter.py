@@ -52,7 +52,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         # We keep track of the start time to check for race conditions elsewhere
         self.start_time = time.time()
 
-    def lint(self, view_id, callback=None):
+        # Every time a view is modified, this is updated and an asynchronous lint is queued.
+        # When a lint is done, if the view has been modified since the lint was initiated,
+        # marks are not updated because their positions may no longer be valid.
+        self.last_hit_time = 0
+
+    def lint(self, view_id, hit_time, callback=None):
         callback = callback or self.highlight
         view = Linter.get_view(view_id)
 
@@ -72,9 +77,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         filename = view.file_name()
         code = Linter.text(view)
-        Linter.lint_view(view_id, filename, code, sections, callback)
+        Linter.lint_view(view_id, filename, code, sections, hit_time, callback)
 
-    def highlight(self, view, linters):
+    def highlight(self, view, linters, hit_time):
         '''Highlight any errors found during a lint.'''
         errors = {}
         highlights = HighlightSet()
@@ -86,7 +91,10 @@ class SublimeLinter(sublime_plugin.EventListener):
             if linter.errors:
                 errors.update(linter.errors)
 
-        highlights.clear(view)
+        # If the view has been modified since the lint was triggered, don't draw marks
+        if self.last_hit_time > hit_time:
+            return
+
         highlights.draw(view)
         persist.errors[view.id()] = errors
 
@@ -103,7 +111,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             return
 
-        persist.queue.hit(view)
+        self.last_hit_time = persist.queue.hit(view)
 
     def check_syntax(self, view, lint=False):
         vid = view.id()
@@ -121,6 +129,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_modified(self, view):
         '''Called when a view is modified.'''
+        HighlightSet.clear(view)
         self.check_syntax(view)
         self.hit(view)
 

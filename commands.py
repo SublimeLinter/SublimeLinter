@@ -16,6 +16,7 @@ from threading import Thread
 
 from . import sublimelinter
 from .lint import persist
+from .lint.highlight import Highlight
 
 
 def error_command(f):
@@ -25,6 +26,8 @@ def error_command(f):
 
         if vid in persist.errors and persist.errors[vid]:
             f(self, self.view, persist.errors[vid], **kwargs)
+        else:
+            sublime.error_message('No lint errors.')
 
     return run
 
@@ -36,31 +39,93 @@ def select_line(view, line):
     sel.add(view.line(point))
 
 
-class sublimelinter_next_error(sublime_plugin.TextCommand):
-    '''Select the next line containing an error.'''
-    @error_command
-    def run(self, view, errors, direction=1):
-        self.view.run_command('single_selection')
+class sublimelinter_find_error(sublime_plugin.TextCommand):
+    '''This command is just a superclass for other commands, it is never enabled.'''
+    def is_enabled(self):
+        vid = self.view.id()
+        return vid in persist.linters
+
+    def find_error(self, view, errors, forward=True):
         sel = view.sel()
+        saved_sel = tuple(sel)
 
         if len(sel) == 0:
             sel.add((0, 0))
 
-        line = view.rowcol(sel[0].a)[0]
-        errors = list(errors)
+        point = sel[0].begin() if forward else sel[-1].end()
+        regions = sublime.Selection(view.id())
+        regions.clear()
+        regions.add_all(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.WARNING)))
+        regions.add_all(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.ERROR)))
+        region_to_select = None
 
-        if line in errors:
-            errors.remove(line)
+        # If going forward, find the first region beginning after the point.
+        # If going backward, find the first region ending before the point.
+        # If nothing is found in the given direction, wrap to the first/last region.
+        if forward:
+            for region in regions:
+                if point < region.begin():
+                    region_to_select = region
+                    break
+        else:
+            for region in reversed(regions):
+                if point > region.end():
+                    region_to_select = region
+                    break
 
-        errors = sorted(errors + [line])
-        i = errors.index(line) + direction
+        # If there is only one error line and the cursor is in that line, we cannot move.
+        # Otherwise wrap to the first/last error line unless settings disallow that.
+        if region_to_select is None and ((len(regions) > 1 or not regions[0].contains(point))):
+            if persist.settings.get('wrap_find', True):
+                region_to_select = regions[0] if forward else regions[-1]
 
-        # Wrap around if we go past the last error
-        if i >= len(errors):
-            i -= len(errors)
+        if region_to_select is not None:
+            self.select_lint_region(self.view, region_to_select)
+        else:
+            sel.clear()
+            sel.add_all(saved_sel)
+            sublime.error_message('No {0} lint errors.'.format('next' if forward else 'previous'))
 
-        select_line(view, errors[i])
-        view.show_at_center(sel[0])
+        return region_to_select
+
+    def select_lint_region(self, view, region):
+        sel = view.sel()
+        sel.clear()
+
+        # Find the first marked region within the region to select.
+        # If there are none, put the cursor at the beginning of the line.
+        marked_region = self.find_mark_within(view, region)
+
+        if marked_region is None:
+            marked_region = sublime.Region(region.begin(), region.begin())
+
+        sel.add(marked_region)
+        view.show(marked_region, show_surrounds=True)
+
+    def find_mark_within(self, view, region):
+        marks = view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.WARNING))
+        marks.extend(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.ERROR)))
+        marks.sort(key=lambda x: x.begin())
+
+        for mark in marks:
+            if region.contains(mark):
+                return mark
+
+        return None
+
+
+class sublimelinter_next_error(sublimelinter_find_error):
+    '''Place the caret at the next error.'''
+    @error_command
+    def run(self, view, errors):
+        self.find_error(view, errors, forward=True)
+
+
+class sublimelinter_previous_error(sublimelinter_find_error):
+    '''Place the caret at the previous error.'''
+    @error_command
+    def run(self, view, errors):
+        self.find_error(view, errors, forward=False)
 
 
 class sublimelinter_all_errors(sublime_plugin.TextCommand):

@@ -1,0 +1,5 @@
+[
+    { "keys": ["ctrl+alt+l"], "command": "sublimelinter", "args": {"action": "lint"} },
+    { "keys": ["ctrl+alt+e"], "command": "sublimelinter_next_error" },
+    { "keys": ["ctrl+alt+shift+e"], "command": "sublimelinter_previous_error" }
+]

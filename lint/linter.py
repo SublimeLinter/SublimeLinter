@@ -195,8 +195,6 @@ class Linter(metaclass=Registrar):
                 persist.linters[vid].add(linter)
                 linter.draw()
 
-        return
-
     @classmethod
     def text(cls, view):
         '''Returns the entire text of a view.'''
@@ -320,6 +318,8 @@ class Linter(metaclass=Registrar):
                     self.highlight.range(row, col, error_type=error_type)
                 elif near:
                     self.highlight.near(row, near, error_type)
+                else:
+                    self.highlight.range(row, 0, length=0, error_type=error_type)
 
                 self.error(row, col, message, error_type)
 
@@ -367,8 +367,8 @@ class Linter(metaclass=Registrar):
             can = cls.executable_path != ''
             print('{} {}: {}'.format(
                 cls.__name__,
-                'enabled' if can else 'disabled',
-                'using {}'.format(cls.executable_path) if can else 'cannot locate \'{}\''.format(executable)
+                'enabled, executable' if can else 'disabled',
+                cls.executable_path if can else 'cannot locate \'{}\''.format(executable)
             ))
 
         return can

@@ -1,7 +1,6 @@
 {
     "default": {
         "debug": false,
-        "linters": {
-        }
+        "wrap_find": true
     }
 }

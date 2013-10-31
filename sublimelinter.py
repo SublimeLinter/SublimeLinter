@@ -93,12 +93,14 @@ class SublimeLinter(sublime_plugin.EventListener):
                 highlights.add(linter.highlight)
 
             if linter.errors:
-                errors.update(linter.errors)
+                for line, errs in linter.errors.items():
+                    errors.setdefault(line, []).extend(errs)
 
         # If the view has been modified since the lint was triggered, don't draw marks
         if self.last_hit_time > hit_time:
             return
 
+        HighlightSet.clear(view)
         highlights.draw(view)
         persist.errors[view.id()] = errors
 
@@ -133,7 +135,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_modified(self, view):
         '''Called when a view is modified.'''
-        HighlightSet.clear(view)
         self.check_syntax(view)
         self.hit(view)
 

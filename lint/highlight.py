@@ -137,7 +137,13 @@ class Highlight:
         for error_type in (self.WARNING, self.ERROR):
             self.marks[error_type].extend(other.marks[error_type])
 
-        self.lines.update(other.lines)
+        # Errors override warnings on the same line
+        for line, error_type in other.lines.items():
+            current_type = self.lines.get(line)
+
+            if current_type is None or current_type == self.WARNING:
+                self.lines[line] = error_type
+
         self.newlines = other.newlines
 
     def draw(self, view):
@@ -146,8 +152,7 @@ class Highlight:
         # We use separate regions for the gutter marks so we can use
         # a scope that will not colorize the gutter icon, and to ensure
         # that errors will override warnings.
-        for line in self.lines:
-            error_type = self.lines[line]
+        for line, error_type in self.lines.items():
             gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
 
         for error_type in (self.WARNING, self.ERROR):

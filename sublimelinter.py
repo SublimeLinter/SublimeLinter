@@ -214,8 +214,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         except IndexError:
             lineno = -1
 
-        status = ''
-
         if vid in persist.errors:
             errors = persist.errors[vid]
 
@@ -236,9 +234,11 @@ class SublimeLinter(sublime_plugin.EventListener):
                         first = sum(counts[0:index]) + 1
 
                         if len(line_errors) > 1:
-                            status += '{}-{} of {} errors: '.format(first, first + len(line_errors) - 1, count)
+                            status = '{}-{} of {} errors: '.format(first, first + len(line_errors) - 1, count)
                         else:
-                            status += '{} of {} errors: '.format(first, count)
+                            status = '{} of {} errors: '.format(first, count)
+                    else:
+                        status = 'Error: '
 
                     status += '; '.join(line_errors)
                 else:

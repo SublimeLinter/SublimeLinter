@@ -7,9 +7,11 @@ A framework for code linting in the [Sublime Text](http://sublimetext.com "Subli
 
 This is a work in progress! We want to finish this project quickly so you can get all of the benefits of Sublime Text 3. But to make that happen, we need your help. If SublimeLinter is critical to your workflow, then consider making a donation to accelerate its development.
 
-[![Donate](http://www.aparajitaworld.com/cappuccino/Donate-button.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55KC77W2MU9VW)
+[![Donate](http://www.aparajitaworld.com/cappuccino/Donate-button.png?v=1)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55KC77W2MU9VW)
 
-**UPDATE**: Through October 30, we have raised $2885 (after fees) from 226 donations. Thank you for your support! Development has started, and I’m very excited about this new version! But there is still a [lot of work to do](https://github.com/SublimeLinter/SublimeLinter3/issues/4), and I’m getting new ideas every day.
+<a class="coinbase-button" data-code="3265d1a223f01885e92514751e45cc55" data-button-style="custom_large" href="https://coinbase.com/checkouts/3265d1a223f01885e92514751e45cc55">Donate Bitcoins</a><script src="https://coinbase.com/assets/button.js" type="text/javascript"></script>
+
+**UPDATE**: Through October 31, we have raised $3143 (after fees) from 253 donations. Thank you for your support! Development has started, and I’m very excited about this new version! But there is still a [lot of work to do](https://github.com/SublimeLinter/SublimeLinter3/issues/4), and I’m getting new ideas every day.
 
 So if you are one of the thousands of happy SublimeLinter users who has not donated yet, it isn’t too late to contribute. Please consider making a small donation. Open source software is not free! It is we the developers who usually end up paying for it.
 

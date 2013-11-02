@@ -98,11 +98,11 @@ class Daemon:
 
                 elif isinstance(item, str):
                     if item == 'reload':
-                        self.printf('SublimeLinter daemon detected a reload')
+                        self.printf('daemon detected a reload')
                 else:
-                    self.printf('SublimeLinter: Unknown message sent to daemon:', item)
+                    self.printf('unknown message sent to daemon:', item)
             except:
-                self.printf('Error in SublimeLinter daemon:')
+                self.printf('error in SublimeLinter daemon:')
                 self.printf('-' * 20)
                 self.printf(traceback.format_exc())
                 self.printf('-' * 20)
@@ -178,7 +178,9 @@ def register_linter(linter_class, name, attrs):
             for view in views.values():
                 linter.Linter.assign(view, reassign=True)
 
-            debug('{} linter reloaded'.format(name))
+            printf('{} linter reloaded'.format(name))
+        else:
+            printf('{} linter loaded'.format(name))
 
 
 def update_gutter_marks():

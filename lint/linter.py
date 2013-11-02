@@ -374,10 +374,10 @@ class Linter(metaclass=Registrar):
                 cls.executable_path = ''
 
             can = cls.executable_path != ''
-            print('{} {}: {}'.format(
+            persist.printf('{} {}'.format(
                 cls.__name__,
-                'enabled, executable' if can else 'disabled',
-                cls.executable_path if can else 'cannot locate \'{}\''.format(executable)
+                'enabled ({})'.format(cls.executable_path) if can
+                else 'disabled, cannot locate \'{}\''.format(executable)
             ))
 
         return can

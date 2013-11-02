@@ -164,8 +164,9 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
     '''
     def run(self):
         self.themes = []
-        self.find_themes(user_themes=False)
+        self.theme_names = []
         self.find_themes(user_themes=True)
+        self.find_themes(user_themes=False)
         self.themes.sort()
         self.window.show_quick_panel(self.themes, self.activate_theme)
 
@@ -184,7 +185,10 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
                 for root, dirs, files in os.walk(os.path.join(full_path, d)):
                     if 'warning.png' in files and 'error.png' in files:
                         relative_path = os.path.relpath(root, full_path)
-                        self.themes.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+
+                        if relative_path not in self.theme_names:
+                            self.themes.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+                            self.theme_names.append(relative_path)
 
     def activate_theme(self, index):
         persist.settings['gutter_theme'] = self.themes[index][0]

@@ -193,14 +193,14 @@ def register_linter(linter_class, name, attrs):
 
 def update_gutter_marks():
     theme = queue.settings.get('gutter_theme', 'Default')
-    theme_path = os.path.join(plugin_directory, 'gutter-themes', theme)
+    theme_path = os.path.join('User', 'SublimeLinter-gutter-themes', theme)
 
     if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
-        theme_path = os.path.join('User', 'SublimeLinter-gutter-themes', theme)
+        theme_path = os.path.join(plugin_directory, 'gutter-themes', theme)
 
     if os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
         gutter_marks['warning'] = os.path.join('Packages', theme_path, 'warning.png')
         gutter_marks['error'] = os.path.join('Packages', theme_path, 'error.png')
         gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
     else:
-        debug('cannot find the gutter theme \'{}\''.format(theme))
+        printf('cannot find the gutter theme \'{}\''.format(theme))

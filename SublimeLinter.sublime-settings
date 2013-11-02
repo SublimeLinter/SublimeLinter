@@ -1,6 +1,7 @@
 {
     "default": {
         "debug": false,
-        "wrap_find": true
+        "wrap_find": true,
+        "gutter_theme": "Default"
     }
 }

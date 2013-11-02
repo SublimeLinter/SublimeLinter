@@ -165,18 +165,16 @@ class Highlight:
                 )
 
             if gutter_regions[error_type]:
-                # If the icon is a custom image, don't colorize it.
-                # Otherwise it's a stock image and it is given the color for the current error type.
-                if '/' in self.icon:
-                    scope = 'sublimelinter.gutter-mark'
+                if persist.gutter_marks['colorize']:
+                    scope = MARK_SCOPE_FORMAT.format(error_type)
                 else:
-                    scope = self.MARK_SCOPE_FORMAT.format(error_type)
+                    scope = 'sublimelinter.gutter-mark'
 
                 view.add_regions(
                     GUTTER_MARK_KEY_FORMAT.format(error_type),
                     gutter_regions[error_type],
                     scope,
-                    icon=self.icon
+                    icon=persist.gutter_marks[error_type]
                 )
 
     def clear(self, view):

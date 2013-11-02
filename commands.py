@@ -157,6 +157,48 @@ class sublimelinter_all_errors(sublime_plugin.TextCommand):
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
 
 
+class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
+    '''
+    Display a list of all available gutter themes and set the theme
+    if one is selected.
+    '''
+    def run(self):
+        self.themes = []
+        self.find_themes(user_themes=False)
+        self.find_themes(user_themes=True)
+        self.themes.sort()
+        self.window.show_quick_panel(self.themes, self.activate_theme)
+
+    def find_themes(self, user_themes):
+        if user_themes:
+            theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
+        else:
+            theme_path = os.path.join(os.path.basename(persist.plugin_directory), 'gutter-themes')
+
+        full_path = os.path.join(sublime.packages_path(), theme_path)
+
+        if os.path.isdir(full_path):
+            dirs = os.listdir(full_path)
+
+            for d in dirs:
+                for root, dirs, files in os.walk(os.path.join(full_path, d)):
+                    if 'warning.png' in files and 'error.png' in files:
+                        relative_path = os.path.relpath(root, full_path)
+                        self.themes.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+
+    def activate_theme(self, index):
+        persist.settings['gutter_theme'] = self.themes[index][0]
+        persist.update_gutter_marks()
+
+        # Redraw gutter marks for all views
+        for view in self.window.views():
+            highlights = persist.highlights.get(view.id())
+
+            if highlights:
+                highlight.HighlightSet.clear(view)
+                highlights.draw(view)
+
+
 class sublimelinter_report(sublime_plugin.WindowCommand):
     '''
     Display a report of all errors in all open files in the current window,

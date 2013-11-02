@@ -9,6 +9,7 @@
 #
 
 from collections import defaultdict
+import os
 from queue import Queue, Empty
 import threading
 import traceback
@@ -18,6 +19,9 @@ import sublime
 from .util import merge_user_settings
 
 plugin_name = 'SublimeLinter'
+
+# Get the name of the plugin directory, which is the parent of this file's directory
+plugin_directory = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 
 class Daemon:
@@ -48,6 +52,8 @@ class Daemon:
         # Reattach settings objects to linters
         from . import linter
         linter.Linter.reload()
+
+        update_gutter_marks()
 
     def start(self, callback):
         self.callback = callback
@@ -136,6 +142,9 @@ if not 'plugin_is_loaded' in globals():
 
     edits = defaultdict(list)
 
+    # Info about the gutter mark icons
+    gutter_marks = {'warning': 'dot', 'error': 'dot', 'colorize': True}
+
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
 
@@ -170,3 +179,18 @@ def register_linter(linter_class, name, attrs):
                 linter.Linter.assign(view, reassign=True)
 
             debug('{} linter reloaded'.format(name))
+
+
+def update_gutter_marks():
+    theme = queue.settings.get('gutter_theme', 'Default')
+    theme_path = os.path.join(plugin_directory, 'gutter-themes', theme)
+
+    if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
+        theme_path = os.path.join('User', 'SublimeLinter-gutter-themes', theme)
+
+    if os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
+        gutter_marks['warning'] = os.path.join('Packages', theme_path, 'warning.png')
+        gutter_marks['error'] = os.path.join('Packages', theme_path, 'error.png')
+        gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
+    else:
+        debug('cannot find the gutter theme \'{}\''.format(theme))

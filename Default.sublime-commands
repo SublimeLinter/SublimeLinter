@@ -23,12 +23,16 @@
     },
     {
         "caption": "SublimeLinter: Previous Error",
-        "command": "sublimelinter_next_error", "args": {"direction": -1}
+        "command": "sublimelinter_previous_error"
     },
     {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",
         "args": {"on": "files"}
+    },
+    {
+        "caption": "SublimeLinter: Choose Gutter Theme",
+        "command": "sublimelinter_choose_gutter_theme"
     }
     /* folders not implemented
     {

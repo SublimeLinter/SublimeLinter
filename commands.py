@@ -27,7 +27,7 @@ def error_command(f):
         if vid in persist.errors and persist.errors[vid]:
             f(self, self.view, persist.errors[vid], **kwargs)
         else:
-            sublime.error_message('No lint errors.')
+            sublime.message_dialog('No lint errors.')
 
     return run
 
@@ -84,7 +84,7 @@ class sublimelinter_find_error(sublime_plugin.TextCommand):
         else:
             sel.clear()
             sel.add_all(saved_sel)
-            sublime.error_message('No {0} lint errors.'.format('next' if forward else 'previous'))
+            sublime.message_dialog('No {0} lint errors.'.format('next' if forward else 'previous'))
 
         return region_to_select
 

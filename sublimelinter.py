@@ -86,7 +86,8 @@ class SublimeLinter(sublime_plugin.EventListener):
     def highlight(self, view, linters, hit_time):
         '''Highlight any errors found during a lint.'''
         errors = {}
-        highlights = HighlightSet()
+        vid = view.id()
+        highlights = persist.highlights[vid] = HighlightSet()
 
         for linter in linters:
             if linter.highlight:
@@ -102,7 +103,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         HighlightSet.clear(view)
         highlights.draw(view)
-        persist.errors[view.id()] = errors
+        persist.errors[vid] = errors
 
         # Update the status
         self.on_selection_modified_async(view)

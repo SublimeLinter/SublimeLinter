@@ -133,7 +133,13 @@ if not 'queue' in globals():
     printf = queue.printf
     settings = queue.settings
 
+    # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = {}
+
+    # A mapping between view ids and HighlightSets
+    highlights = {}
+
+    # A mapping between language names and linter classes
     languages = {}
 
     # A mapping between view ids and a set of linter instances

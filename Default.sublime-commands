@@ -14,10 +14,6 @@
         }
     },
     {
-        "caption": "SublimeLinter: Show All Errors",
-        "command": "sublimelinter_all_errors"
-    },
-    {
         "caption": "SublimeLinter: Next Error",
         "command": "sublimelinter_next_error"
     },
@@ -25,11 +21,17 @@
         "caption": "SublimeLinter: Previous Error",
         "command": "sublimelinter_previous_error"
     },
+    /* not implemented yet
+    {
+        "caption": "SublimeLinter: Show All Errors",
+        "command": "sublimelinter_all_errors"
+    },
     {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",
         "args": {"on": "files"}
     },
+    */
     {
         "caption": "SublimeLinter: Choose Gutter Theme",
         "command": "sublimelinter_choose_gutter_theme"

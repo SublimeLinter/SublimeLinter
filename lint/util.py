@@ -51,7 +51,7 @@ def climb(top):
 
 
 @lru_cache()
-def find(top, name, parent=False):
+def find_dir(top, name, parent=False):
     for d in climb(top):
         target = os.path.join(d, name)
 
@@ -218,7 +218,7 @@ def tmpdir(cmd, files, filename, code):
 
 
 def popen(cmd, env=None):
-    import lint.persist as persist
+    from . import persist
 
     if isinstance(cmd, str):
         cmd = cmd,

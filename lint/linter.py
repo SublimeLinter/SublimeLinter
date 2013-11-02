@@ -302,7 +302,7 @@ class Linter(metaclass=Registrar):
 
         persist.debug('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
 
-        for match, row, col, error_type, message, near in self.find_errors(output):
+        for match, row, col, length, error_type, message, near in self.find_errors(output):
             if match and row is not None:
                 if error_type and WARNING_RE.match(error_type) is not None:
                     error_type = hilite.WARNING
@@ -324,7 +324,10 @@ class Linter(metaclass=Registrar):
                                 col = i
                                 break
 
-                    self.highlight.range(row, col, error_type=error_type)
+                    if length is None:
+                        self.highlight.range(row, col, error_type=error_type)
+                    else:
+                        self.highlight.range(row, col, length=length, error_type=error_type)
                 elif near:
                     self.highlight.near(row, near, error_type)
                 else:
@@ -406,18 +409,19 @@ class Linter(metaclass=Registrar):
 
     def split_match(self, match):
         if match:
-            items = {'line': None, 'col': None, 'type': None, 'error': '', 'near': None}
+            items = {'line': None, 'col': None, 'length': None, 'type': None, 'error': '', 'near': None}
             items.update(match.groupdict())
-            row, col, error_type, error, near = [items[k] for k in ('line', 'col', 'type', 'error', 'near')]
+            row, col, length, error_type, error, near = [items[k] for k in ('line', 'col', 'length', 'type', 'error', 'near')]
 
-            row = int(row) - 1
+            if row is not None:
+                row = int(row) - 1
 
-            if col:
+            if col is not None:
                 col = int(col) - 1
 
-            return match, row, col, error_type, error, near
-
-        return match, None, None, None, '', None
+            return match, row, col, length, error_type, error, near
+        else:
+            return match, None, None, None, None, '', None
 
     def match_error(self, r, line):
         return self.split_match(r.match(line))

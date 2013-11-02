@@ -11,7 +11,7 @@
 import re
 import sublime
 
-from .highlight import Highlight
+from . import highlight as hilite
 from . import persist
 from . import util
 
@@ -104,7 +104,7 @@ class Linter(metaclass=Registrar):
             except:
                 persist.debug('error compiling regex for {}'.format(self.language))
 
-        self.highlight = Highlight()
+        self.highlight = hilite.Highlight()
 
     @classmethod
     def get_settings(cls):
@@ -252,7 +252,7 @@ class Linter(metaclass=Registrar):
                 errors = {}
 
                 for line_offset, left, right in sections[sel]:
-                    linter.highlight.move_to(line_offset, left)
+                    linter.hilite.move_to(line_offset, left)
                     linter.code = code[left:right]
                     linter.errors = {}
                     linter.lint()
@@ -269,11 +269,7 @@ class Linter(metaclass=Registrar):
         self.errors = {}
         self.code = code
         self.filename = filename or self.filename
-        self.highlight = highlight or Highlight(self.code)
-
-    def lint(self):
-        if not (self.language and self.cmd and self.regex):
-            raise NotImplementedError
+        self.highlight = highlight or hilite.Highlight(self.code)
 
         if callable(self.cmd):
             cmd = self.cmd()
@@ -296,9 +292,9 @@ class Linter(metaclass=Registrar):
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
                 if error_type and WARNING_RE.match(error_type) is not None:
-                    error_type = Highlight.WARNING
+                    error_type = hilite.WARNING
                 else:
-                    error_type = Highlight.ERROR
+                    error_type = hilite.ERROR
 
                 if col is not None:
                     # Adjust column numbers to match the linter's tabs if necessary

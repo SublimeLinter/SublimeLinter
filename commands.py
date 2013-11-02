@@ -16,7 +16,7 @@ from threading import Thread
 
 from . import sublimelinter
 from .lint import persist
-from .lint.highlight import Highlight
+from .lint import highlight
 
 
 def error_command(f):
@@ -55,8 +55,8 @@ class sublimelinter_find_error(sublime_plugin.TextCommand):
         point = sel[0].begin() if forward else sel[-1].end()
         regions = sublime.Selection(view.id())
         regions.clear()
-        regions.add_all(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.WARNING)))
-        regions.add_all(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.ERROR)))
+        regions.add_all(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING)))
+        regions.add_all(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
         region_to_select = None
 
         # If going forward, find the first region beginning after the point.
@@ -103,8 +103,8 @@ class sublimelinter_find_error(sublime_plugin.TextCommand):
         view.show(marked_region, show_surrounds=True)
 
     def find_mark_within(self, view, region):
-        marks = view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.WARNING))
-        marks.extend(view.get_regions(Highlight.MARK_KEY_FORMAT.format(Highlight.ERROR)))
+        marks = view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
+        marks.extend(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
         marks.sort(key=lambda x: x.begin())
 
         for mark in marks:

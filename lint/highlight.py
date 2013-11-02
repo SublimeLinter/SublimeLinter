@@ -8,8 +8,19 @@
 # License: MIT
 #
 
-import sublime
 import re
+import sublime
+from . import persist
+
+#
+# Error types
+#
+WARNING = 'warning'
+ERROR = 'error'
+
+MARK_KEY_FORMAT = 'lint-{}-marks'
+GUTTER_MARK_KEY_FORMAT = 'lint-{}-gutter-marks'
+MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
 WORD_RE = re.compile(r'^(\w+)')
 
@@ -35,28 +46,17 @@ class HighlightSet:
 
     @classmethod
     def clear(cls, view):
-        for error_type in (Highlight.WARNING, Highlight.ERROR):
-            view.erase_regions(Highlight.MARK_KEY_FORMAT.format(error_type))
-            view.erase_regions(Highlight.GUTTER_MARK_KEY_FORMAT.format(error_type))
+        for error_type in (WARNING, ERROR):
+            view.erase_regions(MARK_KEY_FORMAT.format(error_type))
+            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
 
 class Highlight:
     '''A class that represents one or more highlights and knows how to draw itself.'''
-    #
-    # Error types
-    #
-    WARNING = 'warning'
-    ERROR = 'error'
-
-    MARK_KEY_FORMAT = 'lint-{}-marks'
-    GUTTER_MARK_KEY_FORMAT = 'lint-{}-gutter-marks'
-    MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
-
-    def __init__(self, code='', mark_flags=sublime.DRAW_NO_FILL, icon='dot'):
+    def __init__(self, code='', mark_flags=sublime.DRAW_NO_FILL):
         self.code = code
         self.mark_flags = mark_flags
-        self.marks = {self.WARNING: [], self.ERROR: []}
-        self.icon = icon
+        self.marks = {WARNING: [], ERROR: []}
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
@@ -134,20 +134,20 @@ class Highlight:
             self.range(line, start, len(near))
 
     def update(self, other):
-        for error_type in (self.WARNING, self.ERROR):
+        for error_type in (WARNING, ERROR):
             self.marks[error_type].extend(other.marks[error_type])
 
         # Errors override warnings on the same line
         for line, error_type in other.lines.items():
             current_type = self.lines.get(line)
 
-            if current_type is None or current_type == self.WARNING:
+            if current_type is None or current_type == WARNING:
                 self.lines[line] = error_type
 
         self.newlines = other.newlines
 
     def draw(self, view):
-        gutter_regions = {self.WARNING: [], self.ERROR: []}
+        gutter_regions = {WARNING: [], ERROR: []}
 
         # We use separate regions for the gutter marks so we can use
         # a scope that will not colorize the gutter icon, and to ensure
@@ -155,12 +155,12 @@ class Highlight:
         for line, error_type in self.lines.items():
             gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
 
-        for error_type in (self.WARNING, self.ERROR):
+        for error_type in (WARNING, ERROR):
             if self.marks[error_type]:
                 view.add_regions(
-                    self.MARK_KEY_FORMAT.format(error_type),
+                    MARK_KEY_FORMAT.format(error_type),
                     self.marks[error_type],
-                    self.MARK_SCOPE_FORMAT.format(error_type),
+                    MARK_SCOPE_FORMAT.format(error_type),
                     flags=self.mark_flags
                 )
 
@@ -173,22 +173,22 @@ class Highlight:
                     scope = self.MARK_SCOPE_FORMAT.format(error_type)
 
                 view.add_regions(
-                    self.GUTTER_MARK_KEY_FORMAT.format(error_type),
+                    GUTTER_MARK_KEY_FORMAT.format(error_type),
                     gutter_regions[error_type],
                     scope,
                     icon=self.icon
                 )
 
     def clear(self, view):
-        for error_type in (self.WARNING, self.ERROR):
-            view.erase_regions(self.MARK_KEY_FORMAT.format(error_type))
-            view.erase_regions(self.GUTTER_MARK_KEY_FORMAT.format(error_type))
+        for error_type in (WARNING, ERROR):
+            view.erase_regions(MARK_KEY_FORMAT.format(error_type))
+            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
     def line(self, line, error_type):
         line += self.line_offset
 
         # Errors override warnings, if it's already an error leave it
-        if self.lines.get(line) == self.ERROR:
+        if self.lines.get(line) == ERROR:
             return
 
         self.lines[line] = error_type

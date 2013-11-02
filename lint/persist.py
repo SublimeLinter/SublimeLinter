@@ -115,10 +115,11 @@ class Daemon:
     def delay(self, milliseconds=100):
         self.q.put(milliseconds / 1000.0)
 
-    def printf(self, *args):
-        if not self.settings.get('debug'):
-            return
+    def debug(self, *args):
+        if self.settings.get('debug'):
+            self.printf(*args)
 
+    def printf(self, *args):
         print(plugin_name + ': ', end='')
 
         for arg in args:
@@ -126,9 +127,10 @@ class Daemon:
 
         print()
 
-if not 'plugin_is_loaded' in globals():
+if not 'queue' in globals():
     queue = Daemon()
-    debug = queue.printf
+    debug = queue.debug
+    printf = queue.printf
     settings = queue.settings
 
     errors = {}

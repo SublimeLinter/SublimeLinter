@@ -9,6 +9,7 @@
 #
 
 import re
+import shlex
 import sublime
 
 from . import highlight as hilite
@@ -271,6 +272,7 @@ class Linter(metaclass=Registrar):
         self.filename = filename or self.filename
         self.highlight = highlight or hilite.Highlight(self.code)
 
+    def get_cmd(self):
         if callable(self.cmd):
             cmd = self.cmd()
         else:
@@ -279,8 +281,19 @@ class Linter(metaclass=Registrar):
         if not cmd:
             return
 
-        if not isinstance(cmd, (tuple, list)):
-            cmd = (cmd,)
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
+
+        return tuple(cmd)
+
+    def lint(self):
+        if not (self.language and self.cmd and self.regex):
+            raise NotImplementedError
+
+        cmd = self.get_cmd()
+
+        if not cmd:
+            return
 
         output = self.run(cmd, self.code)
 

@@ -345,11 +345,11 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def can_lint(cls, language):
-        '''Determines if a linter can lint a given language. Subclasses which '''
-        return Linter.linter_can_lint(cls, language)
-
-    @staticmethod
-    def linter_can_lint(cls, language):
+        '''
+        Determines if a linter can lint a given language. Subclasses may override this
+        if the built in mechanism is not sufficient, but should call super().can_list(cls, language)
+        first and continue checking only if that returns True.
+        '''
         can = False
         language = language.lower()
 

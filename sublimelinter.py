@@ -11,7 +11,6 @@
 import sublime
 import sublime_plugin
 
-import json
 import os
 import re
 import time

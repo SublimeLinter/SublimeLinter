@@ -199,7 +199,7 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
             highlights = persist.highlights.get(view.id())
 
             if highlights:
-                highlight.HighlightSet.clear(view)
+                highlights.clear(view)
                 highlights.draw(view)
 
 

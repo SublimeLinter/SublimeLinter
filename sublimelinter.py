@@ -100,7 +100,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if self.last_hit_time > hit_time:
             return
 
-        HighlightSet.clear(view)
+        highlights.clear(view)
         highlights.draw(view)
         persist.errors[vid] = errors
 

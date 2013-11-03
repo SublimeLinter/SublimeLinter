@@ -188,28 +188,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not self.LINTER_SETTINGS_RE.match(filename) or dirname != 'User':
             return
 
-        persist.load_settings()
-        settings = persist.settings
-
-        # Fill in default linter settings
-        linters = settings.pop('linters', {})
-
-        for name, language in persist.languages.items():
-            default = language.get_settings().copy()
-            default.update(linters.pop(name, {}))
-            linters[name] = default
-
-        settings['linters'] = linters
-
-        def replace(edit):
-            if not view.is_dirty():
-                j = json.dumps({'user': settings}, indent=4, sort_keys=True)
-                j = j.replace(' \n', '\n')
-                view.replace(edit, sublime.Region(0, view.size()), j)
-
-        persist.edits[view.id()].append(replace)
-        view.run_command('sublimelinter_edit')
-        view.run_command('save')
+        persist.update_user_settings(view=view)
 
     def on_new(self, view):
         '''Called when a new buffer is created.'''

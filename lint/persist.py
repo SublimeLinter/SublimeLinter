@@ -9,6 +9,7 @@
 #
 
 from collections import defaultdict
+import json
 import os
 from queue import Queue, Empty
 import threading
@@ -198,9 +199,59 @@ def update_gutter_marks():
     if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
         theme_path = os.path.join(plugin_directory, 'gutter-themes', theme)
 
+    if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
+        theme_path = os.path.join(plugin_directory, 'gutter-themes', 'Default')
+        printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+
     if os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
-        gutter_marks['warning'] = os.path.join('Packages', theme_path, 'warning.png')
-        gutter_marks['error'] = os.path.join('Packages', theme_path, 'error.png')
+        for error_type in ('warning', 'error'):
+            gutter_marks[error_type] = os.path.join('Packages', theme_path, '{}.png'.format(error_type))
+
         gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
     else:
-        printf('cannot find the gutter theme \'{}\''.format(theme))
+        sublime.error_message('SublimeLinter: cannot find the gutter theme \'{}\', and the default is also not available. No gutter marks will display.'.format(theme))
+        gutter_marks['warning'] = gutter_marks['error'] = ''
+
+
+def update_user_settings(view=None):
+    load_settings()
+
+    # Fill in default linter settings
+    linters = settings.pop('linters', {})
+
+    for name, language in languages.items():
+        default = language.get_settings().copy()
+        default.update(linters.pop(name, {}))
+        linters[name] = default
+
+    settings['linters'] = linters
+
+    user_prefs_path = os.path.join(sublime.packages_path(), 'User', '{}.sublime-settings'.format(plugin_name))
+
+    if view is None:
+        # See if any open views are the user prefs
+        for w in sublime.windows():
+            for v in w.views():
+                if v.file_name() == user_prefs_path:
+                    view = v
+                    break
+
+            if view is not None:
+                break
+
+    def format_settings():
+        j = json.dumps({'user': settings}, indent=4, sort_keys=True)
+        j = j.replace(' \n', '\n')
+        return j
+
+    if view is not None:
+        def replace(edit):
+            if not view.is_dirty():
+                view.replace(edit, sublime.Region(0, view.size()), format_settings())
+
+        edits[view.id()].append(replace)
+        view.run_command('sublimelinter_edit')
+        view.run_command('save')
+    else:
+        with open(user_prefs_path, 'w') as f:
+            f.write(format_settings())

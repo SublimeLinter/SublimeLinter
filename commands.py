@@ -15,8 +15,7 @@ import os
 from threading import Thread
 
 from . import sublimelinter
-from .lint import persist
-from .lint import highlight
+from .lint import highlight, persist
 
 
 def error_command(f):
@@ -193,6 +192,7 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
     def activate_theme(self, index):
         persist.settings['gutter_theme'] = self.themes[index][0]
         persist.update_gutter_marks()
+        persist.update_user_settings()
 
         # Redraw gutter marks for all views
         for view in self.window.views():

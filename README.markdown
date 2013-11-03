@@ -3,6 +3,10 @@ SublimeLinter3
 
 A framework for code linting in the [Sublime Text](http://sublimetext.com "Sublime Text") editor.
 
+## IMPORTANT!
+
+This plugin is under development and *not* yet ready for use. Please do not try to install it! Please be patient, it will be ready soon.
+
 ## We need your help
 
 This is a work in progress! We want to finish this project quickly so you can get all of the benefits of Sublime Text 3. But to make that happen, we need your help. If SublimeLinter is critical to your workflow, then consider making a donation to accelerate its development.

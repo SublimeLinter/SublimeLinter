@@ -64,38 +64,7 @@ class Daemon:
         from . import linter
         linter.Linter.reload()
 
-    def update_gutter_marks(self):
-        theme = settings.get('gutter_theme', 'Default')
-        theme_path = None
-
-        # User themes override built in themes, check them first
-        paths = (
-            ('User', 'SublimeLinter-gutter-themes', theme),
-            (plugin_directory, 'gutter-themes', theme),
-            (plugin_directory, 'gutter-themes', 'Default')
-        )
-
-        for path in paths:
-            sub_path = os.path.join(*path)
-            full_path = os.path.join(sublime.packages_path(), sub_path)
-
-            if os.path.isdir(full_path):
-                theme_path = sub_path
-                break
-
-        if theme_path:
-            if theme != 'Default' and os.path.basename(theme_path) == 'Default':
-                printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
-
-            for error_type in ('warning', 'error'):
-                gutter_marks[error_type] = os.path.join('Packages', theme_path, '{}.png'.format(error_type))
-
-            gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
-        else:
-            sublime.error_message('SublimeLinter: cannot find the gutter theme "{}", and the default is also not available. No gutter marks will display.'.format(theme))
-            gutter_marks['warning'] = gutter_marks['error'] = ''
-
-    def update_user_settings(view=None):
+    def update_user_settings(self, view=None):
         load_settings()
 
         # Fill in default linter settings
@@ -135,6 +104,37 @@ class Daemon:
             user_settings = sublime.load_settings('SublimeLinter.sublime-settings')
             user_settings.set('user', settings)
             sublime.save_settings('SublimeLinter.sublime-settings')
+
+    def update_gutter_marks(self):
+        theme = settings.get('gutter_theme', 'Default')
+        theme_path = None
+
+        # User themes override built in themes, check them first
+        paths = (
+            ('User', 'SublimeLinter-gutter-themes', theme),
+            (plugin_directory, 'gutter-themes', theme),
+            (plugin_directory, 'gutter-themes', 'Default')
+        )
+
+        for path in paths:
+            sub_path = os.path.join(*path)
+            full_path = os.path.join(sublime.packages_path(), sub_path)
+
+            if os.path.isdir(full_path):
+                theme_path = sub_path
+                break
+
+        if theme_path:
+            if theme != 'Default' and os.path.basename(theme_path) == 'Default':
+                printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+
+            for error_type in ('warning', 'error'):
+                gutter_marks[error_type] = os.path.join('Packages', theme_path, '{}.png'.format(error_type))
+
+            gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
+        else:
+            sublime.error_message('SublimeLinter: cannot find the gutter theme "{}", and the default is also not available. No gutter marks will display.'.format(theme))
+            gutter_marks['warning'] = gutter_marks['error'] = ''
 
     def observe_prefs_changes(self):
         prefs = sublime.load_settings('Preferences.sublime-settings')
@@ -303,8 +303,8 @@ def load_settings(force=False):
     queue.load_settings(force)
 
 
-def update_user_settings():
-    queue.update_user_settings()
+def update_user_settings(view=None):
+    queue.update_user_settings(view=view)
 
 
 def update_gutter_marks():

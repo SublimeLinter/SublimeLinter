@@ -25,6 +25,8 @@ PLUGIN_NAME = 'SublimeLinter'
 # Get the name of the plugin directory, which is the parent of this file's directory
 PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
+DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
+
 
 class Daemon:
     MIN_DELAY = 0.1
@@ -181,7 +183,8 @@ class Daemon:
             styles = plist.find('./dict/array')
 
             for style in MARK_STYLES:
-                styles.append(ElementTree.XML(MARK_STYLES[style]))
+                color = settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style])
+                styles.append(ElementTree.XML(MARK_STYLES[style].format(color)))
 
             # Write the amended color scheme to Packages/User
             name = os.path.splitext(os.path.basename(scheme))[0] + ' - SublimeLinter'
@@ -365,7 +368,7 @@ MARK_STYLES = {
             <key>settings</key>
             <dict>
                 <key>foreground</key>
-                <string>#EDBA00</string>
+                <string>#{}</string>
             </dict>
         </dict>
     ''',
@@ -379,7 +382,7 @@ MARK_STYLES = {
             <key>settings</key>
             <dict>
                 <key>foreground</key>
-                <string>#DA2000</string>
+                <string>#{}</string>
             </dict>
         </dict>
     ''',

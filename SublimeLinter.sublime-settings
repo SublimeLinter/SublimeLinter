@@ -2,6 +2,8 @@
     "default": {
         "debug": false,
         "wrap_find": true,
+        "warning_color": "EDBA00",
+        "error_color": "DA2000",
         "gutter_theme": "Default"
     }
 }

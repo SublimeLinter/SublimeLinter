@@ -51,7 +51,7 @@ def climb(top):
         yield top
 
 
-@lru_cache()
+@lru_cache(maxsize=256)
 def find_dir(top, name, parent=False):
     for d in climb(top):
         target = os.path.join(d, name)
@@ -99,19 +99,34 @@ def find_path(env):
     return p
 
 
-@lru_cache()
+@lru_cache(maxsize=2)
 def create_environment():
-    if os.name == 'posix':
-        os.environ['PATH'] = find_path(os.environ)
+    from . import persist
 
-    return os.environ
+    env = {}
+    env.update(os.environ)
+
+    if os.name == 'posix':
+        env['PATH'] = find_path(os.environ)
+
+    paths = persist.settings.get('paths', {})
+
+    if sys.platform in paths:
+        paths = paths[sys.platform]
+    else:
+        paths = paths.get('*', [])
+
+    if paths:
+        env['PATH'] += os.pathsep + os.pathsep.join(paths)
+
+    return env
 
 
 def can_exec(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-@lru_cache()
+@lru_cache(maxsize=256)
 def which(cmd):
     env = create_environment()
 
@@ -223,8 +238,6 @@ def tmpdir(cmd, files, filename, code):
 
 
 def popen(cmd, env=None):
-    from . import persist
-
     if isinstance(cmd, str):
         cmd = cmd,
 
@@ -244,6 +257,7 @@ def popen(cmd, env=None):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:
+        from . import persist
         persist.debug('error launching', repr(cmd))
         persist.debug('error was:', err.strerror)
         persist.debug('environment:', env)

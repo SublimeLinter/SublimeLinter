@@ -17,7 +17,7 @@ import traceback
 import time
 import sublime
 
-from .util import merge_user_settings
+from . import util
 
 plugin_name = 'SublimeLinter'
 
@@ -46,9 +46,13 @@ class Daemon:
             self.update_settings()
 
     def update_settings(self):
-        settings = merge_user_settings(self.sub_settings)
+        settings = util.merge_user_settings(self.sub_settings)
         self.settings.clear()
         self.settings.update(settings)
+
+        # Clear the path-related caches in case the paths list has changed
+        util.create_environment.cache_clear()
+        util.which.cache_clear()
 
         # Reattach settings objects to linters
         from . import linter

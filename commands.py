@@ -173,7 +173,7 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
         if user_themes:
             theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
         else:
-            theme_path = os.path.join(os.path.basename(persist.plugin_directory), 'gutter-themes')
+            theme_path = os.path.join(os.path.basename(persist.PLUGIN_DIRECTORY), 'gutter-themes')
 
         full_path = os.path.join(sublime.packages_path(), theme_path)
 
@@ -202,7 +202,7 @@ class sublimelinter_report(sublime_plugin.WindowCommand):
     '''
     def run(self, on='files'):
         output = self.window.new_file()
-        output.set_name(persist.plugin_name)
+        output.set_name(persist.PLUGIN_NAME)
         output.set_scratch(True)
 
         if on == 'files' or on == 'both':

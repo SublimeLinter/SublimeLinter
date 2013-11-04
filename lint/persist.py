@@ -20,10 +20,10 @@ from xml.etree import ElementTree
 
 from . import util
 
-plugin_name = 'SublimeLinter'
+PLUGIN_NAME = 'SublimeLinter'
 
 # Get the name of the plugin directory, which is the parent of this file's directory
-plugin_directory = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
+PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 
 class Daemon:
@@ -86,7 +86,7 @@ class Daemon:
 
         settings['linters'] = linters
 
-        user_prefs_path = os.path.join(sublime.packages_path(), 'User', '{}.sublime-settings'.format(plugin_name))
+        user_prefs_path = os.path.join(sublime.packages_path(), 'User', '{}.sublime-settings'.format(PLUGIN_NAME))
 
         if view is None:
             # See if any open views are the user prefs
@@ -121,8 +121,8 @@ class Daemon:
         # User themes override built in themes, check them first
         paths = (
             ('User', 'SublimeLinter-gutter-themes', theme),
-            (plugin_directory, 'gutter-themes', theme),
-            (plugin_directory, 'gutter-themes', 'Default')
+            (PLUGIN_DIRECTORY, 'gutter-themes', theme),
+            (PLUGIN_DIRECTORY, 'gutter-themes', 'Default')
         )
 
         for path in paths:
@@ -268,7 +268,7 @@ class Daemon:
             self.printf(*args)
 
     def printf(self, *args):
-        print(plugin_name + ': ', end='')
+        print(PLUGIN_NAME + ': ', end='')
 
         for arg in args:
             print(arg, end=' ')

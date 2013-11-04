@@ -147,24 +147,17 @@ class SublimeLinter(sublime_plugin.EventListener):
         '''Called when a file is finished loading.'''
         self.on_new(view)
 
-    def on_activated_async(self, view):
+    def on_activated(self, view):
         '''Called when a view gains input focus.'''
 
         # Reload the plugin settings.
         persist.load_settings()
-
-        if not view:
-            return
 
         self.check_syntax(view, True)
         view_id = view.id()
 
         if not view_id in self.linted_views:
             if not view_id in self.loaded_views:
-                # It seems on_activated can be called before loaded on first start
-                if time.time() - self.start_time < 5:
-                    return
-
                 self.on_new(view)
 
             self.hit(view)

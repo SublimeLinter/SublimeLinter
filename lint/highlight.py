@@ -99,7 +99,7 @@ class Highlight:
         pos += a + self.char_offset
         self.marks[error_type].append(sublime.Region(pos, pos + length))
 
-    def regex(self, line, regex, word_match=None, line_match=None):
+    def regex(self, line, regex, word_match=None, line_match=None, error_type='error'):
         offset = 0
 
         a, b = self.full_line(line)
@@ -122,15 +122,15 @@ class Highlight:
         ]
 
         for start, end in results:
-            self.range(line, start + offset, end - start)
+            self.range(line, start + offset, end - start, error_type=error_type)
 
-    def near(self, line, near):
+    def near(self, line, near, error_type='error'):
         a, b = self.full_line(line)
         text = self.code[a:b]
         start = text.find(near)
 
         if start != -1:
-            self.range(line, start, len(near))
+            self.range(line, start, len(near), error_type=error_type)
 
     def update(self, other):
         for error_type in (WARNING, ERROR):

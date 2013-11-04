@@ -39,10 +39,10 @@ class Daemon:
     def load_settings(self, force=False):
         if force or not self.settings:
             if self.sub_settings:
-                self.sub_settings.clear_on_change('lint-persist-settings')
+                self.sub_settings.clear_on_change('sublimelinter-persist-settings')
 
             self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
-            self.sub_settings.add_on_change('lint-persist-settings', self.update_settings)
+            self.sub_settings.add_on_change('sublimelinter-persist-settings', self.update_settings)
             self.update_settings()
 
     def update_settings(self):

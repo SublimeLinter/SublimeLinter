@@ -18,8 +18,8 @@ from . import persist
 WARNING = 'warning'
 ERROR = 'error'
 
-MARK_KEY_FORMAT = 'lint-{}-marks'
-GUTTER_MARK_KEY_FORMAT = 'lint-{}-gutter-marks'
+MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
+GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
 MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
 WORD_RE = re.compile(r'^(\w+)')

@@ -62,3 +62,7 @@ SublimeLinter3 will have *much* better online documentation.
 Did we mention that we need [your help](#we-need-your-help) to get SublimeLinter3 done? :-)
 
 [sl2]: https://github.com/SublimeLinter/SublimeLinter
+
+### Attributions
+
+Uses icons from “Project Icons” by [Mihaiciuc Bogdan](http://bogo-d.deviantart.com).

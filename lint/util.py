@@ -12,8 +12,8 @@ from functools import lru_cache
 import os
 import re
 import shutil
-import sys
 import tempfile
+import sublime
 import subprocess
 
 INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
@@ -111,8 +111,8 @@ def create_environment():
 
     paths = persist.settings.get('paths', {})
 
-    if sys.platform in paths:
-        paths = paths[sys.platform]
+    if sublime.platform() in paths:
+        paths = paths[sublime.platform()]
     else:
         paths = paths.get('*', [])
 
@@ -131,7 +131,7 @@ def which(cmd):
     env = create_environment()
 
     # On Windows, if cmd does not have an extension, add .exe
-    if sys.platform == 'win32' and not os.path.splitext(cmd)[1]:
+    if sublime.platform() == 'windows' and not os.path.splitext(cmd)[1]:
         cmd += '.exe'
 
     for base in env.get('PATH', '').split(os.pathsep):

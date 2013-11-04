@@ -429,7 +429,7 @@ class Linter(metaclass=Registrar):
     # Subclasses may need to override this in complex cases
     def run(self, cmd, code):
         if self.tempfile_suffix:
-            return self.tmpfile(cmd, suffix=self.tempfile_suffix)
+            return self.tmpfile(cmd, code, suffix=self.tempfile_suffix)
         else:
             return self.communicate(cmd, code)
 

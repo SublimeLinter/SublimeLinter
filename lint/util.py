@@ -12,6 +12,7 @@ from functools import lru_cache
 import os
 import re
 import shutil
+import sys
 import tempfile
 import subprocess
 
@@ -113,6 +114,10 @@ def can_exec(fpath):
 @lru_cache()
 def which(cmd):
     env = create_environment()
+
+    # On Windows, if cmd does not have an extension, add .exe
+    if sys.platform == 'win32' and not os.path.splitext(cmd)[1]:
+        cmd += '.exe'
 
     for base in env.get('PATH', '').split(os.pathsep):
         path = os.path.join(base, cmd)

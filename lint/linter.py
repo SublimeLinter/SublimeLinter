@@ -396,6 +396,11 @@ class Linter(metaclass=Registrar):
 
     def error(self, line, col, error, error_type):
         self.highlight.line(line, error_type)
+
+        # Capitalize the first word
+        error = error[0].upper() + error[1:]
+
+        # Strip trailing space and period
         error = ((col or 0), str(error).rstrip(' .'))
 
         if line in self.errors:

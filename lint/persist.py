@@ -16,6 +16,7 @@ import threading
 import traceback
 import time
 import sublime
+from xml.etree import ElementTree
 
 from . import util
 
@@ -45,6 +46,8 @@ class Daemon:
             self.sub_settings.add_on_change('sublimelinter-persist-settings', self.update_settings)
             self.update_settings()
 
+            observe_prefs_changes()
+
     def update_settings(self):
         settings = util.merge_user_settings(self.sub_settings)
         self.settings.clear()
@@ -54,11 +57,12 @@ class Daemon:
         util.create_environment.cache_clear()
         util.which.cache_clear()
 
+        # Update the gutter marks in case that setting changed
+        update_gutter_marks()
+
         # Reattach settings objects to linters
         from . import linter
         linter.Linter.reload()
-
-        update_gutter_marks()
 
     def start(self, callback):
         self.callback = callback
@@ -197,23 +201,34 @@ def register_linter(linter_class, name, attrs):
 
 
 def update_gutter_marks():
-    theme = queue.settings.get('gutter_theme', 'Default')
-    theme_path = os.path.join('User', 'SublimeLinter-gutter-themes', theme)
+    theme = settings.get('gutter_theme', 'Default')
+    theme_path = None
 
-    if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
-        theme_path = os.path.join(plugin_directory, 'gutter-themes', theme)
+    # User themes override built in themes, check them first
+    paths = (
+        ('User', 'SublimeLinter-gutter-themes', theme),
+        (plugin_directory, 'gutter-themes', theme),
+        (plugin_directory, 'gutter-themes', 'Default')
+    )
 
-    if not os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
-        theme_path = os.path.join(plugin_directory, 'gutter-themes', 'Default')
-        printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+    for path in paths:
+        sub_path = os.path.join(*path)
+        full_path = os.path.join(sublime.packages_path(), sub_path)
 
-    if os.path.isdir(os.path.join(sublime.packages_path(), theme_path)):
+        if os.path.isdir(full_path):
+            theme_path = sub_path
+            break
+
+    if theme_path:
+        if os.path.basename(theme_path) == 'Default':
+            printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+
         for error_type in ('warning', 'error'):
             gutter_marks[error_type] = os.path.join('Packages', theme_path, '{}.png'.format(error_type))
 
         gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
     else:
-        sublime.error_message('SublimeLinter: cannot find the gutter theme \'{}\', and the default is also not available. No gutter marks will display.'.format(theme))
+        sublime.error_message('SublimeLinter: cannot find the gutter theme "{}", and the default is also not available. No gutter marks will display.'.format(theme))
         gutter_marks['warning'] = gutter_marks['error'] = ''
 
 
@@ -243,19 +258,129 @@ def update_user_settings(view=None):
             if view is not None:
                 break
 
-    def format_settings():
-        j = json.dumps({'user': settings}, indent=4, sort_keys=True)
-        j = j.replace(' \n', '\n')
-        return j
-
     if view is not None:
         def replace(edit):
             if not view.is_dirty():
-                view.replace(edit, sublime.Region(0, view.size()), format_settings())
+                j = json.dumps({'user': settings}, indent=4, sort_keys=True)
+                j = j.replace(' \n', '\n')
+                view.replace(edit, sublime.Region(0, view.size()), j)
 
         edits[view.id()].append(replace)
         view.run_command('sublimelinter_edit')
         view.run_command('save')
     else:
-        with open(user_prefs_path, 'w') as f:
-            f.write(format_settings())
+        user_settings = sublime.load_settings('SublimeLinter.sublime-settings')
+        user_settings.set('user', settings)
+        sublime.save_settings('SublimeLinter.sublime-settings')
+
+
+def observe_prefs_changes():
+    prefs = sublime.load_settings('Preferences.sublime-settings')
+    prefs.add_on_change('sublimelinter-pref-settings', update_color_scheme)
+
+
+def update_color_scheme():
+    '''
+    Checks to see if the current color scheme has our colors, and if not,
+    adds them and writes the result to Packages/User/<scheme>.
+    '''
+    prefs = sublime.load_settings('Preferences.sublime-settings')
+    scheme = prefs.get('color_scheme')
+
+    if scheme is None:
+        return
+
+    # Structure of color scheme is:
+    #
+    # plist
+    #    dict (name, settings)
+    #       array (settings)
+    #          dict (style)
+    #
+    # A style dict contains a 'scope' <key> followed by a <string>
+    # with the scopes the style should apply to. So we will search
+    # style dicts for a <string> of 'sublimelinter.mark.warning',
+    # which is one of our scopes.
+
+    plist = ElementTree.XML(sublime.load_resource(scheme))
+    hasColors = False
+
+    for element in plist.iterfind('./dict/array/dict/string'):
+        if element.text == 'sublimelinter.mark.warning':
+            hasColors = True
+            break
+
+    if not hasColors:
+        # Append style dicts with our styles to the style array
+        styles = plist.find('./dict/array')
+
+        for style in MARK_STYLES:
+            styles.append(ElementTree.XML(MARK_STYLES[style]))
+
+        # Write the amended color scheme to Packages/User
+        name = os.path.splitext(os.path.basename(scheme))[0] + ' - SublimeLinter'
+        scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
+
+        with open(scheme_path, 'w', encoding='utf8') as f:
+            f.write(COLOR_SCHEME_PREAMBLE)
+            f.write(ElementTree.tostring(plist, encoding='unicode'))
+
+            # Set the amended color scheme to the current color scheme
+            prefs.clear_on_change('sublimelinter-pref-settings')
+            prefs.set('color_scheme', os.path.join('Packages', 'User', os.path.basename(scheme_path)))
+            sublime.save_settings('Preferences.sublime-settings')
+
+            sublime.message_dialog('SublimeLinter copied and amended the color scheme "{}" and switched to the amended scheme.'.format(os.path.splitext(os.path.basename(scheme))[0]))
+
+            # Just to be sure the main thread has a chance to fully reload the color scheme,
+            # don't start observing changes on it right away.
+            sublime.set_timeout(observe_prefs_changes, 1000)
+
+
+COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+'''
+
+MARK_STYLES = {
+    'warning': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Warning</string>
+            <key>scope</key>
+            <string>sublimelinter.mark.warning</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#EDBA00</string>
+            </dict>
+        </dict>
+    ''',
+
+    'error': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Error</string>
+            <key>scope</key>
+            <string>sublimelinter.mark.error</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#DA2000</string>
+            </dict>
+        </dict>
+    ''',
+
+    'gutter': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Gutter Mark</string>
+            <key>scope</key>
+            <string>sublimelinter.gutter-mark</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#FFFFFF</string>
+            </dict>
+        </dict>
+    '''
+}

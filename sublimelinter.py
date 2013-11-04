@@ -24,6 +24,7 @@ from .lint import persist
 def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.load_settings()
+    persist.update_color_scheme()
 
 
 class SublimeLinter(sublime_plugin.EventListener):

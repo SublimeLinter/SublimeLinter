@@ -387,7 +387,7 @@ class Linter(metaclass=Registrar):
 
     def error(self, line, col, error, error_type):
         self.highlight.line(line, error_type)
-        error = ((col or 0), str(error))
+        error = ((col or 0), str(error).rstrip(' .'))
 
         if line in self.errors:
             self.errors[line].append(error)

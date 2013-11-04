@@ -194,14 +194,6 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
         persist.update_gutter_marks()
         persist.update_user_settings()
 
-        # Redraw gutter marks for all views
-        for view in self.window.views():
-            highlights = persist.highlights.get(view.id())
-
-            if highlights:
-                highlights.clear(view)
-                highlights.draw(view)
-
 
 class sublimelinter_report(sublime_plugin.WindowCommand):
     '''

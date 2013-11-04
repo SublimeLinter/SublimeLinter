@@ -42,11 +42,20 @@ class Daemon:
             if self.sub_settings:
                 self.sub_settings.clear_on_change('sublimelinter-persist-settings')
 
-            self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
-            self.sub_settings.add_on_change('sublimelinter-persist-settings', self.update_settings)
+            self.observe_settings()
             self.update_settings()
 
-            self.observe_prefs_changes()
+            self.observe_prefs()
+
+    def observe_prefs(self):
+        prefs = sublime.load_settings('Preferences.sublime-settings')
+        prefs.clear_on_change('sublimelinter-pref-settings')
+        prefs.add_on_change('sublimelinter-pref-settings', self.update_color_scheme)
+
+    def observe_settings(self, observer=None):
+        self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
+        self.sub_settings.clear_on_change('sublimelinter-persist-settings')
+        self.sub_settings.add_on_change('sublimelinter-persist-settings', observer or self.update_settings)
 
     def update_settings(self):
         settings = util.merge_user_settings(self.sub_settings)
@@ -136,10 +145,6 @@ class Daemon:
             sublime.error_message('SublimeLinter: cannot find the gutter theme "{}", and the default is also not available. No gutter marks will display.'.format(theme))
             gutter_marks['warning'] = gutter_marks['error'] = ''
 
-    def observe_prefs_changes(self):
-        prefs = sublime.load_settings('Preferences.sublime-settings')
-        prefs.add_on_change('sublimelinter-pref-settings', self.update_color_scheme)
-
     def update_color_scheme(self):
         '''
         Checks to see if the current color scheme has our colors, and if not,
@@ -186,16 +191,17 @@ class Daemon:
                 f.write(COLOR_SCHEME_PREAMBLE)
                 f.write(ElementTree.tostring(plist, encoding='unicode'))
 
+                def prefs_reloaded():
+                    self.observe_prefs()
+
+                # Turn off the prefs observer, otherwise we'll end up back here when we save the settings
+                self.observe_prefs(observer=prefs_reloaded)
+
                 # Set the amended color scheme to the current color scheme
-                prefs.clear_on_change('sublimelinter-pref-settings')
                 prefs.set('color_scheme', os.path.join('Packages', 'User', os.path.basename(scheme_path)))
                 sublime.save_settings('Preferences.sublime-settings')
 
                 sublime.message_dialog('SublimeLinter copied and amended the color scheme "{}" and switched to the amended scheme.'.format(os.path.splitext(os.path.basename(scheme))[0]))
-
-                # Just to be sure the main thread has a chance to fully reload the color scheme,
-                # don't start observing changes on it right away.
-                sublime.set_timeout(self.observe_prefs_changes, 1000)
 
     def start(self, callback):
         self.callback = callback

@@ -194,7 +194,19 @@ class Linter(metaclass=Registrar):
                 persist.linters[vid].remove(linter)
                 linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
                 persist.linters[vid].add(linter)
-                linter.draw()
+
+        cls.redraw()
+
+    @classmethod
+    def redraw(cls):
+        # Redraw gutter marks for all views in all windows
+        for w in sublime.windows():
+            for view in w.views():
+                highlights = persist.highlights.get(view.id())
+
+                if highlights:
+                    highlights.clear(view)
+                    highlights.draw(view)
 
     @classmethod
     def text(cls, view):

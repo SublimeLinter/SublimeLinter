@@ -47,10 +47,10 @@ class Daemon:
 
             self.observe_prefs()
 
-    def observe_prefs(self):
+    def observe_prefs(self, observer=None):
         prefs = sublime.load_settings('Preferences.sublime-settings')
         prefs.clear_on_change('sublimelinter-pref-settings')
-        prefs.add_on_change('sublimelinter-pref-settings', self.update_color_scheme)
+        prefs.add_on_change('sublimelinter-pref-settings', observer or self.update_color_scheme)
 
     def observe_settings(self, observer=None):
         self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')

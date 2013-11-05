@@ -254,6 +254,24 @@ class SublimeLinter(sublime_plugin.EventListener):
         if persist.settings.get('lint_mode') in ('load/save', 'save only'):
             self.hit(view)
 
+    def on_close(self, view):
+        vid = view.id()
+
+        if vid in self.loaded_views:
+            self.loaded_views.remove(vid)
+
+        if vid in self.linted_views:
+            self.linted_views.remove(vid)
+
+        if vid in self.view_syntax:
+            del self.view_syntax[vid]
+
+        if vid in self.last_hit_times:
+            del self.last_hit_times[vid]
+
+        persist.view_did_close(vid)
+
+
 class sublimelinter_edit(sublime_plugin.TextCommand):
     '''A plugin command used to generate an edit object for a view.'''
     def run(self, edit):

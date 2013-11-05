@@ -59,12 +59,8 @@ class Daemon:
 
     def load_settings(self, force=False):
         if force or not self.settings:
-            if self.sub_settings:
-                self.sub_settings.clear_on_change('sublimelinter-persist-settings')
-
             self.observe_settings()
             self.update_settings()
-
             self.observe_prefs()
 
     def observe_prefs(self, observer=None):
@@ -273,6 +269,8 @@ class Daemon:
                 elif isinstance(item, str):
                     if item == 'reload':
                         self.printf('daemon detected a reload')
+                        self.last_runs.clear()
+                        last_runs.clear()
                 else:
                     self.printf('unknown message sent to daemon:', item)
             except:
@@ -356,6 +354,20 @@ def edit(vid, edit):
 
     for c in callbacks:
         c(edit)
+
+
+def view_did_close(vid):
+    if vid in errors:
+        del errors[vid]
+
+    if vid in highlights:
+        del highlights[vid]
+
+    if vid in linters:
+        del linters[vid]
+
+    if vid in views:
+        del views[vid]
 
 
 def register_linter(linter_class, name, attrs):

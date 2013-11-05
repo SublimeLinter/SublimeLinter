@@ -14,8 +14,7 @@ import sublime_plugin
 import os
 from threading import Thread
 
-from . import sublimelinter
-from .lint import highlight, persist
+from .lint import highlight, linter, persist
 
 
 def error_command(f):
@@ -269,4 +268,6 @@ class sublimelinter_report(sublime_plugin.WindowCommand):
             output.run_command('sublimelinter_edit')
 
         args = (view.id(), finish_lint)
-        Thread(target=sublimelinter.SublimeLinter.lint, args=args).start()
+
+        from .sublimelinter import SublimeLinter
+        Thread(target=SublimeLinter.lint, args=args).start()

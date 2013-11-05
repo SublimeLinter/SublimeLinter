@@ -118,6 +118,11 @@ class Daemon:
 
     def update_gutter_marks(self):
         theme = settings.get('gutter_theme', 'Default')
+
+        if theme.lower() == 'none':
+            gutter_marks['warning'] = gutter_marks['error'] = ''
+            return
+
         theme_path = None
 
         # User themes override built in themes, check them first

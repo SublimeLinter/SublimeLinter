@@ -167,6 +167,7 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
         self.find_themes(user_themes=True)
         self.find_themes(user_themes=False)
         self.themes.sort()
+        self.themes.append(('None', 'Do not display gutter marks'))
         self.window.show_quick_panel(self.themes, self.activate_theme)
 
     def find_themes(self, user_themes):

@@ -1,11 +1,12 @@
 {
     "default": {
         "debug": false,
-        "wrap_find": true,
+        "lint_mode": "background",
         "warning_color": "EDBA00",
         "error_color": "DA2000",
         "mark_style": "outline",
         "show_marks_in_minimap": true,
-        "gutter_theme": "Default"
+        "gutter_theme": "Default",
+        "wrap_find": true
     }
 }

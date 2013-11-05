@@ -49,14 +49,15 @@ class HighlightSet:
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
-    def update_mark_style(self):
-        for highlight in self.all:
-            highlight.update_mark_style()
-            print(highlight.mark_style)
-
     def redraw(self, view):
         self.clear(view)
         self.draw(view)
+
+    def reset(self, view):
+        self.clear(view)
+
+        for highlight in self.all:
+            highlight.reset()
 
 
 class Highlight:
@@ -201,6 +202,11 @@ class Highlight:
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+
+    def reset(self):
+        for error_type in (WARNING, ERROR):
+            del self.marks[error_type][:]
+            self.lines.clear()
 
     def line(self, line, error_type):
         line += self.line_offset

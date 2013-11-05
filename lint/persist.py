@@ -25,6 +25,13 @@ PLUGIN_NAME = 'SublimeLinter'
 # Get the name of the plugin directory, which is the parent of this file's directory
 PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
+LINT_MODES = (
+    ('background', 'Lint whenever the text is modified'),
+    ('load/save', 'Lint only when a file is loaded or saved'),
+    ('save only', 'Lint only when a file is saved'),
+    ('manual', 'Lint only when requested')
+)
+
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -330,6 +337,10 @@ def load_settings(force=False):
 
 def update_user_settings(view=None):
     queue.update_user_settings(view=view)
+
+
+def observe_user_settings(self, observer=None):
+    queue.observe_settings(observer=observer)
 
 
 def update_gutter_marks():

@@ -168,6 +168,47 @@ class sublimelinter_all_errors(sublime_plugin.TextCommand):
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
 
 
+class sublimelinter_choose_lint_mode(sublime_plugin.WindowCommand):
+    '''
+    Display a list of all available lint modes and set the mode
+    if one is selected.
+    '''
+    def __init__(self, window):
+        super().__init__(window)
+        self.modes = [[mode[0].capitalize(), mode[1]] for mode in persist.LINT_MODES]
+
+    def run(self):
+        mode = persist.settings.get('lint_mode')
+        index = 0
+
+        for i, m in enumerate(self.modes):
+            if m[0].lower() == mode:
+                index = i
+                break
+
+        self.window.show_quick_panel(self.modes, self.set_mode, selected_index=index)
+
+    def set_mode(self, index):
+        if index == -1:
+            return
+
+        old_mode = persist.settings.get('lint_mode')
+        mode = self.modes[index][0].lower()
+
+        if mode == old_mode:
+            return
+
+        persist.settings['lint_mode'] = mode
+
+        if mode == 'background':
+            from .sublimelinter import SublimeLinter
+            SublimeLinter.lint_all_views()
+        else:
+            linter.Linter.clear_all()
+
+        persist.update_user_settings()
+
+
 class sublimelinter_choose_mark_style(sublime_plugin.WindowCommand):
     '''
     Display a list of all available styles and set the style

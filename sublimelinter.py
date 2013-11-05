@@ -13,7 +13,6 @@ import sublime_plugin
 
 import os
 import re
-import time
 
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
@@ -51,6 +50,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         # A mapping between view ids and syntax names
         self.view_syntax = {}
 
+        # Every time a view is modified, this is updated and an asynchronous lint is queued.
+        # When a lint is done, if the view has been modified since the lint was initiated,
+        # marks are not updated because their positions may no longer be valid.
+        self.last_hit_times = {}
+
+        self.__class__.shared_instance = self
         persist.queue.start(self.lint)
 
         # This gives us a chance to lint the active view on fresh install
@@ -59,13 +64,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         if window:
             self.on_activated(window.active_view())
 
-        # We keep track of the start time to check for race conditions elsewhere
-        self.start_time = time.time()
-
-        # Every time a view is modified, this is updated and an asynchronous lint is queued.
-        # When a lint is done, if the view has been modified since the lint was initiated,
-        # marks are not updated because their positions may no longer be valid.
-        self.last_hit_time = 0
+    @classmethod
+    def lint_all_views(cls):
+        for w in sublime.windows():
+            for view in w.views():
+                if view.id() in persist.linters:
+                    cls.shared_instance.hit(view)
 
     def lint(self, view_id, hit_time, callback=None):
         callback = callback or self.highlight
@@ -104,7 +108,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     errors.setdefault(line, []).extend(errs)
 
         # If the view has been modified since the lint was triggered, don't draw marks
-        if self.last_hit_time > hit_time:
+        if self.last_hit_times.get(vid, 0) > hit_time:
             return
 
         highlights.clear(view)
@@ -116,38 +120,40 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def hit(self, view):
         '''Record an activity that could trigger a lint and enqueue a desire to lint.'''
-        self.linted_views.add(view.id())
+        vid = view.id()
+        self.check_syntax(view)
+        self.linted_views.add(vid)
 
         if view.size() == 0:
-            for l in Linter.get_linters(view.id()):
+            for l in Linter.get_linters(vid):
                 l.clear()
 
             return
 
-        self.last_hit_time = persist.queue.hit(view)
+        self.last_hit_times[vid] = persist.queue.hit(view)
 
-    def check_syntax(self, view, lint=False):
+    def check_syntax(self, view):
         vid = view.id()
         syntax = view.settings().get('syntax')
 
         # Syntax either has never been set or just changed
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
             self.view_syntax[vid] = syntax
-
-            # Assign a linter, then maybe trigger a lint if we get one
-            if Linter.assign(view) and lint:
-                self.hit(view)
+            Linter.assign(view)
 
     # sublime_plugin.EventListener event handlers
 
     def on_modified(self, view):
         '''Called when a view is modified.'''
-        self.check_syntax(view)
-        self.hit(view)
+        if persist.settings.get('lint_mode', 'background') == 'background':
+            self.hit(view)
 
     def on_modified_async(self, view):
         '''Called *after* on_modified, updates the status.'''
-        self.on_selection_modified_async(view)
+        if persist.settings.get('lint_mode') == 'background':
+            self.on_selection_modified_async(view)
+        else:
+            Linter.clear_all()
 
     def on_load(self, view):
         '''Called when a file is finished loading.'''
@@ -159,14 +165,15 @@ class SublimeLinter(sublime_plugin.EventListener):
         # Reload the plugin settings.
         persist.load_settings()
 
-        self.check_syntax(view, True)
+        self.check_syntax(view)
         view_id = view.id()
 
         if not view_id in self.linted_views:
             if not view_id in self.loaded_views:
                 self.on_new(view)
 
-            self.hit(view)
+            if persist.settings.get('lint_mode') in ('background', 'load/save'):
+                self.hit(view)
 
         self.on_selection_modified_async(view)
 
@@ -243,6 +250,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         persist.queue.delay(1.0)  # Delay the queue so movement is smooth
 
+    def on_post_save(self, view):
+        if persist.settings.get('lint_mode') in ('load/save', 'save only'):
+            self.hit(view)
 
 class sublimelinter_edit(sublime_plugin.TextCommand):
     '''A plugin command used to generate an edit object for a view.'''

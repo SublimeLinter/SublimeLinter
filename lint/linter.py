@@ -158,7 +158,9 @@ class Linter(metaclass=Registrar):
                     linter = linter_class(view, syntax, view.file_name())
                     linters.add(linter)
 
-            persist.linters[vid] = linters
+            if linters:
+                persist.linters[vid] = linters
+
             return linters
 
         cls.remove(vid)
@@ -195,17 +197,25 @@ class Linter(metaclass=Registrar):
                 linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
                 persist.linters[vid].add(linter)
 
-        cls.redraw()
+        cls.redraw_all()
 
     @classmethod
-    def redraw(cls):
-        # Redraw marks for all views in all windows
+    def apply_to_all(cls, action):
         for w in sublime.windows():
             for view in w.views():
                 highlights = persist.highlights.get(view.id())
 
                 if highlights:
-                    highlights.redraw(view)
+                    getattr(highlights, action)(view)
+
+    @classmethod
+    def clear_all(cls):
+        cls.apply_to_all('reset')
+        persist.errors.clear()
+
+    @classmethod
+    def redraw_all(cls):
+        cls.apply_to_all('redraw')
 
     @classmethod
     def text(cls, view):

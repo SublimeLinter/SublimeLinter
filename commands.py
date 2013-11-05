@@ -156,6 +156,27 @@ class sublimelinter_all_errors(sublime_plugin.TextCommand):
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
 
 
+class sublimelinter_choose_mark_style(sublime_plugin.WindowCommand):
+    '''
+    Display a list of all available styles and set the style
+    if one is selected.
+    '''
+    def __init__(self, window):
+        super().__init__(window)
+
+        self.styles = [style.capitalize() for style in persist.MARK_STYLES]
+        self.styles.remove('None')
+        self.styles.sort()
+        self.styles.append('None')
+
+    def run(self):
+        self.window.show_quick_panel(self.styles, self.activate_style)
+
+    def activate_style(self, index):
+        persist.settings['mark_style'] = self.styles[index].lower()
+        persist.update_user_settings()
+
+
 class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
     '''
     Display a list of all available gutter themes and set the theme

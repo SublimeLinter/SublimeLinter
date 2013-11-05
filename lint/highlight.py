@@ -22,7 +22,7 @@ MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
 MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
-WORD_RE = re.compile(r'^(\w+)')
+WORD_RE = re.compile(r'^([-\w]+)')
 
 
 class HighlightSet:
@@ -49,13 +49,23 @@ class HighlightSet:
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
+    def update_mark_style(self):
+        for highlight in self.all:
+            highlight.update_mark_style()
+            print(highlight.mark_style)
+
+    def redraw(self, view):
+        self.clear(view)
+        self.draw(view)
+
 
 class Highlight:
     '''A class that represents one or more highlights and knows how to draw itself.'''
-    def __init__(self, code='', mark_flags=sublime.DRAW_NO_FILL):
+    def __init__(self, code=''):
         self.code = code
-        self.mark_flags = mark_flags
         self.marks = {WARNING: [], ERROR: []}
+        self.mark_style = 'outline'
+        self.mark_flags = sublime.DRAW_NO_FILL
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
@@ -145,14 +155,25 @@ class Highlight:
 
         self.newlines = other.newlines
 
-    def draw(self, view):
-        gutter_regions = {WARNING: [], ERROR: []}
+    def set_mark_style(self):
+        self.mark_style = persist.settings.get('mark_style', 'outline')
+        self.mark_flags = persist.MARK_STYLES[self.mark_style]
 
-        # We use separate regions for the gutter marks so we can use
-        # a scope that will not colorize the gutter icon, and to ensure
-        # that errors will override warnings.
-        for line, error_type in self.lines.items():
-            gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
+        if not persist.settings.get('show_marks_in_minimap'):
+            self.mark_flags |= sublime.HIDE_ON_MINIMAP
+
+    def draw(self, view):
+        self.set_mark_style()
+
+        gutter_regions = {WARNING: [], ERROR: []}
+        draw_gutter_marks = persist.settings.get('gutter-theme', 'Default') != 'none'
+
+        if draw_gutter_marks:
+            # We use separate regions for the gutter marks so we can use
+            # a scope that will not colorize the gutter icon, and to ensure
+            # that errors will override warnings.
+            for line, error_type in self.lines.items():
+                gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
 
         for error_type in (WARNING, ERROR):
             if self.marks[error_type]:
@@ -163,7 +184,7 @@ class Highlight:
                     flags=self.mark_flags
                 )
 
-            if gutter_regions[error_type]:
+            if draw_gutter_marks and gutter_regions[error_type]:
                 if persist.gutter_marks['colorize']:
                     scope = MARK_SCOPE_FORMAT.format(error_type)
                 else:

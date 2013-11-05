@@ -4,6 +4,8 @@
         "wrap_find": true,
         "warning_color": "EDBA00",
         "error_color": "DA2000",
+        "mark_style": "outline",
+        "show_marks_in_minimap": true,
         "gutter_theme": "Default"
     }
 }

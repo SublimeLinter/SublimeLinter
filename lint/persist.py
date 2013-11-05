@@ -27,6 +27,17 @@ PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
 
+UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
+
+MARK_STYLES = {
+    'outline': sublime.DRAW_NO_FILL,
+    'fill': sublime.DRAW_NO_OUTLINE,
+    'solid underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
+    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
+    'squiggly underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
+    'none': sublime.HIDDEN
+}
+
 
 class Daemon:
     MIN_DELAY = 0.1
@@ -187,9 +198,9 @@ class Daemon:
             # Append style dicts with our styles to the style array
             styles = plist.find('./dict/array')
 
-            for style in MARK_STYLES:
+            for style in COLOR_SCHEME_STYLES:
                 color = settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style])
-                styles.append(ElementTree.XML(MARK_STYLES[style].format(color)))
+                styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
 
             # Write the amended color scheme to Packages/User
             name = os.path.splitext(os.path.basename(scheme))[0] + ' - SublimeLinter'
@@ -363,7 +374,7 @@ COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 '''
 
-MARK_STYLES = {
+COLOR_SCHEME_STYLES = {
     'warning': '''
         <dict>
             <key>name</key>

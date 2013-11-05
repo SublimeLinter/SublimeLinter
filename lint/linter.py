@@ -199,14 +199,13 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def redraw(cls):
-        # Redraw gutter marks for all views in all windows
+        # Redraw marks for all views in all windows
         for w in sublime.windows():
             for view in w.views():
                 highlights = persist.highlights.get(view.id())
 
                 if highlights:
-                    highlights.clear(view)
-                    highlights.draw(view)
+                    highlights.redraw(view)
 
     @classmethod
     def text(cls, view):

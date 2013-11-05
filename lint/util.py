@@ -99,6 +99,42 @@ def find_path(env):
     return p
 
 
+def split_path(path):
+    '''Splits a path into its components.'''
+    components = []
+
+    while path:
+        head, tail = os.path.split(path)
+
+        if tail:
+            components.insert(0, tail)
+
+        if head:
+            if head == os.path.sep or head == os.path.altsep:
+                components.insert(0, head)
+                break
+
+            path = head
+        else:
+            break
+
+    return components
+
+
+def package_relative_path(path, prefix_packages=True):
+    '''
+    Sublime Text wants package-relative paths to use '/' as the path separator
+    on all platforms. This method prefixes 'Packages' to the path if insert_packages = True
+    and returns a new path, replacing os path separators with '/'.
+    '''
+    components = split_path(path)
+
+    if prefix_packages and components and components[0] != 'Packages':
+        components.insert(0, 'Packages')
+
+    return '/'.join(components)
+
+
 @lru_cache(maxsize=2)
 def create_environment():
     from . import persist

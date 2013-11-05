@@ -14,7 +14,7 @@ import sublime_plugin
 import os
 from threading import Thread
 
-from .lint import highlight, linter, persist
+from .lint import highlight, linter, persist, util
 
 
 def error_command(f):
@@ -288,14 +288,11 @@ class sublimelinter_choose_gutter_theme(choose_setting_command):
             for d in dirs:
                 for root, dirs, files in os.walk(os.path.join(full_path, d)):
                     if 'warning.png' in files and 'error.png' in files:
-                        relative_path = os.path.relpath(root, full_path)
+                        relative_path = util.package_relative_path(os.path.relpath(root, full_path), prefix_packages=False)
 
                         if relative_path not in themes:
                             settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
                             themes.append(relative_path)
-
-    def setting_was_changed(self, setting):
-        persist.update_gutter_marks()
 
 
 class sublimelinter_report(sublime_plugin.WindowCommand):

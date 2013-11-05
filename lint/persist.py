@@ -159,7 +159,7 @@ class Daemon:
                 printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
             for error_type in ('warning', 'error'):
-                gutter_marks[error_type] = os.path.join('Packages', theme_path, '{}.png'.format(error_type))
+                gutter_marks[error_type] = util.package_relative_path(os.path.join(theme_path, '{}.png'.format(error_type)))
 
             gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
         else:
@@ -220,7 +220,7 @@ class Daemon:
                 self.observe_prefs(observer=prefs_reloaded)
 
                 # Set the amended color scheme to the current color scheme
-                prefs.set('color_scheme', os.path.join('Packages', 'User', os.path.basename(scheme_path)))
+                prefs.set('color_scheme', util.package_relative_path(os.path.join('User', os.path.basename(scheme_path))))
                 sublime.save_settings('Preferences.sublime-settings')
 
                 sublime.message_dialog('SublimeLinter copied and amended the color scheme "{}" and switched to the amended scheme.'.format(os.path.splitext(os.path.basename(scheme))[0]))

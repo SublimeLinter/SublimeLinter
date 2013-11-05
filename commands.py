@@ -53,8 +53,9 @@ class sublimelinter_lint(sublime_plugin.TextCommand):
 class sublimelinter_find_error(sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
     def is_enabled(self):
+        # Only show this command in the command palette if the view has errors.
         vid = self.view.id()
-        return vid in persist.linters
+        return vid in persist.errors and persist.errors[vid]
 
     def find_error(self, view, errors, forward=True):
         sel = view.sel()
@@ -218,16 +219,25 @@ class sublimelinter_choose_mark_style(sublime_plugin.WindowCommand):
         super().__init__(window)
 
         self.styles = [style.capitalize() for style in persist.MARK_STYLES]
+
+        # Put 'None' at the end of the list
         self.styles.remove('None')
         self.styles.sort()
         self.styles.append('None')
 
     def run(self):
-        self.window.show_quick_panel(self.styles, self.activate_style)
+        self.window.show_quick_panel(self.styles, self.set_style)
 
-    def activate_style(self, index):
-        persist.settings['mark_style'] = self.styles[index].lower()
-        persist.update_user_settings()
+    def set_style(self, index):
+        if index == -1:
+            return
+
+        old_style = persist.settings.get('mark_style')
+        style = self.styles[index].lower()
+
+        if style != old_style:
+            persist.settings['mark_style'] = style
+            persist.update_user_settings()
 
 
 class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
@@ -242,7 +252,7 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
         self.find_themes(user_themes=False)
         self.themes.sort()
         self.themes.append(('None', 'Do not display gutter marks'))
-        self.window.show_quick_panel(self.themes, self.activate_theme)
+        self.window.show_quick_panel(self.themes, self.set_theme)
 
     def find_themes(self, user_themes):
         if user_themes:
@@ -264,10 +274,17 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
                             self.themes.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
                             self.theme_names.append(relative_path)
 
-    def activate_theme(self, index):
-        persist.settings['gutter_theme'] = self.themes[index][0]
-        persist.update_gutter_marks()
-        persist.update_user_settings()
+    def set_theme(self, index):
+        if index == -1:
+            return
+
+        old_theme = persist.settings.get('gutter_theme')
+        theme = self.themes[index][0]
+
+        if theme != old_theme:
+            persist.settings['gutter_theme'] = theme
+            persist.update_gutter_marks()
+            persist.update_user_settings()
 
 
 class sublimelinter_report(sublime_plugin.WindowCommand):

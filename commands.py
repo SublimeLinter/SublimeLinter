@@ -50,12 +50,12 @@ class sublimelinter_lint(sublime_plugin.TextCommand):
         SublimeLinter.shared_plugin().hit(self.view)
 
 
-class sublimelinter_find_error(sublime_plugin.TextCommand):
+class find_error_command(sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
     def is_enabled(self):
         # Only show this command in the command palette if the view has errors.
         vid = self.view.id()
-        return vid in persist.errors and persist.errors[vid]
+        return vid in persist.errors and len(persist.errors[vid]) > 0
 
     def find_error(self, view, errors, forward=True):
         sel = view.sel()
@@ -126,14 +126,14 @@ class sublimelinter_find_error(sublime_plugin.TextCommand):
         return None
 
 
-class sublimelinter_next_error(sublimelinter_find_error):
+class sublimelinter_next_error(find_error_command):
     '''Place the caret at the next error.'''
     @error_command
     def run(self, view, errors):
         self.find_error(view, errors, forward=True)
 
 
-class sublimelinter_previous_error(sublimelinter_find_error):
+class sublimelinter_previous_error(find_error_command):
     '''Place the caret at the previous error.'''
     @error_command
     def run(self, view, errors):
@@ -169,92 +169,112 @@ class sublimelinter_all_errors(sublime_plugin.TextCommand):
         view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
 
 
-class sublimelinter_choose_lint_mode(sublime_plugin.WindowCommand):
+class choose_setting_command(sublime_plugin.WindowCommand):
     '''
-    Display a list of all available lint modes and set the mode
-    if one is selected.
+    Abstract base class for commands that choose a setting from a list.
     '''
-    def __init__(self, window):
+    def __init__(self, window, setting=None):
         super().__init__(window)
-        self.modes = [[mode[0].capitalize(), mode[1]] for mode in persist.LINT_MODES]
+        self.setting = setting
+        self.settings = self.get_settings()
 
-    def run(self):
-        mode = persist.settings.get('lint_mode')
+    def get_settings(self):
+        return []
+
+    def choose(self):
+        setting = persist.settings.get(self.setting)
         index = 0
 
-        for i, m in enumerate(self.modes):
-            if m[0].lower() == mode:
+        for i, s in enumerate(self.settings):
+            if isinstance(s, (tuple, list)):
+                s = s[0].lower()
+
+            if s == setting:
                 index = i
                 break
 
-        self.window.show_quick_panel(self.modes, self.set_mode, selected_index=index)
+        self.window.show_quick_panel(self.settings, self.set, selected_index=index)
 
-    def set_mode(self, index):
+    def set(self, index):
         if index == -1:
             return
 
-        old_mode = persist.settings.get('lint_mode')
-        mode = self.modes[index][0].lower()
+        old_setting = persist.settings.get(self.setting)
+        setting = self.settings[index]
 
-        if mode == old_mode:
+        if isinstance(setting, (tuple, list)):
+            setting = setting[0]
+
+        setting = setting.lower()
+
+        if setting == old_setting:
             return
 
-        persist.settings['lint_mode'] = mode
+        persist.settings[self.setting] = setting
+        self.setting_was_changed(setting)
+        persist.update_user_settings()
 
-        if mode == 'background':
+    def setting_was_changed(self, setting):
+        pass
+
+
+class sublimelinter_choose_lint_mode(choose_setting_command):
+    '''Select a lint mode from a list.'''
+    def __init__(self, window):
+        super().__init__(window, 'lint_mode')
+
+    def run(self):
+        self.choose()
+
+    def get_settings(self):
+        return [[mode[0].capitalize(), mode[1]] for mode in persist.LINT_MODES]
+
+    def setting_was_changed(self, setting):
+        if setting == 'background':
             from .sublimelinter import SublimeLinter
             SublimeLinter.lint_all_views()
         else:
             linter.Linter.clear_all()
 
-        persist.update_user_settings()
 
-
-class sublimelinter_choose_mark_style(sublime_plugin.WindowCommand):
-    '''
-    Display a list of all available styles and set the style
-    if one is selected.
-    '''
+class sublimelinter_choose_mark_style(choose_setting_command):
+    '''Select a mark style from a list.'''
     def __init__(self, window):
-        super().__init__(window)
+        super().__init__(window, 'mark_style')
 
-        self.styles = [style.capitalize() for style in persist.MARK_STYLES]
+    def run(self):
+        self.choose()
+
+    def get_settings(self):
+        settings = [style.capitalize() for style in persist.MARK_STYLES]
 
         # Put 'None' at the end of the list
-        self.styles.remove('None')
-        self.styles.sort()
-        self.styles.append('None')
+        settings.remove('None')
+        settings.sort()
+        settings.append('None')
+
+        return settings
+
+
+class sublimelinter_choose_gutter_theme(choose_setting_command):
+    '''Select a gutter theme from a list.'''
+    def __init__(self, window):
+        super().__init__(window, 'gutter_theme')
 
     def run(self):
-        self.window.show_quick_panel(self.styles, self.set_style)
+        self.choose()
 
-    def set_style(self, index):
-        if index == -1:
-            return
+    def get_settings(self):
+        settings = []
+        themes = []
+        self.find_themes(settings, themes, user_themes=True)
+        self.find_themes(settings, themes, user_themes=False)
+        settings.sort()
+        settings.append(('None', 'Do not display gutter marks'))
 
-        old_style = persist.settings.get('mark_style')
-        style = self.styles[index].lower()
+        return settings
 
-        if style != old_style:
-            persist.settings['mark_style'] = style
-            persist.update_user_settings()
-
-
-class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
-    '''
-    Display a list of all available gutter themes and set the theme
-    if one is selected.
-    '''
-    def run(self):
-        self.themes = []
-        self.theme_names = []
-        self.find_themes(user_themes=True)
-        self.find_themes(user_themes=False)
-        self.themes.sort()
-        self.themes.append(('None', 'Do not display gutter marks'))
-        self.window.show_quick_panel(self.themes, self.set_theme)
-
-    def find_themes(self, user_themes):
+    def find_themes(self, settings, themes, user_themes):
         if user_themes:
             theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
         else:
@@ -270,21 +290,12 @@ class sublimelinter_choose_gutter_theme(sublime_plugin.WindowCommand):
                     if 'warning.png' in files and 'error.png' in files:
                         relative_path = os.path.relpath(root, full_path)
 
-                        if relative_path not in self.theme_names:
-                            self.themes.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
-                            self.theme_names.append(relative_path)
+                        if relative_path not in themes:
+                            settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+                            themes.append(relative_path)
 
-    def set_theme(self, index):
-        if index == -1:
-            return
-
-        old_theme = persist.settings.get('gutter_theme')
-        theme = self.themes[index][0]
-
-        if theme != old_theme:
-            persist.settings['gutter_theme'] = theme
-            persist.update_gutter_marks()
-            persist.update_user_settings()
+    def setting_was_changed(self, setting):
+        persist.update_gutter_marks()
 
 
 class sublimelinter_report(sublime_plugin.WindowCommand):

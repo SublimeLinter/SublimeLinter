@@ -248,8 +248,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             else:
                 view.erase_status('sublimelinter')
 
-        persist.queue.delay(1.0)  # Delay the queue so movement is smooth
-
     def on_post_save(self, view):
         if persist.settings.get('lint_mode') in ('load/save', 'save only'):
             self.hit(view)

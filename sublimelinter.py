@@ -33,6 +33,12 @@ class SublimeLinter(sublime_plugin.EventListener):
     # We use this to match linter settings filenames.
     LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')
 
+    shared_instance = None
+
+    @classmethod
+    def shared_plugin(cls):
+        return cls.shared_instance
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

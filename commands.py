@@ -37,6 +37,19 @@ def select_line(view, line):
     sel.add(view.line(point))
 
 
+class sublimelinter_lint(sublime_plugin.TextCommand):
+    '''Lints the current view if it has a linter.'''
+    def is_enabled(self):
+        # Only show this command in the command palette if the lint mode is manual
+        # and the view has an associated linter.
+        vid = self.view.id()
+        return vid in persist.linters and persist.settings.get('lint_mode') == 'manual'
+
+    def run(self, edit):
+        from .sublimelinter import SublimeLinter
+        SublimeLinter.shared_plugin().hit(self.view)
+
+
 class sublimelinter_find_error(sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
     def is_enabled(self):

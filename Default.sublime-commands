@@ -1,4 +1,5 @@
 [
+    /* Preferences */
     {
         "caption": "Preferences: SublimeLinter Settings – Default",
         "command": "open_file", "args":
@@ -12,6 +13,24 @@
         {
             "file": "${packages}/User/SublimeLinter.sublime-settings"
         }
+    },
+
+    /* Command palette */
+    {
+        "caption": "SublimeLinter: Choose Lint Mode",
+        "command": "sublimelinter_choose_lint_mode"
+    },
+    {
+        "caption": "SublimeLinter: Choose Mark Style",
+        "command": "sublimelinter_choose_mark_style"
+    },
+    {
+        "caption": "SublimeLinter: Choose Gutter Theme",
+        "command": "sublimelinter_choose_gutter_theme"
+    },
+    {
+        "caption": "SublimeLinter: Lint This View",
+        "command": "sublimelinter_lint"
     },
     {
         "caption": "SublimeLinter: Next Error",
@@ -31,16 +50,6 @@
         "command": "sublimelinter_report",
         "args": {"on": "files"}
     },
-    */
-    {
-        "caption": "SublimeLinter: Choose Mark Style",
-        "command": "sublimelinter_choose_mark_style"
-    },
-    {
-        "caption": "SublimeLinter: Choose Gutter Theme",
-        "command": "sublimelinter_choose_gutter_theme"
-    }
-    /* folders not implemented
     {
         "caption": "SublimeLinter: Report (Open Files and Folders)",
         "command": "sublimelinter_report",

@@ -176,12 +176,12 @@ class choose_setting_command(sublime_plugin.WindowCommand):
     def __init__(self, window, setting=None):
         super().__init__(window)
         self.setting = setting
-        self.settings = self.get_settings()
 
     def get_settings(self):
         return []
 
     def choose(self):
+        self.settings = self.get_settings()
         setting = persist.settings.get(self.setting)
         index = 0
 

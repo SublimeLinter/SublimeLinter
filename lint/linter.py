@@ -365,7 +365,7 @@ class Linter(metaclass=Registrar):
     def can_lint(cls, language):
         '''
         Determines if a linter can lint a given language. Subclasses may override this
-        if the built in mechanism is not sufficient, but should call super().can_list(cls, language)
+        if the built in mechanism is not sufficient, but should call super().can_lint(cls, language)
         first and continue checking only if that returns True.
         '''
         can = False

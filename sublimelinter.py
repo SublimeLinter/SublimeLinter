@@ -148,16 +148,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         if view.id() not in persist.linters:
             return
 
-        if persist.settings.get('lint_mode', 'background') == 'background':
-            self.hit(view)
-
-    def on_modified_async(self, view):
-        '''Called *after* on_modified, updates the status.'''
-        if view.id() not in persist.linters:
-            return
-
         if persist.settings.get('lint_mode') == 'background':
-            self.on_selection_modified_async(view)
+            self.hit(view)
         else:
             Linter.clear_all()
 

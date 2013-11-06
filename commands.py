@@ -59,14 +59,19 @@ class has_errors_command(object):
 
 class find_error_command(has_errors_command, sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
-    def find_error(self, view, errors, forward=True):
+    def find_error(self, view, errors, point=None, forward=True):
         sel = view.sel()
-        saved_sel = tuple(sel)
 
         if len(sel) == 0:
-            sel.add((0, 0))
+            sel.add(sublime.Region(0, 0))
 
-        point = sel[0].begin() if forward else sel[-1].end()
+        saved_sel = tuple(sel)
+        empty_selection = len(sel) == 1 and sel[0].empty()
+
+        # sublime.Selection() changes the view's selection, get the point first
+        if point is None:
+            point = sel[0].begin() if forward else sel[-1].end()
+
         regions = sublime.Selection(view.id())
         regions.clear()
         regions.add_all(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING)))
@@ -78,12 +83,12 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
         # If nothing is found in the given direction, wrap to the first/last region.
         if forward:
             for region in regions:
-                if point < region.begin():
+                if (point == region.begin() and empty_selection) or (point < region.begin()):
                     region_to_select = region
                     break
         else:
             for region in reversed(regions):
-                if point > region.end():
+                if (point == region.end() and empty_selection) or (point > region.end()):
                     region_to_select = region
                     break
 
@@ -102,13 +107,14 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
 
         return region_to_select
 
-    def select_lint_region(self, view, region):
+    @classmethod
+    def select_lint_region(cls, view, region):
         sel = view.sel()
         sel.clear()
 
         # Find the first marked region within the region to select.
         # If there are none, put the cursor at the beginning of the line.
-        marked_region = self.find_mark_within(view, region)
+        marked_region = cls.find_mark_within(view, region)
 
         if marked_region is None:
             marked_region = sublime.Region(region.begin(), region.begin())
@@ -116,7 +122,8 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
         sel.add(marked_region)
         view.show(marked_region, show_surrounds=True)
 
-    def find_mark_within(self, view, region):
+    @classmethod
+    def find_mark_within(cls, view, region):
         marks = view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
         marks.extend(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
         marks.sort(key=lambda x: x.begin())
@@ -142,12 +149,13 @@ class sublimelinter_previous_error(find_error_command):
         self.find_error(view, errors, forward=False)
 
 
-class sublimelinter_show_all_errors(has_errors_command, sublime_plugin.TextCommand):
+class sublimelinter_show_all_errors(find_error_command):
     '''Show a quick panel with all of the errors in the current view.'''
     @error_command
     def run(self, view, errors):
+        self.errors = errors
+        self.error_info = []
         options = []
-        error_info = []
 
         for lineno, messages in sorted(errors.items()):
             line = view.substr(view.full_line(view.text_point(lineno, 0))).rstrip('\n\r')
@@ -161,21 +169,20 @@ class sublimelinter_show_all_errors(has_errors_command, sublime_plugin.TextComma
             for message in sorted(messages):
                 # Keep track of the line and column
                 column = message[0]
-                error_info.append((lineno, column))
+                self.error_info.append((lineno, column))
 
                 # Insert an arrow at the column in the stripped line
                 code = line[:column - space] + '➜' + line[column - space:]
                 options.append(['{}  {}'.format(lineno, message[1]), code])
 
-        def select_error(i):
-            if i != -1:
-                selection = view.sel()
-                selection.clear()
-                point = view.text_point(*error_info[i])
-                selection.add(sublime.Region(point, point))
-                view.show(selection[0], show_surrounds=True)
+        view.window().show_quick_panel(options, self.select_error)
 
-        view.window().show_quick_panel(options, select_error)
+    def select_error(self, index):
+        if index != -1:
+            selection = self.view.sel()
+            selection.clear()
+            point = self.view.text_point(*self.error_info[index])
+            self.find_error(self.view, self.errors, point=point)
 
 
 class show_errors_on_save(sublime_plugin.WindowCommand):

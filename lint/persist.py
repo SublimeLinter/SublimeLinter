@@ -83,14 +83,12 @@ class Daemon:
         util.create_environment.cache_clear()
         util.which.cache_clear()
 
-        # Add python paths, eliminating duplicates
-        python_paths = set(
-            self.settings.get('python_paths', {})
-            .get(sublime.platform(), [])
-        )
+        # Add python paths
+        python_paths = self.settings.get('python_paths', {}).get(sublime.platform(), [])
 
         for path in python_paths:
-            sys.path.append(path)
+            if path not in sys.path:
+                sys.path.append(path)
 
         # Update the gutter marks in case that setting changed
         self.update_gutter_marks()

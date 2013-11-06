@@ -40,11 +40,11 @@
         "caption": "SublimeLinter: Previous Error",
         "command": "sublimelinter_previous_error"
     },
-    /* not implemented yet
     {
         "caption": "SublimeLinter: Show All Errors",
-        "command": "sublimelinter_all_errors"
-    },
+        "command": "sublimelinter_show_all_errors"
+    }
+    /* not implemented yet
     {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",

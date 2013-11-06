@@ -1,3 +1,4 @@
+# coding: utf-8
 #
 # commands.py
 # Part of SublimeLinter3, a code checking framework for Sublime Text 3
@@ -143,33 +144,40 @@ class sublimelinter_previous_error(find_error_command):
         self.find_error(view, errors, forward=False)
 
 
-class sublimelinter_all_errors(sublime_plugin.TextCommand):
+class sublimelinter_show_all_errors(has_errors_command, sublime_plugin.TextCommand):
     '''Show a quick panel with all of the errors in the current view.'''
     @error_command
     def run(self, view, errors):
         options = []
-        option_to_line = []
+        error_info = []
 
         for lineno, messages in sorted(errors.items()):
-            line = view.substr(
-                view.full_line(view.text_point(lineno, 0))
-            )
+            line = view.substr(view.full_line(view.text_point(lineno, 0))).rstrip('\n\r')
 
-            while messages:
-                option_to_line.append(lineno)
-                options.append(
-                    [("%i| %s" % (lineno + 1, line.strip()))] +
-                    [m for m in messages[:2]]
-                )
+            # Strip whitespace from the front of the line, but keep track of how much was
+            # stripped so we can adjust the column.
+            space = len(line)
+            line = line.lstrip()
+            space -= len(line)
 
-                messages = messages[2:]
+            for message in sorted(messages):
+                # Keep track of the line and column
+                column = message[0]
+                error_info.append((lineno, column))
 
-        def center_line(i):
+                # Insert an arrow at the column in the stripped line
+                code = line[:column - space] + '►' + line[column - space:]
+                options.append(['{}  {}'.format(lineno, message[1]), code])
+
+        def select_error(i):
             if i != -1:
-                select_line(view, option_to_line[i])
-                view.show_at_center(view.sel()[0])
+                selection = view.sel()
+                selection.clear()
+                point = view.text_point(*error_info[i])
+                selection.add(sublime.Region(point, point))
+                view.show(selection[0], show_surrounds=True)
 
-        view.window().show_quick_panel(options, center_line, sublime.MONOSPACE_FONT)
+        view.window().show_quick_panel(options, select_error)
 
 
 class choose_setting_command(sublime_plugin.WindowCommand):

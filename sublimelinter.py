@@ -251,8 +251,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         if persist.settings.get('lint_mode') in ('load/save', 'save only'):
             self.lint(view.id())
 
-        if persist.settings.get('show_errors_on_save') and persist.settings.get('lint_mode') != 'manual':
-            view.run_command('sublimelinter_show_all_errors')
+            if persist.settings.get('show_errors_on_save'):
+                view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
         vid = view.id()

@@ -71,7 +71,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 if view.id() in persist.linters:
                     cls.shared_instance.hit(view)
 
-    def lint(self, view_id, hit_time, callback=None):
+    def lint(self, view_id, hit_time=None, callback=None):
         callback = callback or self.highlight
         view = Linter.get_view(view_id)
 
@@ -108,7 +108,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     errors.setdefault(line, []).extend(errs)
 
         # If the view has been modified since the lint was triggered, don't draw marks
-        if self.last_hit_times.get(vid, 0) > hit_time:
+        if hit_time is not None and self.last_hit_times.get(vid, 0) > hit_time:
             return
 
         highlights.clear(view)
@@ -256,7 +256,10 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         if persist.settings.get('lint_mode') in ('load/save', 'save only'):
-            self.hit(view)
+            self.lint(view.id())
+
+        if persist.settings.get('show_errors_on_save') and persist.settings.get('lint_mode') != 'manual':
+            view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
         vid = view.id()

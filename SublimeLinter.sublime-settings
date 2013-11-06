@@ -1,22 +1,23 @@
 {
     "default": {
-        "debug": false,
+        "debug": true,
+        "error_color": "D02000",
+        "gutter_theme": "default",
         "lint_mode": "background",
-        "warning_color": "EDBA00",
-        "error_color": "DA2000",
         "mark_style": "outline",
-        "show_marks_in_minimap": true,
-        "gutter_theme": "Default",
-        "wrap_find": true,
         "paths": {
-            "osx": [],
             "linux": [],
+            "osx": [],
             "windows": []
         },
         "python_paths": {
-            "osx": [],
             "linux": [],
+            "osx": [],
             "windows": []
-        }
+        },
+        "show_errors_on_save": false,
+        "show_marks_in_minimap": true,
+        "warning_color": "EEBA00",
+        "wrap_find": true
     }
 }

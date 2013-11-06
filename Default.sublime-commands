@@ -43,6 +43,14 @@
     {
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublimelinter_show_all_errors"
+    },
+    {
+        "caption": "SublimeLinter: Show Errors On Save",
+        "command": "sublimelinter_show_errors_on_save"
+    },
+    {
+        "caption": "SublimeLinter: Don’t Show Errors On Save",
+        "command": "sublimelinter_dont_show_errors_on_save"
     }
     /* not implemented yet
     {

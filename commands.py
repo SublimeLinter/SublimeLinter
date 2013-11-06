@@ -41,14 +41,12 @@ def select_line(view, line):
 class sublimelinter_lint(sublime_plugin.TextCommand):
     '''Lints the current view if it has a linter.'''
     def is_enabled(self):
-        # Only show this command in the command palette if the lint mode is manual
-        # and the view has an associated linter.
         vid = self.view.id()
-        return vid in persist.linters and persist.settings.get('lint_mode') == 'manual'
+        return vid in persist.linters and persist.settings.get('lint_mode') != 'background'
 
     def run(self, edit):
         from .sublimelinter import SublimeLinter
-        SublimeLinter.shared_plugin().hit(self.view)
+        SublimeLinter.shared_plugin().lint(self.view.id())
 
 
 class has_errors_command(object):
@@ -178,6 +176,35 @@ class sublimelinter_show_all_errors(has_errors_command, sublime_plugin.TextComma
                 view.show(selection[0], show_surrounds=True)
 
         view.window().show_quick_panel(options, select_error)
+
+
+class show_errors_on_save(sublime_plugin.WindowCommand):
+    def __init__(self, window, show_on_save=True):
+        super().__init__(window)
+        self.show_on_save = show_on_save
+
+    def is_enabled(self):
+        return persist.settings.get('show_errors_on_save') is not self.show_on_save
+
+    def set(self):
+        persist.settings['show_errors_on_save'] = self.show_on_save
+        persist.update_user_settings()
+
+
+class sublimelinter_show_errors_on_save(show_errors_on_save):
+    def __init__(self, window):
+        super().__init__(window, show_on_save=True)
+
+    def run(self):
+        self.set()
+
+
+class sublimelinter_dont_show_errors_on_save(show_errors_on_save):
+    def __init__(self, window):
+        super().__init__(window, show_on_save=False)
+
+    def run(self):
+        self.set()
 
 
 class choose_setting_command(sublime_plugin.WindowCommand):

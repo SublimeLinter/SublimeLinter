@@ -50,13 +50,16 @@ class sublimelinter_lint(sublime_plugin.TextCommand):
         SublimeLinter.shared_plugin().hit(self.view)
 
 
-class find_error_command(sublime_plugin.TextCommand):
-    '''This command is just a superclass for other commands, it is never enabled.'''
+class has_errors_command(object):
+    '''A mixin class for text commands that should only be enabled if the current view has errors.'''
     def is_enabled(self):
         # Only show this command in the command palette if the view has errors.
         vid = self.view.id()
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
+
+class find_error_command(has_errors_command, sublime_plugin.TextCommand):
+    '''This command is just a superclass for other commands, it is never enabled.'''
     def find_error(self, view, errors, forward=True):
         sel = view.sel()
         saved_sel = tuple(sel)

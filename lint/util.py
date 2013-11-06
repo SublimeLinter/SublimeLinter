@@ -155,6 +155,11 @@ def create_environment():
     if paths:
         env['PATH'] += os.pathsep + os.pathsep.join(paths)
 
+    # Many linters use stdin, and we convert text to utf-8
+    # before sending to stdin, so we have to make sure stdin
+    # in the target executable is looking for utf-8.
+    env['PYTHONIOENCODING'] = 'utf8'
+
     return env
 
 
@@ -205,10 +210,10 @@ def combine_output(out, sep=''):
 
 
 def communicate(cmd, code):
-    code = code.encode('utf8')
     out = popen(cmd)
 
     if out is not None:
+        code = code.encode('utf8')
         out = out.communicate(code)
         return combine_output(out)
     else:

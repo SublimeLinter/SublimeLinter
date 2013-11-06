@@ -363,18 +363,13 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def can_lint(cls, language):
-        '''
-        Determines if a linter can lint a given language. Subclasses may override this
-        if the built in mechanism is not sufficient, but should call super().can_lint(cls, language)
-        first and continue checking only if that returns True.
-        '''
         can = False
         language = language.lower()
 
         if cls.language:
-            if language == cls.language:
+            if isinstance(cls.language, (tuple, list)) and language in cls.language:
                 can = True
-            elif isinstance(cls.language, (tuple, list)) and language in cls.language:
+            elif language == cls.language:
                 can = True
 
         if can and cls.executable_path is None:
@@ -395,13 +390,26 @@ class Linter(metaclass=Registrar):
                 cls.executable_path = ''
 
             can = cls.executable_path != ''
-            persist.printf('{} {}'.format(
-                cls.__name__,
-                'enabled ({})'.format(cls.executable_path) if can
-                else 'disabled, cannot locate \'{}\''.format(executable)
-            ))
+
+        if can:
+            can = cls.can_lint_language(language)
+
+        persist.printf('{} {}'.format(
+            cls.__name__,
+            'enabled ({})'.format(cls.executable_path) if can
+            else 'disabled, cannot locate \'{}\''.format(executable)
+        ))
 
         return can
+
+    @classmethod
+    def can_lint_language(cls, language):
+        '''
+        Subclass hook to determine if a linter can lint a given language. Subclasses may override this
+        if the built in mechanism is not sufficient. Note that this will only be called if the built
+        in checks succeed first. When this is called, cls.executable_path has been set.
+        '''
+        return True
 
     def error(self, line, col, error, error_type):
         self.highlight.line(line, error_type)

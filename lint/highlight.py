@@ -142,6 +142,9 @@ class Highlight:
 
         if start != -1:
             self.range(line, start, len(near), error_type=error_type)
+            return start
+        else:
+            return 0
 
     def update(self, other):
         for error_type in (WARNING, ERROR):

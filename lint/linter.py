@@ -347,7 +347,7 @@ class Linter(metaclass=Registrar):
 
                     self.highlight.range(row, col, error_type=error_type)
                 elif near:
-                    self.highlight.near(row, near, error_type)
+                    col = self.highlight.near(row, near, error_type)
                 else:
                     self.highlight.range(row, 0, length=0, error_type=error_type)
 

@@ -152,6 +152,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             self.hit(view)
         else:
             Linter.clear_all()
+            view.erase_status('sublimelinter')
 
     def on_load(self, view):
         '''Called when a file is finished loading.'''

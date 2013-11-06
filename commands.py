@@ -166,7 +166,7 @@ class sublimelinter_show_all_errors(has_errors_command, sublime_plugin.TextComma
                 error_info.append((lineno, column))
 
                 # Insert an arrow at the column in the stripped line
-                code = line[:column - space] + '►' + line[column - space:]
+                code = line[:column - space] + '➜' + line[column - space:]
                 options.append(['{}  {}'.format(lineno, message[1]), code])
 
         def select_error(i):

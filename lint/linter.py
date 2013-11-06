@@ -391,14 +391,14 @@ class Linter(metaclass=Registrar):
 
             can = cls.executable_path != ''
 
-        if can:
-            can = cls.can_lint_language(language)
+            if can:
+                can = cls.can_lint_language(language)
 
-        persist.printf('{} {}'.format(
-            cls.__name__,
-            'enabled ({})'.format(cls.executable_path) if can
-            else 'disabled, cannot locate \'{}\''.format(executable)
-        ))
+            persist.printf('{} {}'.format(
+                cls.__name__,
+                'enabled ({})'.format(cls.executable_path) if can
+                else 'disabled, cannot locate \'{}\''.format(executable)
+            ))
 
         return can
 
@@ -406,8 +406,9 @@ class Linter(metaclass=Registrar):
     def can_lint_language(cls, language):
         '''
         Subclass hook to determine if a linter can lint a given language. Subclasses may override this
-        if the built in mechanism is not sufficient. Note that this will only be called if the built
-        in checks succeed first. When this is called, cls.executable_path has been set.
+        if the built in mechanism is not sufficient. Note that this will only be called if the executable
+        path has not yet been determined and the built in checks succeed first. When this is called,
+        cls.executable_path has been set.
         '''
         return True
 

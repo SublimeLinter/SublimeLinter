@@ -16,6 +16,7 @@ import threading
 import traceback
 import time
 import sublime
+import sys
 from xml.etree import ElementTree
 
 from . import util
@@ -81,6 +82,15 @@ class Daemon:
         # Clear the path-related caches in case the paths list has changed
         util.create_environment.cache_clear()
         util.which.cache_clear()
+
+        # Add python paths, eliminating duplicates
+        python_paths = set(
+            self.settings.get('python_paths', {})
+            .get(sublime.platform(), [])
+        )
+
+        for path in python_paths:
+            sys.path.append(path)
 
         # Update the gutter marks in case that setting changed
         self.update_gutter_marks()

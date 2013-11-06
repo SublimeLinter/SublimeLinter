@@ -7,6 +7,16 @@
         "mark_style": "outline",
         "show_marks_in_minimap": true,
         "gutter_theme": "Default",
-        "wrap_find": true
+        "wrap_find": true,
+        "paths": {
+            "osx": [],
+            "linux": [],
+            "windows": []
+        },
+        "python_paths": {
+            "osx": [],
+            "linux": [],
+            "windows": []
+        }
     }
 }

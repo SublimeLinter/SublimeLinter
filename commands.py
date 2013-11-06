@@ -284,7 +284,7 @@ class sublimelinter_choose_mark_style(choose_setting_command):
         self.choose()
 
     def get_settings(self):
-        settings = [style.capitalize() for style in persist.MARK_STYLES]
+        settings = [style.capitalize() for style in highlight.MARK_STYLES]
 
         # Put 'None' at the end of the list
         settings.remove('None')

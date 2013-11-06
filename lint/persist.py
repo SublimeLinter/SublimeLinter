@@ -35,17 +35,6 @@ LINT_MODES = (
 
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
 
-UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
-
-MARK_STYLES = {
-    'outline': sublime.DRAW_NO_FILL,
-    'fill': sublime.DRAW_NO_OUTLINE,
-    'solid underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
-    'squiggly underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
-    'none': sublime.HIDDEN
-}
-
 
 class Daemon:
     MIN_DELAY = 0.1

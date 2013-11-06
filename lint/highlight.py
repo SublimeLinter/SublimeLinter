@@ -22,6 +22,17 @@ MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
 MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
+UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
+
+MARK_STYLES = {
+    'outline': sublime.DRAW_NO_FILL,
+    'fill': sublime.DRAW_NO_OUTLINE,
+    'solid underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
+    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
+    'squiggly underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
+    'none': sublime.HIDDEN
+}
+
 WORD_RE = re.compile(r'^([-\w]+)')
 
 
@@ -161,7 +172,7 @@ class Highlight:
 
     def set_mark_style(self):
         self.mark_style = persist.settings.get('mark_style', 'outline')
-        self.mark_flags = persist.MARK_STYLES[self.mark_style]
+        self.mark_flags = MARK_STYLES[self.mark_style]
 
         if not persist.settings.get('show_marks_in_minimap'):
             self.mark_flags |= sublime.HIDE_ON_MINIMAP

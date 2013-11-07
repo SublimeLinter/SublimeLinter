@@ -28,8 +28,8 @@ MARK_STYLES = {
     'outline': sublime.DRAW_NO_FILL,
     'fill': sublime.DRAW_NO_OUTLINE,
     'solid underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'squiggly underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
+    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'none': sublime.HIDDEN
 }
 

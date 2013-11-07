@@ -34,6 +34,7 @@ MARK_STYLES = {
 }
 
 WORD_RE = re.compile(r'^([-\w]+)')
+NEAR_RE_TEMPLATE = r'(?:([^\'"]))\b({0})\b[^\1]'
 
 
 def mark_style_names():
@@ -157,7 +158,20 @@ class Highlight:
     def near(self, line, near, error_type='error'):
         a, b = self.full_line(line)
         text = self.code[a:b]
-        start = text.find(near)
+
+        # If the text to match is enclosed in quotes, do a simple find.
+        # Otherwise use a regex to find the text not enclosed in quotes.
+        first = near[0]
+
+        if first in ('\"', '"') and near[-1] == first:
+            start = text.find(near)
+        else:
+            match = re.search(NEAR_RE_TEMPLATE.format(near), text)
+
+            if match:
+                start = match.start(2)
+            else:
+                start = -1
 
         if start != -1:
             self.range(line, start, len(near), error_type=error_type)

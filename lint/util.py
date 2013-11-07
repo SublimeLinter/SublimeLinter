@@ -46,11 +46,21 @@ def merge_user_settings(settings):
     return default
 
 
-def rewrite_color_scheme():
+def rewrite_color_scheme(from_reload=True):
     '''
     Checks the current color scheme for our color entries. If any are missing,
     copies the scheme, adds the entries, and rewrites it to the user space.
     '''
+    # If this was called from a reload of prefs, turn off the prefs observer,
+    # otherwise we'll end up back here when ST updates the prefs with the new color.
+    if from_reload:
+        from . import persist
+
+        def prefs_reloaded():
+            persist.observe_prefs()
+
+        persist.observe_prefs(observer=prefs_reloaded)
+
     # ST crashes unless this is run async
     sublime.set_timeout_async(rewrite_color_scheme_async, 0)
 
@@ -79,14 +89,17 @@ def rewrite_color_scheme_async():
     # which is one of our scopes.
 
     plist = ElementTree.XML(sublime.load_resource(scheme))
-    hasColors = False
+    scopes = {
+        'sublimelinter.mark.warning': False,
+        'sublimelinter.mark.error': False,
+        'sublimelinter.gutter-mark': False
+    }
 
     for element in plist.iterfind('./dict/array/dict/string'):
-        if element.text == 'sublimelinter.mark.warning':
-            hasColors = True
-            break
+        if element.text in scopes:
+            scopes[element.text] = True
 
-    if not hasColors:
+    if False in scopes.values():
         from . import persist
 
         # Append style dicts with our styles to the style array
@@ -97,24 +110,26 @@ def rewrite_color_scheme_async():
             styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
 
         # Write the amended color scheme to Packages/User
-        name = os.path.splitext(os.path.basename(scheme))[0] + ' - SublimeLinter'
+        original_name = os.path.splitext(os.path.basename(scheme))[0]
+        name = original_name + ' (SL)'
         scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
+        generate = True
+        have_existing = os.path.exists(scheme_path)
 
-        with open(scheme_path, 'w', encoding='utf8') as f:
-            f.write(COLOR_SCHEME_PREAMBLE)
-            f.write(ElementTree.tostring(plist, encoding='unicode'))
+        if have_existing:
+            generate = sublime.ok_cancel_dialog('SublimeLinter wants to generate an amended version of “{}”, but one already exists. Overwrite it, or cancel and use the existing amended version?'.format(original_name), 'Overwrite')
 
-        def prefs_reloaded():
-            persist.observe_prefs()
-
-        # Turn off the prefs observer, otherwise we'll end up back here when we save the settings
-        persist.observe_prefs(observer=prefs_reloaded)
+        if (generate):
+            with open(scheme_path, 'w', encoding='utf8') as f:
+                f.write(COLOR_SCHEME_PREAMBLE)
+                f.write(ElementTree.tostring(plist, encoding='unicode'))
 
         # Set the amended color scheme to the current color scheme
         prefs.set('color_scheme', package_relative_path(os.path.join('User', os.path.basename(scheme_path))))
         sublime.save_settings('Preferences.sublime-settings')
 
-        sublime.message_dialog('SublimeLinter copied and amended the color scheme "{}" and switched to the amended scheme.'.format(os.path.splitext(os.path.basename(scheme))[0]))
+        if generate and not have_existing:
+            sublime.message_dialog('SublimeLinter generated and switched to an amended version of “{}”.'.format(original_name))
 
 
 # file/directory utils

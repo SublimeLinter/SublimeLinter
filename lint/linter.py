@@ -61,7 +61,7 @@ class Linter(metaclass=Registrar):
     # A regex pattern used to extract information from the linter's executable output.
     regex = ''
 
-    # Set to True if the linter outputs multiple errors or multiline errors. When True,
+    # Set to True if the linter outputs multiline error messages. When True,
     # regex will be created with the re.MULTILINE flag.
     multiline = False
 

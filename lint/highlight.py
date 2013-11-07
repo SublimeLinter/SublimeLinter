@@ -36,6 +36,14 @@ MARK_STYLES = {
 WORD_RE = re.compile(r'^([-\w]+)')
 
 
+def mark_style_names():
+    names = list(MARK_STYLES.keys())
+    names.remove('none')
+    names.sort()
+    names.append('none')
+    return [name.capitalize() for name in names]
+
+
 class HighlightSet:
     '''A set of Highlight objects which can perform bulk draw/clear.'''
     def __init__(self):

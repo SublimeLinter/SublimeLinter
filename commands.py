@@ -294,14 +294,7 @@ class sublimelinter_choose_mark_style(choose_setting_command):
         self.choose(**args)
 
     def get_settings(self):
-        settings = [style.capitalize() for style in highlight.MARK_STYLES]
-
-        # Put 'None' at the end of the list
-        settings.remove('None')
-        settings.sort()
-        settings.append('None')
-
-        return settings
+        return highlight.mark_style_names()
 
 
 class sublimelinter_choose_gutter_theme(choose_setting_command):

@@ -308,12 +308,12 @@ class Linter(metaclass=Registrar):
         return tuple(cmd)
 
     def lint(self):
-        if not (self.language and self.cmd and self.regex):
+        if not (self.language and (self.cmd or self.cmd is None) and self.regex):
             raise NotImplementedError
 
         cmd = self.get_cmd()
 
-        if not cmd:
+        if cmd is not None and not cmd:
             return
 
         output = self.run(cmd, self.code)
@@ -378,7 +378,7 @@ class Linter(metaclass=Registrar):
             if not callable(cls.cmd):
                 if isinstance(cls.cmd, (tuple, list)):
                     executable = (cls.cmd or [''])[0]
-                else:
+                elif isinstance(cls.cmd, str):
                     executable = cls.cmd
 
             if not executable and cls.executable:
@@ -386,6 +386,8 @@ class Linter(metaclass=Registrar):
 
             if executable:
                 cls.executable_path = util.which(executable) or ''
+            elif cls.cmd is None:
+                cls.executable_path = '<builtin>'
             else:
                 cls.executable_path = ''
 

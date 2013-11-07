@@ -455,7 +455,7 @@ class Linter(metaclass=Registrar):
 
             return match, row, col, error_type, error, near
         else:
-            return match, None, None, None, None, '', None
+            return match, None, None, None, '', None
 
     def match_error(self, r, line):
         return self.split_match(r.match(line))

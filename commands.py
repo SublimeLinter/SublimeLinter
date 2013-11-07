@@ -20,11 +20,11 @@ from .lint import highlight, linter, persist, util
 
 def error_command(f):
     '''A decorator that only executes f if the current view has errors.'''
-    def run(self, edit, **kwargs):
+    def run(self, edit, **args):
         vid = self.view.id()
 
         if vid in persist.errors and persist.errors[vid]:
-            f(self, self.view, persist.errors[vid], **kwargs)
+            f(self, self.view, persist.errors[vid], **args)
         else:
             sublime.message_dialog('No lint errors.')
 
@@ -57,9 +57,9 @@ class has_errors_command(object):
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
 
-class find_error_command(has_errors_command, sublime_plugin.TextCommand):
+class goto_error_command(has_errors_command, sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
-    def find_error(self, view, errors, point=None, forward=True):
+    def goto_error(self, view, errors, point=None, direction='next'):
         sel = view.sel()
 
         if len(sel) == 0:
@@ -70,7 +70,7 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
 
         # sublime.Selection() changes the view's selection, get the point first
         if point is None:
-            point = sel[0].begin() if forward else sel[-1].end()
+            point = sel[0].begin() if direction == 'next' else sel[-1].end()
 
         regions = sublime.Selection(view.id())
         regions.clear()
@@ -81,7 +81,7 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
         # If going forward, find the first region beginning after the point.
         # If going backward, find the first region ending before the point.
         # If nothing is found in the given direction, wrap to the first/last region.
-        if forward:
+        if direction == 'next':
             for region in regions:
                 if (point == region.begin() and empty_selection) or (point < region.begin()):
                     region_to_select = region
@@ -96,14 +96,14 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
         # Otherwise wrap to the first/last error line unless settings disallow that.
         if region_to_select is None and ((len(regions) > 1 or not regions[0].contains(point))):
             if persist.settings.get('wrap_find', True):
-                region_to_select = regions[0] if forward else regions[-1]
+                region_to_select = regions[0] if direction == 'next' else regions[-1]
 
         if region_to_select is not None:
             self.select_lint_region(self.view, region_to_select)
         else:
             sel.clear()
             sel.add_all(saved_sel)
-            sublime.message_dialog('No {0} lint errors.'.format('next' if forward else 'previous'))
+            sublime.message_dialog('No {0} lint error.'.format(direction))
 
         return region_to_select
 
@@ -135,21 +135,14 @@ class find_error_command(has_errors_command, sublime_plugin.TextCommand):
         return None
 
 
-class sublimelinter_next_error(find_error_command):
-    '''Place the caret at the next error.'''
+class sublimelinter_goto_error(goto_error_command):
+    '''Place the caret at the next/previous error.'''
     @error_command
-    def run(self, view, errors):
-        self.find_error(view, errors, forward=True)
+    def run(self, view, errors, **args):
+        self.goto_error(view, errors, **args)
 
 
-class sublimelinter_previous_error(find_error_command):
-    '''Place the caret at the previous error.'''
-    @error_command
-    def run(self, view, errors):
-        self.find_error(view, errors, forward=False)
-
-
-class sublimelinter_show_all_errors(find_error_command):
+class sublimelinter_show_all_errors(goto_error_command):
     '''Show a quick panel with all of the errors in the current view.'''
     @error_command
     def run(self, view, errors):
@@ -182,7 +175,7 @@ class sublimelinter_show_all_errors(find_error_command):
             selection = self.view.sel()
             selection.clear()
             point = self.view.text_point(*self.error_info[index])
-            self.find_error(self.view, self.errors, point=point)
+            self.goto_error(self.view, self.errors, point=point)
 
 
 class show_errors_on_save(sublime_plugin.WindowCommand):
@@ -225,20 +218,30 @@ class choose_setting_command(sublime_plugin.WindowCommand):
     def get_settings(self):
         return []
 
-    def choose(self):
+    def choose(self, **args):
         self.settings = self.get_settings()
-        setting = persist.settings.get(self.setting)
+
+        if 'value' in args:
+            setting = args['value']
+        else:
+            setting = persist.settings.get(self.setting)
+
         index = 0
 
         for i, s in enumerate(self.settings):
             if isinstance(s, (tuple, list)):
                 s = s[0].lower()
+            else:
+                s = s.lower()
 
             if s == setting:
                 index = i
                 break
 
-        self.window.show_quick_panel(self.settings, self.set, selected_index=index)
+        if 'value' in args:
+            self.set(index)
+        else:
+            self.window.show_quick_panel(self.settings, self.set, selected_index=index)
 
     def set(self, index):
         if index == -1:
@@ -268,8 +271,8 @@ class sublimelinter_choose_lint_mode(choose_setting_command):
     def __init__(self, window):
         super().__init__(window, 'lint_mode')
 
-    def run(self):
-        self.choose()
+    def run(self, **args):
+        self.choose(**args)
 
     def get_settings(self):
         return [[mode[0].capitalize(), mode[1]] for mode in persist.LINT_MODES]
@@ -287,8 +290,8 @@ class sublimelinter_choose_mark_style(choose_setting_command):
     def __init__(self, window):
         super().__init__(window, 'mark_style')
 
-    def run(self):
-        self.choose()
+    def run(self, **args):
+        self.choose(**args)
 
     def get_settings(self):
         settings = [style.capitalize() for style in highlight.MARK_STYLES]
@@ -306,8 +309,8 @@ class sublimelinter_choose_gutter_theme(choose_setting_command):
     def __init__(self, window):
         super().__init__(window, 'gutter_theme')
 
-    def run(self):
-        self.choose()
+    def run(self, **args):
+        self.choose(**args)
 
     def get_settings(self):
         settings = []

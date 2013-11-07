@@ -1,6 +1,6 @@
 [
     { "keys": ["ctrl+super+l"], "command": "sublimelinter_lint" },
-    { "keys": ["ctrl+super+e"], "command": "sublimelinter_next_error" },
-    { "keys": ["ctrl+super+shift+e"], "command": "sublimelinter_previous_error" },
+    { "keys": ["ctrl+super+e"], "command": "sublimelinter_goto_error", "args": {"direction": "next"} },
+    { "keys": ["ctrl+super+shift+e"], "command": "sublimelinter_goto_error", "args": {"direction": "previous"} },
     { "keys": ["ctrl+shift+e"], "command": "sublimelinter_show_all_errors" }
 ]

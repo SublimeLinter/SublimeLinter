@@ -15,10 +15,13 @@ import shutil
 import tempfile
 import sublime
 import subprocess
+from xml.etree import ElementTree
 
 INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
 INLINE_OPTION_RE = re.compile(r'([\w\-]+)\s*:\s*(.+?)\s*(?:,|$)')
 
+
+# settings utils
 
 def merge_user_settings(settings):
     '''Merge the default linter settings with the user's settings.'''
@@ -42,6 +45,79 @@ def merge_user_settings(settings):
 
     return default
 
+
+def rewrite_color_scheme():
+    '''
+    Checks the current color scheme for our color entries. If any are missing,
+    copies the scheme, adds the entries, and rewrites it to the user space.
+    '''
+    # ST crashes unless this is run async
+    sublime.set_timeout_async(rewrite_color_scheme_async, 0)
+
+
+def rewrite_color_scheme_async():
+    '''
+    Checks to see if the current color scheme has our colors, and if not,
+    adds them and writes the result to Packages/User/<scheme>.
+    '''
+    prefs = sublime.load_settings('Preferences.sublime-settings')
+    scheme = prefs.get('color_scheme')
+
+    if scheme is None:
+        return
+
+    # Structure of color scheme is:
+    #
+    # plist
+    #    dict (name, settings)
+    #       array (settings)
+    #          dict (style)
+    #
+    # A style dict contains a 'scope' <key> followed by a <string>
+    # with the scopes the style should apply to. So we will search
+    # style dicts for a <string> of 'sublimelinter.mark.warning',
+    # which is one of our scopes.
+
+    plist = ElementTree.XML(sublime.load_resource(scheme))
+    hasColors = False
+
+    for element in plist.iterfind('./dict/array/dict/string'):
+        if element.text == 'sublimelinter.mark.warning':
+            hasColors = True
+            break
+
+    if not hasColors:
+        from . import persist
+
+        # Append style dicts with our styles to the style array
+        styles = plist.find('./dict/array')
+
+        for style in COLOR_SCHEME_STYLES:
+            color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style])
+            styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
+
+        # Write the amended color scheme to Packages/User
+        name = os.path.splitext(os.path.basename(scheme))[0] + ' - SublimeLinter'
+        scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
+
+        with open(scheme_path, 'w', encoding='utf8') as f:
+            f.write(COLOR_SCHEME_PREAMBLE)
+            f.write(ElementTree.tostring(plist, encoding='unicode'))
+
+        def prefs_reloaded():
+            persist.observe_prefs()
+
+        # Turn off the prefs observer, otherwise we'll end up back here when we save the settings
+        persist.observe_prefs(observer=prefs_reloaded)
+
+        # Set the amended color scheme to the current color scheme
+        prefs.set('color_scheme', package_relative_path(os.path.join('User', os.path.basename(scheme_path))))
+        sublime.save_settings('Preferences.sublime-settings')
+
+        sublime.message_dialog('SublimeLinter copied and amended the color scheme "{}" and switched to the amended scheme.'.format(os.path.splitext(os.path.basename(scheme))[0]))
+
+
+# file/directory utils
 
 def climb(top):
     right = True
@@ -302,3 +378,56 @@ def popen(cmd, env=None):
         persist.debug('error launching', repr(cmd))
         persist.debug('error was:', err.strerror)
         persist.debug('environment:', env)
+
+
+# color-related constants
+
+DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
+
+COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+'''
+
+COLOR_SCHEME_STYLES = {
+    'warning': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Warning</string>
+            <key>scope</key>
+            <string>sublimelinter.mark.warning</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#{}</string>
+            </dict>
+        </dict>
+    ''',
+
+    'error': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Error</string>
+            <key>scope</key>
+            <string>sublimelinter.mark.error</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#{}</string>
+            </dict>
+        </dict>
+    ''',
+
+    'gutter': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter Gutter Mark</string>
+            <key>scope</key>
+            <string>sublimelinter.gutter-mark</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#FFFFFF</string>
+            </dict>
+        </dict>
+    '''
+}

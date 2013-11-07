@@ -16,14 +16,14 @@ import re
 
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
-from .lint import persist
+from .lint import persist, util
 
 
 # In ST3, this is the entry point for a plugin
 def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.load_settings()
-    persist.update_color_scheme()
+    util.rewrite_color_scheme()
 
 
 class SublimeLinter(sublime_plugin.EventListener):

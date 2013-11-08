@@ -1,14 +1,20 @@
 [
 	{
+		"id": "tools",
+		"children":
+		$menus
+	},
+
+	{
 		"caption": "Preferences",
-		"mnemonic": "n",
 		"id": "preferences",
+		"mnemonic": "n",
 		"children":
 		[
 			{
 				"caption": "Package Settings",
-				"mnemonic": "P",
 				"id": "package-settings",
+				"mnemonic": "P",
 				"children":
 				[
 					{

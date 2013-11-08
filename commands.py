@@ -222,9 +222,9 @@ class choose_setting_command(sublime_plugin.WindowCommand):
         self.settings = self.get_settings()
 
         if 'value' in args:
-            setting = args['value']
+            setting = args['value'].lower()
         else:
-            setting = persist.settings.get(self.setting)
+            setting = persist.settings.get(self.setting).lower()
 
         index = 0
 
@@ -308,32 +308,11 @@ class sublimelinter_choose_gutter_theme(choose_setting_command):
     def get_settings(self):
         settings = []
         themes = []
-        self.find_themes(settings, themes, user_themes=True)
-        self.find_themes(settings, themes, user_themes=False)
+        util.find_gutter_themes(settings, themes)
         settings.sort()
         settings.append(('None', 'Do not display gutter marks'))
 
         return settings
-
-    def find_themes(self, settings, themes, user_themes):
-        if user_themes:
-            theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
-        else:
-            theme_path = os.path.join(os.path.basename(persist.PLUGIN_DIRECTORY), 'gutter-themes')
-
-        full_path = os.path.join(sublime.packages_path(), theme_path)
-
-        if os.path.isdir(full_path):
-            dirs = os.listdir(full_path)
-
-            for d in dirs:
-                for root, dirs, files in os.walk(os.path.join(full_path, d)):
-                    if 'warning.png' in files and 'error.png' in files:
-                        relative_path = util.package_relative_path(os.path.relpath(root, full_path), prefix_packages=False)
-
-                        if relative_path not in themes:
-                            settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
-                            themes.append(relative_path)
 
 
 class sublimelinter_report(sublime_plugin.WindowCommand):

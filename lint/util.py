@@ -12,6 +12,7 @@ from functools import lru_cache
 import os
 import re
 import shutil
+from string import Template
 import tempfile
 import sublime
 import subprocess
@@ -19,6 +20,8 @@ from xml.etree import ElementTree
 
 INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
 INLINE_OPTION_RE = re.compile(r'([\w\-]+)\s*:\s*(.+?)\s*(?:,|$)')
+
+MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
 
 # settings utils
@@ -46,7 +49,7 @@ def merge_user_settings(settings):
     return default
 
 
-def rewrite_color_scheme(from_reload=True):
+def generate_color_scheme(from_reload=True):
     '''
     Checks the current color scheme for our color entries. If any are missing,
     copies the scheme, adds the entries, and rewrites it to the user space.
@@ -62,10 +65,10 @@ def rewrite_color_scheme(from_reload=True):
         persist.observe_prefs(observer=prefs_reloaded)
 
     # ST crashes unless this is run async
-    sublime.set_timeout_async(rewrite_color_scheme_async, 0)
+    sublime.set_timeout_async(generate_color_scheme_async, 0)
 
 
-def rewrite_color_scheme_async():
+def generate_color_scheme_async():
     '''
     Checks to see if the current color scheme has our colors, and if not,
     adds them and writes the result to Packages/User/<scheme>.
@@ -130,6 +133,108 @@ def rewrite_color_scheme_async():
 
         if generate and not have_existing:
             sublime.message_dialog('SublimeLinter generated and switched to an amended version of “{}”.'.format(original_name))
+
+
+# menu utils
+
+def indent_lines(text, indent):
+    return re.sub(r'^', indent, text, flags=re.MULTILINE)[len(indent):]
+
+
+def generate_menus():
+    sublime.set_timeout_async(generate_menus_async, 0)
+
+
+def generate_menus_async():
+    commands = []
+
+    for chooser in CHOOSERS:
+        commands.append({'caption': chooser, 'menus': build_menu(chooser)})
+
+    menus = []
+    indent = MENU_INDENT_RE.search(CHOOSER_MENU).group(1)
+
+    for cmd in commands:
+        # Indent the commands to where they want to be in the template.
+        # The first line doesn't need to be indented, remove the extra indent.
+        cmd['menus'] = indent_lines(cmd['menus'], indent)
+        menus.append(Template(CHOOSER_MENU).safe_substitute(cmd))
+
+    menus = ',\n'.join(menus)
+    text = generate_menu('Context', menus)
+    generate_menu('Main', text)
+
+
+def generate_menu(name, menu_text):
+    from . import persist
+    plugin_dir = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY)
+
+    with open(os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name)), encoding='utf8') as f:
+        template = f.read()
+
+    # Get the indent for the menus within the template,
+    # indent the chooser menus except for the first line.
+    indent = MENU_INDENT_RE.search(template).group(1)
+    menu_text = indent_lines(menu_text, indent)
+
+    text = Template(template).safe_substitute({'menus': menu_text})
+
+    with open(os.path.join(plugin_dir, '{}.sublime-menu'.format(name)), mode='w', encoding='utf8') as f:
+        f.write(text)
+
+    return text
+
+
+def build_menu(caption):
+    setting = caption.lower()
+
+    if setting == 'lint mode':
+        from . import persist
+        names = [mode[0].capitalize() for mode in persist.LINT_MODES]
+    elif setting == 'mark style':
+        from . import highlight
+        names = highlight.mark_style_names()
+    elif setting == 'gutter theme':
+        names = []
+        find_gutter_themes(None, names)
+        names.append('None')
+
+    commands = []
+
+    for name in names:
+        commands.append(CHOOSER_COMMAND.format(name, setting.replace(' ', '_'), name.lower()))
+
+    return ',\n'.join(commands)
+
+
+def find_gutter_themes(settings, themes):
+    '''Return a list of package-relative paths for all gutter themes'''
+    from . import persist
+
+    def find_themes(settings, themes, user_themes):
+        if user_themes:
+            theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
+        else:
+            theme_path = os.path.join(os.path.basename(persist.PLUGIN_DIRECTORY), 'gutter-themes')
+
+        full_path = os.path.join(sublime.packages_path(), theme_path)
+
+        if os.path.isdir(full_path):
+            dirs = os.listdir(full_path)
+
+            for d in dirs:
+                for root, dirs, files in os.walk(os.path.join(full_path, d)):
+                    if 'warning.png' in files and 'error.png' in files:
+                        relative_path = package_relative_path(os.path.relpath(root, full_path), prefix_packages=False)
+
+                        if relative_path not in themes:
+                            themes.append(relative_path)
+
+                            if settings is not None:
+                                settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+
+    find_themes(settings, themes, user_themes=True)
+    find_themes(settings, themes, user_themes=False)
 
 
 # file/directory utils
@@ -291,7 +396,7 @@ def inline_options(code):
     return options
 
 
-# popen methods
+# popen utils
 
 def combine_output(out, sep=''):
     return sep.join((
@@ -446,3 +551,25 @@ COLOR_SCHEME_STYLES = {
         </dict>
     '''
 }
+
+
+# menu command constants
+
+CHOOSERS = (
+    'Lint Mode',
+    'Mark Style',
+    'Gutter Theme'
+)
+
+CHOOSER_MENU = '''{
+    "caption": "$caption",
+    "children":
+    [
+        $menus
+    ]
+}'''
+
+CHOOSER_COMMAND = '''{{
+    "caption": "{}",
+    "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
+}}'''

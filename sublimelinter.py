@@ -23,7 +23,9 @@ from .lint import persist, util
 def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.load_settings()
-    util.rewrite_color_scheme(from_reload=False)
+
+    util.generate_menus()
+    util.generate_color_scheme(from_reload=False)
 
 
 class SublimeLinter(sublime_plugin.EventListener):

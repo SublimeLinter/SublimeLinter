@@ -1,3 +1,5 @@
 .DS_Store
 *.pyc
 *.sublime-project
+/Context.sublime-menu
+/Main.sublime-menu

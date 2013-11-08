@@ -160,6 +160,8 @@ class Linter(metaclass=Registrar):
 
             if linters:
                 persist.linters[vid] = linters
+            elif reassign and not linters and vid in persist.linters:
+                del persist.linters[vid]
 
             return linters
 

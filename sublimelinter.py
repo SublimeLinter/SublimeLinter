@@ -149,13 +149,24 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.last_hit_times[vid] = persist.queue.hit(view)
 
     def check_syntax(self, view):
+        '''
+        Checks if the view's syntax has changed. If so, a new linter is assigned.
+        Returns whether the syntax has changed.
+        '''
         vid = view.id()
         syntax = view.settings().get('syntax')
 
         # Syntax either has never been set or just changed
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
             self.view_syntax[vid] = syntax
-            Linter.assign(view)
+            Linter.assign(view, reassign=True)
+            return True
+        else:
+            return False
+
+    def clear(self, view):
+        Linter.clear_all()
+        view.erase_status('sublimelinter')
 
     # sublime_plugin.EventListener event handlers
 
@@ -167,8 +178,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if persist.settings.get('lint_mode') == 'background':
             self.hit(view)
         else:
-            Linter.clear_all()
-            view.erase_status('sublimelinter')
+            self.clear()
 
     def on_load(self, view):
         '''Called when a file is finished loading.'''
@@ -264,11 +274,26 @@ class SublimeLinter(sublime_plugin.EventListener):
                 view.erase_status('sublimelinter')
 
     def on_post_save(self, view):
-        if persist.settings.get('lint_mode') in ('load/save', 'save only'):
-            self.lint(view.id())
+        syntax_changed = self.check_syntax(view)
+        vid = view.id()
+        mode = persist.settings.get('lint_mode')
+        show_errors = persist.settings.get('show_errors_on_save')
 
-            if persist.settings.get('show_errors_on_save'):
-                view.run_command('sublimelinter_show_all_errors')
+        if syntax_changed:
+            if vid in persist.linters:
+                if mode != 'manual':
+                    self.lint(vid)
+            else:
+                self.clear(view)
+                show_errors = False
+        else:
+            if mode in ('load/save', 'save only'):
+                self.lint(vid)
+            elif mode == 'manual':
+                show_errors = False
+
+        if show_errors:
+            view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
         vid = view.id()

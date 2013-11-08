@@ -15,6 +15,57 @@
     },
 
     {
+        "caption": "Preferences: SublimeLinter Key Bindings – Default",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/SublimeLinter/Default (OSX).sublime-keymap",
+            "platform": "OSX"
+        }
+    },
+    {
+        "caption": "Preferences: SublimeLinter Key Bindings – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/User/Default (OSX).sublime-keymap",
+            "platform": "OSX"
+        }
+    },
+
+    {
+        "caption": "Preferences: SublimeLinter Key Bindings – Default",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/SublimeLinter/Default (Linux).sublime-keymap",
+            "platform": "Linux"
+        }
+    },
+    {
+        "caption": "Preferences: SublimeLinter Key Bindings – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/User/Default (Linux).sublime-keymap",
+            "platform": "Linux"
+        }
+    },
+
+    {
+        "caption": "Preferences: SublimeLinter Key Bindings – Default",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/SublimeLinter/Default (Windows).sublime-keymap",
+            "platform": "Windows"
+        }
+    },
+    {
+        "caption": "Preferences: SublimeLinter Key Bindings – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/User/Default (Windows).sublime-keymap",
+            "platform": "Windows"
+        }
+    },
+
+    {
         "caption": "SublimeLinter: Choose Lint Mode",
         "command": "sublimelinter_choose_lint_mode"
     },

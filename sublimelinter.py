@@ -16,7 +16,7 @@ import re
 
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
-from .lint import persist, util
+from .lint import persist, util, watcher
 
 
 # In ST3, this is the entry point for a plugin
@@ -26,6 +26,20 @@ def plugin_loaded():
 
     util.generate_menus()
     util.generate_color_scheme(from_reload=False)
+
+    watch_gutter_themes()
+
+
+def watch_gutter_themes():
+    w = watcher.Watcher()
+    gutter_themes = []
+
+    for d in ((persist.PLUGIN_DIRECTORY, 'gutter-themes'), ('User', '{}-gutter-themes'.format(persist.PLUGIN_NAME))):
+        path = os.path.join(*d)
+        gutter_themes.append(os.path.join(sublime.packages_path(), path))
+
+    w.add_directory(gutter_themes, util.generate_menus)
+    w.start()
 
 
 class SublimeLinter(sublime_plugin.EventListener):

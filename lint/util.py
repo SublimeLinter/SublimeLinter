@@ -141,7 +141,7 @@ def indent_lines(text, indent):
     return re.sub(r'^', indent, text, flags=re.MULTILINE)[len(indent):]
 
 
-def generate_menus():
+def generate_menus(**kwargs):
     sublime.set_timeout_async(generate_menus_async, 0)
 
 
@@ -196,7 +196,7 @@ def build_menu(caption):
         names = highlight.mark_style_names()
     elif setting == 'gutter theme':
         names = []
-        find_gutter_themes(None, names)
+        find_gutter_themes(names)
         names.append('None')
 
     commands = []
@@ -207,11 +207,11 @@ def build_menu(caption):
     return ',\n'.join(commands)
 
 
-def find_gutter_themes(settings, themes):
+def find_gutter_themes(themes, settings=None):
     '''Return a list of package-relative paths for all gutter themes'''
     from . import persist
 
-    def find_themes(settings, themes, user_themes):
+    def find_themes(themes, settings, user_themes):
         if user_themes:
             theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
         else:
@@ -233,8 +233,13 @@ def find_gutter_themes(settings, themes):
                             if settings is not None:
                                 settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
 
-    find_themes(settings, themes, user_themes=True)
-    find_themes(settings, themes, user_themes=False)
+    find_themes(themes, settings, user_themes=True)
+    find_themes(themes, settings, user_themes=False)
+
+    if settings:
+        settings.sort()
+
+    themes.sort()
 
 
 # file/directory utils

@@ -308,7 +308,7 @@ class sublimelinter_choose_gutter_theme(choose_setting_command):
     def get_settings(self):
         settings = []
         themes = []
-        util.find_gutter_themes(settings, themes)
+        util.find_gutter_themes(themes, settings)
         settings.sort()
         settings.append(('None', 'Do not display gutter marks'))
 

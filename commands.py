@@ -120,7 +120,7 @@ class goto_error_command(has_errors_command, sublime_plugin.TextCommand):
             marked_region = sublime.Region(region.begin(), region.begin())
 
         sel.add(marked_region)
-        view.show(marked_region, show_surrounds=True)
+        view.show_at_center(marked_region)
 
     @classmethod
     def find_mark_within(cls, view, region):

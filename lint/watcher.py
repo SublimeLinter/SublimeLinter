@@ -85,7 +85,6 @@ class Watcher:
                             break
 
                     if modified:
-                        print(self.callbacks[i])
                         for callback in self.callbacks[i]:
                             if len(dirs) == 1:
                                 arg = dirs[0]

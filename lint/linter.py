@@ -177,8 +177,8 @@ class Linter(metaclass=Registrar):
             del persist.linters[vid]
 
     @classmethod
-    def reload(cls, mod=None):
-        '''Reload all linters, optionally filtering by module.'''
+    def reload(cls):
+        '''Reload all linters, optionally relinting all views.'''
 
         # Merge linter default settings with user settings
         linter_settings = persist.settings.get('linters', {})
@@ -191,15 +191,10 @@ class Linter(metaclass=Registrar):
 
         for vid, linters in persist.linters.items():
             for linter in linters:
-                if mod and linter.__module__ != mod:
-                    continue
-
                 linter.clear()
                 persist.linters[vid].remove(linter)
                 linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
                 persist.linters[vid].add(linter)
-
-        cls.redraw_all()
 
     @classmethod
     def apply_to_all(cls, action):

@@ -210,10 +210,11 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_open_settings(self, view):
         '''
-        Called when any settings file is opened via the Preferences menu.
+        Called when any settings file is opened.
         view is the view that contains the text of the settings file.
         '''
         filename = view.file_name()
+        print('open', filename)
 
         if not filename:
             return

@@ -98,6 +98,7 @@ class Daemon:
         linters = settings.pop('linters', {})
 
         for name, language in languages.items():
+            name = name.lower()
             default = language.get_settings().copy()
             default.update(linters.pop(name, {}))
             linters[name] = default

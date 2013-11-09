@@ -8,11 +8,11 @@
 # License: MIT
 #
 
-import sublime
-import sublime_plugin
-
 import os
 import re
+
+import sublime
+import sublime_plugin
 
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
@@ -283,11 +283,13 @@ class SublimeLinter(sublime_plugin.EventListener):
             if vid in persist.linters:
                 if mode != 'manual':
                     self.lint(vid)
+                else:
+                    show_errors = False
             else:
                 self.clear(view)
                 show_errors = False
         else:
-            if mode in ('load/save', 'save only'):
+            if show_errors or mode in ('load/save', 'save only'):
                 self.lint(vid)
             elif mode == 'manual':
                 show_errors = False

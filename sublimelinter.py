@@ -28,6 +28,7 @@ def plugin_loaded():
     util.generate_color_scheme(from_reload=False)
 
     watch_gutter_themes()
+    persist.on_settings_updated_call(SublimeLinter.lint_all_views)
 
 
 def watch_gutter_themes():

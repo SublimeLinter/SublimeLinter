@@ -43,6 +43,7 @@ class Daemon:
     def __init__(self):
         self.settings = {}
         self.sub_settings = None
+        self.on_settings_updated = None
 
     def load_settings(self, force=False):
         if force or not self.settings:
@@ -59,6 +60,9 @@ class Daemon:
         self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
         self.sub_settings.clear_on_change('sublimelinter-persist-settings')
         self.sub_settings.add_on_change('sublimelinter-persist-settings', observer or self.settings_updated)
+
+    def on_settings_updated_call(self, callback):
+        self.on_settings_updated = callback
 
     def settings_updated(self):
         settings = util.merge_user_settings(self.sub_settings)
@@ -82,6 +86,9 @@ class Daemon:
         # Reattach settings objects to linters
         from . import linter
         linter.Linter.reload()
+
+        if self.on_settings_updated:
+            self.on_settings_updated()
 
     def update_user_settings(self, view=None):
         load_settings()
@@ -266,6 +273,10 @@ if not 'queue' in globals():
 
 def load_settings(force=False):
     queue.load_settings(force)
+
+
+def on_settings_updated_call(callback):
+    queue.on_settings_updated_call(callback)
 
 
 def update_user_settings(view=None):

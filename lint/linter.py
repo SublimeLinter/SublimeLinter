@@ -105,6 +105,7 @@ class Linter(metaclass=Registrar):
         self.view = view
         self.syntax = syntax
         self.filename = filename
+        self.code = ''
         self.linter_settings = None
 
         if self.regex:
@@ -133,9 +134,9 @@ class Linter(metaclass=Registrar):
     def settings(cls):
         return cls.lint_settings
 
-    def get_view_settings(self):
+    def get_view_settings(self, skip_inline=False):
         # If the linter has a comment_re set, it supports inline settings.
-        if self.comment_re:
+        if self.comment_re and not skip_inline:
             inline_settings = util.inline_settings(
                 self.comment_re,
                 self.code,
@@ -177,10 +178,10 @@ class Linter(metaclass=Registrar):
     def override_options(self, options, overrides, sep=';'):
         '''
         If you want inline settings to override but not replace view settings,
-        this method makes it easier. Given a sequence of options and some
+        this method makes it easier. Given a set or sequence of options and some
         overrides, this method will do the following:
 
-        - Converts options into a set.
+        - Copies options into a set.
         - Split overrides into a list if it's a string, using sep to split.
         - Iterates over each value in the overrides list:
             - If it begins with '+', the value (without '+') is added to the options set.
@@ -337,9 +338,11 @@ class Linter(metaclass=Registrar):
             return
 
         filename = filename or 'untitled'
+        disabled = set()
 
         for linter in linters:
-            if linter.settings.get('disable'):
+            if linter.get_view_settings(skip_inline=True).get('disable'):
+                disabled.add(linter)
                 continue
 
             if not linter.selector:
@@ -349,7 +352,10 @@ class Linter(metaclass=Registrar):
         selectors = Linter.get_selectors(vid)
 
         for sel, linter in selectors:
-            linters.append(linter)
+            if linter in disabled:
+                continue
+
+            linters.add(linter)
 
             if sel in sections:
                 linter.reset(code, filename=filename)
@@ -365,6 +371,9 @@ class Linter(metaclass=Registrar):
                         errors[line + line_offset] = error
 
                 linter.errors = errors
+
+        # Remove disabled linters
+        linters = list(linters - disabled)
 
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)

@@ -31,14 +31,14 @@ def plugin_loaded():
 
 
 def watch_gutter_themes():
-    w = watcher.Watcher()
+    w = watcher.PathWatcher()
     gutter_themes = []
 
     for d in ((persist.PLUGIN_DIRECTORY, 'gutter-themes'), ('User', '{}-gutter-themes'.format(persist.PLUGIN_NAME))):
         path = os.path.join(*d)
         gutter_themes.append(os.path.join(sublime.packages_path(), path))
 
-    w.add_directory(gutter_themes, util.generate_menus)
+    w.watch(gutter_themes, util.generate_menus)
     w.start()
 
 

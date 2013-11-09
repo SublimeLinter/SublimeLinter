@@ -1,5 +1,5 @@
 #
-# watch.py
+# watcher.py
 # Part of SublimeLinter3, a code checking framework for Sublime Text 3
 #
 # Written by Aparajita Fishman
@@ -15,35 +15,49 @@ import time
 from . import persist
 
 
-class Watcher:
-    '''Watches one or more directories for modifications and notifies when they occur.'''
-    def __init__(self, interval=5.0):
+class PathWatcher:
+    '''
+    Watches one or more paths (or groups of paths) for modifications
+    and makes a callback when they occur.
+    '''
+    def __init__(self, interval=10.0):
+        '''@param interval Seconds between checks'''
         self.interval = max(interval, 1.0)  # Minimum interval is 1 second
-        self.directories = []
-        self.last_mtimes = []
+        self.paths = []
+        self.mtimes = []
         self.callbacks = []
         self.lock = Lock()
         self.running = False
 
-    def add_directory(self, path, callback):
-        if isinstance(path, str):
-            paths = [path]
+    def watch(self, paths, callback):
+        '''
+        Adds one or more paths to be watched.
+
+        @param paths    A single path or sequence of paths to watch. If a sequence
+                        is passed, the callback will be called if any of the paths
+                        in the sequence is modified.
+        @param callback A callable to be called when a path is modified. If a path
+                        is already being watched, this callback is added to the list
+                        of callbacks for that path.
+        '''
+        if isinstance(paths, str):
+            paths_to_watch = [paths]
         else:
-            paths = path
+            paths_to_watch = paths[:]
 
-        for i, path in enumerate(paths):
-            path = paths[i] = os.path.realpath(path)
+        for i, path in enumerate(paths_to_watch):
+            path = paths_to_watch[i] = os.path.realpath(path)
 
-            if not os.path.isdir(path):
-                persist.printf('Watcher.watch() was given an invalid path:', path)
+            if not os.path.exists(path):
+                persist.printf('PathWatcher.watch: invalid path:', path)
                 return
 
         with self.lock:
             found = False
 
-            for i, dirs in enumerate(self.directories):
-                for path in paths:
-                    if path in dirs:
+            for i, watched_paths in enumerate(self.paths):
+                for path in paths_to_watch:
+                    if path in watched_paths:
                         if callback not in self.callbacks[i]:
                             self.callbacks[i].append(callback)
                         else:
@@ -56,51 +70,46 @@ class Watcher:
                     break
 
             if not found:
-                self.directories.append(paths)
-                self.last_mtimes.append([os.stat(path).st_mtime_ns for path in paths])
+                self.paths.append(paths)
+                self.mtimes.append([os.stat(path).st_mtime_ns for path in paths])
                 self.callbacks.append([callback])
 
-    def watch(self):
+    def loop(self):
         while True:
             with self.lock:
                 # Iterate in reverse so we can remove entries as we go
-                for i in reversed(range(len(self.directories))):
+                for i in reversed(range(len(self.paths))):
                     modified = False
-                    dirs = self.directories[i]
-                    mtimes = self.last_mtimes[i]
+                    paths = self.paths[i]
+                    mtimes = self.mtimes[i]
 
                     # Iterate in reverse so we can remove entries as we go
-                    for di in reversed(range(len(dirs))):
-                        d = dirs[di]
+                    for ip in reversed(range(len(paths))):
+                        path = paths[ip]
 
-                        if not os.path.exists(d) or not os.path.isdir(d):
-                            dirs.pop(di)
+                        if not os.path.exists(path):
+                            paths.pop(ip)
                             continue
 
-                        mtime = os.stat(d).st_mtime_ns
+                        mtime = os.stat(path).st_mtime_ns
 
-                        if mtime > mtimes[di]:
+                        if mtime > mtimes[ip]:
                             modified = True
-                            mtimes[di] = mtime
+                            mtimes[ip] = mtime
                             break
 
                     if modified:
                         for callback in self.callbacks[i]:
-                            if len(dirs) == 1:
-                                arg = dirs[0]
-                            else:
-                                arg = dirs
+                            callback(paths=paths)
 
-                            callback(directory=arg)
-
-                    # If all of the directories in this entry are invalid, remove the entry
-                    elif len(dirs) == 0:
-                        self.directories.pop(i)
-                        self.last_mtimes.pop(i)
+                    # If all of the paths in this entry are invalid, remove the entry
+                    elif len(paths) == 0:
+                        self.paths.pop(i)
+                        self.mtimes.pop(i)
                         self.callbacks.pop(i)
 
             time.sleep(self.interval)
 
     def start(self):
         if not self.running:
-            Thread(name='watcher', target=self.watch).start()
+            Thread(name='watcher', target=self.loop).start()

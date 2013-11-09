@@ -281,28 +281,32 @@ class SublimeLinter(sublime_plugin.EventListener):
                 view.erase_status('sublimelinter')
 
     def on_post_save(self, view):
-        syntax_changed = self.check_syntax(view)
-        vid = view.id()
-        mode = persist.settings.get('lint_mode')
-        show_errors = persist.settings.get('show_errors_on_save')
+        # First check to see if the project settings changed
+        if view.window().project_file_name() == view.file_name():
+            self.lint_all_views()
+        else:
+            syntax_changed = self.check_syntax(view)
+            vid = view.id()
+            mode = persist.settings.get('lint_mode')
+            show_errors = persist.settings.get('show_errors_on_save')
 
-        if syntax_changed:
-            if vid in persist.linters:
-                if mode != 'manual':
-                    self.lint(vid)
+            if syntax_changed:
+                if vid in persist.linters:
+                    if mode != 'manual':
+                        self.lint(vid)
+                    else:
+                        show_errors = False
                 else:
+                    self.clear(view)
                     show_errors = False
             else:
-                self.clear(view)
-                show_errors = False
-        else:
-            if show_errors or mode in ('load/save', 'save only'):
-                self.lint(vid)
-            elif mode == 'manual':
-                show_errors = False
+                if show_errors or mode in ('load/save', 'save only'):
+                    self.lint(vid)
+                elif mode == 'manual':
+                    show_errors = False
 
-        if show_errors:
-            view.run_command('sublimelinter_show_all_errors')
+            if show_errors:
+                view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
         vid = view.id()

@@ -321,6 +321,7 @@ def view_did_close(vid):
 def register_linter(linter_class, name, attrs):
     '''Add a linter class to our mapping of languages <--> linter classes.'''
     if name:
+        name = name.lower()
         linter_settings = settings.get('linters', {})
         linter_class.lint_settings = linter_settings.get(name, {})
         linter_class.name = name

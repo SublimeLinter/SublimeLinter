@@ -18,8 +18,8 @@ import sublime
 import subprocess
 from xml.etree import ElementTree
 
-INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<options>.+?)\]')
-INLINE_OPTION_RE = re.compile(r'(?P<key>[\w\-]+)\s*:\s*(?P<value>.+?)\s*(?:,|$)')
+INLINE_SETTINGS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<settings>.+?)\]')
+INLINE_SETTING_RE = re.compile(r'(?P<key>[\w\-]+)\s*:\s*(?P<value>.+?)\s*(?:,|$)')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
@@ -47,6 +47,57 @@ def merge_user_settings(settings):
         default.update(user)
 
     return default
+
+
+def inline_settings(comment_re, code, prefix=None):
+    '''
+    Looks for settings in the form [SublimeLinter <name>:<value>]
+    on the first or second line of code, if the lines match comment_re.
+    comment_re should be a compiled regex object whose pattern is unanchored (no ^)
+    and matches everything through the comment prefix, including leading whitespace.
+
+    For example, to specify JavaScript comments, you would use the pattern:
+
+    '\s*/[/*]'
+
+    If prefix is a non-empty string, setting names must begin with the given prefix
+    to be considered as a setting.
+
+    A dict of key/value pairs is returned.
+    '''
+    settings = {}
+    pos = -1
+
+    for i in range(0, 2):
+        # Does this line start with a comment marker?
+        m = comment_re.match(code, pos + 1)
+
+        if m:
+            # If it's a comment, does it have inline settings?
+            m = INLINE_SETTINGS_RE.match(code, pos + len(m.group()))
+
+            if m:
+                # We have inline settings, stop looking
+                break
+
+        # Find the next line
+        pos = code.find('\n', )
+
+        if pos == -1:
+            # If no more lines, stop looking
+            break
+
+    if m:
+        for key, value in INLINE_SETTING_RE.findall(m.group('settings')):
+            if prefix:
+                if key.startswith(prefix):
+                    key = key[len(prefix):]
+                else:
+                    continue
+
+            settings[key] = value
+
+    return settings
 
 
 def generate_color_scheme(from_reload=True):
@@ -405,57 +456,6 @@ def which(cmd):
 def touch(path):
     with open(path, 'a'):
         os.utime(path, None)
-
-
-def inline_options(comment_re, code, prefix=None):
-    '''
-    Looks for options in the form [SublimeLinter <option>:<value>]
-    on the first or second line of code, if the lines match comment_re.
-    comment_re should be a compiled regex object whose pattern is unanchored (no ^)
-    and matches everything through the comment prefix, including leading whitespace.
-
-    For example, to specify JavaScript comments, you would use the pattern:
-
-    '\s*/[/*]'
-
-    If prefix is a non-empty string, option names must begin with the given prefix
-    to be considered as an option.
-
-    A dict of option/value pairs is returned.
-    '''
-    options = {}
-    pos = -1
-
-    for i in range(0, 2):
-        # Does this line start with a comment marker?
-        m = comment_re.match(code, pos + 1)
-
-        if m:
-            # If it's a comment, does it have inline options?
-            m = INLINE_OPTIONS_RE.match(code, pos + len(m.group()))
-
-            if m:
-                # We have inline options, stop looking
-                break
-
-        # Find the next line
-        pos = code.find('\n', )
-
-        if pos == -1:
-            # If no more lines, stop looking
-            break
-
-    if m:
-        for key, value in INLINE_OPTION_RE.findall(m.group('options')):
-            if prefix:
-                if key.startswith(prefix):
-                    key = key[len(prefix):]
-                else:
-                    continue
-
-            options[key] = value
-
-    return options
 
 
 # popen utils

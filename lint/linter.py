@@ -81,6 +81,16 @@ class Linter(metaclass=Registrar):
     # linter to 'source.php'.
     selector = None
 
+    # If the linter supports inline settings, you need to specify the regex that
+    # begins a comment. comment_re should be an unanchored pattern (no ^)
+    # that matches everything through the comment prefix, including leading whitespace.
+    #
+    # For example, to specify JavaScript comments, you would use the pattern:
+    #    r'\s*/[/*]'
+    # and for python:
+    #    r'\s*#'
+    comment_re = None
+
     # If you want to provide default settings for the linter, set this attribute.
     defaults = None
 
@@ -95,6 +105,7 @@ class Linter(metaclass=Registrar):
         self.view = view
         self.syntax = syntax
         self.filename = filename
+        self.linter_settings = None
 
         if self.regex:
             if self.multiline:
@@ -107,17 +118,95 @@ class Linter(metaclass=Registrar):
 
         self.highlight = hilite.Highlight()
 
+        if isinstance(self.comment_re, str):
+            self.__class__.comment_re = re.compile(self.comment_re)
+
     @classmethod
     def get_settings(cls):
         '''Return the default settings for this linter, merged with the user settings.'''
         linters = persist.settings.get('linters', {})
-        settings = cls.defaults or {}
+        settings = (cls.defaults or {}).copy()
         settings.update(linters.get(cls.__name__.lower(), {}))
         return settings
 
     @property
-    def settings(self):
-        return self.get_settings()
+    def settings(cls):
+        return cls.lint_settings
+
+    def get_view_settings(self):
+        # If the linter has a comment_re set, it supports inline settings.
+        if self.comment_re:
+            inline_settings = util.inline_settings(
+                self.comment_re,
+                self.code,
+                self.name + '-'
+            )
+            settings = self.merge_inline_settings(self.lint_settings.copy(), inline_settings)
+        else:
+            settings = self.lint_settings.copy()
+
+        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
+        project_settings = data.get('linters', {}).get(self.name, {})
+
+        return self.merge_project_settings(settings, project_settings)
+
+    @property
+    def view_settings(self):
+        return self.get_view_settings()
+
+    def merge_inline_settings(self, view_settings, inline_settings):
+        '''
+        Return inline settings for this linter's view. Subclasses may override
+        this if they wish to do something more than replace view settings
+        with inline settings of the same name. The settings object may be
+        changed in place.
+        '''
+        view_settings.update(inline_settings)
+        return view_settings
+
+    def merge_project_settings(self, view_settings, project_settings):
+        '''
+        Merge this linter's view settings with the current project settings.
+        Subclasses may override this if they wish to do something more than
+        replace view settings with inline settings of the same name.
+        The settings object may be changed in place.
+        '''
+        view_settings.update(project_settings)
+        return view_settings
+
+    def override_options(self, options, overrides, sep=';'):
+        '''
+        If you want inline settings to override but not replace view settings,
+        this method makes it easier. Given a sequence of options and some
+        overrides, this method will do the following:
+
+        - Converts options into a set.
+        - Split overrides into a list if it's a string, using sep to split.
+        - Iterates over each value in the overrides list:
+            - If it begins with '+', the value (without '+') is added to the options set.
+            - If it begins with '-', the value (without '-') is removed from the options set.
+            - Otherwise the value is added to the options set.
+        - The options set is converted to a list and returned.
+
+        For example, given the options ['E101', 'E501', 'W'] and the overrides
+        '-E101;E202;-W;+W324', we would end up with ['E501', 'E202', 'W324'].
+        '''
+        modified_options = set(options)
+
+        if isinstance(overrides, str):
+            overrides = overrides.split(sep)
+
+        for override in overrides:
+            if not override:
+                continue
+            elif override[0] == '+':
+                modified_options.add(override[1:])
+            elif override[0] == '-':
+                modified_options.discard(override[1:])
+            else:
+                modified_options.add(override)
+
+        return list(modified_options)
 
     @classmethod
     def assign(cls, view, reassign=False):
@@ -182,13 +271,8 @@ class Linter(metaclass=Registrar):
         '''Reload all linters, optionally relinting all views.'''
 
         # Merge linter default settings with user settings
-        linter_settings = persist.settings.get('linters', {})
-
         for name, linter in persist.languages.items():
-            settings = linter_settings.get(name, {})
-            defaults = (linter.defaults or {}).copy()
-            defaults.update(settings)
-            linter.lint_settings = defaults
+            linter.lint_settings = linter.get_settings()
 
         for vid, linters in persist.linters.items():
             for linter in linters:

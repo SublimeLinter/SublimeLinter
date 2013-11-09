@@ -18,8 +18,8 @@ import sublime
 import subprocess
 from xml.etree import ElementTree
 
-INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(.+?)\]')
-INLINE_OPTION_RE = re.compile(r'([\w\-]+)\s*:\s*(.+?)\s*(?:,|$)')
+INLINE_OPTIONS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<options>.+?)\]')
+INLINE_OPTION_RE = re.compile(r'(?P<key>[\w\-]+)\s*:\s*(?P<value>.+?)\s*(?:,|$)')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
@@ -390,13 +390,53 @@ def touch(path):
         os.utime(path, None)
 
 
-def inline_options(code):
+def inline_options(comment_re, code, prefix=None):
+    '''
+    Looks for options in the form [SublimeLinter <option>:<value>]
+    on the first or second line of code, if the lines match comment_re.
+    comment_re should be a compiled regex object whose pattern is unanchored (no ^)
+    and matches everything through the comment prefix, including leading whitespace.
+
+    For example, to specify JavaScript comments, you would use the pattern:
+
+    '\s*/[/*]'
+
+    If prefix is a non-empty string, option names must begin with the given prefix
+    to be considered as an option.
+
+    A dict of option/value pairs is returned.
+    '''
     options = {}
-    m = INLINE_OPTIONS_RE.match(code)
+    pos = -1
+
+    for i in range(0, 2):
+        # Does this line start with a comment marker?
+        m = comment_re.match(code, pos + 1)
+
+        if m:
+            # If it's a comment, does it have inline options?
+            m = INLINE_OPTIONS_RE.match(code, pos + len(m.group()))
+
+            if m:
+                # We have inline options, stop looking
+                break
+
+        # Find the next line
+        pos = code.find('\n', )
+
+        if pos == -1:
+            # If no more lines, stop looking
+            break
 
     if m:
-        for option in INLINE_OPTION_RE.findall(m.group(1)):
-            options[option[0]] = option[1]
+        for key, value in INLINE_OPTION_RE.findall(m.group('options')):
+            if prefix:
+                if key.startswith(prefix):
+                    key = key[len(prefix):]
+                else:
+                    continue
+
+            options[key] = value
 
     return options
 

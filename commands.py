@@ -155,17 +155,27 @@ class sublimelinter_show_all_errors(goto_error_command):
 
             # Strip whitespace from the front of the line, but keep track of how much was
             # stripped so we can adjust the column.
-            space = len(line)
+            diff = len(line)
             line = line.lstrip()
-            space -= len(line)
+            diff -= len(line)
+
+            max_prefix_len = 40
 
             for message in sorted(messages):
                 # Keep track of the line and column
                 column = message[0]
                 self.error_info.append((lineno, column))
 
+                # If there are more than max_prefix_len characters before the adjusted column,
+                # lop off the excess and insert an ellipsis.
+                column -= diff
+
+                if column > max_prefix_len:
+                    line = '...' + line[column - max_prefix_len:]
+                    column = max_prefix_len + 3  # 3 for ...
+
                 # Insert an arrow at the column in the stripped line
-                code = line[:column - space] + '➜' + line[column - space:]
+                code = line[:column] + '➜' + line[column:]
                 options.append(['{}  {}'.format(lineno, message[1]), code])
 
         view.window().show_quick_panel(options, self.select_error)
@@ -275,7 +285,7 @@ class sublimelinter_choose_lint_mode(choose_setting_command):
         self.choose(**args)
 
     def get_settings(self):
-        return [[mode[0].capitalize(), mode[1]] for mode in persist.LINT_MODES]
+        return [[name.capitalize(), description] for name, description in persist.LINT_MODES]
 
     def setting_was_changed(self, setting):
         if setting == 'background':

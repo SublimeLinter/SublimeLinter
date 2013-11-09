@@ -59,7 +59,8 @@ class Daemon:
     def observe_settings(self, observer=None):
         self.sub_settings = sublime.load_settings('SublimeLinter.sublime-settings')
         self.sub_settings.clear_on_change('sublimelinter-persist-settings')
-        self.sub_settings.add_on_change('sublimelinter-persist-settings', observer or self.settings_updated)
+        self.sub_settings.add_on_change('sublimelinter-persist-settings',
+                                        observer or self.settings_updated)
 
     def on_settings_updated_call(self, callback):
         self.on_settings_updated = callback
@@ -103,7 +104,8 @@ class Daemon:
 
         settings['linters'] = linters
 
-        user_prefs_path = os.path.join(sublime.packages_path(), 'User', '{}.sublime-settings'.format(PLUGIN_NAME))
+        filename = '{}.sublime-settings'.format(PLUGIN_NAME)
+        user_prefs_path = os.path.join(sublime.packages_path(), 'User', filename)
 
         if view is None:
             # See if any open views are the user prefs
@@ -160,11 +162,17 @@ class Daemon:
                 printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
             for error_type in ('warning', 'error'):
-                gutter_marks[error_type] = util.package_relative_path(os.path.join(theme_path, '{}.png'.format(error_type)))
+                path = os.path.join(theme_path, '{}.png'.format(error_type))
+                gutter_marks[error_type] = util.package_relative_path(path)
 
-            gutter_marks['colorize'] = os.path.exists(os.path.join(sublime.packages_path(), theme_path, 'colorize'))
+            path = os.path.join(sublime.packages_path(), theme_path, 'colorize')
+            gutter_marks['colorize'] = os.path.exists(path)
         else:
-            sublime.error_message('SublimeLinter: cannot find the gutter theme "{}", and the default is also not available. No gutter marks will display.'.format(theme))
+            sublime.error_message(
+                'SublimeLinter: cannot find the gutter theme "{}",'
+                ' and the default is also not available. '
+                'No gutter marks will display.'.format(theme)
+            )
             gutter_marks['warning'] = gutter_marks['error'] = ''
 
     def start(self, callback):
@@ -189,7 +197,8 @@ class Daemon:
                     item = self.q.get(block=True, timeout=self.MIN_DELAY)
                 except Empty:
                     for view_id, timestamp in last_runs.copy().items():
-                        # If more than the minimum delay has elapsed since the last run, update the view
+                        # If more than the minimum delay has elapsed since the last run,
+                        # update the view.
                         if time.monotonic() > timestamp + self.MIN_DELAY:
                             self.last_runs[view_id] = time.monotonic()
                             del last_runs[view_id]

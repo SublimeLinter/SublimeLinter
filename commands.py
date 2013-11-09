@@ -50,7 +50,10 @@ class sublimelinter_lint(sublime_plugin.TextCommand):
 
 
 class has_errors_command(object):
-    '''A mixin class for text commands that should only be enabled if the current view has errors.'''
+    '''
+    A mixin class for text commands that should only be enabled
+    if the current view has errors.
+    '''
     def is_enabled(self):
         # Only show this command in the command palette if the view has errors.
         vid = self.view.id()

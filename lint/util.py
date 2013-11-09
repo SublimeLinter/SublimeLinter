@@ -120,7 +120,12 @@ def generate_color_scheme_async():
         have_existing = os.path.exists(scheme_path)
 
         if have_existing:
-            generate = sublime.ok_cancel_dialog('SublimeLinter wants to generate an amended version of “{}”, but one already exists. Overwrite it, or cancel and use the existing amended version?'.format(original_name), 'Overwrite')
+            generate = sublime.ok_cancel_dialog(
+                'SublimeLinter wants to generate an amended version of “{}”,'
+                ' but one already exists. Overwrite it, or cancel and use'
+                ' the existing amended version?'.format(original_name),
+                'Overwrite'
+            )
 
         if (generate):
             with open(scheme_path, 'w', encoding='utf8') as f:
@@ -128,11 +133,15 @@ def generate_color_scheme_async():
                 f.write(ElementTree.tostring(plist, encoding='unicode'))
 
         # Set the amended color scheme to the current color scheme
-        prefs.set('color_scheme', package_relative_path(os.path.join('User', os.path.basename(scheme_path))))
+        path = os.path.join('User', os.path.basename(scheme_path))
+        prefs.set('color_scheme', package_relative_path(path))
         sublime.save_settings('Preferences.sublime-settings')
 
         if generate and not have_existing:
-            sublime.message_dialog('SublimeLinter generated and switched to an amended version of “{}”.'.format(original_name))
+            sublime.message_dialog(
+                'SublimeLinter generated and switched to an amended version'
+                ' of “{}”.'.format(original_name)
+            )
 
 
 # menu utils
@@ -168,8 +177,9 @@ def generate_menus_async():
 def generate_menu(name, menu_text):
     from . import persist
     plugin_dir = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY)
+    path = os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name))
 
-    with open(os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name)), encoding='utf8') as f:
+    with open(path, encoding='utf8') as f:
         template = f.read()
 
     # Get the indent for the menus within the template,
@@ -178,8 +188,9 @@ def generate_menu(name, menu_text):
     menu_text = indent_lines(menu_text, indent)
 
     text = Template(template).safe_substitute({'menus': menu_text})
+    path = os.path.join(plugin_dir, '{}.sublime-menu'.format(name))
 
-    with open(os.path.join(plugin_dir, '{}.sublime-menu'.format(name)), mode='w', encoding='utf8') as f:
+    with open(path, mode='w', encoding='utf8') as f:
         f.write(text)
 
     return text
@@ -219,19 +230,25 @@ def find_gutter_themes(themes, settings=None):
 
         full_path = os.path.join(sublime.packages_path(), theme_path)
 
-        if os.path.isdir(full_path):
-            dirs = os.listdir(full_path)
+        if not os.path.isdir(full_path):
+            return
 
-            for d in dirs:
-                for root, dirs, files in os.walk(os.path.join(full_path, d)):
-                    if 'warning.png' in files and 'error.png' in files:
-                        relative_path = package_relative_path(os.path.relpath(root, full_path), prefix_packages=False)
+        dirs = os.listdir(full_path)
 
-                        if relative_path not in themes:
-                            themes.append(relative_path)
+        for d in dirs:
+            for root, dirs, files in os.walk(os.path.join(full_path, d)):
+                if 'warning.png' in files and 'error.png' in files:
+                    path = os.path.relpath(root, full_path)
+                    relative_path = package_relative_path(path, prefix_packages=False)
 
-                            if settings is not None:
-                                settings.append([relative_path, 'User theme' if user_themes else 'SublimeLinter theme'])
+                    if relative_path not in themes:
+                        themes.append(relative_path)
+
+                        if settings is not None:
+                            settings.append([
+                                relative_path,
+                                'User theme' if user_themes else 'SublimeLinter theme'
+                            ])
 
     find_themes(themes, settings, user_themes=True)
     find_themes(themes, settings, user_themes=False)

@@ -123,7 +123,8 @@ class Linter(metaclass=Registrar):
     def assign(cls, view, reassign=False):
         '''
         Assign a view to an instance of a linter.
-        Find a linter for a specified view if possible, then add it to our view <--> lint class map and return it.
+        Find a linter for a specified view if possible, then add it
+        to our view <--> lint class map and return it.
         Each view has its own linter so that linters can store persistent data about a view.
         '''
         vid = view.id()
@@ -404,9 +405,10 @@ class Linter(metaclass=Registrar):
     @classmethod
     def can_lint_language(cls, language):
         '''
-        Subclass hook to determine if a linter can lint a given language. Subclasses may override this
-        if the built in mechanism is not sufficient. Note that this will only be called if the executable
-        path has not yet been determined and the built in checks succeed first. When this is called,
+        Subclass hook to determine if a linter can lint a given language.
+        Subclasses may override this if the built in mechanism is not sufficient.
+        Note that this will only be called if the executable path has not yet
+        been determined and the built in checks succeed first. When this is called,
         cls.executable_path has been set.
         '''
         return True
@@ -442,7 +444,9 @@ class Linter(metaclass=Registrar):
         if match:
             items = {'line': None, 'col': None, 'type': None, 'error': '', 'near': None}
             items.update(match.groupdict())
-            row, col, error_type, error, near = [items[k] for k in ('line', 'col', 'type', 'error', 'near')]
+            row, col, error_type, error, near = [
+                items[k] for k in ('line', 'col', 'type', 'error', 'near')
+            ]
 
             if row is not None:
                 row = int(row) - 1

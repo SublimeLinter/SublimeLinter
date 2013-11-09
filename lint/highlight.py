@@ -210,7 +210,8 @@ class Highlight:
             # a scope that will not colorize the gutter icon, and to ensure
             # that errors will override warnings.
             for line, error_type in self.lines.items():
-                gutter_regions[error_type].append(sublime.Region(self.newlines[line], self.newlines[line]))
+                region = sublime.Region(self.newlines[line], self.newlines[line])
+                gutter_regions[error_type].append(region)
 
         for error_type in (WARNING, ERROR):
             if self.marks[error_type]:

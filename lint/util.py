@@ -480,19 +480,18 @@ def communicate(cmd, code):
 
 
 def tmpfile(cmd, code, suffix=''):
+    with tempfile.NamedTemporaryFile(suffix=suffix) as f:
+        f.write(code.encode('utf8'))
+        f.flush()
 
-    f = tempfile.NamedTemporaryFile(suffix=suffix)
-    f.write(code.encode('utf8'))
-    f.flush()
+        cmd = cmd + (f.name,)
+        out = popen(cmd)
 
-    cmd = tuple(cmd) + (f.name,)
-    out = popen(cmd)
-
-    if out:
-        out = out.communicate()
-        return combine_output(out)
-    else:
-        return ''
+        if out:
+            out = out.communicate()
+            return combine_output(out)
+        else:
+            return ''
 
 
 def tmpdir(cmd, files, filename, code):

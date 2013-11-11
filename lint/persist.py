@@ -9,9 +9,11 @@
 #
 
 from collections import defaultdict
+from copy import deepcopy
 import json
 import os
 from queue import Queue, Empty
+import re
 import threading
 import traceback
 import time
@@ -32,6 +34,8 @@ LINT_MODES = (
     ('manual', 'Lint only when requested')
 )
 
+SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
+
 
 class Daemon:
     MIN_DELAY = 0.1
@@ -42,6 +46,7 @@ class Daemon:
 
     def __init__(self):
         self.settings = {}
+        self.previous_settings = {}
         self.sub_settings = None
         self.on_settings_updated = None
 
@@ -50,6 +55,13 @@ class Daemon:
             self.observe_settings()
             self.settings_updated()
             self.observe_prefs()
+
+    def change_setting(self, setting, value):
+        self.copy_settings()
+        self.settings[setting] = value
+
+    def copy_settings(self):
+        self.previous_settings = deepcopy(self.settings)
 
     def observe_prefs(self, observer=None):
         prefs = sublime.load_settings('Preferences.sublime-settings')
@@ -69,27 +81,40 @@ class Daemon:
         settings = util.merge_user_settings(self.sub_settings)
         self.settings.clear()
         self.settings.update(settings)
+        need_relint = False
 
-        # Clear the path-related caches in case the paths list has changed
-        util.create_environment.cache_clear()
-        util.which.cache_clear()
+        # Clear the path-related caches if the paths list has changed
+        if self.previous_settings.get('paths') != self.settings.get('paths'):
+            need_relint = True
+            util.create_environment.cache_clear()
+            util.which.cache_clear()
 
-        # Add python paths
-        python_paths = self.settings.get('python_paths', {}).get(sublime.platform(), [])
+        # Add python paths if they changed
+        if self.previous_settings.get('python_paths') != self.settings.get('python_paths'):
+            need_relint = True
+            python_paths = self.settings.get('python_paths', {}).get(sublime.platform(), [])
 
-        for path in python_paths:
-            if path not in sys.path:
-                sys.path.append(path)
+            for path in python_paths:
+                if path not in sys.path:
+                    sys.path.append(path)
 
-        # Update the gutter marks in case that setting changed
-        self.update_gutter_marks()
+        # If the syntax map changed, reassign linters to all views
+        from .linter import Linter
+
+        if self.previous_settings.get('syntax_map') != self.settings.get('syntax_map'):
+            need_relint = True
+            Linter.clear_all()
+            util.apply_to_all_views(lambda view: Linter.assign(view, reassign=True))
 
         # Reattach settings objects to linters
-        from . import linter
-        linter.Linter.reload()
+        Linter.reload()
+
+        # Update the gutter marks if the theme changed
+        if self.previous_settings.get('gutter_theme') != self.settings.get('gutter_theme'):
+            self.update_gutter_marks()
 
         if self.on_settings_updated:
-            self.on_settings_updated()
+            self.on_settings_updated(need_relint)
 
     def update_user_settings(self, view=None):
         load_settings()
@@ -253,6 +278,7 @@ if not 'queue' in globals():
     debug = queue.debug
     printf = queue.printf
     settings = queue.settings
+    previous_settings = queue.previous_settings
 
     # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = {}
@@ -282,6 +308,14 @@ def load_settings(force=False):
     queue.load_settings(force)
 
 
+def change_setting(setting, value):
+    queue.change_setting(setting, value)
+
+
+def copy_settings():
+    queue.copy_settings()
+
+
 def on_settings_updated_call(callback):
     queue.on_settings_updated_call(callback)
 
@@ -292,6 +326,22 @@ def update_user_settings(view=None):
 
 def observe_prefs(observer=None):
     queue.observe_prefs(observer=observer)
+
+
+def syntax(view):
+    view_syntax = view.settings().get('syntax', '')
+    mapped_syntax = ''
+
+    if view_syntax:
+        match = SYNTAX_RE.search(view_syntax)
+
+        if match:
+            view_syntax = match.group(1).lower()
+            mapped_syntax = settings.get('syntax_map', {}).get(view_syntax, '').lower()
+        else:
+            view_syntax = ''
+
+    return mapped_syntax or view_syntax
 
 
 def edit(vid, edit):

@@ -12,11 +12,8 @@ import re
 import shlex
 import sublime
 
-from . import highlight as hilite
-from . import persist
-from . import util
+from . import highlight as hilite, persist, util
 
-SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
@@ -219,44 +216,32 @@ class Linter(metaclass=Registrar):
         '''
         vid = view.id()
         persist.views[vid] = view
-
-        settings = view.settings()
-        syntax = settings.get('syntax')
+        syntax = persist.syntax(view)
 
         if not syntax:
             cls.remove(vid)
             return
 
-        match = SYNTAX_RE.search(syntax)
+        if vid in persist.linters and persist.linters[vid] and not reassign:
+            # If a linter in the set of linters for the given view
+            # already handles the view's syntax, we have nothing more to do.
+            for linter in tuple(persist.linters[vid]):
+                if linter.syntax == syntax:
+                    return
 
-        if match:
-            syntax = match.group(1)
-        else:
-            syntax = ''
+        linters = set()
 
-        if syntax:
-            if vid in persist.linters and persist.linters[vid] and not reassign:
-                # If a linter in the set of linters for the given view
-                # already handles the view's syntax, we have nothing more to do.
-                for linter in tuple(persist.linters[vid]):
-                    if linter.syntax == syntax:
-                        return
+        for name, linter_class in persist.languages.items():
+            if linter_class.can_lint(syntax):
+                linter = linter_class(view, syntax, view.file_name())
+                linters.add(linter)
 
-            linters = set()
+        if linters:
+            persist.linters[vid] = linters
+        elif reassign and not linters and vid in persist.linters:
+            del persist.linters[vid]
 
-            for name, linter_class in persist.languages.items():
-                if linter_class.can_lint(syntax):
-                    linter = linter_class(view, syntax, view.file_name())
-                    linters.add(linter)
-
-            if linters:
-                persist.linters[vid] = linters
-            elif reassign and not linters and vid in persist.linters:
-                del persist.linters[vid]
-
-            return linters
-
-        cls.remove(vid)
+        return linters
 
     @classmethod
     def remove(cls, vid):

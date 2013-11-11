@@ -28,7 +28,7 @@ def plugin_loaded():
     util.generate_color_scheme(from_reload=False)
 
     watch_gutter_themes()
-    persist.on_settings_updated_call(SublimeLinter.lint_all_views)
+    persist.on_settings_updated_call(SublimeLinter.on_settings_updated)
 
 
 def watch_gutter_themes():
@@ -161,7 +161,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         Returns whether the syntax has changed.
         '''
         vid = view.id()
-        syntax = view.settings().get('syntax')
+        syntax = persist.syntax(view)
 
         # Syntax either has never been set or just changed
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
@@ -214,27 +214,38 @@ class SublimeLinter(sublime_plugin.EventListener):
         Called when any settings file is opened.
         view is the view that contains the text of the settings file.
         '''
+        if self.is_settings_file(view, user_only=True):
+            persist.update_user_settings(view=view)
+
+    def is_settings_file(self, view, user_only=False):
         filename = view.file_name()
-        print('open', filename)
 
         if not filename:
-            return
+            return False
 
         dirname, filename = os.path.split(filename)
         dirname = os.path.basename(dirname)
 
-        # We are only interested in the user SublimeLinter settings, not the default settings
-        if not self.LINTER_SETTINGS_RE.match(filename) or dirname != 'User':
-            return
+        if self.LINTER_SETTINGS_RE.match(filename):
+            if user_only:
+                return dirname == 'User'
+            else:
+                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
 
-        persist.update_user_settings(view=view)
+    @classmethod
+    def on_settings_updated(cls, relint=False):
+        '''Callback triggered when the settings are updated.'''
+        if relint:
+            cls.lint_all_views()
+        else:
+            Linter.redraw_all()
 
     def on_new(self, view):
         '''Called when a new buffer is created.'''
         self.on_open_settings(view)
         vid = view.id()
         self.loaded_views.add(vid)
-        self.view_syntax[vid] = view.settings().get('syntax')
+        self.view_syntax[vid] = persist.syntax(view)
         Linter.assign(view)
 
     def on_selection_modified_async(self, view):
@@ -282,6 +293,12 @@ class SublimeLinter(sublime_plugin.EventListener):
             else:
                 view.erase_status('sublimelinter')
 
+    def on_pre_save(self, view):
+        # If a settings file is the active view and is saved,
+        # copy the current settings first so we can compare post-save.
+        if view.window().active_view() == view and self.is_settings_file(view):
+            persist.copy_settings()
+
     def on_post_save(self, view):
         # First check to see if the project settings changed
         if view.window().project_file_name() == view.file_name():
@@ -293,13 +310,14 @@ class SublimeLinter(sublime_plugin.EventListener):
             show_errors = persist.settings.get('show_errors_on_save')
 
             if syntax_changed:
+                self.clear(view)
+
                 if vid in persist.linters:
                     if mode != 'manual':
                         self.lint(vid)
                     else:
                         show_errors = False
                 else:
-                    self.clear(view)
                     show_errors = False
             else:
                 if show_errors or mode in ('load/save', 'save only'):

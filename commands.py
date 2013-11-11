@@ -200,7 +200,7 @@ class show_errors_on_save(sublime_plugin.WindowCommand):
         return persist.settings.get('show_errors_on_save') is not self.show_on_save
 
     def set(self):
-        persist.settings['show_errors_on_save'] = self.show_on_save
+        persist.change_setting('show_errors_on_save', self.show_on_save)
         persist.update_user_settings()
 
 
@@ -271,7 +271,7 @@ class choose_setting_command(sublime_plugin.WindowCommand):
         if setting == old_setting:
             return
 
-        persist.settings[self.setting] = setting
+        persist.change_setting(self.setting, setting)
         self.setting_was_changed(setting)
         persist.update_user_settings()
 

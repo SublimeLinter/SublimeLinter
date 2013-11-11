@@ -135,8 +135,8 @@ class Daemon:
 
         if view is None:
             # See if any open views are the user prefs
-            for w in sublime.windows():
-                view = w.find_open_file(user_prefs_path)
+            for window in sublime.windows():
+                view = window.find_open_file(user_prefs_path)
 
                 if view is not None:
                     break

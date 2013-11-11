@@ -148,8 +148,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.linted_views.add(vid)
 
         if view.size() == 0:
-            for l in Linter.get_linters(vid):
-                l.clear()
+            for linter in Linter.get_linters(vid):
+                linter.clear()
 
             return
 
@@ -185,7 +185,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if persist.settings.get('lint_mode') == 'background':
             self.hit(view)
         else:
-            self.clear()
+            self.clear(view)
 
     def on_load(self, view):
         '''Called when a file is finished loading.'''

@@ -254,7 +254,7 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def reload(cls):
-        '''Reload all linters, optionally relinting all views.'''
+        '''Reload all linters.'''
 
         # Merge linter default settings with user settings
         for name, linter in persist.languages.items():
@@ -318,7 +318,7 @@ class Linter(metaclass=Registrar):
         if not code or vid not in persist.linters:
             return
 
-        linters = list(persist.linters.get(vid))
+        linters = persist.linters.get(vid)
 
         if not linters:
             return

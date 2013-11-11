@@ -448,6 +448,7 @@ class Linter(metaclass=Registrar):
         self.highlight.draw(self.view)
 
     def clear(self):
+        self.view.erase_status('sublimelinter')
         self.highlight.clear(self.view)
 
     # Helper methods

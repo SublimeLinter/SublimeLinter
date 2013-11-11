@@ -171,8 +171,8 @@ class SublimeLinter(sublime_plugin.EventListener):
             return False
 
     def clear(self, view):
-        Linter.clear_all()
-        view.erase_status('sublimelinter')
+        linter = next(iter(persist.linters[view.id()]))
+        linter.clear()
 
     # sublime_plugin.EventListener event handlers
 

@@ -174,12 +174,14 @@ class sublimelinter_show_all_errors(goto_error_command):
                 column -= diff
 
                 if column > max_prefix_len:
-                    line = '...' + line[column - max_prefix_len:]
+                    visible_line = '...' + line[column - max_prefix_len:]
                     column = max_prefix_len + 3  # 3 for ...
+                else:
+                    visible_line = line
 
                 # Insert an arrow at the column in the stripped line
-                code = line[:column] + '➜' + line[column:]
-                options.append(['{}  {}'.format(lineno, message[1]), code])
+                code = visible_line[:column] + '➜' + visible_line[column:]
+                options.append(['{}  {}'.format(lineno + 1, message[1]), code])
 
         view.window().show_quick_panel(options, self.select_error)
 

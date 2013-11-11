@@ -497,41 +497,44 @@ def tmpfile(cmd, code, suffix=''):
 def tmpdir(cmd, files, filename, code):
     filename = os.path.split(filename)[1]
     d = tempfile.mkdtemp()
+    out = None
 
-    for f in files:
-        try:
-            os.makedirs(os.path.join(d, os.path.split(f)[0]))
-        except:
-            pass
+    try:
+        for f in files:
+            try:
+                os.makedirs(os.path.join(d, os.path.split(f)[0]))
+            except:
+                pass
 
-        target = os.path.join(d, f)
+            target = os.path.join(d, f)
 
-        if os.path.split(target)[1] == filename:
-            # source file hasn't been saved since change, so update it from our live buffer
-            f = open(target, 'wb')
-            f.write(code)
-            f.close()
+            if os.path.split(target)[1] == filename:
+                # source file hasn't been saved since change, so update it from our live buffer
+                f = open(target, 'wb')
+                f.write(code)
+                f.close()
+            else:
+                shutil.copyfile(f, target)
+
+        os.chdir(d)
+        out = popen(cmd)
+
+        if out:
+            out = out.communicate()
+            out = combine_output(out, '\n')
+
+            # filter results from build to just this filename
+            # no guarantee all languages are as nice about this as Go
+            # may need to improve later or just defer to communicate()
+            out = '\n'.join([
+                line for line in out.split('\n') if filename in line.split(':', 1)[0]
+            ])
         else:
-            shutil.copyfile(f, target)
+            out = ''
+    finally:
+        shutil.rmtree(d, True)
 
-    os.chdir(d)
-    out = popen(cmd)
-
-    if out:
-        out = out.communicate()
-        out = combine_output(out, '\n')
-
-        # filter results from build to just this filename
-        # no guarantee all languages are as nice about this as Go
-        # may need to improve later or just defer to communicate()
-        out = '\n'.join([
-            line for line in out.split('\n') if filename in line.split(':', 1)[0]
-        ])
-    else:
-        out = ''
-
-    shutil.rmtree(d, True)
-    return out
+    return out or ''
 
 
 def popen(cmd, env=None):

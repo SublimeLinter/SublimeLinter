@@ -167,13 +167,13 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
             self.view_syntax[vid] = syntax
             Linter.assign(view, reassign=True)
+            self.clear(view)
             return True
         else:
             return False
 
     def clear(self, view):
-        linter = next(iter(persist.linters[view.id()]))
-        linter.clear()
+        Linter.clear_view(view)
 
     # sublime_plugin.EventListener event handlers
 

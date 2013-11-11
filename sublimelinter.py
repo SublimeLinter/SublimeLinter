@@ -180,9 +180,14 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_modified(self, view):
         '''Called when a view is modified.'''
         if view.id() not in persist.linters:
-            return
+            syntax_changed = self.check_syntax(view)
 
-        if persist.settings.get('lint_mode') == 'background':
+            if not syntax_changed:
+                return
+        else:
+            syntax_changed = False
+
+        if syntax_changed or persist.settings.get('lint_mode') == 'background':
             self.hit(view)
         else:
             self.clear(view)

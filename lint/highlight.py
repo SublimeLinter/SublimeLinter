@@ -64,7 +64,8 @@ class HighlightSet:
 
         all.draw(view)
 
-    def clear(self, view):
+    @staticmethod
+    def clear(view):
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
@@ -235,7 +236,8 @@ class Highlight:
                     icon=persist.gutter_marks[error_type]
                 )
 
-    def clear(self, view):
+    @staticmethod
+    def clear(view):
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))

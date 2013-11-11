@@ -284,12 +284,13 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def apply_to_all(cls, action):
-        for w in sublime.windows():
-            for view in w.views():
-                highlights = persist.highlights.get(view.id())
+        def apply(view):
+            highlights = persist.highlights.get(view.id())
 
-                if highlights:
-                    getattr(highlights, action)(view)
+            if highlights:
+                getattr(highlights, action)(view)
+
+        util.apply_to_all_views(apply)
 
     @classmethod
     def clear_all(cls):

@@ -87,10 +87,11 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     @classmethod
     def lint_all_views(cls):
-        for w in sublime.windows():
-            for view in w.views():
-                if view.id() in persist.linters:
-                    cls.shared_instance.hit(view)
+        def apply(view):
+            if view.id() in persist.linters:
+                cls.shared_instance.hit(view)
+
+        util.apply_to_all_views(apply)
 
     def lint(self, view_id, hit_time=None, callback=None):
         callback = callback or self.highlight

@@ -562,6 +562,14 @@ def popen(cmd, env=None):
         persist.debug('environment:', env)
 
 
+# view utils
+
+def apply_to_all_views(callback):
+    for window in sublime.windows():
+        for view in window.views():
+            callback(view)
+
+
 # color-related constants
 
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}

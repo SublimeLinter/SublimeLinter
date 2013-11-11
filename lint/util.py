@@ -480,8 +480,6 @@ def communicate(cmd, code):
 
 
 def tmpfile(cmd, code, suffix=''):
-    if isinstance(cmd, str):
-        cmd = cmd,
 
     f = tempfile.NamedTemporaryFile(suffix=suffix)
     f.write(code.encode('utf8'))
@@ -538,9 +536,6 @@ def tmpdir(cmd, files, filename, code):
 
 
 def popen(cmd, env=None):
-    if isinstance(cmd, str):
-        cmd = cmd,
-
     info = None
 
     if os.name == 'nt':

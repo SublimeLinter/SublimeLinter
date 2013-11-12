@@ -8,6 +8,7 @@
 # License: MIT
 #
 
+from fnmatch import fnmatch
 import re
 import shlex
 import sublime
@@ -38,7 +39,7 @@ class Linter(metaclass=Registrar):
     # By convention this is all lowercase.
     language = ''
 
-    # A string, tuple or callable that returns a string or tuple, containing the
+    # A string, tuple or callable that returns a string, list or tuple, containing the
     # command line arguments used to lint.
     cmd = ''
 
@@ -131,9 +132,9 @@ class Linter(metaclass=Registrar):
     def settings(cls):
         return cls.lint_settings
 
-    def get_view_settings(self, skip_inline=False):
+    def get_view_settings(self, no_inline=False):
         # If the linter has a comment_re set, it supports inline settings.
-        if self.comment_re and not skip_inline:
+        if self.comment_re and not no_inline:
             inline_settings = util.inline_settings(
                 self.comment_re,
                 self.code,
@@ -324,16 +325,26 @@ class Linter(metaclass=Registrar):
         if not linters:
             return
 
-        filename = filename or 'untitled'
         disabled = set()
 
         for linter in linters:
-            if linter.get_view_settings(skip_inline=True).get('disable'):
+            view_settings = linter.get_view_settings(no_inline=True)
+            disable = False
+
+            if view_settings.get('disable'):
+                disable = True
+            elif filename:
+                for pattern in view_settings.get('excludes', ()):
+                    if fnmatch(filename, pattern):
+                        disable = True
+                        break
+
+            if disable:
                 disabled.add(linter)
                 continue
 
             if not linter.selector:
-                linter.reset(code, filename=filename)
+                linter.reset(code, filename=filename or 'untitled')
                 linter.lint()
 
         selectors = Linter.get_selectors(vid)
@@ -345,7 +356,7 @@ class Linter(metaclass=Registrar):
             linters.add(linter)
 
             if sel in sections:
-                linter.reset(code, filename=filename)
+                linter.reset(code, filename=filename or 'untitled')
                 errors = {}
 
                 for line_offset, left, right in sections[sel]:
@@ -383,7 +394,9 @@ class Linter(metaclass=Registrar):
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
 
-        return tuple(cmd)
+        args = self.view_settings.get('args', ())
+
+        return tuple(cmd) + tuple(args)
 
     def lint(self):
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):

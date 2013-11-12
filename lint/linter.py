@@ -264,7 +264,8 @@ class Linter(metaclass=Registrar):
             for linter in linters:
                 linter.clear()
                 persist.linters[vid].remove(linter)
-                linter = persist.languages[linter.name](linter.view, linter.syntax, linter.filename)
+                linter_class = persist.languages[linter.name]
+                linter = linter_class(linter.view, linter.syntax, linter.filename)
                 persist.linters[vid].add(linter)
 
     @classmethod

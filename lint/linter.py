@@ -22,6 +22,9 @@ class Registrar(type):
     '''This metaclass registers the linter when the class is declared.'''
     def __init__(cls, name, bases, attrs):
         if bases:
+            if isinstance(cls.word_re, str):
+                cls.word_re = re.compile(cls.word_re)
+
             persist.register_linter(cls, name, attrs)
 
 
@@ -78,6 +81,11 @@ class Linter(metaclass=Registrar):
     # in an html file with embedded php, you would set the selector for a php
     # linter to 'source.php'.
     selector = None
+
+    # If a linter reports a column position, SublimeLinter selects the nearest
+    # word at that point. You can customize the regex used to select words
+    # by setting this a string pattern or a compiled regex.
+    word_re = None
 
     # If the linter supports inline settings, you need to specify the regex that
     # begins a comment. comment_re should be an unanchored pattern (no ^)
@@ -449,11 +457,11 @@ class Linter(metaclass=Registrar):
                                 col = i
                                 break
 
-                    self.highlight.range(row, col, error_type=error_type)
+                    self.highlight.range(row, col, error_type=error_type, word_re=self.word_re)
                 elif near:
-                    col = self.highlight.near(row, near, error_type)
+                    col = self.highlight.near(row, near, error_type=error_type, word_re=self.word_re)
                 else:
-                    self.highlight.range(row, 0, length=0, error_type=error_type)
+                    self.highlight.range(row, 0, length=0, error_type=error_type, word_re=self.word_re)
 
                 self.error(row, col, message, error_type)
 

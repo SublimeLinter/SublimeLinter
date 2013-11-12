@@ -122,7 +122,7 @@ class Highlight:
         start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
         return start, end
 
-    def range(self, line, pos, length=-1, error_type='error'):
+    def range(self, line, pos, length=-1, error_type='error', word_re=None):
         '''
         Marks a range of text on the given zero-based line, starting at the given position
         on the line. The length argument can be used to control marking:
@@ -136,7 +136,7 @@ class Highlight:
 
         if length < 0:
             code = self.code[start:end][pos:]
-            match = WORD_RE.search(code)
+            match = (word_re or WORD_RE).search(code)
 
             if match:
                 length = len(match.group())
@@ -146,7 +146,8 @@ class Highlight:
         pos += start
         self.marks[error_type].append(sublime.Region(pos, pos + length))
 
-    def regex(self, line, regex, word_match=None, line_match=None, error_type='error'):
+    def regex(self, line, regex, error_type='error',
+              word_match=None, line_match=None, word_re=None):
         offset = 0
 
         start, end = self.full_line(line)
@@ -169,9 +170,9 @@ class Highlight:
         ]
 
         for start, end in results:
-            self.range(line, start + offset, end - start, error_type=error_type)
+            self.range(line, start + offset, end - start, error_type=error_type, word_re=word_re)
 
-    def near(self, line, near, error_type='error'):
+    def near(self, line, near, error_type='error', word_re=None):
         start, end = self.full_line(line)
         text = self.code[start:end]
 
@@ -190,7 +191,7 @@ class Highlight:
                 start = -1
 
         if start != -1:
-            self.range(line, start, len(near), error_type=error_type)
+            self.range(line, start, len(near), error_type=error_type, word_re=word_re)
             return start
         else:
             return 0

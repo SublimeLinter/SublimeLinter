@@ -372,9 +372,9 @@ class Linter(metaclass=Registrar):
                 linter.reset(code, filename=filename or 'untitled')
                 errors = {}
 
-                for line_offset, left, right in sections[sel]:
-                    linter.hilite.move_to(line_offset, left)
-                    linter.code = code[left:right]
+                for line_offset, start, end in sections[sel]:
+                    linter.highlight.move_to(line_offset, start)
+                    linter.code = code[start:end]
                     linter.errors = {}
                     linter.lint()
 

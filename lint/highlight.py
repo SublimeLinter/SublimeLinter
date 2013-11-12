@@ -93,9 +93,9 @@ class Highlight:
         # lines to mark in the gutter.
         self.lines = {}
 
-        # These are used when highlighting embedded code, for example PHP.
-        # The embedded code is linted as if it begins at (0, 0), but we
-        # need to keep track of where the actual start is within the source.
+        # These are used when highlighting embedded code, for example JavaScript
+        # or CSS within an HTML file. The embedded code is linted as if it begins
+        # at (0, 0), but we need to keep track of where the actual start is within the source.
         self.line_offset = 0
         self.char_offset = 0
 
@@ -115,27 +115,31 @@ class Highlight:
         newlines.append(len(code))
 
     def full_line(self, line):
-        a, b = self.newlines[line:line + 2]
-        return a, b + 1
+        '''
+        Returns the *real* character positions for the start and end of the given
+        *virtual* line (adjusted by the line_offset).
+        '''
+        start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
+        return start, end
 
     def range(self, line, pos, length=1, error_type='error'):
-        a, b = self.full_line(line)
+        start, end = self.full_line(line)
 
         if length == 1:
-            code = self.code[a:b][pos:]
+            code = self.code[start:end][pos:]
             match = WORD_RE.search(code)
 
             if match:
                 length = len(match.group())
 
-        pos += a + self.char_offset
+        pos += start
         self.marks[error_type].append(sublime.Region(pos, pos + length))
 
     def regex(self, line, regex, word_match=None, line_match=None, error_type='error'):
         offset = 0
 
-        a, b = self.full_line(line)
-        lineText = self.code[a:b]
+        start, end = self.full_line(line)
+        lineText = self.code[start:end]
 
         if line_match:
             match = re.match(line_match, lineText)
@@ -157,8 +161,8 @@ class Highlight:
             self.range(line, start + offset, end - start, error_type=error_type)
 
     def near(self, line, near, error_type='error'):
-        a, b = self.full_line(line)
-        text = self.code[a:b]
+        start, end = self.full_line(line)
+        text = self.code[start:end]
 
         # If the text to match is enclosed in quotes, do a simple find.
         # Otherwise use a regex to find the text not enclosed in quotes.

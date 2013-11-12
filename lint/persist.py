@@ -106,6 +106,10 @@ class Daemon:
             Linter.clear_all()
             util.apply_to_all_views(lambda view: Linter.assign(view, reassign=True))
 
+        # If any of the linter settings changed, relint
+        if (not need_relint and self.previous_settings.get('linters') != self.settings.get('linters')):
+            need_relint = True
+
         # Reattach settings objects to linters
         Linter.reload()
 

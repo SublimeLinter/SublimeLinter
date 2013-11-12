@@ -1,4 +1,3 @@
-# [SublimeLinter pep8-max-line-length:110]
 #
 # util.py
 # Part of SublimeLinter3, a code checking framework for Sublime Text 3

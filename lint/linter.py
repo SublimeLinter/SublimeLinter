@@ -125,7 +125,7 @@ class Linter(metaclass=Registrar):
         '''Return the default settings for this linter, merged with the user settings.'''
         linters = persist.settings.get('linters', {})
         settings = (cls.defaults or {}).copy()
-        settings.update(linters.get(cls.__name__.lower(), {}))
+        settings.update(linters.get(cls.__name__, {}))
         return settings
 
     @property
@@ -425,7 +425,7 @@ class Linter(metaclass=Registrar):
         if not output:
             return
 
-        persist.debug('{} output:\n{}'.format(self.__class__.__name__.lower(), output.strip()))
+        persist.debug('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
@@ -506,7 +506,7 @@ class Linter(metaclass=Registrar):
             can = cls.can_lint_language(language)
 
             persist.printf('{} {}'.format(
-                cls.__name__.lower(),
+                cls.__name__,
                 'enabled ({})'.format(cls.executable_path) if can
                 else 'disabled, cannot locate \'{}\''.format(executable)
             ))

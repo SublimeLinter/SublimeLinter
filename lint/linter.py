@@ -84,7 +84,7 @@ class Linter(metaclass=Registrar):
 
     # If a linter reports a column position, SublimeLinter selects the nearest
     # word at that point. You can customize the regex used to select words
-    # by setting this a string pattern or a compiled regex.
+    # by setting this to a pattern string or a compiled regex.
     word_re = None
 
     # If the linter supports inline settings, you need to specify the regex that

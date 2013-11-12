@@ -38,7 +38,7 @@ def select_line(view, line):
     sel.add(view.line(point))
 
 
-class sublimelinter_lint(sublime_plugin.TextCommand):
+class SublimelinterLintCommand(sublime_plugin.TextCommand):
     '''Lints the current view if it has a linter.'''
     def is_enabled(self):
         vid = self.view.id()
@@ -49,7 +49,7 @@ class sublimelinter_lint(sublime_plugin.TextCommand):
         SublimeLinter.shared_plugin().lint(self.view.id())
 
 
-class has_errors_command(object):
+class HasErrorsCommand:
     '''
     A mixin class for text commands that should only be enabled
     if the current view has errors.
@@ -60,7 +60,7 @@ class has_errors_command(object):
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
 
-class goto_error_command(has_errors_command, sublime_plugin.TextCommand):
+class GotoErrorCommand(HasErrorsCommand, sublime_plugin.TextCommand):
     '''This command is just a superclass for other commands, it is never enabled.'''
     def goto_error(self, view, errors, point=None, direction='next'):
         sel = view.sel()
@@ -138,14 +138,14 @@ class goto_error_command(has_errors_command, sublime_plugin.TextCommand):
         return None
 
 
-class sublimelinter_goto_error(goto_error_command):
+class SublimelinterGotoErrorCommand(GotoErrorCommand):
     '''Place the caret at the next/previous error.'''
     @error_command
     def run(self, view, errors, **args):
         self.goto_error(view, errors, **args)
 
 
-class sublimelinter_show_all_errors(goto_error_command):
+class SublimelinterShowAllErrors(GotoErrorCommand):
     '''Show a quick panel with all of the errors in the current view.'''
     @error_command
     def run(self, view, errors):
@@ -193,20 +193,20 @@ class sublimelinter_show_all_errors(goto_error_command):
             self.goto_error(self.view, self.errors, point=point)
 
 
-class show_errors_on_save(sublime_plugin.WindowCommand):
+class ShowErrorsOnSaveCommand(sublime_plugin.WindowCommand):
     def __init__(self, window, show_on_save=True):
         super().__init__(window)
         self.show_on_save = show_on_save
 
     def is_enabled(self):
-        return persist.settings.get('show_errors_on_save') is not self.show_on_save
+        return persist.settings.get('ShowErrorsOnSaveCommand') is not self.show_on_save
 
     def set(self):
-        persist.change_setting('show_errors_on_save', self.show_on_save)
+        persist.change_setting('ShowErrorsOnSaveCommand', self.show_on_save)
         persist.update_user_settings()
 
 
-class sublimelinter_show_errors_on_save(show_errors_on_save):
+class SublimelinterShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
     def __init__(self, window):
         super().__init__(window, show_on_save=True)
 
@@ -214,7 +214,7 @@ class sublimelinter_show_errors_on_save(show_errors_on_save):
         self.set()
 
 
-class sublimelinter_dont_show_errors_on_save(show_errors_on_save):
+class SublimelinterDontShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
     def __init__(self, window):
         super().__init__(window, show_on_save=False)
 
@@ -222,7 +222,7 @@ class sublimelinter_dont_show_errors_on_save(show_errors_on_save):
         self.set()
 
 
-class choose_setting_command(sublime_plugin.WindowCommand):
+class ChooseSettingCommand(sublime_plugin.WindowCommand):
     '''
     Abstract base class for commands that choose a setting from a list.
     '''
@@ -281,7 +281,7 @@ class choose_setting_command(sublime_plugin.WindowCommand):
         pass
 
 
-class sublimelinter_choose_lint_mode(choose_setting_command):
+class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
     '''Select a lint mode from a list.'''
     def __init__(self, window):
         super().__init__(window, 'lint_mode')
@@ -300,7 +300,7 @@ class sublimelinter_choose_lint_mode(choose_setting_command):
             linter.Linter.clear_all()
 
 
-class sublimelinter_choose_mark_style(choose_setting_command):
+class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
     '''Select a mark style from a list.'''
     def __init__(self, window):
         super().__init__(window, 'mark_style')
@@ -312,7 +312,7 @@ class sublimelinter_choose_mark_style(choose_setting_command):
         return highlight.mark_style_names()
 
 
-class sublimelinter_choose_gutter_theme(choose_setting_command):
+class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
     '''Select a gutter theme from a list.'''
     def __init__(self, window):
         super().__init__(window, 'gutter_theme')
@@ -330,7 +330,7 @@ class sublimelinter_choose_gutter_theme(choose_setting_command):
         return settings
 
 
-class sublimelinter_report(sublime_plugin.WindowCommand):
+class SublimelinterReportCommand(sublime_plugin.WindowCommand):
     '''
     Display a report of all errors in all open files in the current window,
     in all files in all folders in the current window, or both.

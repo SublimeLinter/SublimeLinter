@@ -329,19 +329,32 @@ class Linter(metaclass=Registrar):
 
         for linter in linters:
             view_settings = linter.get_view_settings(no_inline=True)
-            disable = False
 
             if view_settings.get('disable'):
-                disable = True
-            elif filename:
-                for pattern in view_settings.get('excludes', ()):
-                    if fnmatch(filename, pattern):
-                        disable = True
-                        break
-
-            if disable:
                 disabled.add(linter)
                 continue
+
+            if filename:
+                excludes = view_settings.get('excludes')
+
+                if excludes:
+                    if isinstance(excludes, str):
+                        excludes = (excludes,)
+
+                    matched = False
+
+                    for pattern in excludes:
+                        if fnmatch(filename, pattern):
+                            persist.debug(
+                                '{} skipped \'{}\', excluded by \'{}\''
+                                .format(linter.name, filename, pattern)
+                            )
+                            matched = True
+                            break
+
+                    if matched:
+                        disabled.add(linter)
+                        continue
 
             if not linter.selector:
                 linter.reset(code, filename=filename or 'untitled')

@@ -481,7 +481,10 @@ def communicate(cmd, code):
 
 def tmpfile(cmd, code, suffix=''):
     with tempfile.NamedTemporaryFile(suffix=suffix) as f:
-        f.write(code.encode('utf8'))
+        if isinstance(code, str):
+            code = code.encode('utf8')
+
+        f.write(code)
         f.flush()
 
         cmd = cmd + (f.name,)

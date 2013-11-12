@@ -122,15 +122,26 @@ class Highlight:
         start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
         return start, end
 
-    def range(self, line, pos, length=1, error_type='error'):
+    def range(self, line, pos, length=-1, error_type='error'):
+        '''
+        Marks a range of text on the given zero-based line, starting at the given position
+        on the line. The length argument can be used to control marking:
+
+            - If length < 0, the nearest word starting at pos is marked, and if
+              no word is matched, the character at pos is marked.
+
+            - If length == 0, no text is marked, but a gutter mark will appear on that line.
+        '''
         start, end = self.full_line(line)
 
-        if length == 1:
+        if length < 0:
             code = self.code[start:end][pos:]
             match = WORD_RE.search(code)
 
             if match:
                 length = len(match.group())
+            else:
+                length = 1
 
         pos += start
         self.marks[error_type].append(sublime.Region(pos, pos + length))

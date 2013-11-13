@@ -24,17 +24,15 @@ class Registrar(type):
     '''This metaclass registers the linter when the class is declared.'''
     def __init__(cls, name, bases, attrs):
         if bases:
-            if isinstance(cls.word_re, str):
-                cls.word_re = re.compile(cls.word_re)
+            if 'word_re' in attrs and isinstance(attrs['word_re'], str):
+                setattr(cls, 'word_re', re.compile(cls.word_re))
 
-            if cls.tempfile_suffix and cls.tempfile_suffix[0] != '.':
-                setattr(cls, 'tempfile_suffix', '.' + cls.tempfile_suffix)
+            if 'tempfile_suffix' in attrs and attrs['tempfile_suffix'][0] != '.':
+                setattr(cls, 'tempfile_suffix', '.' + attrs['tempfile_suffix'])
 
-            if isinstance(cls.inline_settings, str):
-                cls.inline_settings = cls.inline_settings,
-
-            if isinstance(cls.inline_overrides, str):
-                cls.inline_overrides = cls.inline_overrides,
+            for attr in ('inline_settings', 'inline_overrides'):
+                if attr in attrs and isinstance(attrs[attr], str):
+                    setattr(cls, attr, (attrs[attr],))
 
             cls.map_args()
             persist.register_linter(cls, name, attrs)
@@ -204,7 +202,7 @@ class Linter(metaclass=Registrar):
         '''Return the default settings for this linter, merged with the user settings.'''
         linters = persist.settings.get('linters', {})
         settings = (cls.defaults or {}).copy()
-        settings.update(linters.get(cls.__name__, {}))
+        settings.update(linters.get(cls.name, {}))
         return settings
 
     @property
@@ -336,7 +334,8 @@ class Linter(metaclass=Registrar):
 
         # Merge linter default settings with user settings
         for name, linter in persist.languages.items():
-            linter.lint_settings = linter.get_settings()
+            if not name.startswith('embedded'):
+                linter.lint_settings = linter.get_settings()
 
         for vid, linters in persist.linters.items():
             for linter in linters:

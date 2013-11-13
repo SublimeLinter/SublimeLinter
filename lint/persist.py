@@ -126,8 +126,11 @@ class Daemon:
         # Fill in default linter settings
         linters = settings.pop('linters', {})
 
-        for name, language in languages.items():
-            default = language.get_settings().copy()
+        for name, linter in languages.items():
+            if name.startswith('embedded'):
+                continue
+
+            default = linter.get_settings().copy()
             default.update(linters.pop(name, {}))
 
             if 'disable' not in default:
@@ -375,10 +378,13 @@ def view_did_close(vid):
 def register_linter(linter_class, name, attrs):
     '''Add a linter class to our mapping of languages <--> linter classes.'''
     if name:
-        linter_settings = settings.get('linters', {})
-        linter_class.lint_settings = linter_settings.get(name, {})
+        name = name.lower()
         linter_class.name = name
         languages[name] = linter_class
+
+        if not name.startswith('embedded'):
+            linter_settings = settings.get('linters', {})
+            linter_class.lint_settings = linter_settings.get(name, {})
 
         # The sublime plugin API is not available until plugin_loaded is executed
         if plugin_is_loaded:
@@ -390,6 +396,6 @@ def register_linter(linter_class, name, attrs):
             for view in views.values():
                 linter.Linter.assign(view, reassign=True)
 
-            printf('{} linter reloaded'.format(name))
+            printf('{} linter reloaded'.format(linter_class.__name__))
         else:
-            printf('{} linter loaded'.format(name))
+            printf('{} linter loaded'.format(linter_class.__name__))

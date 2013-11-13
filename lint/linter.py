@@ -406,7 +406,7 @@ class Linter(metaclass=Registrar):
         for linter in linters:
             view_settings = linter.get_view_settings(no_inline=True)
 
-            if view_settings.get('disable'):
+            if view_settings.get('@disable'):
                 disabled.add(linter)
                 continue
 

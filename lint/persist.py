@@ -133,8 +133,8 @@ class Daemon:
             default = linter.get_settings().copy()
             default.update(linters.pop(name, {}))
 
-            if 'disable' not in default:
-                default['disable'] = False
+            if '@disable' not in default:
+                default['@disable'] = False
 
             linters[name] = default
 

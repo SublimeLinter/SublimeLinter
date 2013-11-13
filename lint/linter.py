@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from fnmatch import fnmatch
+from numbers import Number
 import re
 import shlex
 import sublime
@@ -548,27 +549,36 @@ class Linter(metaclass=Registrar):
             if options is None:
                 continue
             elif isinstance(options, (list, tuple)):
-                if not options:
+                if options:
+                    if arg_info['sep'] and not arg_info['multiple']:
+                        options = [arg_info['sep'].join(options)]
+                else:
                     continue
-
-                if arg_info['sep'] and not arg_info['multiple']:
-                    options = [arg_info['sep'].join(options)]
+            elif isinstance(options, str):
+                if options:
+                    options = [options]
+                else:
+                    continue
+            elif isinstance(options, Number):
+                if options is False:
+                    continue
+                else:
+                    options = [options]
             else:
-                options = '{}'.format(options)
-
-                if not options:
-                    continue
-
-                options = [options]
+                # Unknown type
+                continue
 
             for option in options:
                 arg = arg_info['prefix'] + arg_info['name']
+                joiner = arg_info['joiner']
 
-                if arg_info['joiner'] == '=':
+                if joiner == '=':
                     args.append('{}={}'.format(arg, option))
-                else:
+                elif joiner == ':':
                     args.append(arg)
-                    args.append(option)
+                    args.append(str(option))
+                elif not joiner and option is True:
+                    args.append(arg)
 
         return args
 

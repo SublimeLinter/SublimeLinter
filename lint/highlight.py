@@ -34,7 +34,7 @@ MARK_STYLES = {
 }
 
 WORD_RE = re.compile(r'^([-\w]+)')
-NEAR_RE_TEMPLATE = r'(?:([^\'"]))\b({0})\b[^\1]'
+NEAR_RE_TEMPLATE = r'(?<!")({})(?!")'
 
 
 def mark_style_names():
@@ -180,15 +180,15 @@ class Highlight:
         # Otherwise use a regex to find the text not enclosed in quotes.
         first = near[0]
 
-        if first in ('\"', '"') and near[-1] == first:
-            start = text.find(near)
-        else:
-            match = re.search(NEAR_RE_TEMPLATE.format(near), text)
+        if first in ('\'', '"') and near[-1] == first:
+            near = near[1:-1]
 
-            if match:
-                start = match.start(2)
-            else:
-                start = -1
+        match = re.search(NEAR_RE_TEMPLATE.format(re.escape(near)), text)
+
+        if match:
+            start = match.start()
+        else:
+            start = -1
 
         if start != -1:
             self.range(line, start, len(near), error_type=error_type, word_re=word_re)

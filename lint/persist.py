@@ -129,6 +129,10 @@ class Daemon:
         for name, language in languages.items():
             default = language.get_settings().copy()
             default.update(linters.pop(name, {}))
+
+            if 'disable' not in default:
+                default['disable'] = False
+
             linters[name] = default
 
         settings['linters'] = linters

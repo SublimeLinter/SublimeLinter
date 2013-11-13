@@ -65,6 +65,12 @@ def inline_settings(comment_re, code, prefix=None):
 
     A dict of key/value pairs is returned.
     '''
+    if prefix:
+        prefix = prefix.lower() + '-'
+
+        if prefix.startswith('embedded'):
+            prefix = prefix[len('embedded')]
+
     settings = {}
     pos = -1
 

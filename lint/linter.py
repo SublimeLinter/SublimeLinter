@@ -542,6 +542,9 @@ class Linter(metaclass=Registrar):
         else:
             cmd += args
 
+        if persist.settings.get('debug'):
+            persist.printf('{}: {}'.format(self.__class__.__name__, repr(cmd)))
+
         return tuple(cmd)
 
     def lint(self):
@@ -558,7 +561,8 @@ class Linter(metaclass=Registrar):
         if not output:
             return
 
-        persist.debug('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
+        if persist.settings.get('debug'):
+            persist.printf('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:

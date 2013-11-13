@@ -503,7 +503,9 @@ class Linter(metaclass=Registrar):
             if setting in view_settings:
                 options = view_settings[setting]
 
-                if isinstance(options, (list, tuple)):
+                if options is None:
+                    continue
+                elif isinstance(options, (list, tuple)):
                     if not options:
                         continue
 

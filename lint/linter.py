@@ -8,6 +8,7 @@
 # License: MIT
 #
 
+from copy import deepcopy
 from fnmatch import fnmatch
 import re
 import shlex
@@ -15,6 +16,7 @@ import sublime
 
 from . import highlight as hilite, persist, util
 
+ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>[^=]+)(?P<equals>=)?')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
@@ -25,7 +27,47 @@ class Registrar(type):
             if isinstance(cls.word_re, str):
                 cls.word_re = re.compile(cls.word_re)
 
+            if cls.tempfile_suffix and cls.tempfile_suffix[0] != '.':
+                setattr(cls, 'tempfile_suffix', '.' + cls.tempfile_suffix)
+
+            if isinstance(cls.inline_settings, str):
+                cls.inline_settings = cls.inline_settings,
+
+            if isinstance(cls.inline_overrides, str):
+                cls.inline_overrides = cls.inline_overrides,
+
+            cls.map_args()
             persist.register_linter(cls, name, attrs)
+
+    def map_args(cls):
+        '''
+        Maps plain setting names to the args that will be passed
+        to the linter executable.
+        '''
+        # Add new attributes to cls, don't change the superclass copy
+        setattr(cls, 'args_map', {})
+
+        settings = []
+
+        for attr in ('defaults', 'inline_settings', 'inline_overrides'):
+            if getattr(cls, attr):
+                setattr(cls, attr, deepcopy(getattr(cls, attr)))
+                settings.append(getattr(cls, attr))
+
+        # For each list of settings, check if the settings specify an argument.
+        # If so, add a mapping between the setting and the argument format,
+        # then change the name in the list to the setting name.
+        for args in settings:
+            for arg in args:
+                match = ARG_RE.match(arg)
+
+                if match:
+                    name = match.group('name')
+                    cls.args_map[name] = arg
+
+                    value = args[arg]
+                    del args[arg]
+                    args[name] = value
 
 
 class Linter(metaclass=Registrar):
@@ -70,7 +112,7 @@ class Linter(metaclass=Registrar):
     re_flags = 0
 
     # If the linter executable cannot receive from stdin and requires a temp file,
-    # set this attribute to the suffix of the temp file (including leading '.').
+    # set this attribute to the suffix of the temp file (with or without leading '.').
     tempfile_suffix = None
 
     # Tab width
@@ -87,6 +129,38 @@ class Linter(metaclass=Registrar):
     # by setting this to a pattern string or a compiled regex.
     word_re = None
 
+    # If you want to provide default settings for the linter, set this attribute.
+    # If a setting will be passed as an argument to the linter executable,
+    # you may specify the format of the argument here and the setting will
+    # automatically be passed as an argument to the executable. Argument
+    # settings must be prefixed with '-' or '--', and if the argument requires
+    # a value, suffix the setting with ':' if the value should be a separate
+    # argument, or with '=' if the value is join with the argument by '='.
+    # The user will see the base name without the prefix or suffix.
+    defaults = None
+
+    # Linters may define a list of settings that can be specified inline.
+    # As with defaults, you can specify that an inline setting should be passed
+    # as an argument by using a prefix and optional suffix. However, if
+    # the same setting was already specified as an argument in defaults,
+    # you do not need to use the prefix or suffix here.
+    #
+    # Within a file, the actual inline setting name is '<linter>-setting', where <linter>
+    # is the lowercase name of the linter class, excluding an 'Embedded' prefix.
+    inline_settings = None
+
+    # Many linters allow a list of options to be specified for a single setting.
+    # For example, you can often specify a list of errors to ignore.
+    # This attribute is like inline_settings, but inline values will override
+    # existing values instead of replacing them, using the override_options method.
+    inline_overrides = None
+
+    # When multiple options can be passed in a single setting, this attribute
+    # specifies the separator that should be used between each option.
+    # If empty or None, each option will be passed as a separate argument,
+    # which some linters require.
+    option_sep = ','
+
     # If the linter supports inline settings, you need to specify the regex that
     # begins a comment. comment_re should be an unanchored pattern (no ^)
     # that matches everything through the comment prefix, including leading whitespace.
@@ -96,9 +170,6 @@ class Linter(metaclass=Registrar):
     # and for python:
     #    r'\s*#'
     comment_re = None
-
-    # If you want to provide default settings for the linter, set this attribute.
-    defaults = None
 
     #
     # Internal class storage, do not set
@@ -141,34 +212,32 @@ class Linter(metaclass=Registrar):
         return cls.lint_settings
 
     def get_view_settings(self, no_inline=False):
+        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
+        project_settings = data.get('linters', {}).get(self.name, {})
+        settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
+
         # If the linter has a comment_re set, it supports inline settings.
-        if self.comment_re and not no_inline:
+        if not no_inline and self.comment_re and (self.inline_settings or self.inline_overrides):
             inline_settings = util.inline_settings(
                 self.comment_re,
                 self.code,
-                self.name + '-'
+                self.name
             )
-            settings = self.merge_inline_settings(self.lint_settings.copy(), inline_settings)
-        else:
-            settings = self.lint_settings.copy()
+            settings = self.merge_inline_settings(settings.copy(), inline_settings)
 
-        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
-        project_settings = data.get('linters', {}).get(self.name, {})
-
-        return self.merge_project_settings(settings, project_settings)
-
-    @property
-    def view_settings(self):
-        return self.get_view_settings()
+        return settings
 
     def merge_inline_settings(self, view_settings, inline_settings):
         '''
-        Return inline settings for this linter's view. Subclasses may override
-        this if they wish to do something more than replace view settings
-        with inline settings of the same name. The settings object may be
-        changed in place.
+        Merges view_settings with settings in inline_settings specified by
+        the class attributes inline_settings and inline_overrides.
         '''
-        view_settings.update(inline_settings)
+        for setting, value in inline_settings.items():
+            if setting in self.inline_settings:
+                view_settings[setting] = value
+            elif setting in self.inline_overrides:
+                view_settings[setting] = self.override_options(view_settings[setting] or (), value)
+
         return view_settings
 
     def merge_project_settings(self, view_settings, project_settings):
@@ -181,7 +250,7 @@ class Linter(metaclass=Registrar):
         view_settings.update(project_settings)
         return view_settings
 
-    def override_options(self, options, overrides, sep=';'):
+    def override_options(self, options, overrides, sep=','):
         '''
         If you want inline settings to override but not replace view settings,
         this method makes it easier. Given a set or sequence of options and some
@@ -406,18 +475,73 @@ class Linter(metaclass=Registrar):
     def get_cmd(self):
         if callable(self.cmd):
             cmd = self.cmd()
-        else:
-            cmd = self.cmd
 
-        if not cmd:
-            return
+            if isinstance(cmd, str):
+                cmd = shlex.split(cmd)
+
+            return cmd
+        elif self.cmd is not None:
+            return self.build_cmd()
+
+        return None
+
+    def build_cmd(self):
+        # First we get merged settings: default, user, project and inline
+        view_settings = self.get_view_settings()
+
+        # Now build a list of args to add to the cmd, starting with any
+        # args specified by the user in the "args" setting.
+        args = view_settings.get('args', [])
+
+        if isinstance(args, str):
+            args = [args]
+        else:
+            args = [] + args
+
+        # Now map settings to args
+        for setting, arg in self.args_map.items():
+            if setting in view_settings:
+                options = view_settings[setting]
+
+                if isinstance(options, (list, tuple)):
+                    if not options:
+                        continue
+
+                    if self.option_sep:
+                        options = [self.option_sep.join(options)]
+                else:
+                    options = '{}'.format(options)
+
+                    if not options:
+                        continue
+
+                    options = [options]
+
+                for option in options:
+                    if arg[-1] == '=':
+                        args.append(arg + option)
+                    else:
+                        args.append(arg)
+                        args.append(option)
+
+        cmd = self.cmd
 
         if isinstance(cmd, str):
-            cmd = shlex.split(cmd)
+            cmd = [cmd]
+        else:
+            cmd = list(cmd)
 
-        args = self.view_settings.get('args', ())
+        if '*' in cmd:
+            i = cmd.index('*')
 
-        return tuple(cmd) + tuple(args)
+            if args:
+                cmd = cmd[0:i] + args + cmd[i + 1:]
+            else:
+                cmd.pop(i)
+        else:
+            cmd += args
+
+        return tuple(cmd)
 
     def lint(self):
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):

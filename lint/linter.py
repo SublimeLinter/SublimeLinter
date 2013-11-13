@@ -16,7 +16,7 @@ import sublime
 
 from . import highlight as hilite, persist, util
 
-ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>[^=]+)(?P<equals>=)?')
+ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>[\w\-]+)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
@@ -34,7 +34,11 @@ class Registrar(type):
                 if attr in attrs and isinstance(attrs[attr], str):
                     setattr(cls, attr, (attrs[attr],))
 
-            cls.map_args()
+            # If this class has its own defaults, create an args_map.
+            # Otherwise we use the superclass' args_map.
+            if 'defaults' in attrs:
+                cls.map_args()
+
             persist.register_linter(cls, name, attrs)
 
     def map_args(cls):
@@ -42,7 +46,6 @@ class Registrar(type):
         Maps plain setting names to the args that will be passed
         to the linter executable.
         '''
-        # Add new attributes to cls, don't change the superclass copy
         setattr(cls, 'args_map', {})
 
         settings = []
@@ -61,7 +64,7 @@ class Registrar(type):
 
                 if match:
                     name = match.group('name')
-                    cls.args_map[name] = arg
+                    cls.args_map[name] = match.groupdict()
 
                     value = args[arg]
                     del args[arg]
@@ -130,11 +133,29 @@ class Linter(metaclass=Registrar):
     # If you want to provide default settings for the linter, set this attribute.
     # If a setting will be passed as an argument to the linter executable,
     # you may specify the format of the argument here and the setting will
-    # automatically be passed as an argument to the executable. Argument
-    # settings must be prefixed with '-' or '--', and if the argument requires
-    # a value, suffix the setting with ':' if the value should be a separate
-    # argument, or with '=' if the value is join with the argument by '='.
-    # The user will see the base name without the prefix or suffix.
+    # automatically be passed as an argument to the executable. The format
+    # specification is as follows:
+    #
+    # <prefix><name><suffix>
+    #
+    # - <prefix>: Either '-' or '--'.
+    # - <name>: The name of the setting.
+    # - <suffix>: Optional. If not present, the setting is boolean,
+    #   and if the value is true, the argument is passed. If <suffix> is present,
+    #   it has the following structure:
+    #
+    #   <joiner>[<sep>[+]]
+    #
+    #   - <joiner>: Either '=' or ':'. If '=', the setting value is joined
+    #     with <name> by '=' and passed as a single argument. If ':', <name>
+    #     and the value are passed as separate arguments.
+    #   - <sep>: If the argument accepts a list of values, <sep> specifies
+    #     the character used to delimit the list (usually ',').
+    #   - +: If the setting can be a list of values, but each value must be
+    #     passed as a separate argument, terminate the setting with '+'.
+    #
+    # After the format is parsed, the prefix and suffix are removed and the
+    # setting is replaced with <name>.
     defaults = None
 
     # Linters may define a list of settings that can be specified inline.
@@ -152,12 +173,6 @@ class Linter(metaclass=Registrar):
     # This attribute is like inline_settings, but inline values will override
     # existing values instead of replacing them, using the override_options method.
     inline_overrides = None
-
-    # When multiple options can be passed in a single setting, this attribute
-    # specifies the separator that should be used between each option.
-    # If empty or None, each option will be passed as a separate argument,
-    # which some linters require.
-    option_sep = ','
 
     # If the linter supports inline settings, you need to specify the regex that
     # begins a comment. comment_re should be an unanchored pattern (no ^)
@@ -486,45 +501,10 @@ class Linter(metaclass=Registrar):
 
     def build_cmd(self):
         # First we get merged settings: default, user, project and inline
-        view_settings = self.get_view_settings()
-
-        # Now build a list of args to add to the cmd, starting with any
-        # args specified by the user in the "args" setting.
-        args = view_settings.get('args', [])
-
-        if isinstance(args, str):
-            args = [args]
-        else:
-            args = [] + args
+        settings = self.get_view_settings()
 
         # Now map settings to args
-        for setting, arg in self.args_map.items():
-            if setting in view_settings:
-                options = view_settings[setting]
-
-                if options is None:
-                    continue
-                elif isinstance(options, (list, tuple)):
-                    if not options:
-                        continue
-
-                    if self.option_sep:
-                        options = [self.option_sep.join(options)]
-                else:
-                    options = '{}'.format(options)
-
-                    if not options:
-                        continue
-
-                    options = [options]
-
-                for option in options:
-                    if arg[-1] == '=':
-                        args.append(arg + option)
-                    else:
-                        args.append(arg)
-                        args.append(option)
-
+        args = self.build_args(settings)
         cmd = self.cmd
 
         if isinstance(cmd, str):
@@ -546,6 +526,51 @@ class Linter(metaclass=Registrar):
             persist.printf('{}: {}'.format(self.__class__.__name__, repr(cmd)))
 
         return tuple(cmd)
+
+    def build_args(self, settings):
+        # Build a list of args to add to the cmd, starting with any
+        # args specified by the user in the "args" setting.
+        args = settings.get('args', [])
+
+        if isinstance(args, str):
+            args = [args]
+        else:
+            args = [] + args
+
+        args_map = getattr(self, 'args_map', {})
+
+        for setting, arg_info in args_map.items():
+            if setting not in settings:
+                continue
+
+            options = settings[setting]
+
+            if options is None:
+                continue
+            elif isinstance(options, (list, tuple)):
+                if not options:
+                    continue
+
+                if arg_info['sep'] and not arg_info['multiple']:
+                    options = [arg_info['sep'].join(options)]
+            else:
+                options = '{}'.format(options)
+
+                if not options:
+                    continue
+
+                options = [options]
+
+            for option in options:
+                arg = arg_info['prefix'] + arg_info['name']
+
+                if arg_info['joiner'] == '=':
+                    args.append('{}={}'.format(arg, option))
+                else:
+                    args.append(arg)
+                    args.append(option)
+
+        return args
 
     def lint(self):
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):

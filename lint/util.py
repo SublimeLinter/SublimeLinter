@@ -19,7 +19,7 @@ import subprocess
 from xml.etree import ElementTree
 
 INLINE_SETTINGS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<settings>.+?)\]')
-INLINE_SETTING_RE = re.compile(r'(?P<key>[\w\-]+)\s*:\s*(?P<value>.+?)\s*(?:,|$)')
+INLINE_SETTING_RE = re.compile(r'(?P<key>[\w\-]+)(?:\s*:\s*(?P<value>[^\s]+))?')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 

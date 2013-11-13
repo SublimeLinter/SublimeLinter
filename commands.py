@@ -86,12 +86,18 @@ class GotoErrorCommand(HasErrorsCommand, sublime_plugin.TextCommand):
         # If nothing is found in the given direction, wrap to the first/last region.
         if direction == 'next':
             for region in regions:
-                if (point == region.begin() and empty_selection) or (point < region.begin()):
+                if (
+                    (point == region.begin() and empty_selection and not region.empty())
+                    or (point < region.begin())
+                ):
                     region_to_select = region
                     break
         else:
             for region in reversed(regions):
-                if (point == region.end() and empty_selection) or (point > region.end()):
+                if (
+                    (point == region.end() and empty_selection and not region.empty())
+                    or (point > region.end())
+                ):
                     region_to_select = region
                     break
 

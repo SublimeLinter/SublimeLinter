@@ -607,9 +607,12 @@ class Linter(metaclass=Registrar):
                     error_type = hilite.ERROR
 
                 if col is not None:
+                    # Pin the column to the line's length
+                    start, end = self.highlight.full_line(row)
+                    col = min(col, (end - start) - 1)
+
                     # Adjust column numbers to match the linter's tabs if necessary
                     if self.tab_width > 1:
-                        start, end = self.highlight.full_line(row)
                         code_line = self.code[start:end]
                         diff = 0
 
@@ -734,7 +737,10 @@ class Linter(metaclass=Registrar):
                 row = int(row) - 1
 
             if col is not None:
-                col = int(col) - 1
+                if col.isdigit():
+                    col = int(col) - 1
+                else:
+                    col = len(col)
 
             return match, row, col, error_type, error, near
         else:

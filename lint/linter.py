@@ -470,8 +470,8 @@ class Linter(metaclass=Registrar):
                     linter.errors = {}
                     linter.lint()
 
-                    for line, error in linter.errors.items():
-                        errors[line + line_offset] = error
+                    for line, line_errors in linter.errors.items():
+                        errors[line + line_offset] = line_errors
 
                 linter.errors = errors
 

@@ -17,7 +17,7 @@ import sublime
 
 from . import highlight as hilite, persist, util
 
-ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>[\w\-]+)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>\w[\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 

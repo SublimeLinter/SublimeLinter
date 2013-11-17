@@ -31,7 +31,7 @@ MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 # settings utils
 
 def merge_user_settings(settings):
-    '''Merge the default linter settings with the user's settings.'''
+    """Merge the default linter settings with the user's settings."""
     default = settings.get('default') or {}
     user = settings.get('user') or {}
 
@@ -54,7 +54,7 @@ def merge_user_settings(settings):
 
 
 def inline_settings(comment_re, code, prefix=None):
-    '''
+    """
     Looks for settings in the form [SublimeLinter <name>:<value>]
     on the first or second line of code, if the lines match comment_re.
     comment_re should be a compiled regex object whose pattern is unanchored (no ^)
@@ -68,7 +68,7 @@ def inline_settings(comment_re, code, prefix=None):
     to be considered as a setting.
 
     A dict of key/value pairs is returned.
-    '''
+    """
     if prefix:
         prefix = prefix.lower() + '-'
 
@@ -135,10 +135,10 @@ def get_rc_settings(start_dir, limit=None):
 
 
 def generate_color_scheme(from_reload=True):
-    '''
+    """
     Checks the current color scheme for our color entries. If any are missing,
     copies the scheme, adds the entries, and rewrites it to the user space.
-    '''
+    """
     # If this was called from a reload of prefs, turn off the prefs observer,
     # otherwise we'll end up back here when ST updates the prefs with the new color.
     if from_reload:
@@ -154,10 +154,10 @@ def generate_color_scheme(from_reload=True):
 
 
 def generate_color_scheme_async():
-    '''
+    """
     Checks to see if the current color scheme has our colors, and if not,
     adds them and writes the result to Packages/User/<scheme>.
-    '''
+    """
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')
 
@@ -304,7 +304,7 @@ def build_menu(caption):
 
 
 def find_gutter_themes(themes, settings=None):
-    '''Return a list of package-relative paths for all gutter themes'''
+    """Return a list of package-relative paths for all gutter themes"""
     from . import persist
 
     def find_themes(themes, settings, user_themes):
@@ -404,7 +404,7 @@ def find_path(env):
 
 
 def split_path(path):
-    '''Splits a path into its components.'''
+    """Splits a path into its components."""
     components = []
 
     while path:
@@ -426,11 +426,11 @@ def split_path(path):
 
 
 def package_relative_path(path, prefix_packages=True):
-    '''
+    """
     Sublime Text wants package-relative paths to use '/' as the path separator
     on all platforms. This method prefixes 'Packages' to the path if insert_packages = True
     and returns a new path, replacing os path separators with '/'.
-    '''
+    """
     components = split_path(path)
 
     if prefix_packages and components and components[0] != 'Packages':

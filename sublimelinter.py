@@ -48,7 +48,7 @@ def watch_gutter_themes():
 
 
 class SublimeLinter(sublime_plugin.EventListener):
-    '''The main ST3 plugin class.'''
+    """The main ST3 plugin class."""
 
     # We use this to match linter settings filenames.
     LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')
@@ -114,7 +114,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         Linter.lint_view(view_id, filename, code, sections, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):
-        '''Highlight any errors found during a lint.'''
+        """Highlight any errors found during a lint."""
         errors = {}
         vid = view.id()
         highlights = persist.highlights[vid] = HighlightSet()
@@ -140,7 +140,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.on_selection_modified_async(view)
 
     def hit(self, view):
-        '''Record an activity that could trigger a lint and enqueue a desire to lint.'''
+        """Record an activity that could trigger a lint and enqueue a desire to lint."""
         vid = view.id()
         self.check_syntax(view)
         self.linted_views.add(vid)
@@ -154,10 +154,10 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.last_hit_times[vid] = persist.queue.hit(view)
 
     def check_syntax(self, view):
-        '''
+        """
         Checks if the view's syntax has changed. If so, a new linter is assigned.
         Returns whether the syntax has changed.
-        '''
+        """
         vid = view.id()
         syntax = persist.syntax(view)
 
@@ -176,7 +176,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     # sublime_plugin.EventListener event handlers
 
     def on_modified(self, view):
-        '''Called when a view is modified.'''
+        """Called when a view is modified."""
         if view.id() not in persist.linters:
             syntax_changed = self.check_syntax(view)
 
@@ -191,11 +191,11 @@ class SublimeLinter(sublime_plugin.EventListener):
             self.clear(view)
 
     def on_load(self, view):
-        '''Called when a file is finished loading.'''
+        """Called when a file is finished loading."""
         self.on_new(view)
 
     def on_activated(self, view):
-        '''Called when a view gains input focus.'''
+        """Called when a view gains input focus."""
 
         # Reload the plugin settings.
         persist.load_settings()
@@ -213,10 +213,10 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.on_selection_modified_async(view)
 
     def on_open_settings(self, view):
-        '''
+        """
         Called when any settings file is opened.
         view is the view that contains the text of the settings file.
-        '''
+        """
         if self.is_settings_file(view, user_only=True):
             persist.update_user_settings(view=view)
 
@@ -237,14 +237,14 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     @classmethod
     def on_settings_updated(cls, relint=False):
-        '''Callback triggered when the settings are updated.'''
+        """Callback triggered when the settings are updated."""
         if relint:
             cls.lint_all_views()
         else:
             Linter.redraw_all()
 
     def on_new(self, view):
-        '''Called when a new buffer is created.'''
+        """Called when a new buffer is created."""
         self.on_open_settings(view)
         vid = view.id()
         self.loaded_views.add(vid)
@@ -252,7 +252,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         Linter.assign(view)
 
     def on_selection_modified_async(self, view):
-        '''Called when the selection changes (cursor moves or text selected).'''
+        """Called when the selection changes (cursor moves or text selected)."""
         vid = view.id()
 
         # Get the line number of the first line of the first selection.
@@ -360,6 +360,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
 
 class sublimelinter_edit(sublime_plugin.TextCommand):
-    '''A plugin command used to generate an edit object for a view.'''
+    """A plugin command used to generate an edit object for a view."""
     def run(self, edit):
         persist.edit(self.view.id(), edit)

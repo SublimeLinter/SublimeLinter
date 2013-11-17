@@ -16,12 +16,12 @@ from . import persist
 
 
 class PathWatcher:
-    '''
+    """
     Watches one or more paths (or groups of paths) for modifications
     and makes a callback when they occur.
-    '''
+    """
     def __init__(self, interval=10.0):
-        '''@param interval Seconds between checks'''
+        """@param interval Seconds between checks"""
         self.interval = max(interval, 1.0)  # Minimum interval is 1 second
         self.paths = []
         self.mtimes = []
@@ -30,7 +30,7 @@ class PathWatcher:
         self.running = False
 
     def watch(self, paths, callback):
-        '''
+        """
         Adds one or more paths to be watched.
 
         @param paths    A single path or sequence of paths to watch. If a sequence
@@ -39,7 +39,7 @@ class PathWatcher:
         @param callback A callable to be called when a path is modified. If a path
                         is already being watched, this callback is added to the list
                         of callbacks for that path.
-        '''
+        """
         if isinstance(paths, str):
             paths_to_watch = [paths]
         else:

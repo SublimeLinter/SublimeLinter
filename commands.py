@@ -19,7 +19,7 @@ from .lint import highlight, linter, persist, util
 
 
 def error_command(f):
-    '''A decorator that only executes f if the current view has errors.'''
+    """A decorator that only executes f if the current view has errors."""
     def run(self, edit, **args):
         vid = self.view.id()
 
@@ -39,7 +39,7 @@ def select_line(view, line):
 
 
 class SublimelinterLintCommand(sublime_plugin.TextCommand):
-    '''Lints the current view if it has a linter.'''
+    """Lints the current view if it has a linter."""
     def is_enabled(self):
         vid = self.view.id()
         return vid in persist.linters and persist.settings.get('lint_mode') != 'background'
@@ -50,10 +50,10 @@ class SublimelinterLintCommand(sublime_plugin.TextCommand):
 
 
 class HasErrorsCommand:
-    '''
+    """
     A mixin class for text commands that should only be enabled
     if the current view has errors.
-    '''
+    """
     def is_enabled(self):
         # Only show this command in the command palette if the view has errors.
         vid = self.view.id()
@@ -61,7 +61,7 @@ class HasErrorsCommand:
 
 
 class GotoErrorCommand(HasErrorsCommand, sublime_plugin.TextCommand):
-    '''This command is just a superclass for other commands, it is never enabled.'''
+    """This command is just a superclass for other commands, it is never enabled."""
     def goto_error(self, view, errors, direction='next'):
         sel = view.sel()
 
@@ -146,14 +146,14 @@ class GotoErrorCommand(HasErrorsCommand, sublime_plugin.TextCommand):
 
 
 class SublimelinterGotoErrorCommand(GotoErrorCommand):
-    '''Place the caret at the next/previous error.'''
+    """Place the caret at the next/previous error."""
     @error_command
     def run(self, view, errors, **args):
         self.goto_error(view, errors, **args)
 
 
 class SublimelinterShowAllErrors(GotoErrorCommand):
-    '''Show a quick panel with all of the errors in the current view.'''
+    """Show a quick panel with all of the errors in the current view."""
     @error_command
     def run(self, view, errors):
         self.errors = errors
@@ -228,9 +228,7 @@ class SublimelinterDontShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
 
 
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
-    '''
-    Abstract base class for commands that choose a setting from a list.
-    '''
+    """Abstract base class for commands that choose a setting from a list."""
     def __init__(self, window, setting=None):
         super().__init__(window)
         self.setting = setting
@@ -287,7 +285,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
 
 class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
-    '''Select a lint mode from a list.'''
+    """Select a lint mode from a list."""
     def __init__(self, window):
         super().__init__(window, 'lint_mode')
 
@@ -306,7 +304,7 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
 
 
 class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
-    '''Select a mark style from a list.'''
+    """Select a mark style from a list."""
     def __init__(self, window):
         super().__init__(window, 'mark_style')
 
@@ -318,7 +316,7 @@ class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
 
 
 class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
-    '''Select a gutter theme from a list.'''
+    """Select a gutter theme from a list."""
     def __init__(self, window):
         super().__init__(window, 'gutter_theme')
 
@@ -336,10 +334,10 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):
-    '''
+    """
     Display a report of all errors in all open files in the current window,
     in all files in all folders in the current window, or both.
-    '''
+    """
     def run(self, on='files'):
         output = self.window.new_file()
         output.set_name(persist.PLUGIN_NAME)

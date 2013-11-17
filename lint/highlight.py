@@ -46,7 +46,7 @@ def mark_style_names():
 
 
 class HighlightSet:
-    '''A set of Highlight objects which can perform bulk draw/clear.'''
+    """A set of Highlight objects which can perform bulk draw/clear."""
     def __init__(self):
         self.all = set()
 
@@ -82,7 +82,7 @@ class HighlightSet:
 
 
 class Highlight:
-    '''A class that represents one or more highlights and knows how to draw itself.'''
+    """A class that represents one or more highlights and knows how to draw itself."""
     def __init__(self, code=''):
         self.code = code
         self.marks = {WARNING: [], ERROR: []}
@@ -115,15 +115,15 @@ class Highlight:
         newlines.append(len(code))
 
     def full_line(self, line):
-        '''
+        """
         Returns the *real* character positions for the start and end of the given
         *virtual* line (adjusted by the line_offset).
-        '''
+        """
         start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
         return start, end
 
     def range(self, line, pos, length=-1, error_type='error', word_re=None):
-        '''
+        """
         Marks a range of text on the given zero-based line, starting at the given position
         on the line. The length argument can be used to control marking:
 
@@ -131,7 +131,7 @@ class Highlight:
               no word is matched, the character at pos is marked.
 
             - If length == 0, no text is marked, but a gutter mark will appear on that line.
-        '''
+        """
         start, end = self.full_line(line)
 
         if length < 0:

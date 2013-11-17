@@ -79,6 +79,7 @@ class Daemon:
 
     def settings_updated(self):
         settings = util.merge_user_settings(self.sub_settings)
+        self.merge_rc_settings(settings)
         self.settings.clear()
         self.settings.update(settings)
         need_relint = False
@@ -165,6 +166,14 @@ class Daemon:
             user_settings = sublime.load_settings('SublimeLinter.sublime-settings')
             user_settings.set('user', settings)
             sublime.save_settings('SublimeLinter.sublime-settings')
+
+    def merge_rc_settings(self, settings):
+        start_dir = os.path.dirname(os.path.dirname(__file__))
+        rc_settings = util.get_rc_settings(start_dir, limit=1)
+
+        if rc_settings:
+            rc_settings.pop('linters', None)
+            settings.update(rc_settings)
 
     def update_gutter_marks(self):
         theme = settings.get('gutter_theme', 'Default')

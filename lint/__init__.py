@@ -8,7 +8,8 @@
 # License: MIT
 #
 
-from .linter import Linter
+from .linter import Linter, PythonLinter
+
 from . import (
     highlight,
     linter,
@@ -19,6 +20,7 @@ from . import (
 __all__ = [
     'highlight',
     'Linter',
+    'PythonLinter',
     'linter',
     'persist',
     'util',

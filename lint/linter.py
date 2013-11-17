@@ -8,16 +8,16 @@
 # License: MIT
 #
 
-from copy import deepcopy
 from fnmatch import fnmatch
 from numbers import Number
+import os
 import re
 import shlex
 import sublime
 
 from . import highlight as hilite, persist, util
 
-ARG_RE = re.compile(r'(?P<prefix>--?)(?P<name>\w[\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
@@ -38,38 +38,38 @@ class Registrar(type):
             # If this class has its own defaults, create an args_map.
             # Otherwise we use the superclass' args_map.
             if 'defaults' in attrs:
-                cls.map_args()
+                cls.map_args(attrs['defaults'])
 
-            persist.register_linter(cls, name, attrs)
+            if 'PythonLinter' in [base.__name__ for base in bases]:
+                # Set attributes necessary for the @python inline setting
+                inline_settings = list(getattr(cls, 'inline_settings') or [])
+                setattr(cls, 'inline_settings', inline_settings + ['@python'])
 
-    def map_args(cls):
+            if 'language' in attrs:
+                persist.register_linter(cls, name, attrs)
+
+    def map_args(cls, defaults):
         '''
         Maps plain setting names to the args that will be passed
         to the linter executable.
         '''
-        setattr(cls, 'args_map', {})
 
-        settings = []
-
-        for attr in ('defaults', 'inline_settings', 'inline_overrides'):
-            if getattr(cls, attr):
-                setattr(cls, attr, deepcopy(getattr(cls, attr)))
-                settings.append(getattr(cls, attr))
-
-        # For each list of settings, check if the settings specify an argument.
+        # Check if the settings specify an argument.
         # If so, add a mapping between the setting and the argument format,
-        # then change the name in the list to the setting name.
-        for args in settings:
-            for arg in args:
-                match = ARG_RE.match(arg)
+        # then change the name in the defaults to the setting name.
+        args_map = {}
+        setattr(cls, 'defaults', {})
 
-                if match:
-                    name = match.group('name')
-                    cls.args_map[name] = match.groupdict()
+        for name, value in defaults.items():
+            match = ARG_RE.match(name)
 
-                    value = args[arg]
-                    del args[arg]
-                    args[name] = value
+            if match:
+                name = match.group('name')
+                args_map[name] = match.groupdict()
+
+            cls.defaults[name] = value
+
+        setattr(cls, 'args_map', args_map)
 
 
 class Linter(metaclass=Registrar):
@@ -185,6 +185,12 @@ class Linter(metaclass=Registrar):
     #    r'\s*#'
     comment_re = None
 
+    # Some linters may want to turn a shebang into an inline setting.
+    # To do so, set this attribute to a callback which receives the first line
+    # of code and returns a tuple/list which contains the name and value for the
+    # inline setting, or None if there is no match.
+    shebang_match = None
+
     #
     # Internal class storage, do not set
     #
@@ -205,7 +211,7 @@ class Linter(metaclass=Registrar):
 
             try:
                 self.regex = re.compile(self.regex, self.re_flags)
-            except:
+            except re.error:
                 persist.debug('error compiling regex for {}'.format(self.language))
 
         self.highlight = hilite.Highlight()
@@ -225,32 +231,85 @@ class Linter(metaclass=Registrar):
     def settings(cls):
         return cls.lint_settings
 
-    def get_view_settings(self, no_inline=False):
-        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
-        project_settings = data.get('linters', {}).get(self.name, {})
-        settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
+    @staticmethod
+    def meta_settings(settings):
+        return {key: value for key, value in settings.items() if key.startswith('@')}
 
-        # If the linter has a comment_re set, it supports inline settings.
-        if not no_inline and self.comment_re and (self.inline_settings or self.inline_overrides):
-            inline_settings = util.inline_settings(
-                self.comment_re,
-                self.code,
-                self.name
-            )
+    def get_view_settings(self, no_inline=False):
+        """
+        Build the union of the following settings, in this order:
+
+        linter settings (default settings + user settings)
+        project settings
+        user + project meta settings
+        rc settings (overrides)
+        rc meta settings
+        shebang or inline settings (overrides)
+        """
+        meta = self.meta_settings(persist.settings)
+        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
+        meta.update(self.meta_settings(data))
+        project_settings = data.get('linters', {}).get(self.name, {})
+        project_settings.update(meta)
+        settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
+        self.merge_rc_settings(settings)
+
+        if not no_inline:
+            inline_settings = {}
+
+            if self.shebang_match:
+                eol = self.code.find('\n')
+
+                if eol != -1:
+                    setting = self.shebang_match(self.code[0:eol])
+
+                    if setting is not None:
+                        inline_settings[setting[0]] = setting[1]
+
+            if self.comment_re and (self.inline_settings or self.inline_overrides):
+                inline_settings.update(util.inline_settings(
+                    self.comment_re,
+                    self.code,
+                    self.name
+                ))
+
             settings = self.merge_inline_settings(settings.copy(), inline_settings)
 
         return settings
+
+    def merge_rc_settings(self, settings):
+        """
+        Search for a file named .sublimelinterrc in rc_search_limit directories,
+        starting at the view's directory. If found, read the settings for the
+        current linter and merge them with settings.
+        """
+        start_dir = os.path.dirname(self.view.file_name())
+        rc_settings = util.get_rc_settings(start_dir, limit=persist.settings.get('rc_limit', 3))
+
+        if rc_settings:
+            meta = self.meta_settings(rc_settings)
+            rc_settings = rc_settings.get('linters', {}).get(self.name, {})
+            rc_settings.update(meta)
+            self.merge_inline_settings(settings, rc_settings)
 
     def merge_inline_settings(self, view_settings, inline_settings):
         '''
         Merges view_settings with settings in inline_settings specified by
         the class attributes inline_settings and inline_overrides.
+        view_settings is updated in place.
         '''
         for setting, value in inline_settings.items():
-            if setting in self.inline_settings:
+            if self.inline_settings and setting in self.inline_settings:
                 view_settings[setting] = value
-            elif setting in self.inline_overrides:
-                view_settings[setting] = self.override_options(view_settings[setting] or (), value)
+            elif self.inline_overrides and setting in self.inline_overrides:
+                sep = self.args_map.get(setting, {}).get('sep')
+
+                if sep:
+                    kwargs = {'sep': sep}
+                else:
+                    kwargs = {}
+
+                view_settings[setting] = self.override_options(view_settings[setting] or (), value, **kwargs)
 
         return view_settings
 
@@ -281,6 +340,9 @@ class Linter(metaclass=Registrar):
         For example, given the options ['E101', 'E501', 'W'] and the overrides
         '-E101;E202;-W;+W324', we would end up with ['E501', 'E202', 'W324'].
         '''
+        if isinstance(options, str):
+            options = options.split(sep)
+
         modified_options = set(options)
 
         if isinstance(overrides, str):
@@ -509,15 +571,33 @@ class Linter(metaclass=Registrar):
         cmd = self.cmd
 
         if isinstance(cmd, str):
-            cmd = [cmd]
+            cmd = shlex.split(cmd)
         else:
             cmd = list(cmd)
+
+        # Check to see if we have a @python command
+        match = util.PYTHON_CMD_RE.match(cmd[0])
+
+        if match and '@python' in settings:
+            which = '{}@python{}'.format(match.group('script') or '', settings.get('@python'))
+            path = util.which(which)
+        elif self.executable_path:
+            path = self.executable_path
+        else:
+            which = cmd[0]
+            path = util.which(which)
+
+        if not path:
+            persist.debug('unable to locate \'{}\''.format(which))
+            return ''
+
+        cmd[0:1] = path
 
         if '*' in cmd:
             i = cmd.index('*')
 
             if args:
-                cmd = cmd[0:i] + args + cmd[i + 1:]
+                cmd[i:i + 1] = args
             else:
                 cmd.pop(i)
         else:
@@ -541,7 +621,7 @@ class Linter(metaclass=Registrar):
         args_map = getattr(self, 'args_map', {})
 
         for setting, arg_info in args_map.items():
-            if setting not in settings:
+            if setting not in settings or setting[0] == '@':
                 continue
 
             options = settings[setting]
@@ -550,6 +630,7 @@ class Linter(metaclass=Registrar):
                 continue
             elif isinstance(options, (list, tuple)):
                 if options:
+                    # If the options can be passed as a single list, render them now
                     if arg_info['sep'] and not arg_info['multiple']:
                         options = [arg_info['sep'].join(options)]
                 else:
@@ -597,7 +678,8 @@ class Linter(metaclass=Registrar):
             return
 
         if persist.settings.get('debug'):
-            persist.printf('{} output:\n{}'.format(self.__class__.__name__, output.strip()))
+            stripped_output = output.replace('\r', '').strip()
+            persist.printf('{} output:\n{}'.format(self.__class__.__name__, stripped_output))
 
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
@@ -768,3 +850,24 @@ class Linter(metaclass=Registrar):
 
     def popen(self, cmd, env=None):
         return util.popen(cmd, env)
+
+
+class PythonLinter(Linter):
+    """
+    Linters that check python should inherit from this class
+    in order to get some built in python-specific functionality.
+    """
+    SHEBANG_RE = re.compile(r'\s*#!(?:(?:/[^/]+)*[/ ])?python(?P<version>\d(?:\.\d)?)')
+
+    comment_re = r'\s*#'
+
+    @staticmethod
+    def match_shebang(code):
+        match = PythonLinter.SHEBANG_RE.match(code)
+
+        if match:
+            return ('@python', match.group('version'))
+        else:
+            return None
+
+    shebang_match = match_shebang

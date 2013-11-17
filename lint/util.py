@@ -9,6 +9,8 @@
 #
 
 from functools import lru_cache
+from glob import glob
+import json
 import os
 import re
 import shutil
@@ -18,8 +20,10 @@ import sublime
 import subprocess
 from xml.etree import ElementTree
 
+PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+)?')
+
 INLINE_SETTINGS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<settings>[^\]]+)\]')
-INLINE_SETTING_RE = re.compile(r'(?P<key>\w[\w\-]*)(?:\s*:\s*(?P<value>[^\s]+))?')
+INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)(?:\s*:\s*(?P<value>[^\s]+))?')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
@@ -76,13 +80,13 @@ def inline_settings(comment_re, code, prefix=None):
 
     for i in range(0, 2):
         # Does this line start with a comment marker?
-        m = comment_re.match(code, pos + 1)
+        match = comment_re.match(code, pos + 1)
 
-        if m:
+        if match:
             # If it's a comment, does it have inline settings?
-            m = INLINE_SETTINGS_RE.match(code, pos + len(m.group()))
+            match = INLINE_SETTINGS_RE.match(code, pos + len(match.group()))
 
-            if m:
+            if match:
                 # We have inline settings, stop looking
                 break
 
@@ -93,9 +97,9 @@ def inline_settings(comment_re, code, prefix=None):
             # If no more lines, stop looking
             break
 
-    if m:
-        for key, value in INLINE_SETTING_RE.findall(m.group('settings')):
-            if prefix:
+    if match:
+        for key, value in INLINE_SETTING_RE.findall(match.group('settings')):
+            if prefix and key[0] != '@':
                 if key.startswith(prefix):
                     key = key[len(prefix):]
                 else:
@@ -104,6 +108,30 @@ def inline_settings(comment_re, code, prefix=None):
             settings[key] = value
 
     return settings
+
+
+def get_rc_settings(start_dir, limit=None):
+    """
+    Search for a file named .sublimelinterrc in rc_search_limit directories,
+    starting at start_dir. If found, read the settings and return them.
+    """
+    if not start_dir:
+        return
+
+    path = find_file(
+        start_dir,
+        '.sublimelinterrc',
+        limit=limit
+    )
+
+    if path:
+        try:
+            with open(path, encoding='utf8') as f:
+                rc_settings = json.loads(f.read())
+
+            return rc_settings
+        except (OSError, ValueError) as ex:
+            persist.debug('error loading \'{}\': {}'.format(path, str(ex)))
 
 
 def generate_color_scheme(from_reload=True):
@@ -318,17 +346,18 @@ def find_gutter_themes(themes, settings=None):
 
 # file/directory utils
 
-def climb(top):
+def climb(start_dir, limit=None):
     right = True
 
-    while right:
-        top, right = os.path.split(top)
-        yield top
+    while right and (limit is None or limit > 0):
+        yield start_dir
+        start_dir, right = os.path.split(start_dir)
+        limit -= 1
 
 
-@lru_cache(maxsize=256)
-def find_dir(top, name, parent=False):
-    for d in climb(top):
+@lru_cache(maxsize=512)
+def find_file(start_dir, name, parent=False, limit=None):
+    for d in climb(start_dir, limit=limit):
         target = os.path.join(d, name)
 
         if os.path.exists(target):
@@ -410,7 +439,7 @@ def package_relative_path(path, prefix_packages=True):
     return '/'.join(components)
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=None)
 def create_environment():
     from . import persist
 
@@ -451,16 +480,101 @@ def can_exec(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=None)
 def which(cmd):
+    """
+    Returns the full path to the given command, or None if not found.
+    If cmd is in the form [script]@python[version], find_python() is
+    called to locate the appropriate version of python. If [script]
+    is not None and can be found, the result will be a tuple of the
+    full python path and the full path to the script.
+    """
+    match = PYTHON_CMD_RE.match(cmd)
+
+    if match:
+        return find_python(**match.groupdict())
+    else:
+        return find_executable(cmd)
+
+
+@lru_cache(maxsize=None)
+def find_python(version=None, script=None):
+    # If a specific version was specified, check for that version
+    path = None
+
+    if version is not None:
+        if sublime.platform() in ('osx', 'linux'):
+            path = find_executable('python' + version)
+
+            # If finding the named version failed, get the version
+            # of the default python and see if it matches.
+            if path is None:
+                path = find_executable('python')
+
+                if path:
+                    status, output = subprocess.getstatusoutput(path + ' -V')
+
+                    if status == 0:
+                        # 'python -V' returns 'Python <version>', extract the version number
+                        vers = output.split(' ')[1]
+
+                        # Allow matches against major versions by doing a startswith match
+                        if not vers.startswith(version):
+                            path = None
+                    else:
+                        path = None
+        else:
+            # On Windows, there may be no separately named python/python3 binaries,
+            # so it seems the only reliable way to check for a given version is to
+            # check the root drive for 'Python*' directories, and try to match the
+            # version based on the directory names. The 'Python*' directories end
+            # with the <major><minor> version number, so for matching with the version
+            # passed in, strip any decimal points.
+            version = version.replace('.', '')
+            prefix = os.path.abspath('\\Python')
+            prefix_len = len(prefix)
+            dirs = glob(prefix + '*')
+
+            for python_dir in dirs:
+                python_path = os.path.join(python_dir, 'python.exe')
+
+                if python_dir[prefix_len:].startswith(version) and can_exec(python_path):
+                    path = python_path
+                    break
+    else:
+        # No version was specified, return the default
+        path = find_executable('python')
+
+    if path and script:
+        if sublime.platform() in ('osx', 'linux'):
+            script_path = which(script)
+
+            if script_path:
+                path = (path, script_path)
+            else:
+                path = None
+        else:
+            # On Windows, scripts are .py files in <python directory>/Scripts
+            script_path = os.path.join(os.path.dirname(path), 'Scripts', script + '-script.py')
+
+            if os.path.exists(script_path):
+                path = (path, script_path)
+            else:
+                path = None
+
+    return path
+
+
+@lru_cache(maxsize=None)
+def find_executable(executable):
+    # On Windows, if cmd does not have an extension, add .exe
+    if sublime.platform() == 'windows' and not os.path.splitext(executable)[1]:
+        executable += '.exe'
+
     env = create_environment()
 
-    # On Windows, if cmd does not have an extension, add .exe
-    if sublime.platform() == 'windows' and not os.path.splitext(cmd)[1]:
-        cmd += '.exe'
-
     for base in env.get('PATH', '').split(os.pathsep):
-        path = os.path.join(base, cmd)
+        path = os.path.join(base, executable)
 
         if can_exec(path):
             return path
@@ -520,7 +634,7 @@ def tmpdir(cmd, files, filename, code):
         for f in files:
             try:
                 os.makedirs(os.path.join(d, os.path.split(f)[0]))
-            except:
+            except OSError:
                 pass
 
             target = os.path.join(d, f)

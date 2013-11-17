@@ -48,8 +48,10 @@ class PathWatcher:
         for i, path in enumerate(paths_to_watch):
             path = paths_to_watch[i] = os.path.realpath(path)
 
-            if not os.path.exists(path):
-                persist.printf('PathWatcher.watch: invalid path:', path)
+            if os.path.exists(path):
+                persist.printf('{}.watch: watching \'{}\''.format(self.__class__.__name__, path))
+            else:
+                persist.printf('{}.watch: invalid path: \'{}\''.format(self.__class__.__name__, path))
                 return
 
         with self.lock:

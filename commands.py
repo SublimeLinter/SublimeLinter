@@ -236,21 +236,24 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
     def get_settings(self):
         return []
 
+    def transform_setting(self, setting):
+        return setting.lower()
+
     def choose(self, **args):
         self.settings = self.get_settings()
 
         if 'value' in args:
-            setting = args['value'].lower()
+            setting = self.transform_setting(args['value'])
         else:
-            setting = persist.settings.get(self.setting).lower()
+            setting = self.transform_setting(persist.settings.get(self.setting))
 
         index = 0
 
         for i, s in enumerate(self.settings):
             if isinstance(s, (tuple, list)):
-                s = s[0].lower()
+                s = self.transform_setting(s[0])
             else:
-                s = s.lower()
+                s = self.transform_setting(s)
 
             if s == setting:
                 index = i
@@ -271,8 +274,9 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         if isinstance(setting, (tuple, list)):
             setting = setting[0]
 
-        setting = setting.lower()
+        setting = self.transform_setting(setting)
 
+        print('old: {}, new: {}'.format(old_setting, setting))
         if setting == old_setting:
             return
 
@@ -331,6 +335,9 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         settings.append(('None', 'Do not display gutter marks'))
 
         return settings
+
+    def transform_setting(self, setting):
+        return setting
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):

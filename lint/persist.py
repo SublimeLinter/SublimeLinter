@@ -317,7 +317,7 @@ if not 'queue' in globals():
     edits = defaultdict(list)
 
     # Info about the gutter mark icons
-    gutter_marks = {'warning': 'dot', 'error': 'dot', 'colorize': True}
+    gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
 
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False

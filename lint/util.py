@@ -298,7 +298,7 @@ def build_menu(caption):
     commands = []
 
     for name in names:
-        commands.append(CHOOSER_COMMAND.format(name, setting.replace(' ', '_'), name.lower()))
+        commands.append(CHOOSER_COMMAND.format(name, setting.replace(' ', '_'), name))
 
     return ',\n'.join(commands)
 

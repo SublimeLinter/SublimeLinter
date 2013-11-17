@@ -40,8 +40,15 @@ def watch_gutter_themes():
     )
 
     for d in gutter_directories:
-        path = os.path.join(*d)
-        gutter_themes.append(os.path.join(sublime.packages_path(), path))
+        path = os.path.join(sublime.packages_path(), os.path.join(*d))
+
+        try:
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+            gutter_themes.append(path)
+        except OSError:
+            pass
 
     w.watch(gutter_themes, util.generate_menus)
     w.start()

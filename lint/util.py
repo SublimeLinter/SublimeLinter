@@ -356,16 +356,29 @@ def find_gutter_themes(themes, settings=None):
 # file/directory utils
 
 def climb(start_dir, limit=None):
+    """
+    Generate directories, starting from start_dir. If limit is None, stop at
+    the root directory. Otherwise return a maximum of limit directories.
+    """
     right = True
 
     while right and (limit is None or limit > 0):
         yield start_dir
         start_dir, right = os.path.split(start_dir)
-        limit -= 1
+
+        if limit is not None:
+            limit -= 1
 
 
 @lru_cache(maxsize=512)
 def find_file(start_dir, name, parent=False, limit=None):
+    """
+    Find the given file, starting from start_dir, and proceeding up
+    the file hierarchy. Returns the path to the file if parent is False
+    or the path to the file's parent directory if parent is True.
+    If limit is None, the search will continue up to the root directory.
+    Otherwise a maximum of limit directories will be checked.
+    """
     for d in climb(start_dir, limit=limit):
         target = os.path.join(d, name)
 

@@ -110,6 +110,15 @@ def inline_settings(comment_re, code, prefix=None):
     return settings
 
 
+def get_view_rc_settings(view, limit=None):
+    filename = view.file_name()
+
+    if filename:
+        return get_rc_settings(os.path.dirname(filename))
+    else:
+        return None
+
+
 def get_rc_settings(start_dir, limit=None):
     """
     Search for a file named .sublimelinterrc in rc_search_limit directories,

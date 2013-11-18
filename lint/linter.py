@@ -10,7 +10,6 @@
 
 from fnmatch import fnmatch
 from numbers import Number
-import os
 import re
 import shlex
 import sublime
@@ -293,8 +292,7 @@ class Linter(metaclass=Registrar):
         starting at the view's directory. If found, read the settings for the
         current linter and merge them with settings.
         """
-        start_dir = os.path.dirname(self.view.file_name())
-        rc_settings = util.get_rc_settings(start_dir, limit=persist.settings.get('rc_limit', 3))
+        rc_settings = util.get_view_rc_settings(self.view, limit=persist.settings.get('rc_limit', 3))
 
         if rc_settings:
             meta = self.meta_settings(rc_settings)

@@ -1,3 +1,8 @@
 {
-    "@python": 3
+    "@python": 3,
+    "linters": {
+        "pep8": {
+            "max-line-length": 120
+        }
+    }
 }

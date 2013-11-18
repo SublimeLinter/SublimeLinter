@@ -140,6 +140,7 @@ def get_rc_settings(start_dir, limit=None):
 
             return rc_settings
         except (OSError, ValueError) as ex:
+            from . import persist
             persist.debug('error loading \'{}\': {}'.format(path, str(ex)))
 
 
@@ -236,6 +237,71 @@ def generate_color_scheme_async():
                 'SublimeLinter generated and switched to an amended version'
                 ' of “{}”.'.format(original_name)
             )
+
+
+def install_languages():
+    sublime.set_timeout_async(install_languages_async, 0)
+
+
+def install_languages_async():
+    plugin_dir = os.path.dirname(os.path.dirname(__file__))
+
+    for language in ['HTML']:
+        # See if our version of the language already exists in Packages
+        src_dir = os.path.join(plugin_dir, language)
+        version_file = os.path.join(src_dir, 'sublimelinter.version')
+
+        if os.path.isdir(src_dir) and os.path.isfile(version_file):
+            with open(version_file, encoding='utf8') as f:
+                my_version = int(f.read().strip())
+
+            dest_dir = os.path.join(sublime.packages_path(), language)
+            version_file = os.path.join(dest_dir, 'sublimelinter.version')
+
+            if os.path.isdir(dest_dir):
+                if os.path.isfile(version_file):
+                    with open(version_file, encoding='utf8') as f:
+                        try:
+                            other_version = int(f.read().strip())
+                        except ValueError:
+                            other_version = 0
+
+                    copy = my_version > other_version
+                else:
+                    copy = sublime.ok_cancel_dialog(
+                        'An existing {} language package exists, '.format(language) +
+                        'and SublimeLinter wants to overwrite it with its version. ' +
+                        'Is that okay?')
+
+                if copy:
+                    try:
+                        shutil.rmtree(dest_dir)
+                    except OSError as ex:
+                        from . import persist
+                        persist.printf(
+                            'could not remove existing {} language package: {}'
+                            .format(language, str(ex))
+                        )
+                        copy = False
+            else:
+                copy = True
+
+            if copy:
+                from . import persist
+
+                try:
+                    cached = os.path.join(sublime.cache_path(), language)
+
+                    if os.path.isdir(cached):
+                        shutil.rmtree(cached)
+
+                    shutil.copytree(src_dir, dest_dir)
+                    persist.printf('copied {} language package'.format(language))
+                except OSError as ex:
+                    persist.printf(
+                        'could not copy {} language package: {}'
+                        .format(language, str(ex))
+                    )
 
 
 # menu utils

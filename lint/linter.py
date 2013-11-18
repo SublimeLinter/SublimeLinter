@@ -246,12 +246,22 @@ class Linter(metaclass=Registrar):
         rc meta settings
         shebang or inline settings (overrides)
         """
+        # Start with the overall project settings
+        data = self.view.window().project_data() or {}
+        project_settings = data.get(persist.PLUGIN_NAME, {})
+
+        # Merge global meta settings with project meta settings
         meta = self.meta_settings(persist.settings)
-        data = self.view.window().project_data().get(persist.PLUGIN_NAME, {})
-        meta.update(self.meta_settings(data))
-        project_settings = data.get('linters', {}).get(self.name, {})
+        meta.update(self.meta_settings(project_settings))
+
+        # Get the linter's project settings, update them with meta settings
+        project_settings = project_settings.get('linters', {}).get(self.name, {})
         project_settings.update(meta)
+
+        # Merge the linter's settings with the project settings
         settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
+
+        # Finally, merge in rc settings
         self.merge_rc_settings(settings)
 
         if not no_inline:

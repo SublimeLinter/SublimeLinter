@@ -1,6 +1,7 @@
 {
     "default": {
         "debug": true,
+        "delay": 0.25,
         "error_color": "D02000",
         "gutter_theme": "default",
         "lint_mode": "background",

@@ -232,7 +232,7 @@ class Daemon:
                     for view_id, timestamp in last_runs.copy().items():
                         # If more than the minimum delay has elapsed since the last run,
                         # update the view.
-                        if time.monotonic() > timestamp + self.MIN_DELAY:
+                        if time.monotonic() > timestamp:
                             self.last_runs[view_id] = time.monotonic()
                             del last_runs[view_id]
                             self.reenter(view_id, timestamp)
@@ -265,11 +265,20 @@ class Daemon:
 
     def hit(self, view):
         timestamp = time.monotonic()
-        self.q.put((view.id(), timestamp))
+        delay = self.get_delay(view)
+        self.q.put((view.id(), timestamp + delay))
         return timestamp
 
     def delay(self, milliseconds=100):
         self.q.put(milliseconds / 1000.0)
+
+    def get_delay(self, view):
+        delay = (util.get_view_rc_settings(view) or {}).get("delay")
+
+        if delay is None:
+            delay = self.settings.get("delay", self.MIN_DELAY)
+
+        return delay
 
     def debug(self, *args):
         if self.settings.get('debug'):

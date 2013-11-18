@@ -794,8 +794,8 @@ class Linter(metaclass=Registrar):
         # Capitalize the first word
         error = error[0].upper() + error[1:]
 
-        # Strip trailing space and period
-        error = ((col or 0), str(error).rstrip(' .'))
+        # Strip trailing CR, space and period
+        error = ((col or 0), str(error).rstrip('\r .'))
 
         if line in self.errors:
             self.errors[line].append(error)

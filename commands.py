@@ -276,7 +276,6 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
         setting = self.transform_setting(setting)
 
-        print('old: {}, new: {}'.format(old_setting, setting))
         if setting == old_setting:
             return
 

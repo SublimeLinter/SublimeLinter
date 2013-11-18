@@ -598,6 +598,8 @@ class Linter(metaclass=Registrar):
         if not path:
             persist.debug('unable to locate \'{}\''.format(which))
             return ''
+        elif isinstance(path, str):
+            path = [path]
 
         cmd[0:1] = path
 

@@ -113,8 +113,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         for sel, _ in Linter.get_selectors(view_id):
             sections[sel] = []
 
-            for result in view.find_by_selector(sel):
-                sections[sel].append((view.rowcol(result.a)[0], result.a, result.b))
+            for region in view.find_by_selector(sel):
+                sections[sel].append((view.rowcol(region.a)[0], region.a, region.b))
 
         filename = view.file_name()
         code = Linter.text(view)

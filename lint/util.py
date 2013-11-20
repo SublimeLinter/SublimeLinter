@@ -27,6 +27,8 @@ INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)(?:\s*:\s*(?P<value>[^\s]+
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
+home_dir = os.path.expanduser('~')
+
 
 # settings utils
 
@@ -127,11 +129,13 @@ def get_rc_settings(start_dir, limit=None):
     if not start_dir:
         return
 
-    path = find_file(
-        start_dir,
-        '.sublimelinterrc',
-        limit=limit
-    )
+    path = find_file(start_dir, '.sublimelinterrc', limit=limit)
+
+    if not path:
+        path = os.path.join(home_dir, '.sublimelinterrc')
+
+        if not os.path.isfile(path):
+            path = None
 
     if path:
         try:

@@ -14,7 +14,7 @@ import re
 import shlex
 import sublime
 
-from . import highlight as hilite, persist, util
+from . import highlight, persist, util
 
 ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
@@ -114,7 +114,7 @@ class Linter(metaclass=Registrar):
 
     # The default type assigned to non-classified errors. Should be either
     # highlight.ERROR or highlight.WARNING.
-    default_type = hilite.ERROR
+    default_type = highlight.ERROR
 
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
@@ -218,7 +218,7 @@ class Linter(metaclass=Registrar):
             except re.error:
                 persist.debug('error compiling regex for {}'.format(self.language))
 
-        self.highlight = hilite.Highlight()
+        self.highlight = highlight.Highlight()
 
         if isinstance(self.comment_re, str):
             self.__class__.comment_re = re.compile(self.comment_re)
@@ -558,11 +558,11 @@ class Linter(metaclass=Registrar):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def reset(self, code, filename=None, highlight=None):
+    def reset(self, code, filename=None):
         self.errors = {}
         self.code = code
         self.filename = filename or self.filename
-        self.highlight = highlight or hilite.Highlight(self.code)
+        self.highlight = highlight.Highlight(self.code)
 
     def get_cmd(self):
         if callable(self.cmd):
@@ -701,7 +701,7 @@ class Linter(metaclass=Registrar):
         for match, row, col, error_type, message, near in self.find_errors(output):
             if match and row is not None:
                 if error_type and WARNING_RE.match(error_type) is not None:
-                    error_type = hilite.WARNING
+                    error_type = highlight.WARNING
                 else:
                     error_type = self.default_type
 
@@ -737,7 +737,7 @@ class Linter(metaclass=Registrar):
     @staticmethod
     def clear_view(view):
         view.erase_status('sublimelinter')
-        hilite.Highlight.clear(view)
+        highlight.Highlight.clear(view)
 
         if view.id() in persist.errors:
             del persist.errors[view.id()]

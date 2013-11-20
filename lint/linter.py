@@ -706,9 +706,9 @@ class Linter(metaclass=Registrar):
                     error_type = self.default_type
 
                 if col is not None:
-                    # Pin the column to the line's length
+                    # Pin the column to the start/end line offsets
                     start, end = self.highlight.full_line(row)
-                    col = min(col, (end - start) - 1)
+                    col = max(min(col, (end - start) - 1), 0)
 
                     # Adjust column numbers to match the linter's tabs if necessary
                     if self.tab_width > 1:

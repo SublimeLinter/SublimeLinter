@@ -116,6 +116,12 @@ class Linter(metaclass=Registrar):
     # highlight.ERROR or highlight.WARNING.
     default_type = highlight.ERROR
 
+    # Linters usually report errors with a line number, some with a column number
+    # as well. In general, most linters report one-based line numbers and column
+    # numbers. If a linter uses zero-based line numbers or column numbers, the
+    # linter class should define this attribute accordingly.
+    line_col_base = (1, 1)
+
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
     tempfile_suffix = None
@@ -702,8 +708,8 @@ class Linter(metaclass=Registrar):
             stripped_output = output.replace('\r', '').strip()
             persist.printf('{} output:\n{}'.format(self.__class__.__name__, stripped_output))
 
-        for match, row, col, error_type, message, near in self.find_errors(output):
-            if match and row is not None:
+        for match, line, col, error_type, message, near in self.find_errors(output):
+            if match and line is not None:
                 if error_type and WARNING_RE.match(error_type) is not None:
                     error_type = highlight.WARNING
                 else:
@@ -727,13 +733,13 @@ class Linter(metaclass=Registrar):
                                 col = i
                                 break
 
-                    self.highlight.range(row, col, error_type=error_type, word_re=self.word_re)
+                    self.highlight.range(line, col, error_type=error_type, word_re=self.word_re)
                 elif near:
-                    col = self.highlight.near(row, near, error_type=error_type, word_re=self.word_re)
+                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
                 else:
-                    self.highlight.range(row, 0, length=0, error_type=error_type, word_re=self.word_re)
+                    self.highlight.range(line, 0, length=0, error_type=error_type, word_re=self.word_re)
 
-                self.error(row, col, message, error_type)
+                self.error(line, col, message, error_type)
 
     def draw(self):
         self.highlight.draw(self.view)
@@ -832,20 +838,20 @@ class Linter(metaclass=Registrar):
         if match:
             items = {'line': None, 'col': None, 'type': None, 'error': '', 'near': None}
             items.update(match.groupdict())
-            row, col, error_type, error, near = [
+            line, col, error_type, error, near = [
                 items[k] for k in ('line', 'col', 'type', 'error', 'near')
             ]
 
-            if row is not None:
-                row = int(row) - 1
+            if line is not None:
+                line = int(line) - self.line_col_base[0]
 
             if col is not None:
                 if col.isdigit():
-                    col = int(col) - 1
+                    col = int(col) - self.line_col_base[1]
                 else:
                     col = len(col)
 
-            return match, row, col, error_type, error, near
+            return match, line, col, error_type, error, near
         else:
             return match, None, None, None, '', None
 

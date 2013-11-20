@@ -110,12 +110,12 @@ class Daemon:
         if (not need_relint and self.previous_settings.get('linters') != self.settings.get('linters')):
             need_relint = True
 
-        # Reattach settings objects to linters
-        Linter.reload()
-
         # Update the gutter marks if the theme changed
         if self.previous_settings.get('gutter_theme') != self.settings.get('gutter_theme'):
             self.update_gutter_marks()
+
+        if need_relint:
+            Linter.reload()
 
         if self.on_settings_updated:
             self.on_settings_updated(need_relint)

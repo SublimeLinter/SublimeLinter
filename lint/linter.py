@@ -448,7 +448,7 @@ class Linter(metaclass=Registrar):
                 persist.linters[vid].add(linter)
 
     @classmethod
-    def apply_to_all(cls, action):
+    def apply_to_all_highlights(cls, action):
         def apply(view):
             highlights = persist.highlights.get(view.id())
 
@@ -459,12 +459,12 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def clear_all(cls):
-        cls.apply_to_all('reset')
+        cls.apply_to_all_highlights('reset')
         persist.errors.clear()
 
     @classmethod
     def redraw_all(cls):
-        cls.apply_to_all('redraw')
+        cls.apply_to_all_highlights('redraw')
 
     @classmethod
     def text(cls, view):

@@ -112,6 +112,10 @@ class Linter(metaclass=Registrar):
     # If you want to set flags on the regex other than re.MULTILINE, set this.
     re_flags = 0
 
+    # The default type assigned to non-classified errors. Should be either
+    # highlight.ERROR or highlight.WARNING.
+    default_type = hilite.ERROR
+
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
     tempfile_suffix = None
@@ -696,7 +700,7 @@ class Linter(metaclass=Registrar):
                 if error_type and WARNING_RE.match(error_type) is not None:
                     error_type = hilite.WARNING
                 else:
-                    error_type = hilite.ERROR
+                    error_type = self.default_type
 
                 if col is not None:
                     # Pin the column to the line's length

@@ -225,15 +225,19 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def get_settings(cls):
-        '''Return the default settings for this linter, merged with the user settings.'''
-        linters = persist.settings.get('linters', {})
-        settings = (cls.defaults or {}).copy()
-        settings.update(linters.get(cls.name, {}))
-        return settings
+        """Return the default settings for this linter, merged with the user settings."""
+
+        if cls.lint_settings is None and not cls.__name__.startswith('Embedded'):
+            linters = persist.settings.get('linters', {})
+            cls.lint_settings = (cls.defaults or {}).copy()
+            cls.lint_settings.update(linters.get(cls.name, {}))
+
+        return cls.lint_settings
 
     @property
     def settings(cls):
-        return cls.lint_settings
+        """Return the default settings for this linter, merged with the user settings."""
+        return cls.get_settings()
 
     @staticmethod
     def meta_settings(settings):
@@ -263,7 +267,7 @@ class Linter(metaclass=Registrar):
         project_settings.update(meta)
 
         # Update the linter's settings with the project settings
-        settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
+        settings = self.merge_project_settings(self.settings.copy(), project_settings)
 
         # Update with rc settings
         self.merge_rc_settings(settings)
@@ -428,7 +432,7 @@ class Linter(metaclass=Registrar):
         # Merge linter default settings with user settings
         for name, linter in persist.languages.items():
             if not name.startswith('embedded'):
-                linter.lint_settings = linter.get_settings()
+                linter.lint_settings = None
 
         for vid, linters in persist.linters.items():
             for linter in linters:

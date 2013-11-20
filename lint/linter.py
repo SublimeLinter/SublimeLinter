@@ -197,6 +197,7 @@ class Linter(metaclass=Registrar):
     #
     # Internal class storage, do not set
     #
+    RC_SEARCH_LIMIT = 3
     errors = None
     highlight = None
     lint_settings = None
@@ -296,7 +297,9 @@ class Linter(metaclass=Registrar):
         starting at the view's directory. If found, read the settings for the
         current linter and merge them with settings.
         """
-        rc_settings = util.get_view_rc_settings(self.view, limit=persist.settings.get('rc_limit', 3))
+
+        search_limit = persist.settings.get('rc_search_limit', self.RC_SEARCH_LIMIT)
+        rc_settings = util.get_view_rc_settings(self.view, limit=search_limit)
 
         if rc_settings:
             meta = self.meta_settings(rc_settings)

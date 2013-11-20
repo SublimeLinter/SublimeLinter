@@ -213,7 +213,6 @@ class Linter(metaclass=Registrar):
         self.syntax = syntax
         self.filename = filename
         self.code = ''
-        self.linter_settings = None
 
         if self.regex:
             if self.multiline:
@@ -230,7 +229,7 @@ class Linter(metaclass=Registrar):
             self.__class__.comment_re = re.compile(self.comment_re)
 
     @classmethod
-    def get_settings(cls):
+    def settings(cls):
         """Return the default settings for this linter, merged with the user settings."""
 
         if cls.lint_settings is None and not cls.__name__.startswith('Embedded'):
@@ -273,7 +272,7 @@ class Linter(metaclass=Registrar):
         project_settings.update(meta)
 
         # Update the linter's settings with the project settings
-        settings = self.merge_project_settings(self.settings.copy(), project_settings)
+        settings = self.merge_project_settings(self.settings().copy(), project_settings)
 
         # Update with rc settings
         self.merge_rc_settings(settings)
@@ -717,7 +716,7 @@ class Linter(metaclass=Registrar):
 
                 if col is not None:
                     # Pin the column to the start/end line offsets
-                    start, end = self.highlight.full_line(row)
+                    start, end = self.highlight.full_line(line)
                     col = max(min(col, (end - start) - 1), 0)
 
                     # Adjust column numbers to match the linter's tabs if necessary

@@ -130,7 +130,7 @@ class Daemon:
             if name.startswith('embedded'):
                 continue
 
-            default = linter.settings.copy()
+            default = linter.settings().copy()
             default.update(linters.pop(name, {}))
 
             if '@disable' not in default:

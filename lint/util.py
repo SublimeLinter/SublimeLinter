@@ -1,3 +1,4 @@
+# coding=utf8
 #
 # util.py
 # Part of SublimeLinter3, a code checking framework for Sublime Text 3
@@ -26,8 +27,6 @@ INLINE_SETTINGS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<settings>[^\]]+)\]')
 INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)(?:\s*:\s*(?P<value>[^\s]+))?')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
-
-home_dir = os.path.expanduser('~')
 
 
 # settings utils
@@ -123,19 +122,19 @@ def get_view_rc_settings(view, limit=None):
 
 def get_rc_settings(start_dir, limit=None):
     """
-    Search for a file named .sublimelinterrc in rc_search_limit directories,
-    starting at start_dir. If found, read the settings and return them.
+    Search for a file named .sublimelinterrc starting in start_dir.
+
+    From start_dir it ascends towards the root directory for a maximum
+    of limit directories (including start_dir). If the file is found,
+    it is read as JSON and the resulting object is returned. If the file
+    is not found, None is returned.
+
     """
+
     if not start_dir:
         return
 
     path = find_file(start_dir, '.sublimelinterrc', limit=limit)
-
-    if not path:
-        path = os.path.join(home_dir, '.sublimelinterrc')
-
-        if not os.path.isfile(path):
-            path = None
 
     if path:
         try:
@@ -146,6 +145,8 @@ def get_rc_settings(start_dir, limit=None):
         except (OSError, ValueError) as ex:
             from . import persist
             persist.debug('error loading \'{}\': {}'.format(path, str(ex)))
+    else:
+        return None
 
 
 def generate_color_scheme(from_reload=True):

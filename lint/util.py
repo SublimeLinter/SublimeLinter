@@ -735,6 +735,10 @@ def tmpdir(cmd, files, filename, code):
             if os.path.split(target)[1] == filename:
                 # source file hasn't been saved since change, so update it from our live buffer
                 f = open(target, 'wb')
+
+                if isinstance(code, str):
+                    code = code.encode('utf8')
+
                 f.write(code)
                 f.close()
             else:

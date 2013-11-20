@@ -246,7 +246,7 @@ class Linter(metaclass=Registrar):
         linter settings (default settings + user settings)
         project settings
         user + project meta settings
-        rc settings (overrides)
+        rc settings
         rc meta settings
         shebang or inline settings (overrides)
         """
@@ -262,10 +262,10 @@ class Linter(metaclass=Registrar):
         project_settings = project_settings.get('linters', {}).get(self.name, {})
         project_settings.update(meta)
 
-        # Merge the linter's settings with the project settings
+        # Update the linter's settings with the project settings
         settings = self.merge_project_settings(self.lint_settings.copy(), project_settings)
 
-        # Finally, merge in rc settings
+        # Update with rc settings
         self.merge_rc_settings(settings)
 
         if not no_inline:
@@ -305,7 +305,7 @@ class Linter(metaclass=Registrar):
             meta = self.meta_settings(rc_settings)
             rc_settings = rc_settings.get('linters', {}).get(self.name, {})
             rc_settings.update(meta)
-            self.merge_inline_settings(settings, rc_settings)
+            settings.update(rc_settings)
 
     def merge_inline_settings(self, view_settings, inline_settings):
         '''

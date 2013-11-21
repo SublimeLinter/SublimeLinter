@@ -8,6 +8,26 @@
 # License: MIT
 #
 
+"""
+This module implements highlighting code with marks.
+
+The following classes are exported:
+
+HighlightSet
+Highlight
+
+
+The following constants are exported:
+
+WARNING - name of warning type
+ERROR   - name of error type
+
+MARK_KEY_FORMAT         - format string for key used to mark code regions
+GUTTER_MARK_KEY_FORMAT  - format string for key used to mark gutter mark regions
+MARK_SCOPE_FORMAT       - format string used for color scheme scope names
+
+"""
+
 import re
 import sublime
 from . import persist
@@ -38,6 +58,7 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
 def mark_style_names():
+    """Return the keys from MARK_STYLES, sorted and capitalized, with None at the end."""
     names = list(MARK_STYLES)
     names.remove('none')
     names.sort()
@@ -46,14 +67,26 @@ def mark_style_names():
 
 
 class HighlightSet:
-    """A set of Highlight objects which can perform bulk draw/clear."""
+
+    """This class maintains a set of Highlight objects and performs bulk operations on them."""
+
     def __init__(self):
         self.all = set()
 
     def add(self, highlight):
+        """Add a Highlight to the set."""
         self.all.add(highlight)
 
     def draw(self, view):
+        """
+        Draw all of the Highlight objects in our set.
+
+        Rather than draw each Highlight object individually, the marks in each
+        object are aggregated into a new Highlight object, and that object
+        is then drawn for the given view.
+
+        """
+
         if not self.all:
             return
 
@@ -66,15 +99,18 @@ class HighlightSet:
 
     @staticmethod
     def clear(view):
+        """Clear all marks in the given view."""
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
     def redraw(self, view):
+        """Redraw all marks in the given view."""
         self.clear(view)
         self.draw(view)
 
     def reset(self, view):
+        """Clear all marks in the given view and reset the list of marks in our Highlights."""
         self.clear(view)
 
         for highlight in self.all:
@@ -82,7 +118,9 @@ class HighlightSet:
 
 
 class Highlight:
-    """A class that represents one or more highlights and knows how to draw itself."""
+
+    """This class maintains error marks and knows how to draw them."""
+
     def __init__(self, code=''):
         self.code = code
         self.marks = {WARNING: [], ERROR: []}
@@ -99,8 +137,12 @@ class Highlight:
         self.line_offset = 0
         self.char_offset = 0
 
-        # Find all the newlines, so we can look for line positions
-        # without merging back into the main thread for APIs
+        # Linting runs asynchronously on a snapshot of the code. Marks are added to the code
+        # during that asynchronous linting, and the markup code needs to calculate character
+        # positions given a line + column. By the time marks are added, the actual buffer
+        # may have changed, so we can't reliably use the plugin API to calculate character
+        # positions. The solution is to calculate and store the character positions for
+        # every line when this object is created, then reference that when needed.
         self.newlines = newlines = [0]
         last = -1
 
@@ -116,22 +158,33 @@ class Highlight:
 
     def full_line(self, line):
         """
-        Returns the *real* character positions for the start and end of the given
-        *virtual* line (adjusted by the line_offset).
+        Return the start/end character positions for the given line.
+
+        This returns *real* character positions (relative to the beginning of self.code)
+        base on the *virtual* line number (adjusted by the self.line_offset).
+
         """
         start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
         return start, end
 
-    def range(self, line, pos, length=-1, error_type='error', word_re=None):
+    def range(self, line, pos, length=-1, error_type=ERROR, word_re=None):
         """
-        Marks a range of text on the given zero-based line, starting at the given position
-        on the line. The length argument can be used to control marking:
+        Mark a range of text.
+
+        line and pos should be zero-based. The length argument can be used to control marking:
 
             - If length < 0, the nearest word starting at pos is marked, and if
               no word is matched, the character at pos is marked.
 
             - If length == 0, no text is marked, but a gutter mark will appear on that line.
+
+        error_type determines what type of error mark will be drawn (ERROR or WARNING).
+
+        When length < 0, this method attempts to mark the closest word at pos on the given line.
+        If you want to customize the word matching regex, pass it in word_re.
+
         """
+
         start, end = self.full_line(line)
 
         if length < 0:
@@ -147,7 +200,24 @@ class Highlight:
         self.marks[error_type].append(sublime.Region(pos, pos + length))
 
     def regex(self, line, regex, error_type=ERROR,
-              word_match=None, line_match=None, word_re=None):
+              line_match=None, word_match=None, word_re=None):
+        """
+        Mark a range of text that matches a regex.
+
+        line, error_type and word_re are the same as in range().
+
+        line_match may be a string pattern or a compiled regex.
+        If provided, it must have a named group called 'match' that
+        determines which part of the source line will be considered
+        for marking.
+
+        word_match may be a string pattern or a compiled regex.
+        If provided, it must have a named group called 'mark' that
+        determines which part of the source line will actually be marked.
+        Multiple portions of the source line may match.
+
+        """
+
         offset = 0
 
         start, end = self.full_line(line)
@@ -164,19 +234,37 @@ class Highlight:
 
         it = re.finditer(regex, lineText)
         results = [
-            (result.start('mark'), result.end('mark'))
+            result.span('mark')
             for result in it
-            if not word_match or result.group('mark') == word_match
+            if word_match is None or result.group('mark') == word_match
         ]
 
         for start, end in results:
-            self.range(line, start + offset, end - start, error_type=error_type, word_re=word_re)
+            self.range(line, start + offset, end - start, error_type=error_type)
 
     def near(self, line, near, error_type=ERROR, word_re=None):
+        """
+        Mark a range of text near a given word.
+
+        line, error_type and word_re are the same as in range().
+
+        If near is enclosed by quotes, they are stripped. The first occurrence
+        of near in the given line of code is matched. If the first and last
+        characters of near are word characters, a match occurs only if near
+        is a complete word.
+
+        The position at which near is found is returned, or zero if there
+        is no match.
+
+        """
+
+        if not near:
+            return
+
         start, end = self.full_line(line)
         text = self.code[start:end]
 
-        # Strip enclosing quotes from the text to match.
+        # Strip enclosing quotes from the text to match
         first = near[0]
 
         if first in ('\'', '"') and near[-1] == first:
@@ -203,6 +291,16 @@ class Highlight:
             return 0
 
     def update(self, other):
+        """
+        Update this object with another Highlight.
+
+        It is assumed that other.code == self.code.
+
+        other's marks and error positions are merged, and this
+        object takes the newlines array from other.
+
+        """
+
         for error_type in (WARNING, ERROR):
             self.marks[error_type].extend(other.marks[error_type])
 
@@ -216,6 +314,7 @@ class Highlight:
         self.newlines = other.newlines
 
     def set_mark_style(self):
+        """Setup the mark style and flags based on settings."""
         self.mark_style = persist.settings.get('mark_style', 'outline')
         self.mark_flags = MARK_STYLES[self.mark_style]
 
@@ -223,10 +322,17 @@ class Highlight:
             self.mark_flags |= sublime.HIDE_ON_MINIMAP
 
     def draw(self, view):
+        """
+        Draw code and gutter marks in the given view.
+
+        Error, warning and gutter marks are drawn with separate regions,
+        since each one potentially needs a different color.
+
+        """
         self.set_mark_style()
 
         gutter_regions = {WARNING: [], ERROR: []}
-        draw_gutter_marks = persist.settings.get('gutter-theme', 'Default') != 'none'
+        draw_gutter_marks = persist.settings.get('gutter-theme', 'Default') != 'None'
 
         if draw_gutter_marks:
             # We use separate regions for the gutter marks so we can use
@@ -260,16 +366,25 @@ class Highlight:
 
     @staticmethod
     def clear(view):
+        """Clear all marks in the given view."""
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
     def reset(self):
+        """
+        Clear the list of marks maintained by this object.
+
+        This method does not clear the marks, only the list.
+        The next time this object is used to draw, the marks will be cleared.
+
+        """
         for error_type in (WARNING, ERROR):
             del self.marks[error_type][:]
             self.lines.clear()
 
     def line(self, line, error_type):
+        """Record the given line as having the given error type."""
         line += self.line_offset
 
         # Errors override warnings, if it's already an error leave it
@@ -278,6 +393,14 @@ class Highlight:
 
         self.lines[line] = error_type
 
-    def move_to(self, line, char):
+    def move_to(self, line, char_offset):
+        """
+        Move the highlight to the given line and character offset.
+
+        The character offset is an absolute offset relative to the start
+        of self.code. This method is used to create virtual line numbers
+        and character positions when linting embedded code.
+
+        """
         self.line_offset = line
-        self.char_offset = char
+        self.char_offset = char_offset

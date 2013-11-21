@@ -8,7 +8,9 @@
 # License: MIT
 #
 
-from .linter import Linter, PythonLinter
+"""This module exports the linter classes and the highlight, linter, persist and util submodules."""
+
+from .linter import Linter, PythonLinter, Registrar
 
 from . import (
     highlight,
@@ -19,6 +21,7 @@ from . import (
 
 __all__ = [
     'highlight',
+    'Registrar',
     'Linter',
     'PythonLinter',
     'linter',

@@ -796,6 +796,18 @@ def apply_to_all_views(callback):
             callback(view)
 
 
+# misc utils
+
+def clear_caches():
+    """Clear the caches of all methods in this module that use an lru_cache."""
+    find_file.cache_clear()
+    create_environment.cache_clear()
+    which.cache_clear()
+    find_python.cache_clear()
+    get_python_paths.cache_clear()
+    find_executable.cache_clear()
+
+
 # color-related constants
 
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}

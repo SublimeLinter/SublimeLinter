@@ -86,8 +86,7 @@ class Daemon:
         # Clear the path-related caches if the paths list has changed
         if self.previous_settings.get('paths') != self.settings.get('paths'):
             need_relint = True
-            util.create_environment.cache_clear()
-            util.which.cache_clear()
+            util.clear_caches()
 
         # Add python paths if they changed
         if self.previous_settings.get('python_paths') != self.settings.get('python_paths'):

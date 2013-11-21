@@ -146,7 +146,7 @@ class Highlight:
         pos += start
         self.marks[error_type].append(sublime.Region(pos, pos + length))
 
-    def regex(self, line, regex, error_type='error',
+    def regex(self, line, regex, error_type=ERROR,
               word_match=None, line_match=None, word_re=None):
         offset = 0
 
@@ -172,7 +172,7 @@ class Highlight:
         for start, end in results:
             self.range(line, start + offset, end - start, error_type=error_type, word_re=word_re)
 
-    def near(self, line, near, error_type='error', word_re=None):
+    def near(self, line, near, error_type=ERROR, word_re=None):
         start, end = self.full_line(line)
         text = self.code[start:end]
 

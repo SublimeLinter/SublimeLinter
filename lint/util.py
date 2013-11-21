@@ -549,6 +549,8 @@ def create_environment():
 
         if isinstance(platform_paths, str):
             platform_paths = [platform_paths]
+    else:
+        platform_paths = []
 
     # "*" entry applies to all platforms
     universal_paths = paths.get('*', [])

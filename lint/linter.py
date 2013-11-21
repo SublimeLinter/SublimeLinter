@@ -892,7 +892,7 @@ class PythonLinter(Linter):
         match = PythonLinter.SHEBANG_RE.match(code)
 
         if match:
-            return ('@python', match.group('version'))
+            return '@python', match.group('version')
         else:
             return None
 

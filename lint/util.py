@@ -441,7 +441,6 @@ def climb(start_dir, limit=None):
             limit -= 1
 
 
-@lru_cache(maxsize=512)
 def find_file(start_dir, name, parent=False, limit=None):
     """
     Find the given file, starting from start_dir, and proceeding up
@@ -821,7 +820,6 @@ def apply_to_all_views(callback):
 
 def clear_caches():
     """Clear the caches of all methods in this module that use an lru_cache."""
-    find_file.cache_clear()
     create_environment.cache_clear()
     which.cache_clear()
     find_python.cache_clear()

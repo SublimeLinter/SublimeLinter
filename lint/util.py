@@ -659,6 +659,25 @@ def find_python(version=None, script=None):
 
 
 @lru_cache(maxsize=None)
+def get_python_paths():
+    """
+    Return sys.path for the system version of python 3.
+
+    If python 3 cannot be found on the system, [] is returned.
+
+    """
+
+    python_path = which('@python3')
+
+    if python_path:
+        code = r'import sys;print("\n".join(sys.path).strip())'
+        out = communicate((python_path,), code)
+        return out.splitlines()
+    else:
+        return []
+
+
+@lru_cache(maxsize=None)
 def find_executable(executable):
     # On Windows, if cmd does not have an extension, add .exe
     if sublime.platform() == 'windows' and not os.path.splitext(executable)[1]:

@@ -87,7 +87,7 @@ class Highlight:
         self.code = code
         self.marks = {WARNING: [], ERROR: []}
         self.mark_style = 'outline'
-        self.mark_flags = sublime.DRAW_NO_FILL
+        self.mark_flags = MARK_STYLES[self.mark_style]
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.

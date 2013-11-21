@@ -31,6 +31,12 @@ def plugin_loaded():
     watch_gutter_themes()
     persist.on_settings_updated_call(SublimeLinter.on_settings_updated)
 
+    # This ensures we lint the active view on a fresh install
+    window = sublime.active_window()
+
+    if window:
+        SublimeLinter.shared_plugin().on_activated(window.active_view())
+
 
 def watch_gutter_themes():
     w = watcher.PathWatcher()
@@ -86,12 +92,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         self.__class__.shared_instance = self
         persist.queue.start(self.lint)
-
-        # This gives us a chance to lint the active view on fresh install
-        window = sublime.active_window()
-
-        if window:
-            self.on_activated(window.active_view())
 
     @classmethod
     def lint_all_views(cls):

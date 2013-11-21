@@ -38,7 +38,7 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
 def mark_style_names():
-    names = list(MARK_STYLES.keys())
+    names = list(MARK_STYLES)
     names.remove('none')
     names.sort()
     names.append('none')

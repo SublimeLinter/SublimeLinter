@@ -102,7 +102,11 @@ class SublimeLinter(sublime_plugin.EventListener):
         util.apply_to_all_views(apply)
 
     def lint(self, view_id, hit_time=None, callback=None):
-        callback = callback or self.highlight
+        # If the view has been modified since the lint was triggered,
+        # don't lint again.
+        if hit_time is not None and self.last_hit_times.get(view_id, 0) > hit_time:
+            return
+
         view = Linter.get_view(view_id)
 
         if view is None:
@@ -119,6 +123,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         filename = view.file_name()
         code = Linter.text(view)
+        callback = callback or self.highlight
         Linter.lint_view(view_id, filename, code, sections, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):

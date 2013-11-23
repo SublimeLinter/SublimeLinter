@@ -17,7 +17,6 @@ import sublime
 from . import highlight, persist, util
 
 ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
-WARNING_RE = re.compile(r'^w(?:arn(?:ing)?)?$', re.IGNORECASE)
 
 
 class Registrar(type):
@@ -707,9 +706,11 @@ class Linter(metaclass=Registrar):
             stripped_output = output.replace('\r', '').strip()
             persist.printf('{} output:\n{}'.format(self.__class__.__name__, stripped_output))
 
-        for match, line, col, error_type, message, near in self.find_errors(output):
+        for match, line, col, error, warning, message, near in self.find_errors(output):
             if match and line is not None:
-                if error_type and WARNING_RE.match(error_type) is not None:
+                if error:
+                    error_type = highlight.ERROR
+                elif warning:
                     error_type = highlight.WARNING
                 else:
                     error_type = self.default_type
@@ -835,10 +836,10 @@ class Linter(metaclass=Registrar):
 
     def split_match(self, match):
         if match:
-            items = {'line': None, 'col': None, 'type': None, 'error': '', 'near': None}
+            items = {'line': None, 'col': None, 'error': None, 'warning': None, 'message': '', 'near': None}
             items.update(match.groupdict())
-            line, col, error_type, error, near = [
-                items[k] for k in ('line', 'col', 'type', 'error', 'near')
+            line, col, error, warning, message, near = [
+                items[k] for k in ('line', 'col', 'error', 'warning', 'message', 'near')
             ]
 
             if line is not None:
@@ -850,9 +851,9 @@ class Linter(metaclass=Registrar):
                 else:
                     col = len(col)
 
-            return match, line, col, error_type, error, near
+            return match, line, col, error, warning, message, near
         else:
-            return match, None, None, None, '', None
+            return match, None, None, None, None, '', None
 
     def match_error(self, r, line):
         return self.split_match(r.match(line))

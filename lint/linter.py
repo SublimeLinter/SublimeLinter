@@ -594,9 +594,7 @@ class Linter(metaclass=Registrar):
         # First we get merged settings: default, user, project and inline
         settings = self.get_view_settings()
 
-        # Now map settings to args
-        args = self.build_args(settings)
-        cmd = self.cmd
+        cmd = cmd or self.cmd
 
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
@@ -605,6 +603,7 @@ class Linter(metaclass=Registrar):
 
         # Check to see if we have a @python command
         match = util.PYTHON_CMD_RE.match(cmd[0])
+        settings = self.get_view_settings()
 
         if match and '@python' in settings:
             which = '{}@python{}'.format(match.group('script') or '', settings.get('@python'))
@@ -622,6 +621,7 @@ class Linter(metaclass=Registrar):
             path = [path]
 
         cmd[0:1] = path
+        args = self.build_args(settings)
 
         if '*' in cmd:
             i = cmd.index('*')

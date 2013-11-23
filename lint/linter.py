@@ -23,6 +23,11 @@ class Registrar(type):
     '''This metaclass registers the linter when the class is declared.'''
     def __init__(cls, name, bases, attrs):
         if bases:
+            cmd = attrs.get('cmd')
+
+            if isinstance(cmd, str):
+                setattr(cls, 'cmd', shlex.split(cmd))
+
             if 'word_re' in attrs and isinstance(attrs['word_re'], str):
                 setattr(cls, 'word_re', re.compile(cls.word_re))
 
@@ -85,7 +90,7 @@ class Linter(metaclass=Registrar):
     language = ''
 
     # A string, tuple or callable that returns a string, list or tuple, containing the
-    # command line arguments used to lint.
+    # command line (with arguments) used to lint.
     cmd = ''
 
     # If the name of the executable cannot be determined by the first element of cmd

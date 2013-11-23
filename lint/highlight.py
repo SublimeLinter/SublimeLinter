@@ -332,7 +332,7 @@ class Highlight:
         self.set_mark_style()
 
         gutter_regions = {WARNING: [], ERROR: []}
-        draw_gutter_marks = persist.settings.get('gutter-theme', 'Default') != 'None'
+        draw_gutter_marks = persist.settings.get('gutter_theme') != 'None'
 
         if draw_gutter_marks:
             # We use separate regions for the gutter marks so we can use

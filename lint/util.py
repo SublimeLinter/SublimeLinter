@@ -736,20 +736,20 @@ def tmpfile(cmd, code, suffix=''):
 
 
 def tmpdir(cmd, files, filename, code):
-    filename = os.path.split(filename)[1]
+    filename = os.path.basename(filename)
     d = tempfile.mkdtemp()
     out = None
 
     try:
         for f in files:
             try:
-                os.makedirs(os.path.join(d, os.path.split(f)[0]))
+                os.makedirs(os.path.join(d, os.path.dirname(f)))
             except OSError:
                 pass
 
             target = os.path.join(d, f)
 
-            if os.path.split(target)[1] == filename:
+            if os.path.basename(target) == filename:
                 # source file hasn't been saved since change, so update it from our live buffer
                 f = open(target, 'wb')
 

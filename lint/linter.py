@@ -844,7 +844,7 @@ class Linter(metaclass=Registrar):
                 yield self.split_match(None)
         else:
             for line in output.splitlines():
-                yield self.match_error(self.regex, line.strip())
+                yield self.split_match(self.regex.match(line.strip()))
 
     def split_match(self, match):
         if match:
@@ -866,9 +866,6 @@ class Linter(metaclass=Registrar):
             return match, line, col, error, warning, message, near
         else:
             return match, None, None, None, None, '', None
-
-    def match_error(self, r, line):
-        return self.split_match(r.match(line))
 
     # Subclasses may need to override this in complex cases
     def run(self, cmd, code):

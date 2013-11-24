@@ -653,7 +653,7 @@ class Linter(metaclass=Registrar):
         if isinstance(args, str):
             args = [args]
         else:
-            args = [] + args
+            args = [] + args  # make a copy
 
         args_map = getattr(self, 'args_map', {})
 
@@ -661,41 +661,41 @@ class Linter(metaclass=Registrar):
             if setting not in settings or setting[0] == '@':
                 continue
 
-            options = settings[setting]
+            values = settings[setting]
 
-            if options is None:
+            if values is None:
                 continue
-            elif isinstance(options, (list, tuple)):
-                if options:
-                    # If the options can be passed as a single list, render them now
+            elif isinstance(values, (list, tuple)):
+                if values:
+                    # If the values can be passed as a single list, join them now
                     if arg_info['sep'] and not arg_info['multiple']:
-                        options = [arg_info['sep'].join(options)]
+                        values = [arg_info['sep'].join(values)]
                 else:
                     continue
-            elif isinstance(options, str):
-                if options:
-                    options = [options]
+            elif isinstance(values, str):
+                if values:
+                    values = [values]
                 else:
                     continue
-            elif isinstance(options, Number):
-                if options is False:
+            elif isinstance(values, Number):
+                if values is False:
                     continue
                 else:
-                    options = [options]
+                    values = [values]
             else:
                 # Unknown type
                 continue
 
-            for option in options:
+            for value in values:
                 arg = arg_info['prefix'] + arg_info['name']
                 joiner = arg_info['joiner']
 
                 if joiner == '=':
-                    args.append('{}={}'.format(arg, option))
+                    args.append('{}={}'.format(arg, value))
                 elif joiner == ':':
                     args.append(arg)
-                    args.append(str(option))
-                elif not joiner and option is True:
+                    args.append(str(value))
+                elif not joiner and value is True:
                     args.append(arg)
 
         return args

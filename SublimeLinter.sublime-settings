@@ -19,7 +19,9 @@
         "rc_search_limit": 3,
         "show_errors_on_save": false,
         "show_marks_in_minimap": true,
-        "syntax_map": {},
+        "syntax_map": {
+            "php": "html"
+        },
         "warning_color": "EEBA00",
         "wrap_find": true
     }

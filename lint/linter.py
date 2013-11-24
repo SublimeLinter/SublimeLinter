@@ -134,10 +134,11 @@ class Linter(metaclass=Registrar):
     tab_width = 1
 
     # If you want to limit the linter to specific portions of the source
-    # based on a scope selector, set this attribute to the selector. For example,
-    # in an html file with embedded php, you would set the selector for a php
-    # linter to 'source.php'.
-    selector = None
+    # based on a scope selector, set this attribute to a mapping between
+    # language (syntax) names and scope selectors. For example,
+    # in an html file with embedded JavaScript, you would set the selectors
+    # for a JavaScript linter to {'html': 'source.js.embedded.html'}.
+    selectors = {}
 
     # If a linter reports a column position, SublimeLinter selects the nearest
     # word at that point. You can customize the regex used to select words
@@ -236,17 +237,12 @@ class Linter(metaclass=Registrar):
     def settings(cls):
         """Return the default settings for this linter, merged with the user settings."""
 
-        if cls.lint_settings is None and not cls.__name__.startswith('Embedded'):
+        if cls.lint_settings is None:
             linters = persist.settings.get('linters', {})
             cls.lint_settings = (cls.defaults or {}).copy()
             cls.lint_settings.update(linters.get(cls.name, {}))
 
         return cls.lint_settings
-
-    @property
-    def settings(cls):
-        """Return the default settings for this linter, merged with the user settings."""
-        return cls.get_settings()
 
     @staticmethod
     def meta_settings(settings):
@@ -440,8 +436,7 @@ class Linter(metaclass=Registrar):
 
         # Merge linter default settings with user settings
         for name, linter in persist.languages.items():
-            if not name.startswith('embedded'):
-                linter.lint_settings = None
+            linter.lint_settings = None
 
         for vid, linters in persist.linters.items():
             for linter in linters:
@@ -489,12 +484,23 @@ class Linter(metaclass=Registrar):
         return ()
 
     @classmethod
-    def get_selectors(cls, vid):
-        '''Returns a list of scope selectors for all linters for the view with the given id.'''
+    def get_selectors(cls, vid, syntax=None):
+        """
+        Return scope selectors and linters for the view with the given id.
+
+        For each linter assigned to the view with the given id, if it
+        has selectors, return a tuple of the selector and the linter.
+
+        """
+        view = persist.views[vid]
+
+        if not syntax:
+            syntax = persist.syntax(view)
+
         return [
-            (linter.selector, linter)
+            (linter.selectors[syntax], linter)
             for linter in cls.get_linters(vid)
-            if linter.selector
+            if syntax in linter.selectors
         ]
 
     @classmethod
@@ -508,6 +514,7 @@ class Linter(metaclass=Registrar):
             return
 
         disabled = set()
+        syntax = persist.syntax(persist.views[vid])
 
         for linter in linters:
             view_settings = linter.get_view_settings(no_inline=True)
@@ -538,11 +545,11 @@ class Linter(metaclass=Registrar):
                         disabled.add(linter)
                         continue
 
-            if not linter.selector:
+            if syntax not in linter.selectors:
                 linter.reset(code, filename=filename or 'untitled')
                 linter.lint()
 
-        selectors = Linter.get_selectors(vid)
+        selectors = Linter.get_selectors(vid, syntax=syntax)
 
         for sel, linter in selectors:
             if linter in disabled:

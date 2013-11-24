@@ -126,9 +126,6 @@ class Daemon:
         linters = settings.pop('linters', {})
 
         for name, linter in languages.items():
-            if name.startswith('embedded'):
-                continue
-
             default = linter.settings().copy()
             default.update(linters.pop(name, {}))
 
@@ -394,9 +391,8 @@ def register_linter(linter_class, name, attrs):
         linter_class.name = name
         languages[name] = linter_class
 
-        if not name.startswith('embedded'):
-            linter_settings = settings.get('linters', {})
-            linter_class.lint_settings = linter_settings.get(name, {})
+        linter_settings = settings.get('linters', {})
+        linter_class.lint_settings = linter_settings.get(name, {})
 
         # The sublime plugin API is not available until plugin_loaded is executed
         if plugin_is_loaded:

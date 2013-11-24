@@ -128,8 +128,14 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def highlight(self, view, linters, hit_time):
         """Highlight any errors found during a lint."""
-        errors = {}
         vid = view.id()
+
+        # If the view has been modified since the lint was triggered,
+        # don't draw marks.
+        if hit_time is not None and self.last_hit_times.get(vid, 0) > hit_time:
+            return
+
+        errors = {}
         highlights = persist.highlights[vid] = HighlightSet()
 
         for linter in linters:
@@ -139,11 +145,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             if linter.errors:
                 for line, errs in linter.errors.items():
                     errors.setdefault(line, []).extend(errs)
-
-        # If the view has been modified since the lint was triggered,
-        # don't draw marks.
-        if hit_time is not None and self.last_hit_times.get(vid, 0) > hit_time:
-            return
 
         highlights.clear(view)
         highlights.draw(view)

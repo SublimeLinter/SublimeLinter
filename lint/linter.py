@@ -874,7 +874,7 @@ class Linter(metaclass=Registrar):
             return
 
         if persist.settings.get('debug'):
-            stripped_output = output.replace('\r', '').strip()
+            stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.__class__.__name__, stripped_output))
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
@@ -1034,7 +1034,7 @@ class Linter(metaclass=Registrar):
                 yield self.split_match(None)
         else:
             for line in output.splitlines():
-                yield self.split_match(self.regex.match(line.strip()))
+                yield self.split_match(self.regex.match(line.rstrip()))
 
     def split_match(self, match):
         """

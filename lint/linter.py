@@ -413,8 +413,8 @@ class Linter(metaclass=Registrar):
             - Otherwise the value is added to the options set.
         - The options set is converted to a list and returned.
 
-        For example, given the options ['E101', 'E501', 'W'] and the overrides
-        '-E101;E202;-W;+W324', we would end up with ['E501', 'E202', 'W324'].
+        For example, given the options 'E101,E501,W' and the overrides
+        '-E101,E202,-W,+W324', we would end up with 'E501,E202,W324'.
 
         """
 

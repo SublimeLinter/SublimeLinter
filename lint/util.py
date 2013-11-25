@@ -157,9 +157,9 @@ def generate_color_scheme(from_reload=True):
         from . import persist
 
         def prefs_reloaded():
-            persist.observe_prefs()
+            persist.settings.observe_prefs()
 
-        persist.observe_prefs(observer=prefs_reloaded)
+        persist.settings.observe_prefs(observer=prefs_reloaded)
 
     # ST crashes unless this is run async
     sublime.set_timeout_async(generate_color_scheme_async, 0)

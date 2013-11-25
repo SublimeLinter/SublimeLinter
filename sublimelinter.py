@@ -22,14 +22,14 @@ from .lint import persist, util, watcher
 # In ST3, this is the entry point for a plugin
 def plugin_loaded():
     persist.plugin_is_loaded = True
-    persist.load_settings()
+    persist.settings.load()
 
     util.generate_menus()
     util.generate_color_scheme(from_reload=False)
     util.install_languages()
 
     watch_gutter_themes()
-    persist.on_settings_updated_call(SublimeLinter.on_settings_updated)
+    persist.settings.on_update_call(SublimeLinter.on_settings_updated)
 
     # This ensures we lint the active view on a fresh install
     window = sublime.active_window()
@@ -173,7 +173,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         Returns whether the syntax has changed.
         """
         vid = view.id()
-        syntax = persist.syntax(view)
+        syntax = persist.get_syntax(view)
 
         # Syntax either has never been set or just changed
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
@@ -212,7 +212,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Called when a view gains input focus."""
 
         # Reload the plugin settings.
-        persist.load_settings()
+        persist.settings.load()
 
         self.check_syntax(view)
         view_id = view.id()
@@ -232,7 +232,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         view is the view that contains the text of the settings file.
         """
         if self.is_settings_file(view, user_only=True):
-            persist.update_user_settings(view=view)
+            persist.settings.save(view=view)
 
     def is_settings_file(self, view, user_only=False):
         filename = view.file_name()
@@ -262,7 +262,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.on_open_settings(view)
         vid = view.id()
         self.loaded_views.add(vid)
-        self.view_syntax[vid] = persist.syntax(view)
+        self.view_syntax[vid] = persist.get_syntax(view)
         Linter.assign(view)
 
     def on_selection_modified_async(self, view):
@@ -314,7 +314,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         # If a settings file is the active view and is saved,
         # copy the current settings first so we can compare post-save.
         if view.window().active_view() == view and self.is_settings_file(view):
-            persist.copy_settings()
+            persist.settings.copy()
 
     def on_post_save(self, view):
         # First check to see if the project settings changed
@@ -327,7 +327,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 rc_path = os.path.join(os.path.dirname(__file__), '.sublimelinterrc')
 
                 if view.file_name() == rc_path:
-                    persist.load_settings(force=True)
+                    persist.settings.load(force=True)
                 else:
                     self.lint_all_views()
             else:

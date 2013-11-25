@@ -305,7 +305,7 @@ class Linter(metaclass=Registrar):
         project_settings = data.get(persist.PLUGIN_NAME, {})
 
         # Merge global meta settings with project meta settings
-        meta = self.meta_settings(persist.settings)
+        meta = self.meta_settings(persist.settings.settings)
         meta.update(self.meta_settings(project_settings))
 
         # Get the linter's project settings, update them with meta settings
@@ -452,7 +452,7 @@ class Linter(metaclass=Registrar):
 
         vid = view.id()
         persist.views[vid] = view
-        syntax = persist.syntax(view)
+        syntax = persist.get_syntax(view)
 
         if not syntax:
             cls.remove(vid)
@@ -558,7 +558,7 @@ class Linter(metaclass=Registrar):
         view = persist.views[vid]
 
         if not syntax:
-            syntax = persist.syntax(view)
+            syntax = persist.get_syntax(view)
 
         return [
             (linter.selectors[syntax], linter)
@@ -599,7 +599,7 @@ class Linter(metaclass=Registrar):
             return
 
         disabled = set()
-        syntax = persist.syntax(persist.views[vid])
+        syntax = persist.get_syntax(persist.views[vid])
 
         for linter in linters:
             view_settings = linter.get_view_settings(no_inline=True)

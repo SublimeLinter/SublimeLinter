@@ -8,6 +8,15 @@
 # License: MIT
 #
 
+"""
+This module exports linter-related classes.
+
+Registrar       Metaclass for Linter classes that does setup when they are loaded.
+Linter          The main base class for linters.
+PythonLinter    Linter subclass that provides base python configuration.
+
+"""
+
 from fnmatch import fnmatch
 from numbers import Number
 import re
@@ -20,8 +29,26 @@ ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(
 
 
 class Registrar(type):
-    '''This metaclass registers the linter when the class is declared.'''
+
+    """Metaclass for Linter and its subclasses."""
+
     def __init__(cls, name, bases, attrs):
+        """
+        Initialize a Linter class.
+
+        When a Linter subclass is loaded by Sublime Text, this method is called.
+        We take this opportunity to do some transformations:
+
+        - Replace regex patterns with compiled regex objects.
+        - Convert strings to tuples where necessary.
+        - Add a leading dot to the tempfile_suffix if necessary.
+        - Build a map between defaults and linter arguments.
+        - Add '@python' as an inline setting to PythonLinter subclasses.
+
+        Finally, the class is registered as a linter for its configured language.
+
+        """
+
         if bases:
             cmd = attrs.get('cmd')
 
@@ -52,10 +79,14 @@ class Registrar(type):
                 persist.register_linter(cls, name, attrs)
 
     def map_args(cls, defaults):
-        '''
-        Maps plain setting names to the args that will be passed
-        to the linter executable.
-        '''
+        """
+        Map plain setting names to args that will be passed to the linter executable.
+
+        For each item in defaults, the key is matched with ARG_RE. If there is a match,
+        the key is stripped of meta information and the match groups are stored as a dict
+        under the stripped key.
+
+        """
 
         # Check if the settings specify an argument.
         # If so, add a mapping between the setting and the argument format,
@@ -76,17 +107,20 @@ class Registrar(type):
 
 
 class Linter(metaclass=Registrar):
-    '''
-    The base class for linters. Subclasses must at a minimum define
-    the attributes language, cmd, and regex.
-    '''
+
+    """
+    The base class for linters.
+
+    Subclasses must at a minimum define the attributes language, cmd, and regex.
+
+    """
 
     #
     # Public attributes
     #
 
-    # The name of the linter's language for display purposes.
-    # By convention this is all lowercase.
+    # The language (syntax) that the linter handles.
+    # Should be all lowercase.
     language = ''
 
     # A string, tuple or callable that returns a string, list or tuple, containing the
@@ -110,10 +144,11 @@ class Linter(metaclass=Registrar):
     regex = ''
 
     # Set to True if the linter outputs multiline error messages. When True,
-    # regex will be created with the re.MULTILINE flag.
+    # regex will be created with the re.MULTILINE flag. Do NOT rely on setting
+    # the re.MULTILINE flag within the regex yourself, this attribute must be set.
     multiline = False
 
-    # If you want to set flags on the regex other than re.MULTILINE, set this.
+    # If you want to set flags on the regex *other* than re.MULTILINE, set this.
     re_flags = 0
 
     # The default type assigned to non-classified errors. Should be either
@@ -133,11 +168,11 @@ class Linter(metaclass=Registrar):
     # Tab width
     tab_width = 1
 
-    # If you want to limit the linter to specific portions of the source
-    # based on a scope selector, set this attribute to a mapping between
-    # language (syntax) names and scope selectors. For example,
-    # in an html file with embedded JavaScript, you would set the selectors
-    # for a JavaScript linter to {'html': 'source.js.embedded.html'}.
+    # If a linter can be used with embedded code, you can limit the linter to
+    # specific portions of the source code based on a scope selector by setting
+    # this attribute to a mapping between language (syntax) names and scope selectors.
+    # For example, to lint embedded JavaScript in an html file, you would set the
+    # selectors to {'html': 'source.js.embedded.html'}.
     selectors = {}
 
     # If a linter reports a column position, SublimeLinter selects the nearest
@@ -180,7 +215,7 @@ class Linter(metaclass=Registrar):
     # you do not need to use the prefix or suffix here.
     #
     # Within a file, the actual inline setting name is '<linter>-setting', where <linter>
-    # is the lowercase name of the linter class, excluding an 'Embedded' prefix.
+    # is the lowercase name of the linter class.
     inline_settings = None
 
     # Many linters allow a list of options to be specified for a single setting.
@@ -246,19 +281,25 @@ class Linter(metaclass=Registrar):
 
     @staticmethod
     def meta_settings(settings):
+        """Return a dict with the items in settings whose keys begin with '@'."""
         return {key: value for key, value in settings.items() if key.startswith('@')}
 
     def get_view_settings(self, no_inline=False):
         """
-        Build the union of the following settings, in this order:
+        Return a union of all settings specific to this linter, related to the given view.
 
-        linter settings (default settings + user settings)
+        The settings are merged in the following order:
+
+        default settings
+        user settings
         project settings
         user + project meta settings
         rc settings
         rc meta settings
         shebang or inline settings (overrides)
+
         """
+
         # Start with the overall project settings
         data = self.view.window().project_data() or {}
         project_settings = data.get(persist.PLUGIN_NAME, {})
@@ -302,9 +343,12 @@ class Linter(metaclass=Registrar):
 
     def merge_rc_settings(self, settings):
         """
-        Search for a file named .sublimelinterrc in rc_search_limit directories,
-        starting at the view's directory. If found, read the settings for the
-        current linter and merge them with settings.
+        Merge .sublimelinterrc settings with settings.
+
+        Searches for .sublimelinterrc in, starting at the directory of the linter's view.
+        The search is limited to rc_search_limit directories. If found, the meta settings
+        and settings for this linter in the rc file are merged with settings.
+
         """
 
         search_limit = persist.settings.get('rc_search_limit', self.RC_SEARCH_LIMIT)
@@ -317,11 +361,15 @@ class Linter(metaclass=Registrar):
             settings.update(rc_settings)
 
     def merge_inline_settings(self, view_settings, inline_settings):
-        '''
-        Merges view_settings with settings in inline_settings specified by
+        """
+        Return view settings merged with inline settings.
+
+        view_settings is merged with inline_settings specified by
         the class attributes inline_settings and inline_overrides.
-        view_settings is updated in place.
-        '''
+        view_settings is updated in place and returned.
+
+        """
+
         for setting, value in inline_settings.items():
             if self.inline_settings and setting in self.inline_settings:
                 view_settings[setting] = value
@@ -338,17 +386,21 @@ class Linter(metaclass=Registrar):
         return view_settings
 
     def merge_project_settings(self, view_settings, project_settings):
-        '''
-        Merge this linter's view settings with the current project settings.
+        """
+        Return this linter's view settings merged with the current project settings.
+
         Subclasses may override this if they wish to do something more than
         replace view settings with inline settings of the same name.
         The settings object may be changed in place.
-        '''
+
+        """
         view_settings.update(project_settings)
         return view_settings
 
     def override_options(self, options, overrides, sep=','):
-        '''
+        """
+        Return a list of options with overrides applied.
+
         If you want inline settings to override but not replace view settings,
         this method makes it easier. Given a set or sequence of options and some
         overrides, this method will do the following:
@@ -363,7 +415,9 @@ class Linter(metaclass=Registrar):
 
         For example, given the options ['E101', 'E501', 'W'] and the overrides
         '-E101;E202;-W;+W324', we would end up with ['E501', 'E202', 'W324'].
-        '''
+
+        """
+
         if isinstance(options, str):
             options = options.split(sep)
 
@@ -386,12 +440,16 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def assign(cls, view, reassign=False):
-        '''
-        Assign a view to an instance of a linter.
-        Find a linter for a specified view if possible, then add it
-        to our view <--> lint class map and return it.
+        """
+        Assign a linter to a view and return the list of linters that can lint the view.
+
+        Find a linter for a specified view if possible, then add it to our
+        view <--> lint class map and return it.
+
         Each view has its own linter so that linters can store persistent data about a view.
-        '''
+
+        """
+
         vid = view.id()
         persist.views[vid] = view
         syntax = persist.syntax(view)
@@ -423,7 +481,8 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def remove(cls, vid):
-        '''Remove a the mapping between a view and its set of linters.'''
+        """Remove a the mapping between a view and its set of linters."""
+
         if vid in persist.linters:
             for linters in persist.linters[vid]:
                 linters.clear()
@@ -432,7 +491,7 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def reload(cls):
-        '''Reload all linters.'''
+        """Assign new instances of linters to views."""
 
         # Merge linter default settings with user settings
         for name, linter in persist.languages.items():
@@ -448,6 +507,8 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def apply_to_all_highlights(cls, action):
+        """Apply an action to the highlights of all views."""
+
         def apply(view):
             highlights = persist.highlights.get(view.id())
 
@@ -458,26 +519,28 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def clear_all(cls):
+        """Clear highlights and errors in all views."""
         cls.apply_to_all_highlights('reset')
         persist.errors.clear()
 
     @classmethod
     def redraw_all(cls):
+        """Redraw all highlights in all views."""
         cls.apply_to_all_highlights('redraw')
 
     @classmethod
     def text(cls, view):
-        '''Returns the entire text of a view.'''
+        """Return the entire text of a view."""
         return view.substr(sublime.Region(0, view.size()))
 
     @classmethod
     def get_view(cls, vid):
-        '''Returns the view object with the given id.'''
+        """Return the view object with the given id."""
         return persist.views.get(vid)
 
     @classmethod
     def get_linters(cls, vid):
-        '''Returns a tuple of linters for the view with the given id.'''
+        """Return a tuple of linters for the view with the given id."""
         if vid in persist.linters:
             return tuple(persist.linters[vid])
 
@@ -505,7 +568,29 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def lint_view(cls, vid, filename, code, sections, hit_time, callback):
-        if not code or vid not in persist.linters:
+        """
+        Lint the view with the given view id.
+
+        This is the top level lint dispatcher. It is called
+        asynchronously. The following checks are done for each linter
+        assigned to the view:
+
+        - Check if the linter has been disabled in settings.
+        - Check if the filename matches any patterns in the "excludes" setting.
+
+        If a linter fails the checks, it is disabled for this run.
+        Otherwise, if the mapped syntax is not in the linter's selectors,
+        the linter is run on the entirety of code.
+
+        Then the set of selectors for all linters assigned to the view is
+        aggregated, and for each selector, if it occurs in sections,
+        the corresponding section is linted as embedded code.
+
+        A list of the linters that ran is returned.
+
+        """
+
+        if not code:
             return
 
         linters = persist.linters.get(vid)
@@ -579,12 +664,26 @@ class Linter(metaclass=Registrar):
         callback(cls.get_view(vid), linters, hit_time)
 
     def reset(self, code, filename=None):
+        """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
         self.filename = filename or self.filename
         self.highlight = highlight.Highlight(self.code)
 
     def get_cmd(self):
+        """
+        Calculate and return a tuple/list of the command line to be executed.
+
+        The cmd class attribute may be a string, a tuple/list, or a callable.
+        If cmd is callable, it is called. If the result of the method is
+        a string, it is parsed into a list with shlex.split.
+
+        Otherwise, if cmd is not None, the result of build_cmd is returned.
+
+        If cmd is None, None is returned, which means that the linter uses
+        built in code as opposed to an external executable.
+
+        """
         if callable(self.cmd):
             cmd = self.cmd()
 
@@ -597,9 +696,27 @@ class Linter(metaclass=Registrar):
 
         return None
 
-    def build_cmd(self):
-        # First we get merged settings: default, user, project and inline
-        settings = self.get_view_settings()
+    def build_cmd(self, cmd=None):
+        """
+        Return a tuple with the command line to execute.
+
+        We start with cmd or the cmd class attribute. If it is a string,
+        it is parsed with shlex.split.
+
+        If the first element of the command line matches [script]@python[version],
+        and '@python' is in the aggregated view settings, util.which is called
+        to determine the path to the script and given version of python. This
+        allows settings to override the version of python used.
+
+        Otherwise, if self.executable_path has already been calculated, that
+        is used. If not, the executable path is located with util.which.
+
+        If the path to the executable can be determined, a list of extra arguments
+        is built with build_args. If the cmd contains '*', it is replaced
+        with the extra argument list, otherwise the extra args are appended to
+        cmd.
+
+        """
 
         cmd = cmd or self.cmd
 
@@ -646,8 +763,37 @@ class Linter(metaclass=Registrar):
         return tuple(cmd)
 
     def build_args(self, settings):
-        # Build a list of args to add to the cmd, starting with any
-        # args specified by the user in the "args" setting.
+        """
+        Return a list of args to add to cls.cmd.
+
+        First any args specified in the "args" linter setting are retrieved.
+        Then the args map (built by map_args during class construction) is
+        iterated. For each item in the args map:
+
+        - Check to see if the arg is in settings, which is the aggregated
+          default/user/view settings. If arg is not in settings or is a meta
+          setting (beginning with '@'), it is skipped.
+
+        - Get the setting value. If it is None or an empty string/list, skip this arg.
+
+        - If the setting value is a non-empty list and the arg was specified
+          as taking a single list of values, join the values.
+
+        - If the setting value is a non-empty string or the boolean True,
+          convert it into a single-element list with that value.
+
+        Once a list of values is built, iterate over the values to build
+        the args list:
+
+        - Start with the prefix and arg name.
+        - If the joiner is '=', join '=' and the value and append to the args.
+        - If the joiner is ':', append the arg and value as separate args.
+        - If there is no joiner and the value is True, append the arg.
+
+        Return the arg list.
+
+        """
+
         args = settings.get('args', [])
 
         if isinstance(args, str):
@@ -701,6 +847,19 @@ class Linter(metaclass=Registrar):
         return args
 
     def lint(self):
+        """
+        Perform the lint, retrieve the results, and add marks to the view.
+
+        The flow of control is as follows:
+
+        1. Ensure the linter has the minimum configuration necessary to lint.
+        2. Get the command line. If it is an empty string, bail.
+        3. Run the linter.
+        4. Parse the linter output with the regex.
+        5. Highlight warnings and errors.
+
+        """
+
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):
             raise NotImplementedError
 
@@ -754,10 +913,13 @@ class Linter(metaclass=Registrar):
                 self.error(line, col, message, error_type)
 
     def draw(self):
+        """Draw the marks from the last lint."""
         self.highlight.draw(self.view)
 
     @staticmethod
     def clear_view(view):
+        """Clear marks, status and all other cached error info for the given view."""
+
         view.erase_status('sublimelinter')
         highlight.Highlight.clear(view)
 
@@ -765,12 +927,27 @@ class Linter(metaclass=Registrar):
             del persist.errors[view.id()]
 
     def clear(self):
+        """Clear marks, status and all other cached error info for the given view."""
         self.clear_view(self.view)
 
     # Helper methods
 
     @classmethod
     def can_lint(cls, language):
+        """
+        Determine if a linter class can lint the given language (syntax).
+
+        This method is called when a view has not had a linter assigned
+        or when its syntax changes.
+
+        The following tests must all pass for this method to return True:
+
+        1. language must be one of the languages the linter defines.
+        2. If the linter uses an external executable, it must be available.
+        3. can_lint_language must return True.
+
+        """
+
         can = False
         language = language.lower()
 
@@ -811,15 +988,19 @@ class Linter(metaclass=Registrar):
 
     @classmethod
     def can_lint_language(cls, language):
-        '''
-        Subclass hook to determine if a linter can lint a given language.
-        Subclasses may override this if the built in mechanism is not sufficient.
-        When this is called, cls.executable_path has been set. If it is '',
-        that means the executable was not specified or could not be found.
-        '''
+        """
+        Return whether a linter can lint a given language (syntax).
+
+        Subclasses may override this if the built in mechanism in can_lint
+        is not sufficient. When this method is called, cls.executable_path
+        has been set. If it is '', that means the executable was not specified
+        or could not be found.
+
+        """
         return cls.executable_path != ''
 
     def error(self, line, col, error, error_type):
+        """Add a reference to an error/warning on the given line and column."""
         self.highlight.line(line, error_type)
 
         # Capitalize the first word
@@ -834,6 +1015,15 @@ class Linter(metaclass=Registrar):
             self.errors[line] = [error]
 
     def find_errors(self, output):
+        """
+        A generator which matches the linter's regex against the linter output.
+
+        If multiline is True, split_match is called for each non-overlapping
+        match of self.regex. If False, split_match is called for each line
+        in output.
+
+        """
+
         if self.multiline:
             errors = self.regex.finditer(output)
 
@@ -847,6 +1037,15 @@ class Linter(metaclass=Registrar):
                 yield self.split_match(self.regex.match(line.strip()))
 
     def split_match(self, match):
+        """
+        Split a match into the standard elements of an error and return them.
+
+        If subclasses need to modify the values returned by the regex, they
+        should override this method, call super(), then modify the values
+        and return them.
+
+        """
+
         if match:
             items = {'line': None, 'col': None, 'error': None, 'warning': None, 'message': '', 'near': None}
             items.update(match.groupdict())
@@ -867,38 +1066,62 @@ class Linter(metaclass=Registrar):
         else:
             return match, None, None, None, None, '', None
 
-    # Subclasses may need to override this in complex cases
     def run(self, cmd, code):
+        """
+        Execute the linter's executable or built in code and return its output.
+
+        If a linter uses built in code, it should override this method and return
+        a string as the output.
+
+        If a linter needs to do something complicated setup or will use the tmpdir
+        method, it will need to override this method.
+
+        """
         if self.tempfile_suffix:
             return self.tmpfile(cmd, code, suffix=self.tempfile_suffix)
         else:
             return self.communicate(cmd, code)
 
     # popen wrappers
+
     def communicate(self, cmd, code):
+        """Run an external executable using stdin to pass code and return its output."""
         return util.communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=''):
+        """Run an external executable using a temp file to pass code and return its output."""
         return util.tmpfile(cmd, code, suffix or self.tempfile_suffix)
 
     def tmpdir(self, cmd, files, code):
+        """Run an external executable using a temp dir filled with files and return its output."""
         return util.tmpdir(cmd, files, self.filename, code)
 
     def popen(self, cmd, env=None):
+        """Run cmd in a subprocess with the given environment and return the output."""
         return util.popen(cmd, env)
 
 
 class PythonLinter(Linter):
+
     """
-    Linters that check python should inherit from this class
-    in order to get some built in python-specific functionality.
+    This Linter subclass provides python-specific functionality.
+
+    Linters that check python should inherit from this class.
+    By doing so, they automatically get the following features:
+
+    - comment_re is defined correctly for python.
+    - A python shebang is returned as the @python:<version> meta setting.
+
     """
+
     SHEBANG_RE = re.compile(r'\s*#!(?:(?:/[^/]+)*[/ ])?python(?P<version>\d(?:\.\d)?)')
 
     comment_re = r'\s*#'
 
     @staticmethod
     def match_shebang(code):
+        """Convert and return a python shebang as a @python:<version> setting."""
+
         match = PythonLinter.SHEBANG_RE.match(code)
 
         if match:

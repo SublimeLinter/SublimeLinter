@@ -19,6 +19,7 @@ PythonLinter    Linter subclass that provides base python configuration.
 
 from fnmatch import fnmatch
 from numbers import Number
+import os
 import re
 import shlex
 import sublime
@@ -757,9 +758,6 @@ class Linter(metaclass=Registrar):
         else:
             cmd += args
 
-        if persist.settings.get('debug'):
-            persist.printf('{}: {}'.format(self.__class__.__name__, repr(cmd)))
-
         return tuple(cmd)
 
     def build_args(self, settings):
@@ -867,6 +865,9 @@ class Linter(metaclass=Registrar):
 
         if cmd is not None and not cmd:
             return
+
+        if persist.settings.get('debug'):
+            persist.printf('{} - {}: {}'.format(self.__class__.__name__, os.path.basename(self.filename), repr(cmd)))
 
         output = self.run(cmd, self.code)
 

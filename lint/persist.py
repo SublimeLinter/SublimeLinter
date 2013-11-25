@@ -107,12 +107,15 @@ class Settings:
         need_relint = self.previous_settings.get('@disable', False) != self.settings.get('@disable', False)
 
         # Clear the path-related caches if the paths list has changed
-        if self.previous_settings.get('paths') != self.settings.get('paths'):
+        if self.previous_settings and self.previous_settings.get('paths') != self.settings.get('paths'):
             need_relint = True
             util.clear_caches()
 
         # Add python paths if they changed
-        if self.previous_settings.get('python_paths') != self.settings.get('python_paths'):
+        if (
+            self.previous_settings and
+            self.previous_settings.get('python_paths') != self.settings.get('python_paths')
+        ):
             need_relint = True
             python_paths = self.settings.get('python_paths', {}).get(sublime.platform(), [])
 
@@ -123,13 +126,17 @@ class Settings:
         # If the syntax map changed, reassign linters to all views
         from .linter import Linter
 
-        if self.previous_settings.get('syntax_map') != self.settings.get('syntax_map'):
+        if self.previous_settings and self.previous_settings.get('syntax_map') != self.settings.get('syntax_map'):
             need_relint = True
             Linter.clear_all()
             util.apply_to_all_views(lambda view: Linter.assign(view, reassign=True))
 
         # If any of the linter settings changed, relint
-        if (not need_relint and self.previous_settings.get('linters') != self.settings.get('linters')):
+        if (
+            self.previous_settings and
+            not need_relint and
+            self.previous_settings.get('linters') != self.settings.get('linters')
+        ):
             need_relint = True
 
         # Update the gutter marks if the theme changed
@@ -139,7 +146,7 @@ class Settings:
         if need_relint:
             Linter.reload()
 
-        if self.on_update_callback:
+        if self.previous_settings and self.on_update_callback:
             self.on_update_callback(need_relint)
 
     def save(self, view=None):

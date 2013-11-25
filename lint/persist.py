@@ -340,8 +340,9 @@ def register_linter(linter_class, name, attrs):
         linter_class.name = name
         linter_classes[name] = linter_class
 
-        linter_settings = settings.get('linters', {})
-        linter_class.lint_settings = linter_settings.get(name, {})
+        # By setting the lint_settings to None, they will be set the next
+        # time linter_class.settings() is called.
+        linter_class.lint_settings = None
 
         # The sublime plugin API is not available until plugin_loaded is executed
         if plugin_is_loaded:

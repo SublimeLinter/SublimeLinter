@@ -16,11 +16,12 @@ import sublime_plugin
 
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
+from .lint.queue import queue
 from .lint import persist, util, watcher
 
 
-# In ST3, this is the entry point for a plugin
 def plugin_loaded():
+    """The ST3 entry point for plugins."""
     persist.plugin_is_loaded = True
     persist.settings.load()
 
@@ -91,7 +92,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.last_hit_times = {}
 
         self.__class__.shared_instance = self
-        persist.queue.start(self.lint)
+        queue.start(self.lint)
 
     @classmethod
     def lint_all_views(cls):
@@ -165,7 +166,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             return
 
-        self.last_hit_times[vid] = persist.queue.hit(view)
+        self.last_hit_times[vid] = queue.hit(view)
 
     def check_syntax(self, view):
         """

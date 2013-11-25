@@ -218,7 +218,7 @@ class Daemon:
             self.running = True
             threading.Thread(target=self.loop).start()
 
-    def reenter(self, view_id, timestamp):
+    def lint(self, view_id, timestamp):
         self.callback(view_id, timestamp)
 
     def loop(self):
@@ -230,12 +230,12 @@ class Daemon:
                     item = self.q.get(block=True, timeout=self.MIN_DELAY)
                 except Empty:
                     for view_id, timestamp in last_runs.copy().items():
-                        # If more than the minimum delay has elapsed since the last run,
-                        # update the view.
+                        # Lint the view if we have gone past the time
+                        # at which the lint wants to run.
                         if time.monotonic() > timestamp:
                             self.last_runs[view_id] = time.monotonic()
                             del last_runs[view_id]
-                            self.reenter(view_id, timestamp)
+                            self.lint(view_id, timestamp)
 
                     continue
 

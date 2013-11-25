@@ -247,10 +247,11 @@ def install_languages():
 
 def install_languages_async():
     plugin_dir = os.path.dirname(os.path.dirname(__file__))
+    languages_dir = os.path.join(plugin_dir, 'fixed-languages')
 
-    for language in ['HTML']:
+    for language in os.listdir(languages_dir):
         # See if our version of the language already exists in Packages
-        src_dir = os.path.join(plugin_dir, language)
+        src_dir = os.path.join(languages_dir, language)
         version_file = os.path.join(src_dir, 'sublimelinter.version')
 
         if os.path.isdir(src_dir) and os.path.isfile(version_file):

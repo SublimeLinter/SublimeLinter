@@ -466,11 +466,17 @@ def register_linter(linter_class, name, attrs):
         if plugin_is_loaded:
             settings.load(force=True)
 
-            # If a linter is reloaded, we have to reassign linters to all views
+            # If a linter is reloaded, we have to reassign that linter to all views
             from . import linter
 
+            # If the linter had previously been loaded, just reassign that linter
+            if name in linter_classes:
+                linter_name = name
+            else:
+                linter_name = None
+
             for view in views.values():
-                linter.Linter.assign(view, reassign=True)
+                linter.Linter.assign(view, linter_name=linter_name, reassign=True)
 
             printf('{} linter reloaded'.format(linter_class.__name__))
         else:

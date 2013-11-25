@@ -158,7 +158,7 @@ class Settings:
         settings = self.settings
         linters = settings.pop('linters', {})
 
-        for name, linter in languages.items():
+        for name, linter in linter_classes.items():
             default = linter.settings().copy()
             default.update(linters.pop(name, {}))
 
@@ -360,6 +360,7 @@ class Daemon:
 
         return delay
 
+
 if not 'queue' in globals():
     queue = Daemon()
     settings = Settings()
@@ -370,11 +371,11 @@ if not 'queue' in globals():
     # A mapping between view ids and HighlightSets
     highlights = {}
 
-    # A mapping between language names and linter classes
-    languages = {}
+    # A mapping between linter class names and linter classes
+    linter_classes = {}
 
     # A mapping between view ids and a set of linter instances
-    linters = {}
+    view_linters = {}
 
     # A mapping between view ids and views
     views = {}
@@ -421,8 +422,8 @@ def view_did_close(vid):
     if vid in highlights:
         del highlights[vid]
 
-    if vid in linters:
-        del linters[vid]
+    if vid in view_linters:
+        del view_linters[vid]
 
     if vid in views:
         del views[vid]
@@ -445,11 +446,11 @@ def printf(*args):
 
 
 def register_linter(linter_class, name, attrs):
-    """Add a linter class to our mapping of languages <--> linter classes."""
+    """Add a linter class to our mapping of class names <--> linter classes."""
     if name:
         name = name.lower()
         linter_class.name = name
-        languages[name] = linter_class
+        linter_classes[name] = linter_class
 
         linter_settings = settings.get('linters', {})
         linter_class.lint_settings = linter_settings.get(name, {})

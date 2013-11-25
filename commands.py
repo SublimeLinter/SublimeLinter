@@ -42,7 +42,7 @@ class SublimelinterLintCommand(sublime_plugin.TextCommand):
     """Lints the current view if it has a linter."""
     def is_enabled(self):
         vid = self.view.id()
-        return vid in persist.linters and persist.settings.get('lint_mode') != 'background'
+        return vid in persist.view_linters and persist.settings.get('lint_mode') != 'background'
 
     def run(self, edit):
         from .sublimelinter import SublimeLinter

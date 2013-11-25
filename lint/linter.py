@@ -440,7 +440,7 @@ class Linter(metaclass=Registrar):
         return list(modified_options)
 
     @classmethod
-    def assign(cls, view, reassign=False):
+    def assign(cls, view, linter_name=None, reassign=False):
         """
         Assign a linter to a view and return the list of linters that can lint the view.
 
@@ -459,24 +459,27 @@ class Linter(metaclass=Registrar):
             cls.remove(vid)
             return
 
-        if vid in persist.linters and persist.linters[vid] and not reassign:
+        if vid in persist.view_linters and persist.view_linters[vid] and not reassign:
             # If a linter in the set of linters for the given view
             # already handles the view's syntax, we have nothing more to do.
-            for linter in tuple(persist.linters[vid]):
+            for linter in tuple(persist.view_linters[vid]):
                 if linter.syntax == syntax:
                     return
 
         linters = set()
 
-        for name, linter_class in persist.languages.items():
+        for name, linter_class in persist.linter_classes.items():
+            if linter_name and linter_name != name:
+                continue
+
             if linter_class.can_lint(syntax):
                 linter = linter_class(view, syntax, view.file_name())
                 linters.add(linter)
 
         if linters:
-            persist.linters[vid] = linters
-        elif reassign and not linters and vid in persist.linters:
-            del persist.linters[vid]
+            persist.view_linters[vid] = linters
+        elif reassign and not linters and vid in persist.view_linters:
+            del persist.view_linters[vid]
 
         return linters
 
@@ -484,27 +487,27 @@ class Linter(metaclass=Registrar):
     def remove(cls, vid):
         """Remove a the mapping between a view and its set of linters."""
 
-        if vid in persist.linters:
-            for linters in persist.linters[vid]:
+        if vid in persist.view_linters:
+            for linters in persist.view_linters[vid]:
                 linters.clear()
 
-            del persist.linters[vid]
+            del persist.view_linters[vid]
 
     @classmethod
     def reload(cls):
         """Assign new instances of linters to views."""
 
         # Merge linter default settings with user settings
-        for name, linter in persist.languages.items():
+        for name, linter in persist.linter_classes.items():
             linter.lint_settings = None
 
-        for vid, linters in persist.linters.items():
+        for vid, linters in persist.view_linters.items():
             for linter in linters:
                 linter.clear()
-                persist.linters[vid].remove(linter)
-                linter_class = persist.languages[linter.name]
+                persist.view_linters[vid].remove(linter)
+                linter_class = persist.linter_classes[linter.name]
                 linter = linter_class(linter.view, linter.syntax, linter.filename)
-                persist.linters[vid].add(linter)
+                persist.view_linters[vid].add(linter)
 
     @classmethod
     def apply_to_all_highlights(cls, action):
@@ -542,8 +545,8 @@ class Linter(metaclass=Registrar):
     @classmethod
     def get_linters(cls, vid):
         """Return a tuple of linters for the view with the given id."""
-        if vid in persist.linters:
-            return tuple(persist.linters[vid])
+        if vid in persist.view_linters:
+            return tuple(persist.view_linters[vid])
 
         return ()
 
@@ -594,7 +597,7 @@ class Linter(metaclass=Registrar):
         if not code:
             return
 
-        linters = persist.linters.get(vid)
+        linters = persist.view_linters.get(vid)
 
         if not linters:
             return

@@ -96,7 +96,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     @classmethod
     def lint_all_views(cls):
         def apply(view):
-            if view.id() in persist.linters:
+            if view.id() in persist.view_linters:
                 cls.shared_instance.hit(view)
 
         util.apply_to_all_views(apply)
@@ -191,7 +191,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_modified(self, view):
         """Called when a view is modified."""
-        if view.id() not in persist.linters:
+        if view.id() not in persist.view_linters:
             syntax_changed = self.check_syntax(view)
 
             if not syntax_changed:
@@ -339,7 +339,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 if syntax_changed:
                     self.clear(view)
 
-                    if vid in persist.linters:
+                    if vid in persist.view_linters:
                         if mode != 'manual':
                             self.lint(vid)
                         else:

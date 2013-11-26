@@ -508,8 +508,7 @@ def find_file(start_dir, name, parent=False, limit=None):
 def extract_path(cmd, delim=':'):
     """Return the user's PATH as a colon-delimited list."""
     path = popen(cmd, os.environ).communicate()[0].decode()
-    path = path.split('__SUBL__', 1)[1].strip('\r\n')
-    return ':'.join(path.split(delim))
+    return ':'.join(path.strip().split(delim))
 
 
 def get_shell_path(env):
@@ -526,11 +525,11 @@ def get_shell_path(env):
 
         if shell in ('bash', 'zsh', 'ksh', 'sh'):
             return extract_path(
-                (shell_path, '--login', '-c', 'echo __SUBL__$PATH')
+                (shell_path, '--login', '-c', 'echo $PATH')
             )
         elif shell == 'fish':
             return extract_path(
-                (shell_path, '--login', '-c', 'echo __SUBL__; for p in $PATH; echo $p; end'),
+                (shell_path, '--login', '-c', 'for p in $PATH; echo $p; end'),
                 '\n'
             )
 

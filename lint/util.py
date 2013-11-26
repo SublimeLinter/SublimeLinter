@@ -231,7 +231,7 @@ def generate_color_scheme_async():
 
         # Set the amended color scheme to the current color scheme
         path = os.path.join('User', os.path.basename(scheme_path))
-        prefs.set('color_scheme', package_relative_path(path))
+        prefs.set('color_scheme', packages_relative_path(path))
         sublime.save_settings('Preferences.sublime-settings')
 
         if generate and not have_existing:
@@ -321,7 +321,7 @@ def generate_menus_async():
     commands = []
 
     for chooser in CHOOSERS:
-        commands.append({'caption': chooser, 'menus': build_menu(chooser)})
+        commands.append({'caption': chooser, 'menus': build_submenu(chooser)})
 
     menus = []
     indent = MENU_INDENT_RE.search(CHOOSER_MENU).group(1)
@@ -359,7 +359,7 @@ def generate_menu(name, menu_text):
     return text
 
 
-def build_menu(caption):
+def build_submenu(caption):
     setting = caption.lower()
 
     if setting == 'lint mode':
@@ -402,7 +402,7 @@ def find_gutter_themes(themes, settings=None):
             for root, dirs, files in os.walk(os.path.join(full_path, d)):
                 if 'warning.png' in files and 'error.png' in files:
                     path = os.path.relpath(root, full_path)
-                    relative_path = package_relative_path(path, prefix_packages=False)
+                    relative_path = packages_relative_path(path, prefix_packages=False)
 
                     if relative_path not in themes:
                         themes.append(relative_path)
@@ -463,8 +463,8 @@ def extract_path(cmd, delim=':'):
     return ':'.join(path.split(delim))
 
 
-def find_path(env):
     # find PATH using shell --login
+def get_shell_path(env):
     if 'SHELL' in env:
         shell_path = env['SHELL']
         shell = os.path.basename(shell_path)
@@ -493,8 +493,8 @@ def find_path(env):
     return p
 
 
-def split_path(path):
-    """Splits a path into its components."""
+def get_path_components(path):
+    """Split a file path into its components and return the list of components."""
     components = []
 
     while path:
@@ -515,13 +515,14 @@ def split_path(path):
     return components
 
 
-def package_relative_path(path, prefix_packages=True):
+def packages_relative_path(path, prefix_packages=True):
     """
     Sublime Text wants package-relative paths to use '/' as the path separator
     on all platforms. This method prefixes 'Packages' to the path if insert_packages = True
     and returns a new path, replacing os path separators with '/'.
     """
-    components = split_path(path)
+
+    components = get_path_components(path)
 
     if prefix_packages and components and components[0] != 'Packages':
         components.insert(0, 'Packages')
@@ -537,7 +538,7 @@ def create_environment():
     env.update(os.environ)
 
     if os.name == 'posix':
-        env['PATH'] = find_path(os.environ)
+        env['PATH'] = get_shell_path(os.environ)
 
     paths = persist.settings.get('paths', {})
 

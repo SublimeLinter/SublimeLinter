@@ -237,7 +237,7 @@ class Settings:
 
             for error_type in ('warning', 'error'):
                 path = os.path.join(theme_path, '{}.png'.format(error_type))
-                gutter_marks[error_type] = util.package_relative_path(path)
+                gutter_marks[error_type] = util.packages_relative_path(path)
 
             path = os.path.join(sublime.packages_path(), theme_path, 'colorize')
             gutter_marks['colorize'] = os.path.exists(path)

@@ -433,7 +433,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         persist.view_did_close(vid)
 
 
-class sublimelinter_edit(sublime_plugin.TextCommand):
+class SublimelinterEditCommand(sublime_plugin.TextCommand):
 
     """A plugin command used to generate an edit object for a view."""
 

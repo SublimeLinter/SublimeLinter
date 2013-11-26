@@ -9,6 +9,8 @@
 # License: MIT
 #
 
+"""This module provides general utility methods."""
+
 from functools import lru_cache
 from glob import glob
 import json
@@ -32,7 +34,8 @@ MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 # settings utils
 
 def merge_user_settings(settings):
-    """Merge the default linter settings with the user's settings."""
+    """Return the default linter settings merged with the user's settings."""
+
     default = settings.get('default') or {}
     user = settings.get('user') or {}
 
@@ -55,21 +58,25 @@ def merge_user_settings(settings):
 
 
 def inline_settings(comment_re, code, prefix=None):
-    """
-    Looks for settings in the form [SublimeLinter <name>:<value>]
-    on the first or second line of code, if the lines match comment_re.
+    r"""
+    Return a dict of inline settings within the first two lines of code.
+
+    This method looks for settings in the form [SublimeLinter <name>:<value>]
+    on the first or second line of code if the lines match comment_re.
     comment_re should be a compiled regex object whose pattern is unanchored (no ^)
     and matches everything through the comment prefix, including leading whitespace.
 
     For example, to specify JavaScript comments, you would use the pattern:
 
-    '\s*/[/*]'
+    r'\s*/[/*]'
 
     If prefix is a non-empty string, setting names must begin with the given prefix
     to be considered as a setting.
 
-    A dict of key/value pairs is returned.
+    A dict of matching name/value pairs is returned.
+
     """
+
     if prefix:
         prefix = prefix.lower() + '-'
 
@@ -109,6 +116,7 @@ def inline_settings(comment_re, code, prefix=None):
 
 
 def get_view_rc_settings(view, limit=None):
+    """Return the rc settings, starting at the parent directory of the given view."""
     filename = view.file_name()
 
     if filename:
@@ -147,10 +155,8 @@ def get_rc_settings(start_dir, limit=None):
 
 
 def generate_color_scheme(from_reload=True):
-    """
-    Checks the current color scheme for our color entries. If any are missing,
-    copies the scheme, adds the entries, and rewrites it to the user space.
-    """
+    """Asynchronously call generate_color_scheme_async."""
+
     # If this was called from a reload of prefs, turn off the prefs observer,
     # otherwise we'll end up back here when ST updates the prefs with the new color.
     if from_reload:
@@ -167,9 +173,15 @@ def generate_color_scheme(from_reload=True):
 
 def generate_color_scheme_async():
     """
-    Checks to see if the current color scheme has our colors, and if not,
-    adds them and writes the result to Packages/User/<scheme>.
+    Generate a modified copy of the current color scheme that contains SublimeLinter color entries.
+
+    from_reload is True if this is called from the change callback for user settings.
+
+    The current color scheme is checked for SublimeLinter color entries. If any are missing,
+    the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User.
+
     """
+
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')
 
@@ -242,10 +254,23 @@ def generate_color_scheme_async():
 
 
 def install_languages():
+    """Asynchronously call install_languages_async."""
     sublime.set_timeout_async(install_languages_async, 0)
 
 
 def install_languages_async():
+    """
+    Install fixed language packages.
+
+    Unfortunately the scope definitions in some language syntax definitions
+    (HTML at the moment) incorrectly define embedded scopes, which leads
+    to spurious lint errors.
+
+    This method copies all of the language packages in fixed_languages to Packages
+    so that they override the built in language package.
+
+    """
+
     plugin_dir = os.path.dirname(os.path.dirname(__file__))
     languages_dir = os.path.join(plugin_dir, 'fixed-languages')
 
@@ -310,14 +335,24 @@ def install_languages_async():
 # menu utils
 
 def indent_lines(text, indent):
+    """Return all of the lines in text indented by prefixing with indent."""
     return re.sub(r'^', indent, text, flags=re.MULTILINE)[len(indent):]
 
 
 def generate_menus(**kwargs):
+    """Asynchronously call generate_menus_async."""
     sublime.set_timeout_async(generate_menus_async, 0)
 
 
 def generate_menus_async():
+    """
+    Generate context and Tools SublimeLinter menus.
+
+    This is done dynamically so that we can have a submenu with all
+    of the available gutter themes.
+
+    """
+
     commands = []
 
     for chooser in CHOOSERS:
@@ -338,6 +373,8 @@ def generate_menus_async():
 
 
 def generate_menu(name, menu_text):
+    """Generate and return a sublime-menu from a template."""
+
     from . import persist
     plugin_dir = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY)
     path = os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name))
@@ -360,6 +397,8 @@ def generate_menu(name, menu_text):
 
 
 def build_submenu(caption):
+    """Generate and return a submenu with commands to select a lint mode, mark style, or gutter theme."""
+
     setting = caption.lower()
 
     if setting == 'lint mode':
@@ -382,7 +421,8 @@ def build_submenu(caption):
 
 
 def find_gutter_themes(themes, settings=None):
-    """Return a list of package-relative paths for all gutter themes"""
+    """Return a list of package-relative paths for all gutter themes."""
+
     from . import persist
 
     def find_themes(themes, settings, user_themes):
@@ -426,9 +466,13 @@ def find_gutter_themes(themes, settings=None):
 
 def climb(start_dir, limit=None):
     """
-    Generate directories, starting from start_dir. If limit is None, stop at
+    Generate directories, starting from start_dir.
+
+    If limit is None, stop at
     the root directory. Otherwise return a maximum of limit directories.
+
     """
+
     right = True
 
     while right and (limit is None or limit > 0):
@@ -441,12 +485,16 @@ def climb(start_dir, limit=None):
 
 def find_file(start_dir, name, parent=False, limit=None):
     """
-    Find the given file, starting from start_dir, and proceeding up
-    the file hierarchy. Returns the path to the file if parent is False
-    or the path to the file's parent directory if parent is True.
+    Find the given file by searching up the file hierarchy from start_dir.
+
+    If the file is found and parent is False, returns the path to the file.
+    If parent is True the path to the file's parent directory is returned.
+
     If limit is None, the search will continue up to the root directory.
     Otherwise a maximum of limit directories will be checked.
+
     """
+
     for d in climb(start_dir, limit=limit):
         target = os.path.join(d, name)
 
@@ -458,18 +506,25 @@ def find_file(start_dir, name, parent=False, limit=None):
 
 
 def extract_path(cmd, delim=':'):
+    """Return the user's PATH as a colon-delimited list."""
     path = popen(cmd, os.environ).communicate()[0].decode()
     path = path.split('__SUBL__', 1)[1].strip('\r\n')
     return ':'.join(path.split(delim))
 
 
-    # find PATH using shell --login
 def get_shell_path(env):
+    """
+    Return the user's shell PATH using shell --login.
+
+    This method is only used on Posix systems.
+
+    """
+
     if 'SHELL' in env:
         shell_path = env['SHELL']
         shell = os.path.basename(shell_path)
 
-        if shell in ('bash', 'zsh'):
+        if shell in ('bash', 'zsh', 'ksh', 'sh'):
             return extract_path(
                 (shell_path, '--login', '-c', 'echo __SUBL__$PATH')
             )
@@ -517,9 +572,13 @@ def get_path_components(path):
 
 def packages_relative_path(path, prefix_packages=True):
     """
-    Sublime Text wants package-relative paths to use '/' as the path separator
-    on all platforms. This method prefixes 'Packages' to the path if insert_packages = True
-    and returns a new path, replacing os path separators with '/'.
+    Return a Packages-relative version of path with '/' as the path separator.
+
+    Sublime Text wants Packages-relative paths used in settings and in the plugin API
+    to use '/' as the path separator on all platforms. This method converts platform
+    path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
+    converted path.
+
     """
 
     components = get_path_components(path)
@@ -532,6 +591,17 @@ def packages_relative_path(path, prefix_packages=True):
 
 @lru_cache(maxsize=None)
 def create_environment():
+    """
+    Return a dict with os.environ augmented with a better PATH.
+
+    On Posix systems, the user's shell PATH is added to PATH.
+
+    Platforms paths are then added to PATH by getting the
+    "paths" user settings for the current platform. If "paths"
+    has a "*" item, it is added to PATH on all platforms.
+
+    """
+
     from . import persist
 
     env = {}
@@ -569,19 +639,23 @@ def create_environment():
     return env
 
 
-def can_exec(fpath):
-    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+def can_exec(path):
+    """Return whether the given path is a file and is executable."""
+    return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
 @lru_cache(maxsize=None)
 def which(cmd):
     """
-    Returns the full path to the given command, or None if not found.
-    If cmd is in the form [script]@python[version], find_python() is
+    Return the full path to the given command, or None if not found.
+
+    If cmd is in the form [script]@python[version], find_python is
     called to locate the appropriate version of python. If [script]
     is not None and can be found, the result will be a tuple of the
     full python path and the full path to the script.
+
     """
+
     match = PYTHON_CMD_RE.match(cmd)
 
     if match:
@@ -592,6 +666,24 @@ def which(cmd):
 
 @lru_cache(maxsize=None)
 def find_python(version=None, script=None):
+    """
+    Return the path to a specific version of python and optional related script.
+
+    If not None, version should be a string version of python to locate, e.g.
+    '3' or '3.3'. This method then does its best to locate the given
+    version of python.
+
+    If version is none, the path to the default system python is used.
+
+    If not None, script should be the name of a python script that is typically
+    installed with easy_install or pip, e.g. 'pep8' or 'pyflakes'.
+
+    If the python version is found and script is None, a string with the path
+    to that python is returned. If script is not None and is found, a tuple with
+    the python path and script path is returned.
+
+    """
+
     # If a specific version was specified, check for that version
     path = None
 
@@ -679,6 +771,14 @@ def get_python_paths():
 
 @lru_cache(maxsize=None)
 def find_executable(executable):
+    """
+    Return the path to the given executable, or None if not found.
+
+    create_environment is used to augment PATH before searching
+    for the executable.
+
+    """
+
     # On Windows, if cmd does not have an extension, add .exe
     if sublime.platform() == 'windows' and not os.path.splitext(executable)[1]:
         executable += '.exe'
@@ -695,6 +795,7 @@ def find_executable(executable):
 
 
 def touch(path):
+    """Perform the equivalent of touch on Posix systems."""
     with open(path, 'a'):
         os.utime(path, None)
 
@@ -702,6 +803,7 @@ def touch(path):
 # popen utils
 
 def combine_output(out, sep=''):
+    """Return stdout and stderr -- as returned by communicate -- as a single string."""
     return sep.join((
         (out[0].decode('utf8') or ''),
         (out[1].decode('utf8') or ''),
@@ -709,6 +811,13 @@ def combine_output(out, sep=''):
 
 
 def communicate(cmd, code):
+    """
+    Return the result of sending code via stdin to an executable.
+
+    The result is a string combination of stdout and stderr.
+
+    """
+
     out = popen(cmd)
 
     if out is not None:
@@ -720,6 +829,16 @@ def communicate(cmd, code):
 
 
 def tmpfile(cmd, code, suffix=''):
+    """
+    Return the result of running an executable against a temporary file containing code.
+
+    It is assumed that the executable launched by cmd can take one more argument
+    which is a filename to process.
+
+    The result is a string combination of stdout and stderr.
+
+    """
+
     with tempfile.NamedTemporaryFile(suffix=suffix) as f:
         if isinstance(code, str):
             code = code.encode('utf8')
@@ -738,6 +857,16 @@ def tmpfile(cmd, code, suffix=''):
 
 
 def tmpdir(cmd, files, filename, code):
+    """
+    Run an executable against a temporary file containing code.
+
+    It is assumed that the executable launched by cmd can take one more argument
+    which is a filename to process.
+
+    Returns a string combination of stdout and stderr.
+
+    """
+
     filename = os.path.basename(filename)
     d = tempfile.mkdtemp()
     out = None
@@ -785,6 +914,8 @@ def tmpdir(cmd, files, filename, code):
 
 
 def popen(cmd, env=None):
+    """Open a pipe to an external process and return a Popen object."""
+
     info = None
 
     if os.name == 'nt':
@@ -810,6 +941,7 @@ def popen(cmd, env=None):
 # view utils
 
 def apply_to_all_views(callback):
+    """Apply callback to all views in all windows."""
     for window in sublime.windows():
         for view in window.views():
             callback(view)

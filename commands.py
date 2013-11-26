@@ -9,6 +9,8 @@
 # License: MIT
 #
 
+"""This module implements the Sublime Text commands provided by SublimeLinter."""
+
 import sublime
 import sublime_plugin
 
@@ -18,13 +20,22 @@ from threading import Thread
 from .lint import highlight, linter, persist, util
 
 
-def error_command(f):
-    """A decorator that only executes f if the current view has errors."""
-    def run(self, edit, **args):
+def error_command(method):
+    """
+    A decorator that executes method only if the current view has errors.
+
+    This decorator is meant to be used only with the run method of
+    sublime_plugin.TextCommand subclasses.
+
+    A wrapped version of method is returned.
+
+    """
+
+    def run(self, edit, **kwargs):
         vid = self.view.id()
 
         if vid in persist.errors and persist.errors[vid]:
-            f(self, self.view, persist.errors[vid], **args)
+            method(self, self.view, persist.errors[vid], **kwargs)
         else:
             sublime.message_dialog('No lint errors.')
 
@@ -32,37 +43,49 @@ def error_command(f):
 
 
 def select_line(view, line):
-    sel = view.sel()
+    """Change view's selection to be the given line."""
     point = view.text_point(line, 0)
+    sel = view.sel()
     sel.clear()
     sel.add(view.line(point))
 
 
 class SublimelinterLintCommand(sublime_plugin.TextCommand):
-    """Lints the current view if it has a linter."""
+
+    """A command that lints the current view if it has a linter."""
+
     def is_enabled(self):
+        """Return True if the current view has a linter and the lint mode is not "background"."""
         vid = self.view.id()
         return vid in persist.view_linters and persist.settings.get('lint_mode') != 'background'
 
     def run(self, edit):
+        """Lint the current view."""
         from .sublimelinter import SublimeLinter
         SublimeLinter.shared_plugin().lint(self.view.id())
 
 
 class HasErrorsCommand:
+
     """
-    A mixin class for text commands that should only be enabled
-    if the current view has errors.
+    A mixin class for sublime_plugin.TextCommand subclasses.
+
+    Inheriting from this class will enable the command only if the current view has errors.
+
     """
+
     def is_enabled(self):
-        # Only show this command in the command palette if the view has errors.
+        """Return True if the current view has errors."""
         vid = self.view.id()
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
 
 class GotoErrorCommand(sublime_plugin.TextCommand):
-    """This command is just a superclass for other commands, it is never enabled."""
+
+    """A superclass for commands that go to the next/previous error."""
+
     def goto_error(self, view, errors, direction='next'):
+        """Go to the next/previous error in view."""
         sel = view.sel()
 
         if len(sel) == 0:
@@ -115,15 +138,18 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
             sel.add_all(saved_sel)
             sublime.message_dialog('No {0} lint error.'.format(direction))
 
-        return region_to_select
-
     @classmethod
     def select_lint_region(cls, view, region):
+        """
+        Select the first marked region that contains region.
+
+        If none are found, the cursor is placed at the beginning of region.
+
+        """
+
         sel = view.sel()
         sel.clear()
 
-        # Find the first marked region within the region to select.
-        # If there are none, put the cursor at the beginning of the line.
         marked_region = cls.find_mark_within(view, region)
 
         if marked_region is None:
@@ -134,6 +160,8 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
     @classmethod
     def find_mark_within(cls, view, region):
+        """Return the nearest marked region that contains region, or None if none found."""
+
         marks = view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
         marks.extend(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
         marks.sort(key=sublime.Region.begin)
@@ -146,16 +174,22 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
 
 class SublimelinterGotoErrorCommand(GotoErrorCommand):
-    """Place the caret at the next/previous error."""
+
+    """A command that selects the next/previous error."""
+
     @error_command
-    def run(self, view, errors, **args):
-        self.goto_error(view, errors, **args)
+    def run(self, view, errors, **kwargs):
+        """Run the command."""
+        self.goto_error(view, errors, **kwargs)
 
 
-class SublimelinterShowAllErrors(GotoErrorCommand):
-    """Show a quick panel with all of the errors in the current view."""
+class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
+
+    """A command that shows a quick panel with all of the errors in the current view."""
+
     @error_command
     def run(self, view, errors):
+        """Run the command."""
         self.errors = errors
         self.points = []
         options = []
@@ -193,57 +227,90 @@ class SublimelinterShowAllErrors(GotoErrorCommand):
         view.window().show_quick_panel(options, self.select_error)
 
     def select_error(self, index):
+        """Completion handler for the quick panel. Selects the indexed error."""
         if index != -1:
             point = self.points[index]
-            self.select_lint_region(self.view, sublime.Region(point, point))
+            GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
 
 
 class ShowErrorsOnSaveCommand(sublime_plugin.WindowCommand):
+
+    """A command that toggles the "show_errors_on_save" setting."""
+
     def __init__(self, window, show_on_save=True):
         super().__init__(window)
         self.show_on_save = show_on_save
 
     def is_enabled(self):
+        """Return True if the opposite of self.show_on_save is True."""
         return persist.settings.get('show_errors_on_save') is not self.show_on_save
 
     def set(self):
+        """Toggle the "show_on_save" setting."""
         persist.settings.set('show_errors_on_save', self.show_on_save)
         persist.settings.save()
 
 
 class SublimelinterShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
+
+    """A command that sets the "show_errors_on_save" setting to True."""
+
     def __init__(self, window):
         super().__init__(window, show_on_save=True)
 
     def run(self):
+        """Run the command."""
         self.set()
 
 
 class SublimelinterDontShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
+
+    """A command that sets the "show_errors_on_save" setting to False."""
+
     def __init__(self, window):
         super().__init__(window, show_on_save=False)
 
     def run(self):
+        """Run the command."""
         self.set()
 
 
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
-    """Abstract base class for commands that choose a setting from a list."""
+
+    """An abstract base class for commands that choose a setting from a list."""
+
     def __init__(self, window, setting=None):
         super().__init__(window)
         self.setting = setting
 
     def get_settings(self):
-        return []
+        """Return the list of settings. Subclasses must override this."""
+        raise NotImplementedError
 
     def transform_setting(self, setting):
+        """
+        Transform the display text for setting to the form it is stored in.
+
+        By default, returns a lowercased copy of setting.
+
+        """
         return setting.lower()
 
-    def choose(self, **args):
+    def choose(self, **kwargs):
+        """
+        Choose or set the setting.
+
+        If 'value' is in kwargs, the setting is set to the corresponding value.
+        Otherwise the list of available settings is built via get_settings
+        and is displayed in a quick panel. The current value of the setting
+        is initially selected in the quick panel.
+
+        """
+
         self.settings = self.get_settings()
 
-        if 'value' in args:
-            setting = self.transform_setting(args['value'])
+        if 'value' in kwargs:
+            setting = self.transform_setting(kwargs['value'])
         else:
             setting = self.transform_setting(persist.settings.get(self.setting))
 
@@ -259,12 +326,14 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
                 index = i
                 break
 
-        if 'value' in args:
+        if 'value' in kwargs:
             self.set(index)
         else:
             self.window.show_quick_panel(self.settings, self.set, selected_index=index)
 
     def set(self, index):
+        """Set the value of the setting."""
+
         if index == -1:
             return
 
@@ -284,21 +353,33 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         persist.settings.save()
 
     def setting_was_changed(self, setting):
+        """
+        Do something after the setting value is changed but before settings are saved.
+
+        Subclasses may override this if further action is necessary after
+        the setting's value is changed.
+
+        """
         pass
 
 
 class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
-    """Select a lint mode from a list."""
+
+    """A command that selects a lint mode from a list."""
+
     def __init__(self, window):
         super().__init__(window, 'lint_mode')
 
-    def run(self, **args):
-        self.choose(**args)
+    def run(self, **kwargs):
+        """Run the command."""
+        self.choose(**kwargs)
 
     def get_settings(self):
+        """Return a list of the lint modes."""
         return [[name.capitalize(), description] for name, description in persist.LINT_MODES]
 
     def setting_was_changed(self, setting):
+        """Update all views when the lint mode changes."""
         if setting == 'background':
             from .sublimelinter import SublimeLinter
             SublimeLinter.lint_all_views()
@@ -307,26 +388,40 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
 
 
 class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
-    """Select a mark style from a list."""
+
+    """A command that selects a mark style from a list."""
+
     def __init__(self, window):
         super().__init__(window, 'mark_style')
 
-    def run(self, **args):
-        self.choose(**args)
+    def run(self, **kwargs):
+        """Run the command."""
+        self.choose(**kwargs)
 
     def get_settings(self):
+        """Return a list of the mark styles."""
         return highlight.mark_style_names()
 
 
 class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
-    """Select a gutter theme from a list."""
+
+    """A command that selects a gutter theme from a list."""
+
     def __init__(self, window):
         super().__init__(window, 'gutter_theme')
 
-    def run(self, **args):
-        self.choose(**args)
+    def run(self, **kwargs):
+        """Run the command."""
+        self.choose(**kwargs)
 
     def get_settings(self):
+        """
+        Return a list of all available gutter themes, with 'None' at the end.
+
+        Whether the theme is a SublimeLinter or user theme is indicated below the theme name.
+
+        """
+
         settings = []
         themes = []
         util.find_gutter_themes(themes, settings)
@@ -336,17 +431,25 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         return settings
 
     def transform_setting(self, setting):
+        """Return the original setting text, gutter theme settings are not lowercased."""
         return setting
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):
+
     """
-    Display a report of all errors in all open files in the current window,
-    in all files in all folders in the current window, or both.
+    A command that displays a report of all errors.
+
+    The scope of the report is all open files in the current window,
+    all files in all folders in the current window, or both.
+
     """
+
     def run(self, on='files'):
+        """Run the command. on determines the scope of the report."""
+
         output = self.window.new_file()
-        output.set_name(persist.PLUGIN_NAME)
+        output.set_name('{} Error Report'.format(persist.PLUGIN_NAME))
         output.set_scratch(True)
 
         if on == 'files' or on == 'both':
@@ -358,6 +461,8 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                 self.folder(output, folder)
 
     def folder(self, output, folder):
+        """Report on all files in a folder."""
+
         for root, dirs, files in os.walk(folder):
             for name in files:
                 path = os.path.join(root, name)
@@ -368,6 +473,8 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                     pass
 
     def report(self, output, view):
+        """Write a report on the given view to output."""
+
         def finish_lint(view, linters):
             if not linters:
                 return

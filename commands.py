@@ -60,7 +60,7 @@ class HasErrorsCommand:
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
 
-class GotoErrorCommand(HasErrorsCommand, sublime_plugin.TextCommand):
+class GotoErrorCommand(sublime_plugin.TextCommand):
     """This command is just a superclass for other commands, it is never enabled."""
     def goto_error(self, view, errors, direction='next'):
         sel = view.sel()

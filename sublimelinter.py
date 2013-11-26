@@ -8,6 +8,8 @@
 # License: MIT
 #
 
+"""This module provides the SublimeLinter plugin class and supporting methods."""
+
 import os
 import re
 
@@ -22,6 +24,7 @@ from .lint import persist, util, watcher
 
 def plugin_loaded():
     """The ST3 entry point for plugins."""
+
     persist.plugin_is_loaded = True
     persist.settings.load()
 
@@ -40,6 +43,8 @@ def plugin_loaded():
 
 
 def watch_gutter_themes():
+    """Watch the gutter theme directories, creating the user directory if necessary."""
+
     w = watcher.PathWatcher()
     gutter_themes = []
     gutter_directories = (
@@ -63,6 +68,7 @@ def watch_gutter_themes():
 
 
 class SublimeLinter(sublime_plugin.EventListener):
+
     """The main ST3 plugin class."""
 
     # We use this to match linter settings filenames.
@@ -72,6 +78,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     @classmethod
     def shared_plugin(cls):
+        """Return the plugin instance."""
         return cls.shared_instance
 
     def __init__(self, *args, **kwargs):
@@ -96,6 +103,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     @classmethod
     def lint_all_views(cls):
+        """Simulate a modification of all views, which will trigger a relint."""
+
         def apply(view):
             if view.id() in persist.view_linters:
                 cls.shared_instance.hit(view)
@@ -103,6 +112,22 @@ class SublimeLinter(sublime_plugin.EventListener):
         util.apply_to_all_views(apply)
 
     def lint(self, view_id, hit_time=None, callback=None):
+        """
+        Lint the view with the given id.
+
+        This method is called asynchronously by persist.Daemon when a lint
+        request is pulled off the queue.
+
+        If provided, hit_time is the time at which the lint request was added
+        to the queue. It is used to determine if the view has been modified
+        since the lint request was queued. If so, the lint is aborted, since
+        another lint request is already in the queue.
+
+        callback is the method to call when the lint is finished. If not
+        provided, it defaults to highlight().
+
+        """
+
         # If the view has been modified since the lint was triggered,
         # don't lint again.
         if hit_time is not None and self.last_hit_times.get(view_id, 0) > hit_time:
@@ -128,7 +153,21 @@ class SublimeLinter(sublime_plugin.EventListener):
         Linter.lint_view(view_id, filename, code, sections, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):
-        """Highlight any errors found during a lint."""
+        """
+        Highlight any errors found during a lint of the given view.
+
+        This method is called by Linter.lint_view after linting is finished.
+
+        linters is a list of the linters that ran. hit_time has the same meaning
+        as in lint(), and if the view was modified since the lint request was
+        made, this method aborts drawing marks.
+
+        If the view has not been modified since hit_time, all of the marks and
+        errors from the list of linters are aggregated and drawn, and the status
+        is updated.
+
+        """
+
         vid = view.id()
 
         # If the view has been modified since the lint was triggered,
@@ -156,6 +195,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
+
         vid = view.id()
         self.check_syntax(view)
         self.linted_views.add(vid)
@@ -170,9 +210,12 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def check_syntax(self, view):
         """
-        Checks if the view's syntax has changed. If so, a new linter is assigned.
-        Returns whether the syntax has changed.
+        Check and return if view's syntax has changed.
+
+        If the syntax has changed, a new linter is assigned.
+
         """
+
         vid = view.id()
         syntax = persist.get_syntax(view)
 
@@ -186,12 +229,14 @@ class SublimeLinter(sublime_plugin.EventListener):
             return False
 
     def clear(self, view):
+        """Clear all marks, errors and status from the given view."""
         Linter.clear_view(view)
 
     # sublime_plugin.EventListener event handlers
 
     def on_modified(self, view):
         """Called when a view is modified."""
+
         if view.id() not in persist.view_linters:
             syntax_changed = self.check_syntax(view)
 
@@ -230,12 +275,16 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_open_settings(self, view):
         """
         Called when any settings file is opened.
+
         view is the view that contains the text of the settings file.
+
         """
         if self.is_settings_file(view, user_only=True):
             persist.settings.save(view=view)
 
     def is_settings_file(self, view, user_only=False):
+        """Return True if view is a SublimeLinter settings file."""
+
         filename = view.file_name()
 
         if not filename:
@@ -268,6 +317,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
+
         vid = view.id()
 
         # Get the line number of the first line of the first selection.
@@ -312,12 +362,19 @@ class SublimeLinter(sublime_plugin.EventListener):
                 view.erase_status('sublimelinter')
 
     def on_pre_save(self, view):
-        # If a settings file is the active view and is saved,
-        # copy the current settings first so we can compare post-save.
+        """
+        Called before view is saved.
+
+        If a settings file is the active view and is saved,
+        copy the current settings first so we can compare post-save.
+
+        """
         if view.window().active_view() == view and self.is_settings_file(view):
             persist.settings.copy()
 
     def on_post_save(self, view):
+        """Called after view is saved."""
+
         # First check to see if the project settings changed
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
@@ -357,6 +414,8 @@ class SublimeLinter(sublime_plugin.EventListener):
                     view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
+        """Called after view is closed."""
+
         vid = view.id()
 
         if vid in self.loaded_views:
@@ -375,6 +434,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
 
 class sublimelinter_edit(sublime_plugin.TextCommand):
+
     """A plugin command used to generate an edit object for a view."""
+
     def run(self, edit):
+        """Run the command."""
         persist.edit(self.view.id(), edit)

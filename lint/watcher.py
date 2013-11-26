@@ -8,6 +8,8 @@
 # License: MIT
 #
 
+"""This module provides the PathWatcher class."""
+
 import os
 from threading import Lock, Thread
 import time
@@ -16,12 +18,10 @@ from . import persist
 
 
 class PathWatcher:
-    """
-    Watches one or more paths (or groups of paths) for modifications
-    and makes a callback when they occur.
-    """
+
+    """A class that monitors one or more paths in thread."""
+
     def __init__(self, interval=10.0):
-        """@param interval Seconds between checks"""
         self.interval = max(interval, 1.0)  # Minimum interval is 1 second
         self.paths = []
         self.mtimes = []
@@ -31,15 +31,18 @@ class PathWatcher:
 
     def watch(self, paths, callback):
         """
-        Adds one or more paths to be watched.
+        Add one or more paths (or groups of paths) to be watched.
 
-        @param paths    A single path or sequence of paths to watch. If a sequence
-                        is passed, the callback will be called if any of the paths
-                        in the sequence is modified.
-        @param callback A callable to be called when a path is modified. If a path
-                        is already being watched, this callback is added to the list
-                        of callbacks for that path.
+        paths is a single path or sequence of paths to watch. If a sequence
+        is passed, the callback will be called if any of the paths in the
+        sequence is modified.
+
+        callback is a callable to be called when a path is modified. If a path
+        is already being watched, the callback is added to the list of callbacks
+        for that path.
+
         """
+
         if isinstance(paths, str):
             paths_to_watch = [paths]
         else:
@@ -77,6 +80,8 @@ class PathWatcher:
                 self.callbacks.append([callback])
 
     def loop(self):
+        """The main method of the thread. Continuously monitors the paths for changes."""
+
         while True:
             with self.lock:
                 # Iterate in reverse so we can remove entries as we go
@@ -113,5 +118,6 @@ class PathWatcher:
             time.sleep(self.interval)
 
     def start(self):
+        """Start the monitor thread."""
         if not self.running:
             Thread(name='watcher', target=self.loop).start()

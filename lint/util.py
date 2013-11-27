@@ -14,6 +14,7 @@
 from functools import lru_cache
 from glob import glob
 import json
+from numbers import Number
 import os
 import re
 import shutil
@@ -1068,6 +1069,49 @@ def clear_caches():
     get_python_paths.cache_clear()
     find_executable.cache_clear()
 
+
+def convert_type(value, type_value, sep=None):
+    """
+    Convert value to the type of type_value.
+
+    If the value cannot be converted to the desired type, None is returned.
+    If sep is not None, strings are split by sep to make lists/tuples, and
+    tuples/lists are joined by sep to make strings.
+
+    """
+
+    if type_value is None or isinstance(value, type(type_value)):
+        return value
+
+    if isinstance(value, Number):
+        if isinstance(type_value, str):
+            return str(value)
+        elif isinstance(type_value, (tuple, list)):
+            return [value]
+        else:
+            return None
+
+    if isinstance(value, str):
+        if isinstance(type_value, Number):
+            return float(value)
+        elif isinstance(type_value, (tuple, list)):
+            if sep is None:
+                return [value]
+            else:
+                if value:
+                    return value.split(sep)
+                else:
+                    return []
+        else:
+            return None
+
+    if isinstance(value, (tuple, list)):
+        if isinstance(type_value, str):
+            return sep.join(value)
+        else:
+            return list(value)
+
+    return None
 
 # color-related constants
 

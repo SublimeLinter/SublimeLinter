@@ -872,6 +872,42 @@ class Linter(metaclass=Registrar):
 
         return args
 
+    def build_options(self, options, type_map, transform=None):
+        """
+        Build a list of options to be passed directly to a linting method.
+
+        This method is designed for use with linters that do linting directly
+        in code and need to pass a dict of options.
+
+        options is the starting dict of options. For each of the settings
+        listed in self.args_map:
+
+        - See if the setting name is in view settings.
+
+        - If so, and the value is non-empty, see if the setting
+          name is in type_map. If so, convert the value to the type
+          of the value in type_map.
+
+        - If transform is not None, pass the name to it and assign to the result.
+
+        - Add the name/value pair to options.
+
+        """
+
+        view_settings = self.get_view_settings()
+
+        for name, info in self.args_map.items():
+            value = view_settings.get(name)
+
+            if value:
+                value = util.convert_type(value, type_map.get(name), sep=info.get('sep'))
+
+                if value is not None:
+                    if transform:
+                        name = transform(name)
+
+                    options[name] = value
+
     def lint(self):
         """
         Perform the lint, retrieve the results, and add marks to the view.

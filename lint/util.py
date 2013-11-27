@@ -649,42 +649,55 @@ def which(cmd):
     Return the full path to the given command, or None if not found.
 
     If cmd is in the form [script]@python[version], find_python is
-    called to locate the appropriate version of python. If [script]
-    is not None and can be found, the result will be a tuple of the
-    full python path and the full path to the script.
+    called to locate the appropriate version of python. The result
+    is a tuple of the full python path and the full path to the script
+    (or None if there is no script).
 
     """
 
     match = PYTHON_CMD_RE.match(cmd)
 
     if match:
-        return find_python(**match.groupdict())
+        return find_python(**match.groupdict())[0:2]
     else:
         return find_executable(cmd)
 
 
 @lru_cache(maxsize=None)
+def get_python_version(path):
+    """Return the version string of the python at the given path."""
+
+    status, output = subprocess.getstatusoutput(path + ' -V')
+
+    if status == 0:
+        # 'python -V' returns 'Python <version>', extract the version number
+        return output.split(' ')[1]
+    else:
+        return None
+
+
+@lru_cache(maxsize=None)
 def find_python(version=None, script=None):
     """
-    Return the path to a specific version of python and optional related script.
+    Return the path to and version of python and an optional related script.
 
     If not None, version should be a string version of python to locate, e.g.
     '3' or '3.3'. This method then does its best to locate the given
     version of python.
 
-    If version is none, the path to the default system python is used.
+    If version is None, the path to the default system python is used.
 
     If not None, script should be the name of a python script that is typically
     installed with easy_install or pip, e.g. 'pep8' or 'pyflakes'.
 
-    If the python version is found and script is None, a string with the path
-    to that python is returned. If script is not None and is found, a tuple with
-    the python path and script path is returned.
+    A tuple with the python path, script path, and major version is returned.
 
     """
 
     # If a specific version was specified, check for that version
     path = None
+    script_path = None
+    major_version = None
 
     if version is not None:
         if sublime.platform() in ('osx', 'linux'):
@@ -696,12 +709,9 @@ def find_python(version=None, script=None):
                 path = find_executable('python')
 
                 if path:
-                    status, output = subprocess.getstatusoutput(path + ' -V')
+                    vers = get_python_version(path)
 
-                    if status == 0:
-                        # 'python -V' returns 'Python <version>', extract the version number
-                        vers = output.split(' ')[1]
-
+                    if vers:
                         # Allow matches against major versions by doing a startswith match
                         if not vers.startswith(version):
                             path = None
@@ -714,7 +724,7 @@ def find_python(version=None, script=None):
             # version based on the directory names. The 'Python*' directories end
             # with the <major><minor> version number, so for matching with the version
             # passed in, strip any decimal points.
-            version = version.replace('.', '')
+            stripped_version = version.replace('.', '')
             prefix = os.path.abspath('\\Python')
             prefix_len = len(prefix)
             dirs = glob(prefix + '*')
@@ -722,7 +732,7 @@ def find_python(version=None, script=None):
             for python_dir in dirs:
                 python_path = os.path.join(python_dir, 'python.exe')
 
-                if python_dir[prefix_len:].startswith(version) and can_exec(python_path):
+                if python_dir[prefix_len:].startswith(stripped_version) and can_exec(python_path):
                     path = python_path
                     break
     else:
@@ -733,20 +743,22 @@ def find_python(version=None, script=None):
         if sublime.platform() in ('osx', 'linux'):
             script_path = which(script)
 
-            if script_path:
-                path = (path, script_path)
-            else:
+            if not script_path:
                 path = None
         else:
             # On Windows, scripts are .py files in <python directory>/Scripts
             script_path = os.path.join(os.path.dirname(path), 'Scripts', script + '-script.py')
 
-            if os.path.exists(script_path):
-                path = (path, script_path)
-            else:
-                path = None
+            if not os.path.exists(script_path):
+                path = script_path = None
 
-    return path
+    if path:
+        version = get_python_version(path[0] if isinstance(path, tuple) else path)
+
+        if version:
+            major_version = version.split('.')[0]
+
+    return (path, script_path, major_version)
 
 
 @lru_cache(maxsize=None)
@@ -758,11 +770,11 @@ def get_python_paths():
 
     """
 
-    python_path = which('@python3')
+    python_path = which('@python3')[0]
 
     if python_path:
         code = r'import sys;print("\n".join(sys.path).strip())'
-        out = communicate((python_path,), code)
+        out = communicate(python_path, code)
         return out.splitlines()
     else:
         return []

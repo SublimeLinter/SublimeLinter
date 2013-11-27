@@ -1,6 +1,5 @@
 {
     "default": {
-        "@disable": false,
         "debug": false,
         "delay": 0.25,
         "error_color": "D02000",

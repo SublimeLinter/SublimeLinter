@@ -23,6 +23,16 @@
             {
                 "caption": "Show All Errors",
                 "command": "sublimelinter_show_all_errors"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "User Settings",
+                "command": "open_file", "args":
+                {
+                    "file": "${packages}/User/SublimeLinter.sublime-settings"
+                }
             }
         ]
     }

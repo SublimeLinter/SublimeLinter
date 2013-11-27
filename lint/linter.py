@@ -24,6 +24,7 @@ import os
 import re
 import shlex
 import sublime
+import traceback
 
 from . import highlight, persist, util
 
@@ -1283,6 +1284,9 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 try:
                     errors = self.check(code, os.path.basename(self.filename))
                 except:
+                    if persist.settings.get('debug'):
+                        persist.printf(traceback.format_exc())
+
                     errors = ''
 
                 if isinstance(errors, (tuple, list)):

@@ -189,23 +189,17 @@ class Linter(metaclass=Registrar):
     # automatically be passed as an argument to the executable. The format
     # specification is as follows:
     #
-    # <prefix><name><suffix>
+    # <prefix><name><joiner>[<sep>[+]]
     #
     # - <prefix>: Either '-' or '--'.
     # - <name>: The name of the setting.
-    # - <suffix>: Optional. If not present, the setting is boolean,
-    #   and if the value is true, the argument is passed. If <suffix> is present,
-    #   it has the following structure:
-    #
-    #   <joiner>[<sep>[+]]
-    #
-    #   - <joiner>: Either '=' or ':'. If '=', the setting value is joined
-    #     with <name> by '=' and passed as a single argument. If ':', <name>
-    #     and the value are passed as separate arguments.
-    #   - <sep>: If the argument accepts a list of values, <sep> specifies
-    #     the character used to delimit the list (usually ',').
-    #   - +: If the setting can be a list of values, but each value must be
-    #     passed as a separate argument, terminate the setting with '+'.
+    # - <joiner>: Either '=' or ':'. If '=', the setting value is joined
+    #   with <name> by '=' and passed as a single argument. If ':', <name>
+    #   and the value are passed as separate arguments.
+    # - <sep>: If the argument accepts a list of values, <sep> specifies
+    #   the character used to delimit the list (usually ',').
+    # - +: If the setting can be a list of values, but each value must be
+    #   passed as a separate argument, terminate the setting with '+'.
     #
     # After the format is parsed, the prefix and suffix are removed and the
     # setting is replaced with <name>.
@@ -814,7 +808,6 @@ class Linter(metaclass=Registrar):
         - Start with the prefix and arg name.
         - If the joiner is '=', join '=' and the value and append to the args.
         - If the joiner is ':', append the arg and value as separate args.
-        - If there is no joiner and the value is True, append the arg.
 
         Return the arg list.
 
@@ -867,8 +860,6 @@ class Linter(metaclass=Registrar):
                 elif joiner == ':':
                     args.append(arg)
                     args.append(str(value))
-                elif not joiner and value is True:
-                    args.append(arg)
 
         return args
 

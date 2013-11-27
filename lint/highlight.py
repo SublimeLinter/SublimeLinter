@@ -221,18 +221,18 @@ class Highlight:
         offset = 0
 
         start, end = self.full_line(line)
-        lineText = self.code[start:end]
+        line_text = self.code[start:end]
 
         if line_match:
-            match = re.match(line_match, lineText)
+            match = re.match(line_match, line_text)
 
             if match:
-                lineText = match.group('match')
+                line_text = match.group('match')
                 offset = match.start('match')
             else:
                 return
 
-        it = re.finditer(regex, lineText)
+        it = re.finditer(regex, line_text)
         results = [
             result.span('mark')
             for result in it

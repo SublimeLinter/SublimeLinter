@@ -250,10 +250,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         else:
             self.clear(view)
 
-    def on_load(self, view):
-        """Called when a file is finished loading."""
-        self.on_new(view)
-
     def on_activated(self, view):
         """Called when a view gains input focus."""
 
@@ -313,7 +309,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         vid = view.id()
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
-        self.on_activated(view)
 
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""

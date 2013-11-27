@@ -372,14 +372,17 @@ class Linter(metaclass=Registrar):
             if self.inline_settings and setting in self.inline_settings:
                 view_settings[setting] = value
             elif self.inline_overrides and setting in self.inline_overrides:
+                options = view_settings[setting]
                 sep = self.args_map.get(setting, {}).get('sep')
 
                 if sep:
                     kwargs = {'sep': sep}
+                    options = options or ''
                 else:
                     kwargs = {}
+                    options = options or ()
 
-                view_settings[setting] = self.override_options(view_settings[setting] or (), value, **kwargs)
+                view_settings[setting] = self.override_options(options, value, **kwargs)
 
         return view_settings
 
@@ -417,7 +420,10 @@ class Linter(metaclass=Registrar):
         """
 
         if isinstance(options, str):
-            options = options.split(sep)
+            options = options.split(sep) if options else ()
+            return_str = True
+        else:
+            return_str = False
 
         modified_options = set(options)
 
@@ -434,7 +440,10 @@ class Linter(metaclass=Registrar):
             else:
                 modified_options.add(override)
 
-        return list(modified_options)
+        if return_str:
+            return sep.join(modified_options)
+        else:
+            return list(modified_options)
 
     @classmethod
     def assign(cls, view, linter_name=None, reset=False):

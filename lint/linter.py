@@ -877,7 +877,7 @@ class Linter(metaclass=Registrar):
         """
 
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):
-            raise NotImplementedError
+            persist.debug('{}: not implemented'.format(self.__class__.__name__))
 
         if self.cmd is None:
             cmd = None
@@ -1295,4 +1295,10 @@ class PythonLinter(Linter, metaclass=PythonMeta):
         be converted to strings.
 
         """
+
+        persist.debug(
+            '{}: subclasses must override the PythonLinter.check method'
+            .format(self.__class__.__name__)
+        )
+
         return []

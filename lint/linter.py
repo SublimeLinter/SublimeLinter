@@ -1125,7 +1125,61 @@ class Linter(metaclass=Registrar):
         return util.popen(cmd, env)
 
 
-class PythonLinter(Linter):
+class PythonMeta(Registrar):
+
+    """
+    Metaclass for PythonLinter that dynamically sets the 'cmd' attribute.
+
+    If a linter can work both using an executable and built in code,
+    the best way to deal with that is to set the cmd class attribute
+    during class construction. This allows the linter to take advantage
+    of the rest of the SublimeLinter machinery for everything but run().
+
+    """
+
+    def __init__(cls, name, bases, attrs):
+        # Attempt to import the configured module.
+        # If it could not be imported, use the executable.
+        # We have to do this before super().__init__ because
+        # that registers the class, and we need this attribute set first.
+        from importlib import import_module
+
+        module = None
+
+        if attrs.get('module') is not None:
+            try:
+                module = import_module(attrs['module'])
+
+                # If check_version is True, we need to determine
+                # what version of python is available.
+                cmd = cls.cmd
+
+                if isinstance(cls.cmd, tuple):
+                    cmd = cls.cmd[0]
+
+                if cmd:
+                    match = util.PYTHON_CMD_RE.match(cmd)
+
+                    if match:
+                        info = util.find_python(**match.groupdict())
+
+                        if info:
+                            setattr(cls, 'python_version', info[2])
+
+                # If the module is successfully imported, save cmd and set cmd to None
+                # so that the run method controls the building of cmd.
+                setattr(cls, '_cmd', cls.cmd)
+                setattr(cls, 'cmd', None)
+
+            except:
+                pass
+
+        setattr(cls, 'module', module)
+
+        super().__init__(name, bases, attrs)
+
+
+class PythonLinter(Linter, metaclass=PythonMeta):
 
     """
     This Linter subclass provides python-specific functionality.
@@ -1134,13 +1188,48 @@ class PythonLinter(Linter):
     By doing so, they automatically get the following features:
 
     - comment_re is defined correctly for python.
+
     - A python shebang is returned as the @python:<version> meta setting.
+
+    - Execution directly via a module method or via an executable.
+
+    If a module attribute is defined, the module will be imported
+    and the attribute will be replaced with the imported module.
+
+    If the module is successfully imported, whether it is used depends
+    on the following algorithm:
+
+      - If the check_version attribute is False, the module will be used
+        because the module is not version-sensitive.
+
+      - If the "@python" setting is set and >= 3, the module will be used.
+
+      - If the cmd attribute specifies @python[version] and <version>
+        is >= 3, the module will be used.
+
+      - If the cmd attribute specifies @python and the system version
+        is >= 3, the module will be used.
+
+      - Otherwise the executable will be used with python 2.
 
     """
 
     SHEBANG_RE = re.compile(r'\s*#!(?:(?:/[^/]+)*[/ ])?python(?P<version>\d(?:\.\d)?)')
 
     comment_re = r'\s*#'
+
+    # If the linter wants to import a module and run a method directly,
+    # it should set this attribute to the module name, suitable for passing
+    # to importlib.import_module.
+    module = None
+
+    # Some python-based linters are version-sensitive, i.e. the python version
+    # they are run with has to match the version of the code they lint.
+    # If a linter is version-sensitive, this attribute should be set to True.
+    check_version = False
+
+    # Used internally, do not modify.
+    python_version = None
 
     @staticmethod
     def match_shebang(code):
@@ -1154,3 +1243,56 @@ class PythonLinter(Linter):
             return None
 
     shebang_match = match_shebang
+
+    def run(self, cmd, code):
+        """Run the module checker or executable on code and return the output."""
+
+        if self.module is not None:
+            use_module = False
+
+            if not self.check_version:
+                use_module = True
+            else:
+                settings = self.get_view_settings()
+
+                if str(settings.get('@python', '2')) >= '3':
+                    use_module = True
+                elif self.python_version is not None and self.python_version >= '3':
+                    use_module = True
+
+            if use_module:
+                if persist.settings.get('debug'):
+                    persist.printf(
+                        '{}: {} <built-in>'.format(
+                            self.__class__.__name__,
+                            os.path.basename(self.filename)
+                        )
+                    )
+
+                try:
+                    errors = self.check(code, os.path.basename(self.filename))
+                except:
+                    errors = ''
+
+                if isinstance(errors, (tuple, list)):
+                    return '\n'.join([str(e) for e in errors])
+                else:
+                    return errors
+            else:
+                cmd = self._cmd
+        else:
+            cmd = self.cmd
+
+        cmd = self.build_cmd(cmd=cmd)
+        return super().run(cmd, code)
+
+    def check(self, code, filename):
+        """
+        Run a built-in check of code, returning a list of errors.
+
+        Subclasses that provide built in checking must override this method.
+        The objects returned may either be strings or objects that can
+        be converted to strings.
+
+        """
+        return []

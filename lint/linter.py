@@ -440,14 +440,19 @@ class Linter(metaclass=Registrar):
         return list(modified_options)
 
     @classmethod
-    def assign(cls, view, linter_name=None, reassign=False):
+    def assign(cls, view, linter_name=None, reset=False):
         """
-        Assign a linter to a view and return the list of linters that can lint the view.
+        Assign linters to a view.
 
-        Find a linter for a specified view if possible, then add it to our
-        view <--> lint class map and return it.
+        If reset is True, the list of linters for view is completely rebuilt.
 
-        Each view has its own linter so that linters can store persistent data about a view.
+        can_lint for each known linter class is called to determine
+        if the linter class can lint the syntax for view. If so, a new instance
+        of the linter class is assigned to the view, unless linter_name is non-empty
+        and does not match the 'name' attribute of any of the view's linters.
+
+        Each view has its own linters so that linters can store persistent data
+        about a view.
 
         """
 
@@ -459,29 +464,39 @@ class Linter(metaclass=Registrar):
             cls.remove(vid)
             return
 
-        if vid in persist.view_linters and persist.view_linters[vid] and not reassign:
-            # If a linter in the set of linters for the given view
-            # already handles the view's syntax, we have nothing more to do.
-            for linter in tuple(persist.view_linters[vid]):
-                if linter.syntax == syntax:
-                    return
-
+        view_linters = persist.view_linters.get(vid, set())
         linters = set()
 
         for name, linter_class in persist.linter_classes.items():
-            if linter_name and linter_name != name:
-                continue
-
             if linter_class.can_lint(syntax):
-                linter = linter_class(view, syntax, view.file_name())
+
+                if reset:
+                    instantiate = True
+                else:
+                    linter = None
+
+                    for l in view_linters:
+                        if name == l.name:
+                            linter = l
+                            break
+
+                    if linter is None:
+                        instantiate = True
+                    else:
+                        # If there is an existing linter and no linter_name was passed,
+                        # leave it. If linter_name was passed, re-instantiate only if
+                        # the linter's name matches linter_name.
+                        instantiate = linter_name == linter.name
+
+                if instantiate:
+                    linter = linter_class(view, syntax, view.file_name())
+
                 linters.add(linter)
 
         if linters:
             persist.view_linters[vid] = linters
-        elif reassign and not linters and vid in persist.view_linters:
+        elif reset and not linters and vid in persist.view_linters:
             del persist.view_linters[vid]
-
-        return linters
 
     @classmethod
     def remove(cls, vid):

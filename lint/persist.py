@@ -125,7 +125,7 @@ class Settings:
         if self.previous_settings and self.previous_settings.get('syntax_map') != self.settings.get('syntax_map'):
             need_relint = True
             Linter.clear_all()
-            util.apply_to_all_views(lambda view: Linter.assign(view, reassign=True))
+            util.apply_to_all_views(lambda view: Linter.assign(view, reset=True))
 
         # If any of the linter settings changed, relint
         if (
@@ -358,7 +358,7 @@ def register_linter(linter_class, name, attrs):
                 linter_name = None
 
             for view in views.values():
-                linter.Linter.assign(view, linter_name=linter_name, reassign=True)
+                linter.Linter.assign(view, linter_name=linter_name)
 
             printf('{} linter reloaded'.format(linter_class.__name__))
         else:

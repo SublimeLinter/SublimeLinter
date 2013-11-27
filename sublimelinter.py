@@ -222,7 +222,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         # Syntax either has never been set or just changed
         if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
             self.view_syntax[vid] = syntax
-            Linter.assign(view, reassign=True)
+            Linter.assign(view, reset=True)
             self.clear(view)
             return True
         else:
@@ -313,7 +313,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         vid = view.id()
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
-        Linter.assign(view)
+        self.on_activated(view)
 
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""

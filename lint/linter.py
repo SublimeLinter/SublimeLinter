@@ -889,9 +889,6 @@ class Linter(metaclass=Registrar):
         if cmd is not None and not cmd:
             return
 
-        if persist.settings.get('debug'):
-            persist.printf('{} - {}: {}'.format(self.__class__.__name__, os.path.basename(self.filename), repr(cmd)))
-
         output = self.run(cmd, self.code)
 
         if not output:
@@ -1004,7 +1001,7 @@ class Linter(metaclass=Registrar):
 
             persist.printf('{} {}'.format(
                 cls.__name__,
-                'enabled ({})'.format(cls.executable_path) if can
+                'enabled: {}'.format(cls.executable_path) if can
                 else 'disabled, cannot locate \'{}\''.format(executable)
             ))
 
@@ -1101,6 +1098,11 @@ class Linter(metaclass=Registrar):
         method, it will need to override this method.
 
         """
+        if persist.settings.get('debug'):
+            persist.printf('{}: {} {}'.format(self.__class__.__name__,
+                                              os.path.basename(self.filename),
+                                              cmd or '<built-in>'))
+
         if self.tempfile_suffix:
             return self.tmpfile(cmd, code, suffix=self.tempfile_suffix)
         else:

@@ -18,6 +18,7 @@ PythonLinter    Linter subclass that provides base python configuration.
 """
 
 from fnmatch import fnmatch
+from functools import lru_cache
 from numbers import Number
 import os
 import re
@@ -285,6 +286,7 @@ class Linter(metaclass=Registrar):
         """Return a dict with the items in settings whose keys begin with '@'."""
         return {key: value for key, value in settings.items() if key.startswith('@')}
 
+    @lru_cache(maxsize=None)
     def get_view_settings(self, no_inline=False):
         """
         Return a union of all settings specific to this linter, related to the given view.
@@ -621,6 +623,9 @@ class Linter(metaclass=Registrar):
         syntax = persist.get_syntax(persist.views[vid])
 
         for linter in linters:
+            # Because get_view_settings is expensive, we use an lru_cache
+            # to cache its results. Before each lint, reset the cache.
+            linter.get_view_settings.cache_clear()
             view_settings = linter.get_view_settings(no_inline=True)
 
             if view_settings.get('@disable'):

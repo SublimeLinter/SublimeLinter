@@ -18,12 +18,14 @@ import os
 import re
 import shutil
 from string import Template
+import sys
 import tempfile
 import sublime
 import subprocess
 from xml.etree import ElementTree
 
 PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+)?')
+VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 
 INLINE_SETTINGS_RE = re.compile(r'.*?\[SublimeLinter[ ]+(?P<settings>[^\]]+)\]')
 INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)(?:\s*:\s*(?P<value>[^\s]+))?')
@@ -644,7 +646,7 @@ def can_exec(path):
 
 
 @lru_cache(maxsize=None)
-def which(cmd):
+def which(cmd, module=None):
     """
     Return the full path to the given command, or None if not found.
 
@@ -658,107 +660,205 @@ def which(cmd):
     match = PYTHON_CMD_RE.match(cmd)
 
     if match:
-        return find_python(**match.groupdict())[0:2]
+        args = match.groupdict()
+        args['module'] = module
+        return find_python(**args)[0:2]
     else:
         return find_executable(cmd)
 
 
+def extract_major_minor_version(version):
+    """Extract and return major and minor versions from a string version."""
+
+    match = VERSION_RE.match(version)
+
+    if match:
+        return {key: int(value) if value is not None else None for key, value in match.groupdict().items()}
+    else:
+        return {'major': None, 'minor': None}
+
+
 @lru_cache(maxsize=None)
 def get_python_version(path):
-    """Return the version string of the python at the given path."""
+    """Return a dict with the major/minor version of the python at path."""
 
     status, output = subprocess.getstatusoutput(path + ' -V')
 
     if status == 0:
         # 'python -V' returns 'Python <version>', extract the version number
-        return output.split(' ')[1]
+        return extract_major_minor_version(output.split(' ')[1])
     else:
-        return None
+        return {'major': None, 'minor': None}
 
 
 @lru_cache(maxsize=None)
-def find_python(version=None, script=None):
+def find_python(version=None, script=None, module=None):
     """
     Return the path to and version of python and an optional related script.
 
-    If not None, version should be a string version of python to locate, e.g.
-    '3' or '3.3'. This method then does its best to locate the given
-    version of python.
+    If not None, version should be a string/numeric version of python to locate, e.g.
+    '3' or '3.3'. Only major/minor versions are examined. This method then does
+    its best to locate a version of python that satisfies the requested version.
+    If module is not None, Sublime Text's python version is tested against the
+    requested version.
 
-    If version is None, the path to the default system python is used.
+    If version is None, the path to the default system python is used, unless
+    module is not None, in which case '<builtin>' is returned.
 
     If not None, script should be the name of a python script that is typically
     installed with easy_install or pip, e.g. 'pep8' or 'pyflakes'.
 
-    A tuple with the python path, script path, and major version is returned.
+    A tuple of the python path, script path, major version, minor version is returned.
 
     """
 
-    # If a specific version was specified, check for that version
     path = None
     script_path = None
-    major_version = None
 
-    if version is not None:
-        if sublime.platform() in ('osx', 'linux'):
-            path = find_executable('python' + version)
+    requested_version = {'major': None, 'minor': None}
 
-            # If finding the named version failed, get the version
-            # of the default python and see if it matches.
-            if path is None:
-                path = find_executable('python')
-
-                if path:
-                    vers = get_python_version(path)
-
-                    if vers:
-                        # Allow matches against major versions by doing a startswith match
-                        if not vers.startswith(version):
-                            path = None
-                    else:
-                        path = None
-        else:
-            # On Windows, there may be no separately named python/python3 binaries,
-            # so it seems the only reliable way to check for a given version is to
-            # check the root drive for 'Python*' directories, and try to match the
-            # version based on the directory names. The 'Python*' directories end
-            # with the <major><minor> version number, so for matching with the version
-            # passed in, strip any decimal points.
-            stripped_version = version.replace('.', '')
-            prefix = os.path.abspath('\\Python')
-            prefix_len = len(prefix)
-            dirs = glob(prefix + '*')
-
-            for python_dir in dirs:
-                python_path = os.path.join(python_dir, 'python.exe')
-
-                if python_dir[prefix_len:].startswith(stripped_version) and can_exec(python_path):
-                    path = python_path
-                    break
+    if module is None:
+        available_version = {'major': None, 'minor': None}
     else:
-        # No version was specified, return the default
+        available_version = {
+            'major': sys.version_info.major,
+            'minor': sys.version_info.minor
+        }
+
+    if version is None:
+        # If no specific version is requested and we have a module,
+        # assume the linter will run using ST's python.
+        if module is not None:
+            return ('<builtin>', script, available_version['major'], available_version['minor'])
+
+        # No version was specified, get the default python
+        path = find_executable('python')
+    else:
+        version = str(version)
+        requested_version = extract_major_minor_version(version)
+
+        # If there is no module, we will use a system python.
+        # If there is a module, a specific version was requested,
+        # and the builtin version does not fulfill the request,
+        # use the system python.
+        if module is None:
+            need_system_python = True
+        else:
+            need_system_python = not version_fulfills_request(available_version, requested_version)
+            path = '<builtin>'
+
+        if need_system_python:
+            if sublime.platform() in ('osx', 'linux'):
+                path = find_posix_python(version)
+            else:
+                path = find_windows_python(version)
+
+    if path and path != '<builtin>':
+        available_version = get_python_version(path)
+
+        if version_fulfills_request(available_version, requested_version):
+            if script:
+                script_path = find_python_script(path, script)
+
+                if script_path is None:
+                    path = None
+        else:
+            path = script_path = None
+
+    return (path, script_path, available_version['major'], available_version['minor'])
+
+
+def version_fulfills_request(available_version, requested_version):
+    """
+    Return whether available_version fulfills requested_version.
+
+    Both are dicts with 'major' and 'minor' items.
+
+    """
+
+    # No requested major version is fulfilled by anything
+    if requested_version['major'] is None:
+        return True
+
+    # If major version is requested, that at least must match
+    if requested_version['major'] != available_version['major']:
+        return False
+
+    # Major version matches, if no requested minor version it's a match
+    if requested_version['minor'] is None:
+        return True
+
+    # If a minor version is requested, the available minor version must be >=
+    return (
+        available_version['minor'] is not None and
+        available_version['minor'] >= requested_version['minor']
+    )
+
+
+@lru_cache(maxsize=None)
+def find_posix_python(version):
+    """Find the nearest version of python and return its path."""
+
+    if version:
+        # Try the exact requested version first
+        path = find_executable('python' + version)
+
+        # If that fails, try the major version
+        if not path:
+            path = find_executable('python' + version[0])
+
+            # If the major version failed, see if the default is available
+            if not path:
+                path = find_executable('python')
+    else:
         path = find_executable('python')
 
-    if path and script:
-        if sublime.platform() in ('osx', 'linux'):
-            script_path = which(script)
+    return path
 
-            if not script_path:
-                path = None
+
+@lru_cache(maxsize=None)
+def find_windows_python(version):
+    """Find the nearest version of python and return its path."""
+
+    if version:
+        # On Windows, there may be no separately named python/python3 binaries,
+        # so it seems the only reliable way to check for a given version is to
+        # check the root drive for 'Python*' directories, and try to match the
+        # version based on the directory names. The 'Python*' directories end
+        # with the <major><minor> version number, so for matching with the version
+        # passed in, strip any decimal points.
+        stripped_version = version.replace('.', '')
+        prefix = os.path.abspath('\\Python')
+        prefix_len = len(prefix)
+        dirs = glob(prefix + '*')
+
+        # Try the exact version first, then the major version
+        for version in (stripped_version, stripped_version[0]):
+            for python_dir in dirs:
+                path = os.path.join(python_dir, 'python.exe')
+                python_version = python_dir[prefix_len:]
+
+                # Try the exact version first, then the major version
+                if python_version.startswith(version) and can_exec(path):
+                    return path
+
+    # No version or couldn't find a version match, try the default python
+    return find_executable('python')
+
+
+@lru_cache(maxsize=None)
+def find_python_script(python_path, script):
+    """Return the path to the given script, or None if not found."""
+    if sublime.platform() in ('osx', 'linux'):
+        return which(script)
+    else:
+        # On Windows, scripts are .py files in <python directory>/Scripts
+        script_path = os.path.join(os.path.dirname(python_path), 'Scripts', script + '-script.py')
+
+        if os.path.exists(script_path):
+            return script_path
         else:
-            # On Windows, scripts are .py files in <python directory>/Scripts
-            script_path = os.path.join(os.path.dirname(path), 'Scripts', script + '-script.py')
-
-            if not os.path.exists(script_path):
-                path = script_path = None
-
-    if path:
-        version = get_python_version(path[0] if isinstance(path, tuple) else path)
-
-        if version:
-            major_version = version.split('.')[0]
-
-    return (path, script_path, major_version)
+            return None
 
 
 @lru_cache(maxsize=None)

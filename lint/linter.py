@@ -694,6 +694,11 @@ class Linter(metaclass=Registrar):
         self.filename = filename or self.filename
         self.highlight = highlight.Highlight(self.code)
 
+    @classmethod
+    def which(cls, cmd):
+        """Call util.which with this class' module and return the result."""
+        return util.which(cmd, module=getattr(cls, 'module', None))
+
     def get_cmd(self):
         """
         Calculate and return a tuple/list of the command line to be executed.
@@ -750,12 +755,16 @@ class Linter(metaclass=Registrar):
 
         if match and '@python' in settings:
             which = '{}@python{}'.format(match.group('script') or '', settings.get('@python'))
-            path = util.which(which)
+            path = self.which(which)
+
+            # Return None, which means the linter runs code internally
+            if path and path[0] == '<builtin>':
+                return None
         elif self.executable_path:
             path = self.executable_path
         else:
             which = cmd[0]
-            path = util.which(which)
+            path = self.which(which)
 
         if not path:
             persist.debug('unable to locate \'{}\''.format(which))
@@ -989,7 +998,7 @@ class Linter(metaclass=Registrar):
                 executable = cls.executable
 
             if executable:
-                cls.executable_path = util.which(executable) or ''
+                cls.executable_path = cls.which(executable) or ''
             elif cls.cmd is None:
                 cls.executable_path = '<builtin>'
             else:
@@ -1150,8 +1159,8 @@ class PythonMeta(Registrar):
             try:
                 module = import_module(attrs['module'])
 
-                # If check_version is True, we need to determine
-                # what version of python is available.
+                # If the linter specifies a python version, check to see
+                # if ST's python satisfies that version.
                 cmd = cls.cmd
 
                 if isinstance(cls.cmd, tuple):
@@ -1161,10 +1170,9 @@ class PythonMeta(Registrar):
                     match = util.PYTHON_CMD_RE.match(cmd)
 
                     if match:
-                        info = util.find_python(**match.groupdict())
-
-                        if info:
-                            setattr(cls, 'python_version', info[2])
+                        args = match.groupdict()
+                        args['module'] = module
+                        setattr(cls, 'python_version', util.find_python(**args))
 
                 # If the module is successfully imported, save cmd and set cmd to None
                 # so that the run method controls the building of cmd.
@@ -1202,15 +1210,16 @@ class PythonLinter(Linter, metaclass=PythonMeta):
       - If the check_version attribute is False, the module will be used
         because the module is not version-sensitive.
 
-      - If the "@python" setting is set and >= 3, the module will be used.
+      - If the "@python" setting is set and ST's python satisfies
+        that version, the module will be used.
 
-      - If the cmd attribute specifies @python[version] and <version>
-        is >= 3, the module will be used.
+      - If the cmd attribute specifies @python and ST's python
+        satisfies that version, the module will be used. Note that this
+        check is done during class construction.
 
-      - If the cmd attribute specifies @python and the system version
-        is >= 3, the module will be used.
-
-      - Otherwise the executable will be used with python 2.
+      - Otherwise the executable will be used with the python specified
+        in the "@python" setting, the cmd attribute, or the default system
+        python.
 
     """
 
@@ -1254,11 +1263,13 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 use_module = True
             else:
                 settings = self.get_view_settings()
+                version = settings.get('@python')
 
-                if str(settings.get('@python', '2')) >= '3':
-                    use_module = True
-                elif self.python_version is not None and self.python_version >= '3':
-                    use_module = True
+                if version is None:
+                    use_module = cmd is None or cmd[0] == '<builtin>'
+                else:
+                    version = util.find_python(version=version, module=self.module)
+                    use_module = version[0] == '<builtin>'
 
             if use_module:
                 if persist.settings.get('debug'):

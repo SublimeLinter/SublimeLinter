@@ -35,7 +35,7 @@ class Registrar(type):
 
     """Metaclass for Linter and its subclasses."""
 
-    def __init__(cls, name, bases, attrs):
+    def __init__(self, name, bases, attrs):
         """
         Initialize a Linter class.
 
@@ -56,32 +56,32 @@ class Registrar(type):
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
-                setattr(cls, 'cmd', shlex.split(cmd))
+                setattr(self, 'cmd', shlex.split(cmd))
 
             if 'word_re' in attrs and isinstance(attrs['word_re'], str):
-                setattr(cls, 'word_re', re.compile(cls.word_re))
+                setattr(self, 'word_re', re.compile(self.word_re))
 
             if 'tempfile_suffix' in attrs and attrs['tempfile_suffix'][0] != '.':
-                setattr(cls, 'tempfile_suffix', '.' + attrs['tempfile_suffix'])
+                setattr(self, 'tempfile_suffix', '.' + attrs['tempfile_suffix'])
 
             for attr in ('inline_settings', 'inline_overrides'):
                 if attr in attrs and isinstance(attrs[attr], str):
-                    setattr(cls, attr, (attrs[attr],))
+                    setattr(self, attr, (attrs[attr],))
 
             # If this class has its own defaults, create an args_map.
             # Otherwise we use the superclass' args_map.
             if 'defaults' in attrs:
-                cls.map_args(attrs['defaults'])
+                self.map_args(attrs['defaults'])
 
             if 'PythonLinter' in [base.__name__ for base in bases]:
                 # Set attributes necessary for the @python inline setting
-                inline_settings = list(getattr(cls, 'inline_settings') or [])
-                setattr(cls, 'inline_settings', inline_settings + ['@python'])
+                inline_settings = list(getattr(self, 'inline_settings') or [])
+                setattr(self, 'inline_settings', inline_settings + ['@python'])
 
             if 'language' in attrs:
-                persist.register_linter(cls, name, attrs)
+                persist.register_linter(self, name, attrs)
 
-    def map_args(cls, defaults):
+    def map_args(self, defaults):
         """
         Map plain setting names to args that will be passed to the linter executable.
 
@@ -95,7 +95,7 @@ class Registrar(type):
         # If so, add a mapping between the setting and the argument format,
         # then change the name in the defaults to the setting name.
         args_map = {}
-        setattr(cls, 'defaults', {})
+        setattr(self, 'defaults', {})
 
         for name, value in defaults.items():
             match = ARG_RE.match(name)
@@ -104,9 +104,9 @@ class Registrar(type):
                 name = match.group('name')
                 args_map[name] = match.groupdict()
 
-            cls.defaults[name] = value
+            self.defaults[name] = value
 
-        setattr(cls, 'args_map', args_map)
+        setattr(self, 'args_map', args_map)
 
 
 class Linter(metaclass=Registrar):
@@ -1147,7 +1147,7 @@ class PythonMeta(Registrar):
 
     """
 
-    def __init__(cls, name, bases, attrs):
+    def __init__(self, name, bases, attrs):
         # Attempt to import the configured module.
         # If it could not be imported, use the executable.
         # We have to do this before super().__init__ because
@@ -1162,10 +1162,10 @@ class PythonMeta(Registrar):
 
                 # If the linter specifies a python version, check to see
                 # if ST's python satisfies that version.
-                cmd = cls.cmd
+                cmd = self.cmd
 
-                if isinstance(cls.cmd, tuple):
-                    cmd = cls.cmd[0]
+                if isinstance(self.cmd, tuple):
+                    cmd = self.cmd[0]
 
                 if cmd:
                     match = util.PYTHON_CMD_RE.match(cmd)
@@ -1173,17 +1173,17 @@ class PythonMeta(Registrar):
                     if match:
                         args = match.groupdict()
                         args['module'] = module
-                        setattr(cls, 'python_version', util.find_python(**args))
+                        setattr(self, 'python_version', util.find_python(**args))
 
                 # If the module is successfully imported, save cmd and set cmd to None
                 # so that the run method controls the building of cmd.
-                setattr(cls, '_cmd', cls.cmd)
-                setattr(cls, 'cmd', None)
+                setattr(self, '_cmd', self.cmd)
+                setattr(self, 'cmd', None)
 
             except:
                 pass
 
-        setattr(cls, 'module', module)
+        setattr(self, 'module', module)
 
         super().__init__(name, bases, attrs)
 

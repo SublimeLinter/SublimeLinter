@@ -183,6 +183,10 @@ class Highlight:
         When length < 0, this method attempts to mark the closest word at pos on the given line.
         If you want to customize the word matching regex, pass it in word_re.
 
+        If the error_type is WARNING and an identical ERROR region exists, it is not added.
+        If the error_type is ERROR and an identical WARNING region exists, the warning region
+        is removed and the error region is added.
+
         """
 
         start, end = self.full_line(line)
@@ -197,7 +201,17 @@ class Highlight:
                 length = 1
 
         pos += start
-        self.marks[error_type].append(sublime.Region(pos, pos + length))
+        region = sublime.Region(pos, pos + length)
+        other_type = ERROR if error_type == WARNING else WARNING
+
+        for i, mark in enumerate(self.marks[other_type].copy()):
+            if mark.a == region.a and mark.b == region.b:
+                if error_type == WARNING:
+                    return
+                else:
+                    self.marks[other_type].pop(i)
+
+        self.marks[error_type].append(region)
 
     def regex(self, line, regex, error_type=ERROR,
               line_match=None, word_match=None, word_re=None):

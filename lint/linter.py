@@ -702,10 +702,7 @@ class Linter(metaclass=Registrar):
         If cmd is callable, it is called. If the result of the method is
         a string, it is parsed into a list with shlex.split.
 
-        Otherwise, if cmd is not None, the result of build_cmd is returned.
-
-        If cmd is None, None is returned, which means that the linter uses
-        built in code as opposed to an external executable.
+        Otherwise the result of build_cmd is returned.
 
         """
         if callable(self.cmd):
@@ -715,10 +712,8 @@ class Linter(metaclass=Registrar):
                 cmd = shlex.split(cmd)
 
             return cmd
-        elif self.cmd is not None:
+        else:
             return self.build_cmd()
-
-        return None
 
     def build_cmd(self, cmd=None):
         """
@@ -884,10 +879,13 @@ class Linter(metaclass=Registrar):
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):
             raise NotImplementedError
 
-        cmd = self.get_cmd()
+        if self.cmd is None:
+            cmd = None
+        else:
+            cmd = self.get_cmd()
 
-        if cmd is not None and not cmd:
-            return
+            if cmd is not None and not cmd:
+                return
 
         output = self.run(cmd, self.code)
 
@@ -1101,7 +1099,7 @@ class Linter(metaclass=Registrar):
         if persist.settings.get('debug'):
             persist.printf('{}: {} {}'.format(self.__class__.__name__,
                                               os.path.basename(self.filename),
-                                              cmd or '<built-in>'))
+                                              cmd or '<builtin>'))
 
         if self.tempfile_suffix:
             return self.tmpfile(cmd, code, suffix=self.tempfile_suffix)
@@ -1265,7 +1263,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             if use_module:
                 if persist.settings.get('debug'):
                     persist.printf(
-                        '{}: {} <built-in>'.format(
+                        '{}: {} <builtin>'.format(
                             self.__class__.__name__,
                             os.path.basename(self.filename)
                         )

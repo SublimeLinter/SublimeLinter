@@ -33,6 +33,14 @@ INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
+MARK_COLOR_RE = (
+    r'(\s*<string>sublimelinter.mark.{}</string>\s*\r?\n'
+    r'\s*<key>settings</key>\s*\r?\n'
+    r'\s*<dict>\s*\r?\n'
+    r'\s*<key>foreground</key>\s*\r?\n'
+    r'\s*<string>)#.+?(</string>\s*\r?\n)'
+)
+
 
 # settings utils
 
@@ -221,7 +229,7 @@ def generate_color_scheme_async():
         styles = plist.find('./dict/array')
 
         for style in COLOR_SCHEME_STYLES:
-            color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style])
+            color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
             styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
 
         # Write the amended color scheme to Packages/User
@@ -254,6 +262,23 @@ def generate_color_scheme_async():
                 'SublimeLinter generated and switched to an amended version'
                 ' of “{}”.'.format(original_name)
             )
+
+
+def change_mark_colors(error_color, warning_color):
+    """Change SublimeLinter error/warning colors in user color schemes."""
+
+    path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
+    themes = glob(path)
+
+    for theme in themes:
+        with open(theme, encoding='utf-8') as f:
+            text = f.read()
+
+        text = re.sub(MARK_COLOR_RE.format('error'), r'\1#{}\2'.format(error_color), text)
+        text = re.sub(MARK_COLOR_RE.format('warning'), r'\1#{}\2'.format(warning_color), text)
+
+        with open(theme, encoding='utf-8', mode='w') as f:
+            f.write(text)
 
 
 def install_languages():

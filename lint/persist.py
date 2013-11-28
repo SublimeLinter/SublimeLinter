@@ -135,9 +135,24 @@ class Settings:
         ):
             need_relint = True
 
-        # Update the gutter marks if the theme changed
         if self.previous_settings.get('gutter_theme') != self.settings.get('gutter_theme'):
             self.update_gutter_marks()
+
+        error_color = self.settings.get('error_color', '').lstrip('#')
+        warning_color = self.settings.get('warning_color', '').lstrip('#')
+
+        if (
+            self.previous_settings and error_color and warning_color and
+            (self.previous_settings.get('error_color') != error_color or
+             self.previous_settings.get('warning_color') != warning_color)
+        ):
+            if (
+                sublime.ok_cancel_dialog(
+                    'You have changed the error and/or warning color. '
+                    'Would you like to update the user color schemes '
+                    'with the new colors?')
+            ):
+                util.change_mark_colors(error_color, warning_color)
 
         if need_relint:
             Linter.reload()

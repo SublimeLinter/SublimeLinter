@@ -34,7 +34,7 @@ INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
 MARK_COLOR_RE = (
-    r'(\s*<string>sublimelinter.mark.{}</string>\s*\r?\n'
+    r'(\s*<string>sublimelinter.{}</string>\s*\r?\n'
     r'\s*<key>settings</key>\s*\r?\n'
     r'\s*<dict>\s*\r?\n'
     r'\s*<key>foreground</key>\s*\r?\n'
@@ -199,69 +199,62 @@ def generate_color_scheme_async():
     if scheme is None:
         return
 
-    # Structure of color scheme is:
-    #
-    # plist
-    #    dict (name, settings)
-    #       array (settings)
-    #          dict (style)
-    #
-    # A style dict contains a 'scope' <key> followed by a <string>
-    # with the scopes the style should apply to. So we will search
-    # style dicts for a <string> of 'sublimelinter.mark.warning',
-    # which is one of our scopes.
+    scheme_text = sublime.load_resource(scheme)
 
-    plist = ElementTree.XML(sublime.load_resource(scheme))
+    # Ensure that all SublimeLinter colors are in the scheme
     scopes = {
-        'sublimelinter.mark.warning': False,
-        'sublimelinter.mark.error': False,
-        'sublimelinter.gutter-mark': False
+        'mark.warning': False,
+        'mark.error': False,
+        'gutter-mark': False
     }
 
-    for element in plist.iterfind('./dict/array/dict/string'):
-        if element.text in scopes:
-            scopes[element.text] = True
+    for scope in scopes:
+        if re.search(MARK_COLOR_RE.format(scope), scheme_text):
+            scopes[scope] = True
 
-    if False in scopes.values():
-        from . import persist
+    if False not in scopes.values():
+        return
 
-        # Append style dicts with our styles to the style array
-        styles = plist.find('./dict/array')
+    # Append style dicts with our styles to the style array
+    plist = ElementTree.XML(scheme_text)
+    styles = plist.find('./dict/array')
 
-        for style in COLOR_SCHEME_STYLES:
-            color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
-            styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
+    from . import persist
 
-        # Write the amended color scheme to Packages/User
-        original_name = os.path.splitext(os.path.basename(scheme))[0]
-        name = original_name + ' (SL)'
-        scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
-        generate = True
-        have_existing = os.path.exists(scheme_path)
+    for style in COLOR_SCHEME_STYLES:
+        color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
+        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
 
-        if have_existing:
-            generate = sublime.ok_cancel_dialog(
-                'SublimeLinter wants to generate an amended version of “{}”,'
-                ' but one already exists. Overwrite it, or cancel and use'
-                ' the existing amended version?'.format(original_name),
-                'Overwrite'
-            )
+    # Write the amended color scheme to Packages/User
+    original_name = os.path.splitext(os.path.basename(scheme))[0]
+    name = original_name + ' (SL)'
+    scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
+    generate = True
+    have_existing = os.path.exists(scheme_path)
 
-        if (generate):
-            with open(scheme_path, 'w', encoding='utf8') as f:
-                f.write(COLOR_SCHEME_PREAMBLE)
-                f.write(ElementTree.tostring(plist, encoding='unicode'))
+    if have_existing:
+        generate = sublime.ok_cancel_dialog(
+            'SublimeLinter wants to generate an amended version of “{}”,'
+            ' but one already exists. Overwrite it, or cancel and use'
+            ' the existing amended version?'.format(original_name),
+            'Overwrite'
+        )
 
-        # Set the amended color scheme to the current color scheme
-        path = os.path.join('User', os.path.basename(scheme_path))
-        prefs.set('color_scheme', packages_relative_path(path))
-        sublime.save_settings('Preferences.sublime-settings')
+    if (generate):
+        with open(scheme_path, 'w', encoding='utf8') as f:
+            f.write(COLOR_SCHEME_PREAMBLE)
+            f.write(ElementTree.tostring(plist, encoding='unicode'))
 
-        if generate and not have_existing:
-            sublime.message_dialog(
-                'SublimeLinter generated and switched to an amended version'
-                ' of “{}”.'.format(original_name)
-            )
+    # Set the amended color scheme to the current color scheme
+    path = os.path.join('User', os.path.basename(scheme_path))
+    prefs.set('color_scheme', packages_relative_path(path))
+    sublime.save_settings('Preferences.sublime-settings')
+
+    if generate and not have_existing:
+        sublime.message_dialog(
+            'SublimeLinter generated and switched to an amended version'
+            ' of “{}”.'.format(original_name)
+        )
 
 
 def change_mark_colors(error_color, warning_color):
@@ -271,14 +264,15 @@ def change_mark_colors(error_color, warning_color):
     themes = glob(path)
 
     for theme in themes:
-        with open(theme, encoding='utf-8') as f:
+        with open(theme, encoding='utf8') as f:
             text = f.read()
 
-        text = re.sub(MARK_COLOR_RE.format('error'), r'\1#{}\2'.format(error_color), text)
-        text = re.sub(MARK_COLOR_RE.format('warning'), r'\1#{}\2'.format(warning_color), text)
+        if re.search(MARK_COLOR_RE.format('mark.error'), text):
+            text = re.sub(MARK_COLOR_RE.format('mark.error'), r'\1#{}\2'.format(error_color), text)
+            text = re.sub(MARK_COLOR_RE.format('mark.warning'), r'\1#{}\2'.format(warning_color), text)
 
-        with open(theme, encoding='utf-8', mode='w') as f:
-            f.write(text)
+            with open(theme, encoding='utf8', mode='w') as f:
+                f.write(text)
 
 
 def install_languages():

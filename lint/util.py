@@ -34,7 +34,7 @@ INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
 MARK_COLOR_RE = (
-    r'(\s*<string>sublimelinter.{}</string>\s*\r?\n'
+    r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
     r'\s*<key>settings</key>\s*\r?\n'
     r'\s*<dict>\s*\r?\n'
     r'\s*<key>foreground</key>\s*\r?\n'
@@ -209,7 +209,7 @@ def generate_color_scheme_async():
     }
 
     for scope in scopes:
-        if re.search(MARK_COLOR_RE.format(scope), scheme_text):
+        if re.search(MARK_COLOR_RE.format(re.escape(scope)), scheme_text):
             scopes[scope] = True
 
     if False not in scopes.values():
@@ -267,9 +267,9 @@ def change_mark_colors(error_color, warning_color):
         with open(theme, encoding='utf8') as f:
             text = f.read()
 
-        if re.search(MARK_COLOR_RE.format('mark.error'), text):
-            text = re.sub(MARK_COLOR_RE.format('mark.error'), r'\1#{}\2'.format(error_color), text)
-            text = re.sub(MARK_COLOR_RE.format('mark.warning'), r'\1#{}\2'.format(warning_color), text)
+        if re.search(MARK_COLOR_RE.format(r'mark\.error'), text):
+            text = re.sub(MARK_COLOR_RE.format(r'mark\.error'), r'\1#{}\2'.format(error_color), text)
+            text = re.sub(MARK_COLOR_RE.format(r'mark\.warning'), r'\1#{}\2'.format(warning_color), text)
 
             with open(theme, encoding='utf8', mode='w') as f:
                 f.write(text)

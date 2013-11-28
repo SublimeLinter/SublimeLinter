@@ -148,7 +148,7 @@ class Settings:
         ):
             if (
                 sublime.ok_cancel_dialog(
-                    'You have changed the error and/or warning color. '
+                    'You changed the error and/or warning color. '
                     'Would you like to update the user color schemes '
                     'with the new colors?')
             ):

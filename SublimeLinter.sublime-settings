@@ -22,7 +22,7 @@
         "syntax_map": {
             "php": "html"
         },
-        "warning_color": "EEBA00",
+        "warning_color": "DDB700",
         "wrap_find": true
     }
 }

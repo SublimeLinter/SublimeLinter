@@ -138,8 +138,8 @@ class Settings:
         if self.previous_settings.get('gutter_theme') != self.settings.get('gutter_theme'):
             self.update_gutter_marks()
 
-        error_color = self.settings.get('error_color', '').lstrip('#')
-        warning_color = self.settings.get('warning_color', '').lstrip('#')
+        error_color = self.settings.get('error_color', '')
+        warning_color = self.settings.get('warning_color', '')
 
         if (
             self.previous_settings and error_color and warning_color and

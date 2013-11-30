@@ -260,6 +260,9 @@ def generate_color_scheme_async():
 def change_mark_colors(error_color, warning_color):
     """Change SublimeLinter error/warning colors in user color schemes."""
 
+    error_color = error_color.lstrip('#')
+    warning_color = warning_color.lstrip('#')
+
     path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
     themes = glob(path)
 

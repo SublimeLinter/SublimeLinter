@@ -11,13 +11,15 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
-import sublime
-import sublime_plugin
-
+from fnmatch import fnmatch
+import json
 import os
 from threading import Thread
 
-from .lint import highlight, linter, persist, util
+import sublime
+import sublime_plugin
+
+from .lint import highlight, linter, persist
 
 
 def error_command(method):
@@ -338,7 +340,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
             return
 
         old_setting = persist.settings.get(self.setting)
-        setting = self.settings[index]
+        setting = self.selected_setting(index)
 
         if isinstance(setting, (tuple, list)):
             setting = setting[0]
@@ -351,6 +353,17 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         persist.settings.set(self.setting, setting)
         self.setting_was_changed(setting)
         persist.settings.save()
+
+    def selected_setting(self, index):
+        """
+        Return the selected setting by index.
+
+        Subclasses may override this if they want to return something other
+        than the indexed value from self.settings.
+
+        """
+
+        return self.settings[index]
 
     def setting_was_changed(self, setting):
         """
@@ -418,17 +431,88 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         """
         Return a list of all available gutter themes, with 'None' at the end.
 
-        Whether the theme is a SublimeLinter or user theme is indicated below the theme name.
+        Whether the theme is colorized and is a SublimeLinter or user theme
+        is indicated below the theme name.
 
         """
 
-        settings = []
-        themes = []
-        util.find_gutter_themes(themes, settings)
-        settings.sort()
-        settings.append(('None', 'Do not display gutter marks'))
+        settings = self.find_gutter_themes()
+        settings.append(['None', 'Do not display gutter marks'])
+        self.themes.append('none')
 
         return settings
+
+    def find_gutter_themes(self):
+        """
+        Find all SublimeLinter.gutter-theme resources.
+
+        For each found resource, if it doesn't match one of the patterns
+        from the "gutter_theme_excludes" setting, append to settings the
+        base name of resource and info on whether the theme is a standard
+        theme or a user theme, as well as whether it is colorized.
+
+        The list of paths to the resources is appended to self.themes.
+
+        """
+
+        self.themes = []
+        settings = []
+        gutter_themes = sublime.find_resources('*.gutter-theme')
+        excludes = persist.settings.get('gutter_theme_excludes', [])
+        pngs = sublime.find_resources('*.png')
+
+        for theme in gutter_themes:
+            # Make sure the theme has error.png and warning.png
+            exclude = False
+            parent = os.path.dirname(theme)
+
+            for name in ('error', 'warning'):
+                if '{}/{}.png'.format(parent, name) not in pngs:
+                    exclude = True
+
+            if exclude:
+                continue
+
+            # Now see if the theme name is in gutter_theme_excludes
+            name = os.path.splitext(os.path.basename(theme))[0]
+
+            for pattern in excludes:
+                if fnmatch(name, pattern):
+                    exclude = True
+                    break
+
+            if exclude:
+                continue
+
+            self.themes.append(theme)
+
+            try:
+                info = json.loads(sublime.load_resource(theme))
+                colorize = info.get('colorize', False)
+            except ValueError:
+                colorize = False
+
+            std_theme = theme.startswith('Packages/SublimeLinter/gutter-themes/')
+
+            settings.append([
+                name,
+                '{}{}'.format(
+                    'SublimeLinter theme' if std_theme else 'User theme',
+                    ' (colorized)' if colorize else ''
+                )
+            ])
+
+        # Sort self.themes and settings in parallel using the zip trick
+        settings, self.themes = zip(*sorted(zip(settings, self.themes)))
+
+        # zip returns tuples, convert back to lists
+        settings = list(settings)
+        self.themes = list(self.themes)
+
+        return settings
+
+    def selected_setting(self, index):
+        return self.themes[index]
 
     def transform_setting(self, setting):
         """Return the original setting text, gutter theme settings are not lowercased."""

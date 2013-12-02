@@ -432,10 +432,6 @@ def build_submenu(caption):
     elif setting == 'mark style':
         from . import highlight
         names = highlight.mark_style_names()
-    elif setting == 'gutter theme':
-        names = []
-        find_gutter_themes(names)
-        names.append('None')
 
     commands = []
 
@@ -443,48 +439,6 @@ def build_submenu(caption):
         commands.append(CHOOSER_COMMAND.format(name, setting.replace(' ', '_'), name))
 
     return ',\n'.join(commands)
-
-
-def find_gutter_themes(themes, settings=None):
-    """Return a list of package-relative paths for all gutter themes."""
-
-    from . import persist
-
-    def find_themes(themes, settings, user_themes):
-        if user_themes:
-            theme_path = os.path.join('User', 'SublimeLinter-gutter-themes')
-        else:
-            theme_path = os.path.join(os.path.basename(persist.PLUGIN_DIRECTORY), 'gutter-themes')
-
-        full_path = os.path.join(sublime.packages_path(), theme_path)
-
-        if not os.path.isdir(full_path):
-            return
-
-        dirs = os.listdir(full_path)
-
-        for d in dirs:
-            for root, dirs, files in os.walk(os.path.join(full_path, d)):
-                if 'warning.png' in files and 'error.png' in files:
-                    path = os.path.relpath(root, full_path)
-                    relative_path = packages_relative_path(path, prefix_packages=False)
-
-                    if relative_path not in themes:
-                        themes.append(relative_path)
-
-                        if settings is not None:
-                            settings.append([
-                                relative_path,
-                                'User theme' if user_themes else 'SublimeLinter theme'
-                            ])
-
-    find_themes(themes, settings, user_themes=True)
-    find_themes(themes, settings, user_themes=False)
-
-    if settings:
-        settings.sort()
-
-    themes.sort()
 
 
 # file/directory utils
@@ -1192,8 +1146,7 @@ COLOR_SCHEME_STYLES = {
 
 CHOOSERS = (
     'Lint Mode',
-    'Mark Style',
-    'Gutter Theme'
+    'Mark Style'
 )
 
 CHOOSER_MENU = '''{

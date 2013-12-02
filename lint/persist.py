@@ -34,6 +34,8 @@ LINT_MODES = (
 
 SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
 
+DEFAULT_GUTTER_THEME_PATH = 'Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme'
+
 
 class Settings:
 
@@ -223,39 +225,39 @@ class Settings:
     def update_gutter_marks(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
 
-        theme = self.settings.get('gutter_theme', 'Default')
+        theme_path = self.settings.get('gutter_theme', DEFAULT_GUTTER_THEME_PATH)
+        theme = os.path.splitext(os.path.basename(theme_path))[0]
 
-        if theme.lower() == 'none':
+        if theme_path.lower() == 'none':
             gutter_marks['warning'] = gutter_marks['error'] = ''
             return
 
-        theme_path = None
+        info = None
 
-        # User themes override built in themes, check them first
-        paths = (
-            ('User', 'SublimeLinter-gutter-themes', theme),
-            (PLUGIN_DIRECTORY, 'gutter-themes', theme),
-            (PLUGIN_DIRECTORY, 'gutter-themes', 'Default')
-        )
-
-        for path in paths:
-            sub_path = os.path.join(*path)
-            full_path = os.path.join(sublime.packages_path(), sub_path)
-
-            if os.path.isdir(full_path):
-                theme_path = sub_path
+        for path in (theme_path, DEFAULT_GUTTER_THEME_PATH):
+            try:
+                info = sublime.load_resource(path)
                 break
+            except IOError:
+                pass
 
-        if theme_path:
-            if theme != 'Default' and os.path.basename(theme_path) == 'Default':
+        if info is not None:
+            if theme != 'Default' and os.path.basename(path) == 'Default.gutter-theme':
                 printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
-            for error_type in ('warning', 'error'):
-                path = os.path.join(theme_path, '{}.png'.format(error_type))
-                gutter_marks[error_type] = util.packages_relative_path(path)
+            path = os.path.dirname(path)
 
-            path = os.path.join(sublime.packages_path(), theme_path, 'colorize')
-            gutter_marks['colorize'] = os.path.exists(path)
+            for error_type in ('warning', 'error'):
+                icon_path = '{}/{}.png'.format(path, error_type)
+                gutter_marks[error_type] = icon_path
+
+            try:
+                info = json.loads(info)
+                colorize = info.get('colorize', False)
+            except ValueError:
+                colorize = False
+
+            gutter_marks['colorize'] = colorize
         else:
             sublime.error_message(
                 'SublimeLinter: cannot find the gutter theme "{}",'

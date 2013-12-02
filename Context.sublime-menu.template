@@ -6,6 +6,10 @@
         [
             $menus,
             {
+                "caption": "Choose Gutter Theme...",
+                "command": "sublimelinter_choose_gutter_theme"
+            },
+            {
                 "caption": "-"
             },
             {

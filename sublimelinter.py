@@ -19,7 +19,7 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
-from .lint import persist, util, watcher
+from .lint import persist, util
 
 
 def plugin_loaded():
@@ -32,7 +32,6 @@ def plugin_loaded():
     util.generate_color_scheme(from_reload=False)
     util.install_languages()
 
-    watch_gutter_themes()
     persist.settings.on_update_call(SublimeLinter.on_settings_updated)
 
     # This ensures we lint the active view on a fresh install
@@ -40,31 +39,6 @@ def plugin_loaded():
 
     if window:
         SublimeLinter.shared_plugin().on_activated(window.active_view())
-
-
-def watch_gutter_themes():
-    """Watch the gutter theme directories, creating the user directory if necessary."""
-
-    w = watcher.PathWatcher()
-    gutter_themes = []
-    gutter_directories = (
-        (persist.PLUGIN_DIRECTORY, 'gutter-themes'),
-        ('User', '{}-gutter-themes'.format(persist.PLUGIN_NAME))
-    )
-
-    for d in gutter_directories:
-        path = os.path.join(sublime.packages_path(), os.path.join(*d))
-
-        try:
-            if not os.path.isdir(path):
-                os.makedirs(path)
-
-            gutter_themes.append(path)
-        except OSError:
-            pass
-
-    w.watch(gutter_themes, util.generate_menus)
-    w.start()
 
 
 class SublimeLinter(sublime_plugin.EventListener):

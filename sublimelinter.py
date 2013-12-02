@@ -349,7 +349,9 @@ class SublimeLinter(sublime_plugin.EventListener):
             self.lint_all_views()
         else:
             # Now see if a .sublimelinterrc has changed
-            if os.path.basename(view.file_name()) == '.sublimelinterrc':
+            filename = os.path.basename(view.file_name())
+
+            if filename == '.sublimelinterrc':
                 # If it's the main .sublimelinterrc, reload the settings
                 rc_path = os.path.join(os.path.dirname(__file__), '.sublimelinterrc')
 
@@ -357,7 +359,10 @@ class SublimeLinter(sublime_plugin.EventListener):
                     persist.settings.load(force=True)
                 else:
                     self.lint_all_views()
-            else:
+
+            # If a file other than one of our settings files changed,
+            # check if the syntax changed or if we need to show errors.
+            elif filename != 'SublimeLinter.sublime-settings':
                 syntax_changed = self.check_syntax(view)
                 vid = view.id()
                 mode = persist.settings.get('lint_mode')
@@ -379,7 +384,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     elif mode == 'manual':
                         show_errors = False
 
-                if show_errors:
+                if show_errors and vid in persist.errors and persist.errors[vid]:
                     view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):

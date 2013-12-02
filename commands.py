@@ -237,7 +237,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
 class ShowErrorsOnSaveCommand(sublime_plugin.WindowCommand):
 
-    """A command that toggles the "show_errors_on_save" setting."""
+    """Abstract base class for commands that toggle the "show_errors_on_save" setting."""
 
     def __init__(self, window, show_on_save=True):
         super().__init__(window)

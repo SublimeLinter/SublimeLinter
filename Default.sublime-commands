@@ -94,12 +94,20 @@
         "command": "sublimelinter_show_all_errors"
     },
     {
-        "caption": "SublimeLinter: Show Errors On Save",
+        "caption": "SublimeLinter: Show Errors on Save",
         "command": "sublimelinter_show_errors_on_save"
     },
     {
-        "caption": "SublimeLinter: Don’t Show Errors On Save",
+        "caption": "SublimeLinter: Don’t Show Errors on Save",
         "command": "sublimelinter_dont_show_errors_on_save"
+    },
+    {
+        "caption": "SublimeLinter: Disable All Linters",
+        "command": "sublimelinter_disable_all_linters"
+    },
+    {
+        "caption": "SublimeLinter: Don’t Disable All Linters",
+        "command": "sublimelinter_dont_disable_all_linters"
     },
     {
         "caption": "SublimeLinter: Report (Open Files)",

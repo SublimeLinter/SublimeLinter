@@ -69,6 +69,18 @@ class Settings:
         self.copy()
         self.settings[setting] = value
 
+    def pop(self, setting, default=None):
+        """
+        Remove a given setting and return default if it is not in self.settings.
+
+
+        Clients of this module should always call this method to set a value
+        instead of doing settings['foo'] = 'bar'.
+
+        """
+        self.copy()
+        return self.settings.pop(setting, default)
+
     def copy(self):
         """Save a copy of the plugin settings."""
         self.previous_settings = deepcopy(self.settings)
@@ -128,6 +140,9 @@ class Settings:
             need_relint = True
             Linter.clear_all()
             util.apply_to_all_views(lambda view: Linter.assign(view, reset=True))
+
+        if self.previous_settings.get('@disable') != self.settings.get('@disable'):
+            need_relint = True
 
         # If any of the linter settings changed, relint
         if (

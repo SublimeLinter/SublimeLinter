@@ -235,42 +235,72 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
             GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
 
 
-class ShowErrorsOnSaveCommand(sublime_plugin.WindowCommand):
+class ToggleSettingCommand(sublime_plugin.WindowCommand):
 
-    """Abstract base class for commands that toggle the "show_errors_on_save" setting."""
+    """Abstract base class for commands that toggle a setting."""
 
-    def __init__(self, window, show_on_save=True):
+    def __init__(self, window, setting=None, value=True):
         super().__init__(window)
-        self.show_on_save = show_on_save
+        self.setting = setting
+        self.value = value
 
     def is_enabled(self):
-        """Return True if the opposite of self.show_on_save is True."""
-        return persist.settings.get('show_errors_on_save') is not self.show_on_save
+        """Return True if the opposite of self.setting is True."""
+        return persist.settings.get(self.setting) is not self.value
 
     def set(self):
-        """Toggle the "show_on_save" setting."""
-        persist.settings.set('show_errors_on_save', self.show_on_save)
+        """Toggle the setting if self.value is boolean, or remove it if None."""
+
+        if self.value is None:
+            persist.settings.pop(self.setting)
+        else:
+            persist.settings.set(self.setting, self.value)
+
         persist.settings.save()
 
 
-class SublimelinterShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
+class SublimelinterShowErrorsOnSaveCommand(ToggleSettingCommand):
 
     """A command that sets the "show_errors_on_save" setting to True."""
 
     def __init__(self, window):
-        super().__init__(window, show_on_save=True)
+        super().__init__(window, setting='show_errors_on_save', value=True)
 
     def run(self):
         """Run the command."""
         self.set()
 
 
-class SublimelinterDontShowErrorsOnSaveCommand(ShowErrorsOnSaveCommand):
+class SublimelinterDontShowErrorsOnSaveCommand(ToggleSettingCommand):
 
     """A command that sets the "show_errors_on_save" setting to False."""
 
     def __init__(self, window):
-        super().__init__(window, show_on_save=False)
+        super().__init__(window, setting='show_errors_on_save', value=False)
+
+    def run(self):
+        """Run the command."""
+        self.set()
+
+
+class SublimelinterDisableAllLintersCommand(ToggleSettingCommand):
+
+    """A command that sets the "@disable" setting to True."""
+
+    def __init__(self, window):
+        super().__init__(window, setting='@disable', value=True)
+
+    def run(self):
+        """Run the command."""
+        self.set()
+
+
+class SublimelinterDontDisableAllLintersCommand(ToggleSettingCommand):
+
+    """A command that remove the "@disable" setting."""
+
+    def __init__(self, window):
+        super().__init__(window, setting='@disable', value=None)
 
     def run(self):
         """Run the command."""

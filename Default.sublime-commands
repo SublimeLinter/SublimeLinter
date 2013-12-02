@@ -102,12 +102,12 @@
         "command": "sublimelinter_dont_show_errors_on_save"
     },
     {
-        "caption": "SublimeLinter: Disable All Linters",
-        "command": "sublimelinter_disable_all_linters"
+        "caption": "SublimeLinter: Disable Linting",
+        "command": "sublimelinter_disable_linting"
     },
     {
-        "caption": "SublimeLinter: Don’t Disable All Linters",
-        "command": "sublimelinter_dont_disable_all_linters"
+        "caption": "SublimeLinter: Don’t Disable Linting",
+        "command": "sublimelinter_dont_disable_linting"
     },
     {
         "caption": "SublimeLinter: Report (Open Files)",

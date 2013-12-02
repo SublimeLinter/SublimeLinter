@@ -283,7 +283,7 @@ class SublimelinterDontShowErrorsOnSaveCommand(ToggleSettingCommand):
         self.set()
 
 
-class SublimelinterDisableAllLintersCommand(ToggleSettingCommand):
+class SublimelinterDisableLintingCommand(ToggleSettingCommand):
 
     """A command that sets the "@disable" setting to True."""
 
@@ -295,7 +295,7 @@ class SublimelinterDisableAllLintersCommand(ToggleSettingCommand):
         self.set()
 
 
-class SublimelinterDontDisableAllLintersCommand(ToggleSettingCommand):
+class SublimelinterDontDisableLintingCommand(ToggleSettingCommand):
 
     """A command that remove the "@disable" setting."""
 

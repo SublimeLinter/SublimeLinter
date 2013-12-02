@@ -121,14 +121,18 @@ class Daemon:
         """
         Return the delay between a lint request and when it will be processed.
 
-        If a "delay" setting is not available in any of the settings, MIN_DELAY is used.
+        If the lint mode is not background, there is no delay. Otherwise, if
+        a "delay" setting is not available in any of the settings, MIN_DELAY is used.
 
         """
 
-        delay = (util.get_view_rc_settings(view) or {}).get("delay")
+        if persist.settings.get('lint_mode') != 'background':
+            return 0
+
+        delay = (util.get_view_rc_settings(view) or {}).get('delay')
 
         if delay is None:
-            delay = persist.settings.get("delay", self.MIN_DELAY)
+            delay = persist.settings.get('delay', self.MIN_DELAY)
 
         return delay
 

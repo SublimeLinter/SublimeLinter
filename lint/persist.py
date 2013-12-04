@@ -393,6 +393,6 @@ def register_linter(linter_class, name, attrs):
             for view in views.values():
                 linter.Linter.assign(view, linter_name=linter_name)
 
-            printf('{} linter reloaded'.format(linter_class.__name__))
+            printf('{} linter reloaded'.format(name))
         else:
-            printf('{} linter loaded'.format(linter_class.__name__))
+            printf('{} linter loaded'.format(name))

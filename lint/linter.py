@@ -924,7 +924,7 @@ class Linter(metaclass=Registrar):
         """
 
         if not (self.language and (self.cmd or self.cmd is None) and self.regex):
-            persist.debug('{}: not implemented'.format(self.__class__.__name__))
+            persist.debug('{}: not implemented'.format(self.name))
 
         if self.cmd is None:
             cmd = None
@@ -941,7 +941,7 @@ class Linter(metaclass=Registrar):
 
         if persist.settings.get('debug'):
             stripped_output = output.replace('\r', '').rstrip()
-            persist.printf('{} output:\n{}'.format(self.__class__.__name__, stripped_output))
+            persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
             if match and line is not None:
@@ -1045,7 +1045,7 @@ class Linter(metaclass=Registrar):
             can = cls.can_lint_language(language)
 
             persist.printf('{} {}'.format(
-                cls.__name__,
+                cls.name,
                 'enabled: {}'.format(cls.executable_path) if can
                 else 'disabled, cannot locate \'{}\''.format(executable)
             ))
@@ -1144,7 +1144,7 @@ class Linter(metaclass=Registrar):
 
         """
         if persist.settings.get('debug'):
-            persist.printf('{}: {} {}'.format(self.__class__.__name__,
+            persist.printf('{}: {} {}'.format(self.name,
                                               os.path.basename(self.filename),
                                               cmd or '<builtin>'))
 
@@ -1313,7 +1313,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 if persist.settings.get('debug'):
                     persist.printf(
                         '{}: {} <builtin>'.format(
-                            self.__class__.__name__,
+                            self.name,
                             os.path.basename(self.filename)
                         )
                     )
@@ -1350,7 +1350,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
         persist.debug(
             '{}: subclasses must override the PythonLinter.check method'
-            .format(self.__class__.__name__)
+            .format(self.name)
         )
 
         return []

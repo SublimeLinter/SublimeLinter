@@ -447,8 +447,8 @@ def climb(start_dir, limit=None):
     """
     Generate directories, starting from start_dir.
 
-    If limit is None, stop at
-    the root directory. Otherwise return a maximum of limit directories.
+    If limit is None or <= 0, stop at the root directory.
+    Otherwise return a maximum of limit directories.
 
     """
 
@@ -469,7 +469,7 @@ def find_file(start_dir, name, parent=False, limit=None):
     If the file is found and parent is False, returns the path to the file.
     If parent is True the path to the file's parent directory is returned.
 
-    If limit is None, the search will continue up to the root directory.
+    If limit is None or <= 0, the search will continue up to the root directory.
     Otherwise a maximum of limit directories will be checked.
 
     """

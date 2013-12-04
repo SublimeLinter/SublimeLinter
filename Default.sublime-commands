@@ -110,11 +110,11 @@
         "command": "sublimelinter_dont_disable_linting"
     },
     {
-        "caption": "SublimeLinter: Turn Debug Mode On",
+        "caption": "SublimeLinter: Enable Debug Mode",
         "command": "sublimelinter_enable_debug"
     },
     {
-        "caption": "SublimeLinter: Turn Debug Mode Off",
+        "caption": "SublimeLinter: Disable Debug Mode",
         "command": "sublimelinter_disable_debug"
     },
     {

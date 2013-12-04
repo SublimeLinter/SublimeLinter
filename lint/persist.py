@@ -197,8 +197,9 @@ class Settings:
             default = linter.settings().copy()
             default.update(linters.pop(name, {}))
 
-            if '@disable' not in default:
-                default['@disable'] = False
+            for key, value in (('@disable', False), ('args', []), ('excludes', [])):
+                if key not in default:
+                    default[key] = value
 
             linters[name] = default
 

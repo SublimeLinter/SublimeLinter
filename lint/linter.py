@@ -29,6 +29,7 @@ import traceback
 from . import highlight, persist, util
 
 ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+BASE_CLASSES = ('PythonLinter',)
 
 
 class Registrar(type):
@@ -78,7 +79,7 @@ class Registrar(type):
                 inline_settings = list(getattr(self, 'inline_settings') or [])
                 setattr(self, 'inline_settings', inline_settings + ['@python'])
 
-            if 'language' in attrs:
+            if 'language' in attrs and name not in BASE_CLASSES:
                 persist.register_linter(self, name, attrs)
 
     def map_args(self, defaults):

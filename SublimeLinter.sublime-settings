@@ -8,6 +8,7 @@
         "lint_mode": "background",
         "mark_style": "outline",
         "paths": {
+            "*": [],
             "linux": [],
             "osx": [],
             "windows": []

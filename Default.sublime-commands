@@ -110,6 +110,14 @@
         "command": "sublimelinter_dont_disable_linting"
     },
     {
+        "caption": "SublimeLinter: Turn Debug Mode On",
+        "command": "sublimelinter_enable_debug"
+    },
+    {
+        "caption": "SublimeLinter: Turn Debug Mode Off",
+        "command": "sublimelinter_disable_debug"
+    },
+    {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "x_sublimelinter_report",
         "args": {"on": "files"}

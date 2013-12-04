@@ -307,6 +307,30 @@ class SublimelinterDontDisableLintingCommand(ToggleSettingCommand):
         self.set()
 
 
+class SublimelinterEnableDebugCommand(ToggleSettingCommand):
+
+    """A command that sets the "debug" setting to True."""
+
+    def __init__(self, window):
+        super().__init__(window, setting='debug', value=True)
+
+    def run(self):
+        """Run the command."""
+        self.set()
+
+
+class SublimelinterDisableDebugCommand(ToggleSettingCommand):
+
+    """A command that sets the "debug" setting to False."""
+
+    def __init__(self, window):
+        super().__init__(window, setting='debug', value=False)
+
+    def run(self):
+        """Run the command."""
+        self.set()
+
+
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
     """An abstract base class for commands that choose a setting from a list."""

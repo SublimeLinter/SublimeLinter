@@ -591,20 +591,12 @@ def create_environment():
     paths = persist.settings.get('paths', {})
 
     if sublime.platform() in paths:
-        platform_paths = paths[sublime.platform()]
+        paths = paths[sublime.platform()]
 
-        if isinstance(platform_paths, str):
-            platform_paths = [platform_paths]
+        if isinstance(paths, str):
+            paths = [paths]
     else:
-        platform_paths = []
-
-    # "*" entry applies to all platforms
-    universal_paths = paths.get('*', [])
-
-    if isinstance(universal_paths, str):
-        universal_paths = [universal_paths]
-
-    paths = universal_paths + platform_paths
+        paths = []
 
     if paths:
         env['PATH'] += os.pathsep + os.pathsep.join(paths)

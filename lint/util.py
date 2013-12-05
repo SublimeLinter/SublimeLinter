@@ -591,10 +591,7 @@ def create_environment():
     paths = persist.settings.get('paths', {})
 
     if sublime.platform() in paths:
-        paths = paths[sublime.platform()]
-
-        if isinstance(paths, str):
-            paths = [paths]
+        paths = convert_type(paths[sublime.platform()], [])
     else:
         paths = []
 
@@ -1051,18 +1048,8 @@ def convert_type(value, type_value, sep=None):
     if type_value is None or isinstance(value, type(type_value)):
         return value
 
-    if isinstance(value, Number):
-        if isinstance(type_value, str):
-            return str(value)
-        elif isinstance(type_value, (tuple, list)):
-            return [value]
-        else:
-            return None
-
     if isinstance(value, str):
-        if isinstance(type_value, Number):
-            return float(value)
-        elif isinstance(type_value, (tuple, list)):
+        if isinstance(type_value, (tuple, list)):
             if sep is None:
                 return [value]
             else:
@@ -1070,6 +1057,16 @@ def convert_type(value, type_value, sep=None):
                     return value.split(sep)
                 else:
                     return []
+        elif isinstance(type_value, Number):
+            return float(value)
+        else:
+            return None
+
+    if isinstance(value, Number):
+        if isinstance(type_value, str):
+            return str(value)
+        elif isinstance(type_value, (tuple, list)):
+            return [value]
         else:
             return None
 

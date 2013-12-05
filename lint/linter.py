@@ -638,12 +638,9 @@ class Linter(metaclass=Registrar):
                 continue
 
             if filename:
-                excludes = view_settings.get('excludes')
+                excludes = util.convert_type(view_settings.get('excludes', []), [])
 
                 if excludes:
-                    if isinstance(excludes, str):
-                        excludes = (excludes,)
-
                     matched = False
 
                     for pattern in excludes:
@@ -774,10 +771,7 @@ class Linter(metaclass=Registrar):
         if not path:
             persist.debug('unable to locate \'{}\''.format(which))
             return ''
-        elif isinstance(path, str):
-            path = [path]
-
-        cmd[0:1] = path
+        cmd[0:1] = util.convert_type(path, [])
         args = self.build_args(settings)
 
         if '*' in cmd:

@@ -239,11 +239,6 @@ class ToggleSettingCommand(sublime_plugin.WindowCommand):
 
     """Abstract base class for commands that toggle a setting."""
 
-    def __init__(self, window, setting=None, value=True):
-        super().__init__(window)
-        self.setting = setting
-        self.value = value
-
     def is_enabled(self):
         """Return True if the opposite of self.setting is True."""
         return persist.settings.get(self.setting) is not self.value
@@ -259,76 +254,68 @@ class ToggleSettingCommand(sublime_plugin.WindowCommand):
         persist.settings.save()
 
 
+def toggle_setting_command(setting, value):
+    """Decorator that provides the run method for concrete subclasses of ToggleSettingCommand."""
+
+    def decorator(cls):
+        def run(self):
+            """Run the command."""
+            self.set()
+
+        cls.setting = setting
+        cls.value = value
+        cls.run = run
+        return cls
+
+    return decorator
+
+
+@toggle_setting_command('show_errors_on_save', True)
 class SublimelinterShowErrorsOnSaveCommand(ToggleSettingCommand):
 
     """A command that sets the "show_errors_on_save" setting to True."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='show_errors_on_save', value=True)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
+@toggle_setting_command('show_errors_on_save', False)
 class SublimelinterDontShowErrorsOnSaveCommand(ToggleSettingCommand):
 
     """A command that sets the "show_errors_on_save" setting to False."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='show_errors_on_save', value=False)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
+@toggle_setting_command('@disable', True)
 class SublimelinterDisableLintingCommand(ToggleSettingCommand):
 
     """A command that sets the "@disable" setting to True."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='@disable', value=True)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
+@toggle_setting_command('@disable', None)
 class SublimelinterDontDisableLintingCommand(ToggleSettingCommand):
 
     """A command that remove the "@disable" setting."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='@disable', value=None)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
+@toggle_setting_command('debug', True)
 class SublimelinterEnableDebugCommand(ToggleSettingCommand):
 
     """A command that sets the "debug" setting to True."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='debug', value=True)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
+@toggle_setting_command('debug', False)
 class SublimelinterDisableDebugCommand(ToggleSettingCommand):
 
     """A command that sets the "debug" setting to False."""
 
-    def __init__(self, window):
-        super().__init__(window, setting='debug', value=False)
-
-    def run(self):
-        """Run the command."""
-        self.set()
+    pass
 
 
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
@@ -430,16 +417,29 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         pass
 
 
+def choose_setting_command(setting):
+    """Decorator that provides common methods for concrete subclasses of ChooseSettingCommand."""
+
+    def decorator(cls):
+        def init(self, window):
+            super(cls, self).__init__(window, setting)
+
+        def run(self, **kwargs):
+            """Run the command."""
+            self.choose(**kwargs)
+
+        cls.setting = setting
+        cls.__init__ = init
+        cls.run = run
+        return cls
+
+    return decorator
+
+
+@choose_setting_command('lint_mode')
 class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
 
     """A command that selects a lint mode from a list."""
-
-    def __init__(self, window):
-        super().__init__(window, 'lint_mode')
-
-    def run(self, **kwargs):
-        """Run the command."""
-        self.choose(**kwargs)
 
     def get_settings(self):
         """Return a list of the lint modes."""
@@ -454,32 +454,20 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
             linter.Linter.clear_all()
 
 
+@choose_setting_command('mark_style')
 class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
 
     """A command that selects a mark style from a list."""
-
-    def __init__(self, window):
-        super().__init__(window, 'mark_style')
-
-    def run(self, **kwargs):
-        """Run the command."""
-        self.choose(**kwargs)
 
     def get_settings(self):
         """Return a list of the mark styles."""
         return highlight.mark_style_names()
 
 
+@choose_setting_command('gutter_theme')
 class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
 
     """A command that selects a gutter theme from a list."""
-
-    def __init__(self, window):
-        super().__init__(window, 'gutter_theme')
-
-    def run(self, **kwargs):
-        """Run the command."""
-        self.choose(**kwargs)
 
     def get_settings(self):
         """

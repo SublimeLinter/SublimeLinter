@@ -820,9 +820,9 @@ class Linter(metaclass=Registrar):
         args = settings.get('args', [])
 
         if isinstance(args, str):
-            args = [args]
+            args = shlex.split(args)
         else:
-            args = [] + args  # make a copy
+            args = args[:]
 
         args_map = getattr(self, 'args_map', {})
 

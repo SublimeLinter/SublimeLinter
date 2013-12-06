@@ -1334,11 +1334,11 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
     def check(self, code, filename):
         """
-        Run a built-in check of code, returning a list of errors.
+        Run a built-in check of code, returning errors.
 
-        Subclasses that provide built in checking must override this method.
-        The objects returned may either be strings or objects that can
-        be converted to strings.
+        Subclasses that provide built in checking must override this method
+        and return a string with one more lines per error, an array of strings,
+        or an array of objects that can be converted to strings.
 
         """
 
@@ -1347,4 +1347,4 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             .format(self.name)
         )
 
-        return []
+        return ''

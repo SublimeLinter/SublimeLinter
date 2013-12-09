@@ -127,7 +127,7 @@ class Linter(metaclass=Registrar):
     # Should be all lowercase.
     language = ''
 
-    # A string, tuple or callable that returns a string, list or tuple, containing the
+    # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
     cmd = ''
 
@@ -144,7 +144,7 @@ class Linter(metaclass=Registrar):
     # Subclasses should consider this read only.
     executable_path = None
 
-    # A regex pattern used to extract information from the linter's executable output.
+    # A regex pattern used to extract information from the executable's output.
     regex = ''
 
     # Set to True if the linter outputs multiline error messages. When True,
@@ -638,6 +638,7 @@ class Linter(metaclass=Registrar):
                 continue
 
             if filename:
+                filename = os.path.realpath(filename)
                 excludes = util.convert_type(view_settings.get('excludes', []), [])
 
                 if excludes:

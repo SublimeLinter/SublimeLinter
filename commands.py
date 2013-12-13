@@ -255,7 +255,7 @@ class ToggleSettingCommand(sublime_plugin.WindowCommand):
 
 
 def toggle_setting_command(setting, value):
-    """Decorator that provides the run method for concrete subclasses of ToggleSettingCommand."""
+    """Return a decorator that provides the run method for concrete subclasses of ToggleSettingCommand."""
 
     def decorator(cls):
         def run(self):
@@ -330,7 +330,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         """Return the list of settings. Subclasses must override this."""
         raise NotImplementedError
 
-    def transform_setting(self, setting):
+    def transform_setting(self, setting, matching=False):
         """
         Transform the display text for setting to the form it is stored in.
 
@@ -355,7 +355,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         if 'value' in kwargs:
             setting = self.transform_setting(kwargs['value'])
         else:
-            setting = self.transform_setting(persist.settings.get(self.setting))
+            setting = self.transform_setting(persist.settings.get(self.setting), matching=True)
 
         index = 0
 
@@ -418,7 +418,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
 
 def choose_setting_command(setting):
-    """Decorator that provides common methods for concrete subclasses of ChooseSettingCommand."""
+    """Return a decorator that provides common methods for concrete subclasses of ChooseSettingCommand."""
 
     def decorator(cls):
         def init(self, window):
@@ -489,9 +489,9 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         Find all SublimeLinter.gutter-theme resources.
 
         For each found resource, if it doesn't match one of the patterns
-        from the "gutter_theme_excludes" setting, append to settings the
-        base name of resource and info on whether the theme is a standard
-        theme or a user theme, as well as whether it is colorized.
+        from the "gutter_theme_excludes" setting, return the base name
+        of resource and info on whether the theme is a standard theme
+        or a user theme, as well as whether it is colorized.
 
         The list of paths to the resources is appended to self.themes.
 
@@ -554,11 +554,28 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         return settings
 
     def selected_setting(self, index):
+        """Return the theme name with the given index."""
         return self.themes[index]
 
-    def transform_setting(self, setting):
-        """Return the original setting text, gutter theme settings are not lowercased."""
-        return setting
+    def transform_setting(self, setting, matching=False):
+        """
+        Return a transformed version of setting.
+
+        For gutter themes, setting is a Packages-relative path
+        to a .gutter-theme file.
+
+        If matching == False, return the original setting text,
+        gutter theme settings are not lowercased.
+
+        If matching == True, return the base name of the filename
+        without the .gutter-theme extension.
+
+        """
+
+        if matching:
+            return os.path.splitext(os.path.basename(setting))[0]
+        else:
+            return setting
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):

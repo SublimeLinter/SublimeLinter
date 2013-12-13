@@ -755,26 +755,35 @@ class Linter(metaclass=Registrar):
         else:
             cmd = list(cmd)
 
+        which = cmd[0]
+
         # Check to see if we have a @python command
         match = util.PYTHON_CMD_RE.match(cmd[0])
         settings = self.get_view_settings()
 
         if match and '@python' in settings:
-            which = '{}@python{}'.format(match.group('script') or '', settings.get('@python'))
+            script = match.group('script') or ''
+            which = '{}@python{}'.format(script, settings.get('@python'))
             path = self.which(which)
 
-            # Return None, which means the linter runs code internally
-            if path and path[0] == '<builtin>':
-                return None
+            if path:
+                # Returning None means the linter runs code internally
+                if path[0] == '<builtin>':
+                    return None
+                elif path[0] is None or script and path[1] is None:
+                    path = None
         elif self.executable_path:
             path = self.executable_path
+
+            if isinstance(path, tuple) and None in path:
+                path = None
         else:
-            which = cmd[0]
             path = self.which(which)
 
         if not path:
-            persist.debug('unable to locate \'{}\''.format(which))
+            persist.debug('cannot locate \'{}\''.format(which))
             return ''
+
         cmd[0:1] = util.convert_type(path, [])
         args = self.build_args(settings)
 

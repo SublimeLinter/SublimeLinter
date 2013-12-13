@@ -123,8 +123,8 @@ class Linter(metaclass=Registrar):
     # Public attributes
     #
 
-    # The language (syntax) that the linter handles.
-    # Should be all lowercase.
+    # The language (syntax) that the linter handles. May be a string or
+    # list/tuple of strings. Names should be all lowercase.
     language = ''
 
     # A string, list, tuple or callable that returns a string, list or tuple, containing the

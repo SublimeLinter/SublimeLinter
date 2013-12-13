@@ -648,12 +648,13 @@ def extract_major_minor_version(version):
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
 
-    status, output = subprocess.getstatusoutput(path + ' -V')
+    try:
+        output = subprocess.check_output((path, '-V'), stderr=subprocess.STDOUT)
+        output = output.decode().strip()
 
-    if status == 0:
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
-    else:
+    except:
         return {'major': None, 'minor': None}
 
 

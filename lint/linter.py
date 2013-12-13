@@ -172,15 +172,18 @@ class Linter(metaclass=Registrar):
     # Tab width
     tab_width = 1
 
-    # If a linter can be used with embedded code, you can limit the linter to
-    # specific portions of the source code based on a scope selector by setting
-    # this attribute to a mapping between language (syntax) names and scope selectors.
-    # For example, to lint embedded JavaScript in an html file, you would set the
-    # selectors to {'html': 'source.js.embedded.html'}.
+    # If a linter can be used with embedded code, you need to tell SublimeLinter
+    # which portions of the source code contain the embedded code by specifying
+    # the embedded scope selectors. This attribute maps language (syntax) names
+    # to embedded scope selectors.
+    #
+    # For example, the HTML language syntax uses the scope `source.js.embedded.html`
+    # for embedded JavaScript. To allow a JavaScript linter to lint that embedded
+    # JavaScript, you would set this attribute to {'html': 'source.js.embedded.html'}.
     selectors = {}
 
-    # If a linter reports a column position, SublimeLinter selects the nearest
-    # word at that point. You can customize the regex used to select words
+    # If a linter reports a column position, SublimeLinter highlights the nearest
+    # word at that point. You can customize the regex used to highlight words
     # by setting this to a pattern string or a compiled regex.
     word_re = None
 
@@ -1134,7 +1137,7 @@ class Linter(metaclass=Registrar):
         If a linter uses built in code, it should override this method and return
         a string as the output.
 
-        If a linter needs to do something complicated setup or will use the tmpdir
+        If a linter needs to do complicated setup or will use the tmpdir
         method, it will need to override this method.
 
         """
@@ -1234,11 +1237,8 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
     - Execution directly via a module method or via an executable.
 
-    If a module attribute is defined, the module will be imported
-    and the attribute will be replaced with the imported module.
-
-    If the module is successfully imported, whether it is used depends
-    on the following algorithm:
+    If the module attribute is defined and is successfully imported,
+    whether it is used depends on the following algorithm:
 
       - If the check_version attribute is False, the module will be used
         because the module is not version-sensitive.
@@ -1262,7 +1262,9 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
     # If the linter wants to import a module and run a method directly,
     # it should set this attribute to the module name, suitable for passing
-    # to importlib.import_module.
+    # to importlib.import_module. During class construction, the named module
+    # will be imported, and if successful, the attribute will be replaced
+    # with the imported module.
     module = None
 
     # Some python-based linters are version-sensitive, i.e. the python version

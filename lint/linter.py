@@ -62,7 +62,7 @@ class Registrar(type):
             if 'word_re' in attrs and isinstance(attrs['word_re'], str):
                 setattr(self, 'word_re', re.compile(self.word_re))
 
-            if 'tempfile_suffix' in attrs and attrs['tempfile_suffix'][0] != '.':
+            if attrs.get('tempfile_suffix') and attrs['tempfile_suffix'][0] != '.':
                 setattr(self, 'tempfile_suffix', '.' + attrs['tempfile_suffix'])
 
             for attr in ('inline_settings', 'inline_overrides'):
@@ -71,7 +71,7 @@ class Registrar(type):
 
             # If this class has its own defaults, create an args_map.
             # Otherwise we use the superclass' args_map.
-            if 'defaults' in attrs:
+            if 'defaults' in attrs and attrs['defaults']:
                 self.map_args(attrs['defaults'])
 
             if 'PythonLinter' in [base.__name__ for base in bases]:

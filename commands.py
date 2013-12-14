@@ -748,7 +748,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
                 folders = window.folders()
 
                 if folders and folders[0] == dest:
-                    window.run_command('open_file', args={'file': os.path.join(dest, 'linter.py')})
+                    window.open_file(os.path.join(dest, 'linter.py'))
                     break
 
         sublime.set_timeout_async(open_linter_py, 0)

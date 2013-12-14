@@ -279,37 +279,37 @@ def change_mark_colors(error_color, warning_color):
                 f.write(text)
 
 
-def install_languages():
-    """Asynchronously call install_languages_async."""
-    sublime.set_timeout_async(install_languages_async, 0)
+def install_syntaxes():
+    """Asynchronously call install_syntaxes_async."""
+    sublime.set_timeout_async(install_syntaxes_async, 0)
 
 
-def install_languages_async():
+def install_syntaxes_async():
     """
-    Install fixed language packages.
+    Install fixed syntax packages.
 
-    Unfortunately the scope definitions in some language syntax definitions
+    Unfortunately the scope definitions in some syntax definitions
     (HTML at the moment) incorrectly define embedded scopes, which leads
     to spurious lint errors.
 
-    This method copies all of the language packages in fixed_languages to Packages
-    so that they override the built in language package.
+    This method copies all of the syntax packages in fixed_syntaxes to Packages
+    so that they override the built in syntax package.
 
     """
 
     plugin_dir = os.path.dirname(os.path.dirname(__file__))
-    languages_dir = os.path.join(plugin_dir, 'fixed-languages')
+    syntaxes_dir = os.path.join(plugin_dir, 'fixed-syntaxes')
 
-    for language in os.listdir(languages_dir):
-        # See if our version of the language already exists in Packages
-        src_dir = os.path.join(languages_dir, language)
+    for syntax in os.listdir(syntaxes_dir):
+        # See if our version of the syntax already exists in Packages
+        src_dir = os.path.join(syntaxes_dir, syntax)
         version_file = os.path.join(src_dir, 'sublimelinter.version')
 
         if os.path.isdir(src_dir) and os.path.isfile(version_file):
             with open(version_file, encoding='utf8') as f:
                 my_version = int(f.read().strip())
 
-            dest_dir = os.path.join(sublime.packages_path(), language)
+            dest_dir = os.path.join(sublime.packages_path(), syntax)
             version_file = os.path.join(dest_dir, 'sublimelinter.version')
 
             if os.path.isdir(dest_dir):
@@ -323,7 +323,7 @@ def install_languages_async():
                     copy = my_version > other_version
                 else:
                     copy = sublime.ok_cancel_dialog(
-                        'An existing {} language package exists, '.format(language) +
+                        'An existing {} syntax package exists, '.format(syntax) +
                         'and SublimeLinter wants to overwrite it with its version. ' +
                         'Is that okay?')
 
@@ -333,8 +333,8 @@ def install_languages_async():
                     except OSError as ex:
                         from . import persist
                         persist.printf(
-                            'could not remove existing {} language package: {}'
-                            .format(language, str(ex))
+                            'could not remove existing {} syntax package: {}'
+                            .format(syntax, str(ex))
                         )
                         copy = False
             else:
@@ -344,17 +344,17 @@ def install_languages_async():
                 from . import persist
 
                 try:
-                    cached = os.path.join(sublime.cache_path(), language)
+                    cached = os.path.join(sublime.cache_path(), syntax)
 
                     if os.path.isdir(cached):
                         shutil.rmtree(cached)
 
                     shutil.copytree(src_dir, dest_dir)
-                    persist.printf('copied {} language package'.format(language))
+                    persist.printf('copied {} syntax package'.format(syntax))
                 except OSError as ex:
                     persist.printf(
-                        'could not copy {} language package: {}'
-                        .format(language, str(ex))
+                        'could not copy {} syntax package: {}'
+                        .format(syntax, str(ex))
                     )
 
 
@@ -999,7 +999,7 @@ def tmpdir(cmd, files, filename, code):
             out = combine_output(out, '\n')
 
             # filter results from build to just this filename
-            # no guarantee all languages are as nice about this as Go
+            # no guarantee all syntaxes are as nice about this as Go
             # may need to improve later or just defer to communicate()
             out = '\n'.join([
                 line for line in out.split('\n') if filename in line.split(':', 1)[0]

@@ -49,7 +49,7 @@ class Registrar(type):
         - Build a map between defaults and linter arguments.
         - Add '@python' as an inline setting to PythonLinter subclasses.
 
-        Finally, the class is registered as a linter for its configured language.
+        Finally, the class is registered as a linter for its configured syntax.
 
         """
 
@@ -79,7 +79,7 @@ class Registrar(type):
                 inline_settings = list(getattr(self, 'inline_settings') or [])
                 setattr(self, 'inline_settings', inline_settings + ['@python'])
 
-            if 'language' in attrs and name not in BASE_CLASSES:
+            if 'syntax' in attrs and name not in BASE_CLASSES:
                 persist.register_linter(self, name, attrs)
 
     def map_args(self, defaults):
@@ -115,7 +115,7 @@ class Linter(metaclass=Registrar):
     """
     The base class for linters.
 
-    Subclasses must at a minimum define the attributes language, cmd, and regex.
+    Subclasses must at a minimum define the attributes syntax, cmd, and regex.
 
     """
 
@@ -123,9 +123,9 @@ class Linter(metaclass=Registrar):
     # Public attributes
     #
 
-    # The language (syntax) that the linter handles. May be a string or
+    # The syntax that the linter handles. May be a string or
     # list/tuple of strings. Names should be all lowercase.
-    language = ''
+    syntax = ''
 
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
@@ -174,10 +174,10 @@ class Linter(metaclass=Registrar):
 
     # If a linter can be used with embedded code, you need to tell SublimeLinter
     # which portions of the source code contain the embedded code by specifying
-    # the embedded scope selectors. This attribute maps language (syntax) names
+    # the embedded scope selectors. This attribute maps syntax names
     # to embedded scope selectors.
     #
-    # For example, the HTML language syntax uses the scope `source.js.embedded.html`
+    # For example, the HTML syntax uses the scope `source.js.embedded.html`
     # for embedded JavaScript. To allow a JavaScript linter to lint that embedded
     # JavaScript, you would set this attribute to {'html': 'source.js.embedded.html'}.
     selectors = {}
@@ -262,7 +262,7 @@ class Linter(metaclass=Registrar):
             try:
                 self.regex = re.compile(self.regex, self.re_flags)
             except re.error:
-                persist.debug('error compiling regex for {}'.format(self.language))
+                persist.debug('error compiling regex for {}'.format(self.syntax))
 
         self.highlight = highlight.Highlight()
 
@@ -930,7 +930,7 @@ class Linter(metaclass=Registrar):
 
         """
 
-        if not (self.language and (self.cmd or self.cmd is None) and self.regex):
+        if not (self.syntax and (self.cmd or self.cmd is None) and self.regex):
             persist.debug('{}: not implemented'.format(self.name))
 
         if self.cmd is None:
@@ -1006,28 +1006,28 @@ class Linter(metaclass=Registrar):
     # Helper methods
 
     @classmethod
-    def can_lint(cls, language):
+    def can_lint(cls, syntax):
         """
-        Determine if a linter class can lint the given language (syntax).
+        Determine if a linter class can lint the given syntax.
 
         This method is called when a view has not had a linter assigned
         or when its syntax changes.
 
         The following tests must all pass for this method to return True:
 
-        1. language must be one of the languages the linter defines.
+        1. syntax must be one of the syntaxes the linter defines.
         2. If the linter uses an external executable, it must be available.
-        3. can_lint_language must return True.
+        3. can_lint_syntax must return True.
 
         """
 
         can = False
-        language = language.lower()
+        syntax = syntax.lower()
 
-        if cls.language:
-            if isinstance(cls.language, (tuple, list)) and language in cls.language:
+        if cls.syntax:
+            if isinstance(cls.syntax, (tuple, list)) and syntax in cls.syntax:
                 can = True
-            elif language == cls.language:
+            elif syntax == cls.syntax:
                 can = True
 
         if can and cls.executable_path is None:
@@ -1049,7 +1049,7 @@ class Linter(metaclass=Registrar):
             else:
                 cls.executable_path = ''
 
-            can = cls.can_lint_language(language)
+            can = cls.can_lint_syntax(syntax)
 
             persist.printf('{} {}'.format(
                 cls.name,
@@ -1060,9 +1060,9 @@ class Linter(metaclass=Registrar):
         return can
 
     @classmethod
-    def can_lint_language(cls, language):
+    def can_lint_syntax(cls, syntax):
         """
-        Return whether a linter can lint a given language (syntax).
+        Return whether a linter can lint a given syntax.
 
         Subclasses may override this if the built in mechanism in can_lint
         is not sufficient. When this method is called, cls.executable_path

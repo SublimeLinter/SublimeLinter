@@ -30,7 +30,7 @@ def plugin_loaded():
 
     util.generate_menus()
     util.generate_color_scheme(from_reload=False)
-    util.install_languages()
+    util.install_syntaxes()
 
     persist.settings.on_update_call(SublimeLinter.on_settings_updated)
 

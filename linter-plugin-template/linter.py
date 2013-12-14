@@ -17,7 +17,7 @@ class __class__(__superclass__):
 
     """Provides an interface to __linter__."""
 
-    language = '__language__'
+    language = ''
     cmd = '__cmd__'
     executable = None
     regex = r''

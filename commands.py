@@ -709,7 +709,6 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             '__cmd__': '{}@python'.format(name) if language == 'python' else name,
             '__extra_attributes__': extra_attributes,
             '__platform__': platform,
-            '__language__': language if language != 'other' else '__language__',
             '__install__': installers[language].format(name)
         }
 

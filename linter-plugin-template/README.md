@@ -1,7 +1,7 @@
 SublimeLinter-__linter__
 =========================
 
-This linter plugin for [SublimeLinter](https://github.com/SublimeLinter/SublimeLinter3) provides an interface to [__linter__](__linter_homepage__). It will be used with files that have the “__language__” syntax.
+This linter plugin for [SublimeLinter](https://github.com/SublimeLinter/SublimeLinter3) provides an interface to [__linter__](__linter_homepage__). It will be used with files that have the “__syntax__” syntax.
 
 ## Installation
 

@@ -599,7 +599,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
     def copy_linter(self, name):
         """Copy the template linter to a new linter with the given name."""
 
-        self.name = name
+        self.name = name = name.lower()
         self.fullname = 'SublimeLinter-{}'.format(name)
         self.dest = os.path.join(sublime.packages_path(), self.fullname)
 

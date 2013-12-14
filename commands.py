@@ -11,15 +11,20 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
+import datetime
 from fnmatch import fnmatch
 import json
 import os
+import shutil
+import subprocess
+import tempfile
 from threading import Thread
+import time
 
 import sublime
 import sublime_plugin
 
-from .lint import highlight, linter, persist
+from .lint import highlight, linter, persist, util
 
 
 def error_command(method):
@@ -576,6 +581,178 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return os.path.splitext(os.path.basename(setting))[0]
         else:
             return setting
+
+
+class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
+
+    """A command that creates a new linter plugin."""
+
+    def run(self):
+        """Run the command."""
+        self.window.show_input_panel(
+            'Linter name:',
+            '',
+            on_done=self.copy_linter,
+            on_change=None,
+            on_cancel=None)
+
+    def copy_linter(self, name):
+        """Copy the template linter to a new linter with the given name."""
+
+        self.name = name
+        self.fullname = 'SublimeLinter-{}'.format(name)
+        self.dest = os.path.join(sublime.packages_path(), self.fullname)
+
+        if os.path.exists(self.dest):
+            sublime.error_message('The plugin “{}” already exists.'.format(self.fullname))
+            return
+
+        src = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY, 'linter-plugin-template')
+        self.temp_dir = None
+
+        try:
+            self.temp_dir = tempfile.mkdtemp()
+            self.temp_dest = os.path.join(self.temp_dir, self.fullname)
+            shutil.copytree(src, self.temp_dest)
+
+            self.get_linter_language(name, self.configure_linter)
+
+        except Exception as ex:
+            if self.temp_dir and os.path.exists(self.temp_dir):
+                shutil.rmtree(self.temp_dir)
+
+            sublime.error_message('An error occurred while copying the template plugin: {}'.format(str(ex)))
+
+    def configure_linter(self, language):
+        """Fill out the template and move the linter into Packages."""
+
+        try:
+            if language is None:
+                return
+
+            self.fill_template(self.temp_dir, self.name, self.fullname, language)
+
+            git = util.which('git')
+
+            if git:
+                subprocess.call((git, 'init', self.temp_dest))
+
+            shutil.move(self.temp_dest, self.dest)
+
+            util.open_directory(self.dest)
+            self.wait_for_open(self.dest)
+
+        except Exception as ex:
+            sublime.error_message('An error occurred while configuring the plugin: {}'.format(str(ex)))
+
+        finally:
+            if self.temp_dir and os.path.exists(self.temp_dir):
+                shutil.rmtree(self.temp_dir)
+
+    def get_linter_language(self, name, callback):
+        """Get the language (python, node, etc.) on which the linter is based."""
+
+        languages = ['javascript', 'python', 'ruby', 'other']
+        items = ['Select the language on which the linter is based:']
+
+        for language in languages:
+            items.append('    ' + language.capitalize())
+
+        def on_done(index):
+            language = languages[index - 1] if index > 0 else None
+            callback(language)
+
+        self.window.show_quick_panel(items, on_done)
+
+    def fill_template(self, template_dir, name, fullname, language):
+        extra_attributes = []
+
+        comment_regexes = {
+            'python': None,
+            'javascript': 'r\'\\s*/[/*]\'',
+            'ruby': 'r\'\\s*#\'',
+            'other': 'None'
+        }
+
+        comment_re = comment_regexes[language]
+
+        if comment_re:
+            extra_attributes.append('comment_re = ' + comment_re)
+
+        if language == 'python':
+            extra_attributes.append('module = \'{}\'\n    check_version = False'.format(name))
+
+        extra_attributes = '\n    '.join(extra_attributes)
+
+        if extra_attributes:
+            extra_attributes += '\n'
+
+        installers = {
+            'python': 'pip install {}',
+            'javascript': 'npm install -g {}',
+            'ruby': 'gem install {}',
+            'other': '<package manager> install {}'
+        }
+
+        if language == 'javascript':
+            platform = '[Node.js](http://nodejs.org)'
+        else:
+            platform = language.capitalize()
+
+        # Replace placeholders
+        placeholders = {
+            '__linter__': name,
+            '__user__': util.get_user_fullname(),
+            '__year__': str(datetime.date.today().year),
+            '__class__': name.capitalize(),
+            '__superclass__': 'PythonLinter' if language == 'python' else 'Linter',
+            '__cmd__': '{}@python'.format(name) if language == 'python' else name,
+            '__extra_attributes__': extra_attributes,
+            '__platform__': platform,
+            '__language__': language if language != 'other' else '__language__',
+            '__install__': installers[language].format(name)
+        }
+
+        for root, dirs, files in os.walk(template_dir):
+            for filename in files:
+                extension = os.path.splitext(filename)[1]
+
+                if extension in ('.py', '.md', '.txt'):
+                    path = os.path.join(root, filename)
+
+                    with open(path, encoding='utf-8') as f:
+                        text = f.read()
+
+                    for placeholder, value in placeholders.items():
+                        text = text.replace(placeholder, value)
+
+                    with open(path, mode='w', encoding='utf-8') as f:
+                        f.write(text)
+
+    def wait_for_open(self, dest):
+        """Wait for new linter window to open in another thread."""
+
+        def open_linter_py():
+            """Wait until the new linter window has opened and open linter.py."""
+
+            start = datetime.datetime.now()
+
+            while True:
+                time.sleep(0.25)
+                delta = datetime.datetime.now() - start
+
+                # Wait a maximum of 5 seconds
+                if delta.seconds > 5:
+                    break
+
+                window = sublime.active_window()
+                folders = window.folders()
+
+                if folders and folders[0] == dest:
+                    window.run_command('open_file', args={'file': os.path.join(dest, 'linter.py')})
+                    break
+
+        sublime.set_timeout_async(open_linter_py, 0)
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):

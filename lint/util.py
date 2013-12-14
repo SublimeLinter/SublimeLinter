@@ -19,10 +19,11 @@ import os
 import re
 import shutil
 from string import Template
-import sys
-import tempfile
 import sublime
 import subprocess
+import sys
+import tempfile
+import time
 from xml.etree import ElementTree
 
 PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+)?')
@@ -878,6 +879,26 @@ def touch(path):
         os.utime(path, None)
 
 
+def open_directory(path):
+    """Open the directory at the given path in a new window."""
+
+    cmd = (get_subl_executable_path(), path)
+    subprocess.Popen(cmd, cwd=path)
+
+
+def get_subl_executable_path():
+    """Return the path to the subl command line binary."""
+
+    executable_path = sublime.executable_path()
+
+    if sublime.platform() == 'osx':
+        suffix = '.app/'
+        app_path = executable_path[:executable_path.rfind(suffix) + len(suffix)]
+        executable_path = app_path + 'Contents/SharedSupport/bin/subl'
+
+    return executable_path
+
+
 # popen utils
 
 def combine_output(out, sep=''):
@@ -1078,6 +1099,17 @@ def convert_type(value, type_value, sep=None):
             return list(value)
 
     return None
+
+
+def get_user_fullname():
+    """Return the user's full name (or at least first name)."""
+
+    if sublime.platform() in ('osx', 'linux'):
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_gecos
+    else:
+        return os.environ.get('USERNAME', 'Me')
+
 
 # color-related constants
 

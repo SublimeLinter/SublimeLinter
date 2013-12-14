@@ -117,6 +117,12 @@
         "caption": "SublimeLinter: Disable Debug Mode",
         "command": "sublimelinter_disable_debug"
     },
+
+    {
+        "caption": "SublimeLinter: Create Linter Plugin",
+        "command": "sublimelinter_create_linter_plugin"
+    },
+
     {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "x_sublimelinter_report",

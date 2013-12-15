@@ -912,7 +912,7 @@ def combine_output(out, output_stream=STREAM_STDOUT, sep=''):
     if output_stream == STREAM_STDOUT:
         return out[0].decode('utf8') or ''
     elif output_stream == STREAM_STDERR:
-        out[1].decode('utf8') or ''
+        return out[1].decode('utf8') or ''
     else:
         return sep.join((
             (out[0].decode('utf8') or ''),

@@ -28,9 +28,9 @@ from xml.etree import ElementTree
 #
 # Public constants
 #
-OUTPUT_STDOUT = 1
-OUTPUT_STDERR = 2
-OUTPUT_BOTH = OUTPUT_STDOUT + OUTPUT_STDERR
+STREAM_STDOUT = 1
+STREAM_STDERR = 2
+STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+)?')
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
@@ -907,11 +907,11 @@ def get_subl_executable_path():
 
 # popen utils
 
-def combine_output(out, output_src=OUTPUT_STDOUT, sep=''):
+def combine_output(out, output_stream=STREAM_STDOUT, sep=''):
     """Return stdout and/or stderr as returned by communicate, combining if necessary."""
-    if output_src == OUTPUT_STDOUT:
+    if output_stream == STREAM_STDOUT:
         return out[0].decode('utf8') or ''
-    elif output_src == OUTPUT_STDERR:
+    elif output_stream == STREAM_STDERR:
         out[1].decode('utf8') or ''
     else:
         return sep.join((
@@ -920,7 +920,7 @@ def combine_output(out, output_src=OUTPUT_STDOUT, sep=''):
         ))
 
 
-def communicate(cmd, code, output_src=OUTPUT_STDOUT):
+def communicate(cmd, code, output_stream=STREAM_STDOUT):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -933,12 +933,12 @@ def communicate(cmd, code, output_src=OUTPUT_STDOUT):
     if out is not None:
         code = code.encode('utf8')
         out = out.communicate(code)
-        return combine_output(out, output_src=output_src)
+        return combine_output(out, output_stream=output_stream)
     else:
         return ''
 
 
-def tmpfile(cmd, code, suffix='', output_src=OUTPUT_STDOUT):
+def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
     """
     Return the result of running an executable against a temporary file containing code.
 
@@ -961,12 +961,12 @@ def tmpfile(cmd, code, suffix='', output_src=OUTPUT_STDOUT):
 
         if out:
             out = out.communicate()
-            return combine_output(out, output_src)
+            return combine_output(out, output_stream)
         else:
             return ''
 
 
-def tmpdir(cmd, files, filename, code, output_src=OUTPUT_STDOUT):
+def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
     """
     Run an executable against a temporary file containing code.
 
@@ -1007,7 +1007,7 @@ def tmpdir(cmd, files, filename, code, output_src=OUTPUT_STDOUT):
 
         if out:
             out = out.communicate()
-            out = combine_output(out, sep='\n', output_src=output_src)
+            out = combine_output(out, sep='\n', output_stream=output_stream)
 
             # filter results from build to just this filename
             # no guarantee all syntaxes are as nice about this as Go

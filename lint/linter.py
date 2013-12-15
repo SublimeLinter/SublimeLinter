@@ -174,7 +174,7 @@ class Linter(metaclass=Registrar):
 
     # Linters may output to both stdout and stderr. You may be interested
     # in one or both.
-    output_src = util.OUTPUT_STDOUT
+    output_stream = util.STREAM_STDOUT
 
     # Tab width
     tab_width = 1
@@ -1171,15 +1171,15 @@ class Linter(metaclass=Registrar):
 
     def communicate(self, cmd, code):
         """Run an external executable using stdin to pass code and return its output."""
-        return util.communicate(cmd, code, output_src=self.output_src)
+        return util.communicate(cmd, code, output_stream=self.output_stream)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
-        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix, output_src=self.output_src)
+        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix, output_stream=self.output_stream)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""
-        return util.tmpdir(cmd, files, self.filename, code, output_src=self.output_src)
+        return util.tmpdir(cmd, files, self.filename, code, output_stream=self.output_stream)
 
     def popen(self, cmd, env=None):
         """Run cmd in a subprocess with the given environment and return the output."""

@@ -28,6 +28,9 @@ import traceback
 
 from . import highlight, persist, util
 
+#
+# Private constants
+#
 ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
 
@@ -168,6 +171,10 @@ class Linter(metaclass=Registrar):
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
     tempfile_suffix = None
+
+    # Linters may output to both stdout and stderr. You may be interested
+    # in one or both.
+    output_src = util.OUTPUT_STDOUT
 
     # Tab width
     tab_width = 1
@@ -1164,15 +1171,15 @@ class Linter(metaclass=Registrar):
 
     def communicate(self, cmd, code):
         """Run an external executable using stdin to pass code and return its output."""
-        return util.communicate(cmd, code)
+        return util.communicate(cmd, code, output_src=self.output_src)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
-        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix)
+        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix, output_src=self.output_src)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""
-        return util.tmpdir(cmd, files, self.filename, code)
+        return util.tmpdir(cmd, files, self.filename, code, output_src=self.output_src)
 
     def popen(self, cmd, env=None):
         """Run cmd in a subprocess with the given environment and return the output."""

@@ -10,7 +10,7 @@
 
 """This module exports the __class__ plugin class."""
 
-from SublimeLinter.lint import __superclass__
+from SublimeLinter.lint import __superclass__, util
 
 
 class __class__(__superclass__):
@@ -24,6 +24,7 @@ class __class__(__superclass__):
     multiline = False
     line_col_base = (1, 1)
     tempfile_suffix = None
+    output_src = util.OUTPUT_STDOUT
     selectors = {}
     word_re = None
     defaults = {}

@@ -27,6 +27,6 @@ easy to update, easy to extend. If you use SublimeLinter and feel
 it is making your coding life better and easier, please consider
 making a donation to help fund development and support.
 
-To donate: https://github.com/SublimeLinter/SublimeLinter3/README.md#share-the-love
+To donate: https://github.com/SublimeLinter/SublimeLinter3#share-the-love
 
 Thank you!

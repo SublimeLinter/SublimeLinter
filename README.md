@@ -1,7 +1,7 @@
-SublimeLinter3
+SublimeLinter
 =========
 
-A framework for interactive code linting in the [Sublime Text 3](http://sublimetext.com/3) editor.
+A framework for interactive code linting in the [Sublime Text 3](http://sublimetext.com/3) editor. The Sublime Text 2 version is no longer being supported; you can find it [here](https://github.com/SublimeLinter/SublimeLinter).
 
 **Documentation:** See the [wiki](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki).
 

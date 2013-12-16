@@ -952,12 +952,15 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
 
     """
 
-    with tempfile.NamedTemporaryFile(suffix=suffix) as f:
-        if isinstance(code, str):
-            code = code.encode('utf8')
+    f = None
 
-        f.write(code)
-        f.flush()
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+            if isinstance(code, str):
+                code = code.encode('utf8')
+
+            f.write(code)
+            f.flush()
 
         cmd = cmd + (f.name,)
         out = popen(cmd)
@@ -967,6 +970,9 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
             return combine_output(out, output_stream)
         else:
             return ''
+    finally:
+        if f:
+            os.remove(f.name)
 
 
 def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):

@@ -203,13 +203,15 @@ class Highlight:
         pos += start
         region = sublime.Region(pos, pos + length)
         other_type = ERROR if error_type == WARNING else WARNING
+        i_offset = 0
 
         for i, mark in enumerate(self.marks[other_type].copy()):
             if mark.a == region.a and mark.b == region.b:
                 if error_type == WARNING:
                     return
                 else:
-                    self.marks[other_type].pop(i)
+                    self.marks[other_type].pop(i - i_offset)
+                    i_offset += 1
 
         self.marks[error_type].append(region)
 

@@ -962,7 +962,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
             f.write(code)
             f.flush()
 
-        cmd = cmd + (f.name,)
+        cmd = tuple(cmd) + (f.name,)
         out = popen(cmd)
 
         if out:

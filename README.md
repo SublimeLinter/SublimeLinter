@@ -1,6 +1,13 @@
 SublimeLinter
 =========
 
+**To those upgrading from SublimeLinter v1.7:**
+
+**LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3.**
+
+**Please read the [installation documentation](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Installation)!**
+
+## About SublimeLinter
 A framework for interactive code linting in the [Sublime Text 3](http://sublimetext.com/3) editor. The Sublime Text 2 version is no longer being supported; you can find it [here](https://github.com/SublimeLinter/SublimeLinter).
 
 **Documentation:** See the [wiki](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki).

@@ -28,6 +28,9 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
 
+    plugin = SublimeLinter.shared_plugin()
+    queue.start(plugin.lint)
+
     util.generate_menus()
     util.generate_color_scheme(from_reload=False)
     util.install_syntaxes()
@@ -38,7 +41,7 @@ def plugin_loaded():
     window = sublime.active_window()
 
     if window:
-        SublimeLinter.shared_plugin().on_activated(window.active_view())
+        plugin.on_activated(window.active_view())
 
 
 class SublimeLinter(sublime_plugin.EventListener):

@@ -301,6 +301,12 @@ if not 'queue' in globals():
     # A mapping between view ids and views
     views = {}
 
+    # Every time a view is modified, this is updated with a mapping between a view id
+    # and the time of the modification. This is checked at various stages of the linting
+    # process. If a view has been modified since the original modification, the
+    # linting process stops.
+    last_hit_times = {}
+
     edits = defaultdict(list)
 
     # Info about the gutter mark icons
@@ -348,6 +354,9 @@ def view_did_close(vid):
 
     if vid in views:
         del views[vid]
+
+    if vid in last_hit_times:
+        del last_hit_times[vid]
 
 
 def debug(*args):

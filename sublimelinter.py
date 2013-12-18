@@ -67,13 +67,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         # A mapping between view ids and syntax names
         self.view_syntax = {}
 
-        # Every time a view is modified, this is updated and an asynchronous lint is queued.
-        # When a lint is done, if the view has been modified since the lint was initiated,
-        # marks are not updated because their positions may no longer be valid.
-        self.last_hit_times = {}
-
         self.__class__.shared_instance = self
-        queue.start(self.lint)
 
     @classmethod
     def lint_all_views(cls):
@@ -104,7 +98,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         # If the view has been modified since the lint was triggered,
         # don't lint again.
-        if hit_time is not None and self.last_hit_times.get(view_id, 0) > hit_time:
+        if hit_time is not None and persist.last_hit_times.get(view_id, 0) > hit_time:
             return
 
         view = Linter.get_view(view_id)
@@ -146,7 +140,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         # If the view has been modified since the lint was triggered,
         # don't draw marks.
-        if hit_time is not None and self.last_hit_times.get(vid, 0) > hit_time:
+        if hit_time is not None and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
         errors = {}
@@ -180,7 +174,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             return
 
-        self.last_hit_times[vid] = queue.hit(view)
+        persist.last_hit_times[vid] = queue.hit(view)
 
     def check_syntax(self, view):
         """
@@ -400,9 +394,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if vid in self.view_syntax:
             del self.view_syntax[vid]
-
-        if vid in self.last_hit_times:
-            del self.last_hit_times[vid]
 
         persist.view_did_close(vid)
 

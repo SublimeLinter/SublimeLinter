@@ -208,6 +208,9 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_modified(self, view):
         """Called when a view is modified."""
 
+        if view.is_scratch():
+            return
+
         if view.id() not in persist.view_linters:
             syntax_changed = self.check_syntax(view)
 
@@ -223,6 +226,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_activated(self, view):
         """Called when a view gains input focus."""
+
+        if view.is_scratch():
+            return
 
         # Reload the plugin settings.
         persist.settings.load()
@@ -277,12 +283,19 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_new(self, view):
         """Called when a new buffer is created."""
         self.on_open_settings(view)
+
+        if view.is_scratch():
+            return
+
         vid = view.id()
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
 
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
+
+        if view.is_scratch():
+            return
 
         vid = view.id()
 
@@ -341,6 +354,9 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_post_save(self, view):
         """Called after view is saved."""
 
+        if view.is_scratch():
+            return
+
         # First check to see if the project settings changed
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
@@ -386,6 +402,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_close(self, view):
         """Called after view is closed."""
+
+        if view.is_scratch():
+            return
 
         vid = view.id()
 

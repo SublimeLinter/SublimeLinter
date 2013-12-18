@@ -164,7 +164,11 @@ class Highlight:
         base on the *virtual* line number (adjusted by the self.line_offset).
 
         """
-        start, end = self.newlines[line + self.line_offset:line + self.line_offset + 2]
+
+        line += self.line_offset
+        start = self.newlines[line]
+        end = self.newlines[min(line + 1, len(self.newlines) - 1)]
+
         return start, end
 
     def range(self, line, pos, length=-1, error_type=ERROR, word_re=None):

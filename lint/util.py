@@ -54,8 +54,8 @@ MARK_COLOR_RE = (
 def merge_user_settings(settings):
     """Return the default linter settings merged with the user's settings."""
 
-    default = settings.get('default') or {}
-    user = settings.get('user') or {}
+    default = settings.get('default', {})
+    user = settings.get('user', {})
 
     if user:
         linters = default.pop('linters', {})

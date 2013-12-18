@@ -246,7 +246,8 @@ class ToggleSettingCommand(sublime_plugin.WindowCommand):
 
     def is_enabled(self):
         """Return True if the opposite of self.setting is True."""
-        return persist.settings.get(self.setting) is not self.value
+        setting = persist.settings.get(self.setting, None)
+        return setting is not None and setting is not self.value
 
     def set(self):
         """Toggle the setting if self.value is boolean, or remove it if None."""

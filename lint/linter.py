@@ -65,9 +65,6 @@ class Registrar(type):
             if 'word_re' in attrs and isinstance(attrs['word_re'], str):
                 setattr(self, 'word_re', re.compile(self.word_re))
 
-            if attrs.get('tempfile_suffix') and attrs['tempfile_suffix'][0] != '.':
-                setattr(self, 'tempfile_suffix', '.' + attrs['tempfile_suffix'])
-
             for attr in ('inline_settings', 'inline_overrides'):
                 if attr in attrs and isinstance(attrs[attr], str):
                     setattr(self, attr, (attrs[attr],))
@@ -170,6 +167,8 @@ class Linter(metaclass=Registrar):
 
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
+    # If the suffix needs to be determined dynamically, for example based on the
+    # syntax of the file, this can be an instance method that returns a string suffix.
     tempfile_suffix = None
 
     # Linters may output to both stdout and stderr. By default stdout is captured.
@@ -1172,7 +1171,15 @@ class Linter(metaclass=Registrar):
                                               cmd or '<builtin>'))
 
         if self.tempfile_suffix:
-            return self.tmpfile(cmd, code, suffix=self.tempfile_suffix)
+            if callable(self.tempfile_suffix):
+                suffix = self.tempfile_suffix()
+            else:
+                suffix = self.tempfile_suffix
+
+            if suffix and suffix[0] != '.':
+                suffix = '.' + suffix
+
+            return self.tmpfile(cmd, code, suffix=suffix)
         else:
             return self.communicate(cmd, code)
 

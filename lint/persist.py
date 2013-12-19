@@ -144,6 +144,9 @@ class Settings:
         if self.previous_settings.get('@disable') != self.settings.get('@disable'):
             need_relint = True
 
+        if self.previous_settings.get('no_column_highlights_line') != self.settings.get('no_column_highlights_line'):
+            need_relint = True
+
         # If any of the linter settings changed, relint
         if (
             self.previous_settings and

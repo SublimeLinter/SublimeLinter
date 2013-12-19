@@ -1006,7 +1006,12 @@ class Linter(metaclass=Registrar):
                 elif col is not None:
                     self.highlight.range(line, col, error_type=error_type, word_re=self.word_re)
                 else:
-                    self.highlight.range(line, 0, length=0, error_type=error_type, word_re=self.word_re)
+                    if persist.settings.get('no_column_highlights_line'):
+                        pos = -1
+                    else:
+                        pos = 0
+
+                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
 
                 self.error(line, col, message, error_type)
 

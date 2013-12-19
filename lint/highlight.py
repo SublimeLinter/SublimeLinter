@@ -175,7 +175,9 @@ class Highlight:
         """
         Mark a range of text.
 
-        line and pos should be zero-based. The length argument can be used to control marking:
+        line and pos should be zero-based. The pos and length argument can be used to control marking:
+
+            - If pos < 0, the entire line is marked and length is ignored.
 
             - If length < 0, the nearest word starting at pos is marked, and if
               no word is matched, the character at pos is marked.
@@ -195,7 +197,10 @@ class Highlight:
 
         start, end = self.full_line(line)
 
-        if length < 0:
+        if pos < 0:
+            pos = 0
+            length = (end - start) - 1
+        elif length < 0:
             code = self.code[start:end][pos:]
             match = (word_re or WORD_RE).search(code)
 

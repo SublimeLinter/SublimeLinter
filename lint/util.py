@@ -511,7 +511,7 @@ def get_shell_path(env):
 
         if shell in ('bash', 'zsh', 'ksh', 'sh'):
             return extract_path(
-                (shell_path, '-l', '-c', 'echo $PATH')
+                (shell_path, '-c', 'echo $PATH')
             )
         elif shell == 'fish':
             return extract_path(

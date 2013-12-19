@@ -167,8 +167,11 @@ class Linter(metaclass=Registrar):
 
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
-    # If the suffix needs to be determined dynamically, for example based on the
-    # syntax of the file, this can be an instance method that returns a string suffix.
+    # If the suffix needs to be mapped to the syntax of a file, you may make this
+    # a dict that maps syntax names (all lowercase, as used in the syntax attribute),
+    # to tempfile suffixes. The syntax used to lookup the suffix is the mapped
+    # syntax, after using "syntax_map" in settings. If the view's syntax is not
+    # in this map, the class' syntax will be used.
     tempfile_suffix = None
 
     # Linters may output to both stdout and stderr. By default stdout is captured.
@@ -1176,17 +1179,24 @@ class Linter(metaclass=Registrar):
                                               cmd or '<builtin>'))
 
         if self.tempfile_suffix:
-            if callable(self.tempfile_suffix):
-                suffix = self.tempfile_suffix()
+            return self.tmpfile(cmd, code, suffix=self.get_tempfile_suffix())
+        else:
+            return self.communicate(cmd, code)
+
+    def get_tempfile_suffix(self):
+        """Return the mapped tempfile_suffix."""
+        if self.tempfile_suffix:
+            if isinstance(self.tempfile_suffix, dict):
+                suffix = self.tempfile_suffix.get(persist.get_syntax(self.view), self.syntax)
             else:
                 suffix = self.tempfile_suffix
 
             if suffix and suffix[0] != '.':
                 suffix = '.' + suffix
 
-            return self.tmpfile(cmd, code, suffix=suffix)
+            return suffix
         else:
-            return self.communicate(cmd, code)
+            return ''
 
     # popen wrappers
 
@@ -1196,7 +1206,7 @@ class Linter(metaclass=Registrar):
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
-        return util.tmpfile(cmd, code, suffix or self.tempfile_suffix, output_stream=self.error_stream)
+        return util.tmpfile(cmd, code, suffix or self.get_tempfile_suffix(), output_stream=self.error_stream)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""

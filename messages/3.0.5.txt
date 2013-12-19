@@ -1,0 +1,17 @@
+SublimeLinter 3.0.5
+--------------------
+
+*** IMPORTANT! ***
+
+Please use github issues only for verified bugs. If you have a general
+usage question, or are having trouble with installation or configuration,
+please use the SublimeLinter google group. That way everyone will
+benefit from the answer.
+
+Even if you suspect there is a bug, it's better to ask on the group first
+and then file an issue on github only after it has been confirmed that it's a bug.
+
+https://groups.google.com/forum/#!forum/sublimelinter
+
+
+Thank you!

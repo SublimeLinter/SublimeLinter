@@ -14,7 +14,12 @@ and then file an issue on github only after it has been confirmed that it's a bu
 https://groups.google.com/forum/#!forum/sublimelinter
 
 
-*** KEEP SUBLIMELINTER GOING ***
+*** KEYBOARD CHANGES ***
+
+The Mac OS X keyboard equivalent for Show All Errors is now Control+Command+A.
+
+
+*** KEEP SUBLIMELINTER ALIVE! ***
 
 I have now spent two solid months on SublimeLinter, and now that it is
 released the support load is quite heavy. I am very grateful to everyone

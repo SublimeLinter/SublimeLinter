@@ -48,6 +48,8 @@ MARK_COLOR_RE = (
     r'\s*<string>)#.+?(</string>\s*\r?\n)'
 )
 
+ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
+
 
 # settings utils
 
@@ -493,7 +495,7 @@ def find_file(start_dir, name, parent=False, limit=None):
 
 def extract_path(cmd, delim=':'):
     """Return the user's PATH as a colon-delimited list."""
-    path = popen(cmd, os.environ).communicate()[0].decode()
+    path = popen(cmd, env=os.environ).communicate()[0].decode()
     return ':'.join(path.strip().split(delim))
 
 
@@ -910,17 +912,14 @@ def get_subl_executable_path():
 
 # popen utils
 
-def combine_output(out, output_stream=STREAM_STDOUT, sep=''):
-    """Return stdout and/or stderr as returned by communicate, combining if necessary."""
-    if output_stream == STREAM_STDOUT:
-        return out[0].decode('utf8') or ''
-    elif output_stream == STREAM_STDERR:
-        return out[1].decode('utf8') or ''
-    else:
-        return sep.join((
-            (out[0].decode('utf8') or ''),
-            (out[1].decode('utf8') or ''),
-        ))
+def combine_output(out, sep=''):
+    """Return stdout and/or stderr combined into a string, stripped of ANSI colors."""
+    output = sep.join((
+        (out[0].decode('utf8') or '') if out[0] else '',
+        (out[1].decode('utf8') or '') if out[1] else '',
+    ))
+
+    return ANSI_COLOR_RE.sub('', output)
 
 
 def communicate(cmd, code, output_stream=STREAM_STDOUT):
@@ -931,12 +930,12 @@ def communicate(cmd, code, output_stream=STREAM_STDOUT):
 
     """
 
-    out = popen(cmd)
+    out = popen(cmd, output_stream=output_stream)
 
     if out is not None:
         code = code.encode('utf8')
         out = out.communicate(code)
-        return combine_output(out, output_stream=output_stream)
+        return combine_output(out)
     else:
         return ''
 
@@ -963,11 +962,11 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
             f.flush()
 
         cmd = tuple(cmd) + (f.name,)
-        out = popen(cmd)
+        out = popen(cmd, output_stream=output_stream)
 
         if out:
             out = out.communicate()
-            return combine_output(out, output_stream)
+            return combine_output(out)
         else:
             return ''
     finally:
@@ -1012,11 +1011,11 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
                 shutil.copyfile(f, target)
 
         os.chdir(d)
-        out = popen(cmd)
+        out = popen(cmd, output_stream=output_stream)
 
         if out:
             out = out.communicate()
-            out = combine_output(out, sep='\n', output_stream=output_stream)
+            out = combine_output(out, sep='\n')
 
             # filter results from build to just this filename
             # no guarantee all syntaxes are as nice about this as Go
@@ -1032,7 +1031,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
     return out or ''
 
 
-def popen(cmd, env=None):
+def popen(cmd, output_stream=STREAM_BOTH, env=None):
     """Open a pipe to an external process and return a Popen object."""
 
     info = None
@@ -1042,18 +1041,27 @@ def popen(cmd, env=None):
         info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         info.wShowWindow = subprocess.SW_HIDE
 
+    if output_stream == STREAM_BOTH:
+        stdout = stderr = subprocess.PIPE
+    elif output_stream == STREAM_STDOUT:
+        stdout = subprocess.PIPE
+        stderr = subprocess.DEVNULL
+    else:  # STREAM_STDERR
+        stdout = subprocess.DEVNULL
+        stderr = subprocess.PIPE
+
     if env is None:
         env = create_environment()
 
     try:
         return subprocess.Popen(
             cmd, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            stdout=stdout, stderr=stderr,
             startupinfo=info, env=env)
-    except OSError as err:
+    except Exception as exc:
         from . import persist
         persist.debug('error launching', repr(cmd))
-        persist.debug('error was:', err.strerror)
+        persist.debug('error was:', str(exc))
         persist.debug('environment:', env)
 
 

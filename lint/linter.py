@@ -172,8 +172,10 @@ class Linter(metaclass=Registrar):
     # set this attribute to the suffix of the temp file (with or without leading '.').
     tempfile_suffix = None
 
-    # Linters may output to both stdout and stderr. You may be interested
-    # in one or both.
+    # Linters may output to both stdout and stderr. By default stdout is captured.
+    # If a linter will never output anything useful on a stream (including when
+    # there is an error within the linter), you can ignore that stream by setting
+    # this attribute to the other stream.
     error_stream = util.STREAM_STDOUT
 
     # Tab width
@@ -1190,7 +1192,7 @@ class Linter(metaclass=Registrar):
 
     def popen(self, cmd, env=None):
         """Run cmd in a subprocess with the given environment and return the output."""
-        return util.popen(cmd, env)
+        return util.popen(cmd, env=env, output_stream=self.error_stream)
 
 
 class PythonMeta(Registrar):

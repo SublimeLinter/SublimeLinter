@@ -1233,6 +1233,13 @@ class PythonMeta(Registrar):
         if name != 'PythonLinter':
             self.python_linters[name] = self
 
+        if persist.plugin_is_loaded:
+            # Be sure to clear _cmd so that import_module will re-import
+            if hasattr(self, '_cmd'):
+                delattr(self, '_cmd')
+
+            self.import_module()
+
         super().__init__(name, bases, attrs)
 
     @classmethod
@@ -1327,6 +1334,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
         if module is not None:
             try:
                 module = importlib.import_module(module)
+                persist.debug('{} imported {}'.format(cls.name, module))
 
                 # If the linter specifies a python version, check to see
                 # if ST's python satisfies that version.

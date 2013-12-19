@@ -16,7 +16,7 @@ import re
 import sublime
 import sublime_plugin
 
-from .lint.linter import Linter
+from .lint.linter import Linter, PythonMeta
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util
@@ -27,6 +27,8 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
+
+    PythonMeta.import_modules()
 
     plugin = SublimeLinter.shared_plugin()
     queue.start(plugin.lint)

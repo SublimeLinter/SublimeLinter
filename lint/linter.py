@@ -19,11 +19,13 @@ PythonLinter    Linter subclass that provides base python configuration.
 
 from fnmatch import fnmatch
 from functools import lru_cache
+import importlib
 from numbers import Number
 import os
 import re
 import shlex
 import sublime
+import sys
 import traceback
 
 from . import highlight, persist, util
@@ -1219,55 +1221,32 @@ class Linter(metaclass=Registrar):
 
 class PythonMeta(Registrar):
 
-    """
-    Metaclass for PythonLinter that dynamically sets the 'cmd' attribute.
+    """Metaclass for PythonLinter that keeps track of the PythonLinter subclasses."""
 
-    If a linter can work both using an executable and built in code,
-    the best way to deal with that is to set the cmd class attribute
-    during class construction. This allows the linter to take advantage
-    of the rest of the SublimeLinter machinery for everything but run().
+    # Keep track of the PythonLinter subclasses.
+    python_linters = {}
 
-    """
+    # Have we imported the system python 3 sys.path yet?
+    sys_path_imported = False
 
     def __init__(self, name, bases, attrs):
-        # Attempt to import the configured module.
-        # If it could not be imported, use the executable.
-        # We have to do this before super().__init__ because
-        # that registers the class, and we need this attribute set first.
-        from importlib import import_module
-
-        module = None
-
-        if attrs.get('module') is not None:
-            try:
-                module = import_module(attrs['module'])
-
-                # If the linter specifies a python version, check to see
-                # if ST's python satisfies that version.
-                cmd = self.cmd
-
-                if isinstance(self.cmd, tuple):
-                    cmd = self.cmd[0]
-
-                if cmd:
-                    match = util.PYTHON_CMD_RE.match(cmd)
-
-                    if match:
-                        args = match.groupdict()
-                        args['module'] = module
-                        setattr(self, 'python_version', util.find_python(**args))
-
-                # If the module is successfully imported, save cmd and set cmd to None
-                # so that the run method controls the building of cmd.
-                setattr(self, '_cmd', self.cmd)
-                setattr(self, 'cmd', None)
-
-            except:
-                pass
-
-        setattr(self, 'module', module)
+        if name != 'PythonLinter':
+            self.python_linters[name] = self
 
         super().__init__(name, bases, attrs)
+
+    @classmethod
+    def import_modules(cls):
+        """Try to import modules for any classes that define one."""
+
+        if not cls.sys_path_imported:
+            # Make sure the system python 3 paths are available to plugins.
+            # We do this here to ensure it is only done once.
+            sys.path.extend(util.get_python_paths())
+            cls.sys_path_imported = True
+
+        for linter in cls.python_linters.values():
+            linter.import_module()
 
 
 class PythonLinter(Linter, metaclass=PythonMeta):
@@ -1334,6 +1313,48 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             return None
 
     shebang_match = match_shebang
+
+    @classmethod
+    def import_module(cls):
+        # Attempt to import the configured module.
+        # If it could not be imported, use the executable.
+        if hasattr(cls, '_cmd'):
+            return
+
+        module = getattr(cls, 'module', None)
+        cls._cmd = None
+
+        if module is not None:
+            try:
+                module = importlib.import_module(module)
+
+                # If the linter specifies a python version, check to see
+                # if ST's python satisfies that version.
+                cmd = cls.cmd
+
+                if isinstance(cls.cmd, (list, tuple)):
+                    cmd = cls.cmd[0]
+
+                if cmd:
+                    match = util.PYTHON_CMD_RE.match(cmd)
+
+                    if match:
+                        args = match.groupdict()
+                        args['module'] = module
+                        cls.python_version = util.find_python(**args)
+
+                # If the module is successfully imported, save cmd and set cmd to None
+                # so that the run method controls the building of cmd.
+                cls._cmd = cls.cmd
+                cls.cmd = None
+
+            except ImportError:
+                persist.printf('import of {} failed'.format(module))
+
+            except Exception as ex:
+                persist.printf(str(ex))
+
+        cls.module = module
 
     def run(self, cmd, code):
         """Run the module checker or executable on code and return the output."""

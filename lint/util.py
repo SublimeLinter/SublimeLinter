@@ -607,6 +607,11 @@ def create_environment():
     if paths:
         env['PATH'] += os.pathsep + os.pathsep.join(paths)
 
+    from . import persist
+
+    if persist.settings.get('debug'):
+        persist.printf('computed PATH:\n{}\n'.format(env['PATH'].replace(':', '\n')))
+
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
     # in the target executable is looking for utf-8.
@@ -851,9 +856,16 @@ def get_python_paths():
     if python_path:
         code = r'import sys;print("\n".join(sys.path).strip())'
         out = communicate(python_path, code)
-        return out.splitlines()
+        paths = out.splitlines()
     else:
-        return []
+        paths = []
+
+    from . import persist
+
+    if persist.settings.get('debug'):
+        persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
+
+    return paths
 
 
 @lru_cache(maxsize=None)

@@ -788,7 +788,7 @@ class Linter(metaclass=Registrar):
         elif self.executable_path:
             path = self.executable_path
 
-            if isinstance(path, tuple) and None in path:
+            if isinstance(path, (list, tuple)) and None in path:
                 path = None
         else:
             path = self.which(which)

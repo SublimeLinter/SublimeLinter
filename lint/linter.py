@@ -730,7 +730,7 @@ class Linter(metaclass=Registrar):
             if isinstance(cmd, str):
                 cmd = shlex.split(cmd)
 
-            return cmd
+            return self.insert_args(cmd)
         else:
             return self.build_cmd()
 
@@ -793,7 +793,12 @@ class Linter(metaclass=Registrar):
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
-        args = self.build_args(settings)
+        return self.insert_args(cmd)
+
+    def insert_args(self, cmd):
+        """Insert user arguments into cmd."""
+        args = self.build_args(self.get_view_settings())
+        cmd = list(cmd)
 
         if '*' in cmd:
             i = cmd.index('*')
@@ -805,7 +810,7 @@ class Linter(metaclass=Registrar):
         else:
             cmd += args
 
-        return tuple(cmd)
+        return cmd
 
     def build_args(self, settings):
         """

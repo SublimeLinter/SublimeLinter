@@ -1209,6 +1209,9 @@ class Linter(metaclass=Registrar):
 
     def communicate(self, cmd, code):
         """Run an external executable using stdin to pass code and return its output."""
+        if '@' in cmd:
+            cmd[cmd.index('@')] = self.filename
+
         return util.communicate(cmd, code, output_stream=self.error_stream)
 
     def tmpfile(self, cmd, code, suffix=''):

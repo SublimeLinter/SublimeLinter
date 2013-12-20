@@ -973,7 +973,13 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
             f.write(code)
             f.flush()
 
-        cmd = tuple(cmd) + (f.name,)
+        cmd = list(cmd)
+
+        if '@' in cmd:
+            cmd[cmd.index('@')] = f.name
+        else:
+            cmd.append(f.name)
+
         out = popen(cmd, output_stream=output_stream)
 
         if out:

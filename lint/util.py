@@ -495,7 +495,15 @@ def find_file(start_dir, name, parent=False, limit=None):
 
 def extract_path(cmd, delim=':'):
     """Return the user's PATH as a colon-delimited list."""
-    path = popen(cmd, env=os.environ).communicate()[0].decode()
+    proc = popen(cmd, env=os.environ)
+
+    try:
+        out, err = proc.communicate(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, err = proc.communicate()
+
+    path = out.decode().split('__SUBL_PATH__', 2)[1]
     return ':'.join(path.strip().split(delim))
 
 
@@ -511,13 +519,15 @@ def get_shell_path(env):
         shell_path = env['SHELL']
         shell = os.path.basename(shell_path)
 
+        # We have to delimit the PATH output with markers because
+        # text might be output during shell startup.
         if shell in ('bash', 'zsh', 'ksh', 'sh'):
             return extract_path(
-                (shell_path, '-l', '-c', 'echo $PATH')
+                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
             )
         elif shell == 'fish':
             return extract_path(
-                (shell_path, '-l', '-c', 'for p in $PATH; echo $p; end'),
+                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
                 '\n'
             )
 
@@ -610,7 +620,15 @@ def create_environment():
     from . import persist
 
     if persist.settings.get('debug'):
-        persist.printf('computed PATH:\n{}\n'.format(env['PATH'].replace(':', '\n')))
+        if os.name == 'posix':
+            if 'SHELL' in env:
+                shell = 'using ' + env['SHELL']
+            else:
+                shell = 'using standard paths'
+        else:
+            shell = 'from system'
+
+        persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(':', '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin

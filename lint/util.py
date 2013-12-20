@@ -399,6 +399,8 @@ def generate_menus_async():
         # Indent the commands to where they want to be in the template.
         # The first line doesn't need to be indented, remove the extra indent.
         cmd['menus'] = indent_lines(cmd['menus'], indent)
+        cmd['toggleItems'] = TOGGLE_ITEMS[cmd['caption']]
+        cmd['toggleItems'] = indent_lines(cmd['toggleItems'], indent)
         menus.append(Template(CHOOSER_MENU).safe_substitute(cmd))
 
     menus = ',\n'.join(menus)
@@ -1239,10 +1241,37 @@ CHOOSER_MENU = '''{
     "caption": "$caption",
     "children":
     [
-        $menus
+        $menus,
+        $toggleItems
     ]
 }'''
 
 CHOOSER_COMMAND = '''{{
     "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
 }}'''
+
+TOGGLE_ITEMS = {
+    'Mark Style': '''
+{
+    "caption": "-"
+},
+{
+    "caption": "No Column Highlights Line",
+    "command": "sublimelinter_check_item", "args":
+    {
+        "setting": "no_column_highlights_line"
+    }
+}''',
+
+    'Lint Mode': '''
+{
+    "caption": "-"
+},
+{
+    "caption": "Show Errors on Save",
+    "command": "sublimelinter_check_item", "args":
+    {
+        "setting": "show_errors_on_save"
+    }
+}'''
+}

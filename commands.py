@@ -266,6 +266,26 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
         persist.settings.save()
 
 
+class SublimelinterCheckItemCommand(sublime_plugin.WindowCommand):
+
+    """Command that toggles a setting and displays it checked or not in a menu."""
+
+    def __init__(self, window):
+        super().__init__(window)
+
+    def is_checked(self, **args):
+        """Return True if the setting should be checked."""
+        setting = persist.settings.get(args['setting'], False)
+        return setting is True
+
+    def run(self, **args):
+        """Toggle the setting."""
+
+        setting = persist.settings.get(args['setting'], False)
+        persist.settings.set(args['setting'], not setting)
+        persist.settings.save()
+
+
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
     """An abstract base class for commands that choose a setting from a list."""

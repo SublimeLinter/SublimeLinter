@@ -110,6 +110,22 @@
         }
     },
     {
+        "caption": "SublimeLinter: No Column Highlights Entire Line",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "no_column_highlights_line",
+            "value": true
+        }
+    },
+    {
+        "caption": "SublimeLinter: No Column Only Marks Gutter",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "no_column_highlights_line",
+            "value": false
+        }
+    },
+    {
         "caption": "SublimeLinter: Enable Linting",
         "command": "sublimelinter_toggle_setting", "args":
         {

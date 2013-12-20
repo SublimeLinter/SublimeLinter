@@ -22,12 +22,15 @@ The Mac OS X keyboard equivalent for Show All Errors is now Control+Command+A.
 *** KEEP SUBLIMELINTER ALIVE! ***
 
 I have now spent two solid months on SublimeLinter, and now that it is
-released the support load is quite heavy. I am very grateful to everyone
-who has donated so far to support SublimeLinter. But many have not.
-If everyone who relies on SublimeLinter donated even a few dollars,
-I wouldn't have to worry. But the reality is that without more financial
-support, I simply cannot continue to provide the same level of support
-for SublimeLinter. Open source software is NOT free -- the developers
-end up paying for it.
+released the support load is quite heavy -- 36 hours in the last three
+days alone.
 
-Thank you!
+I am very grateful to everyone who has donated so far to support
+SublimeLinter. But many have not. If everyone who relies on SublimeLinter
+donated even a few dollars, I wouldn't have to worry. But the reality is
+that without more financial support, I simply cannot continue to provide
+the same level of support for SublimeLinter.
+
+Open source software is not free -- the developers usually end up paying for it!
+
+Thank you for your support!

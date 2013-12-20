@@ -240,88 +240,30 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
             GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
 
 
-class ToggleSettingCommand(sublime_plugin.WindowCommand):
+class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
 
-    """Abstract base class for commands that toggle a setting."""
+    """Command that toggles a setting."""
 
-    def is_enabled(self):
-        """Return True if the opposite of self.setting is True."""
-        setting = persist.settings.get(self.setting, None)
-        return setting is not None and setting is not self.value
+    def __init__(self, window):
+        super().__init__(window)
 
-    def set(self):
-        """Toggle the setting if self.value is boolean, or remove it if None."""
-
-        if self.value is None:
-            persist.settings.pop(self.setting)
+    def is_visible(self, **args):
+        """Return True if the opposite of the setting is True."""
+        if persist.settings.has_setting(args['setting']):
+            setting = persist.settings.get(args['setting'], None)
+            return setting is not None and setting is not args['value']
         else:
-            persist.settings.set(self.setting, self.value)
+            return args['value'] is not None
+
+    def run(self, **args):
+        """Toggle the setting if value is boolean, or remove it if None."""
+
+        if args['value'] is None:
+            persist.settings.pop(args['setting'])
+        else:
+            persist.settings.set(args['setting'], args['value'])
 
         persist.settings.save()
-
-
-def toggle_setting_command(setting, value):
-    """Return a decorator that provides the run method for concrete subclasses of ToggleSettingCommand."""
-
-    def decorator(cls):
-        def run(self):
-            """Run the command."""
-            self.set()
-
-        cls.setting = setting
-        cls.value = value
-        cls.run = run
-        return cls
-
-    return decorator
-
-
-@toggle_setting_command('show_errors_on_save', True)
-class SublimelinterShowErrorsOnSaveCommand(ToggleSettingCommand):
-
-    """A command that sets the "show_errors_on_save" setting to True."""
-
-    pass
-
-
-@toggle_setting_command('show_errors_on_save', False)
-class SublimelinterDontShowErrorsOnSaveCommand(ToggleSettingCommand):
-
-    """A command that sets the "show_errors_on_save" setting to False."""
-
-    pass
-
-
-@toggle_setting_command('@disable', True)
-class SublimelinterDisableLintingCommand(ToggleSettingCommand):
-
-    """A command that sets the "@disable" setting to True."""
-
-    pass
-
-
-@toggle_setting_command('@disable', None)
-class SublimelinterDontDisableLintingCommand(ToggleSettingCommand):
-
-    """A command that remove the "@disable" setting."""
-
-    pass
-
-
-@toggle_setting_command('debug', True)
-class SublimelinterEnableDebugCommand(ToggleSettingCommand):
-
-    """A command that sets the "debug" setting to True."""
-
-    pass
-
-
-@toggle_setting_command('debug', False)
-class SublimelinterDisableDebugCommand(ToggleSettingCommand):
-
-    """A command that sets the "debug" setting to False."""
-
-    pass
 
 
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
@@ -331,6 +273,29 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
     def __init__(self, window, setting=None):
         super().__init__(window)
         self.setting = setting
+        self._settings = None
+
+    def description(self, **args):
+        """Return the visible description of the command, used in menus."""
+        return args.get('value', None)
+
+    def is_checked(self, **args):
+        """Return whether this command should be checked in a menu."""
+        if 'value' not in args:
+            return False
+
+        item = self.transform_setting(args['value'], matching=True)
+        setting = self.setting_value(matching=True)
+        return item == setting
+
+    def _get_settings(self):
+        """Return the list of settings."""
+        if self._settings is None:
+            self._settings = self.get_settings()
+
+        return self._settings
+
+    settings = property(_get_settings)
 
     def get_settings(self):
         """Return the list of settings. Subclasses must override this."""
@@ -345,6 +310,10 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         """
         return setting.lower()
 
+    def setting_value(self, matching=False):
+        """Return the current value of the setting."""
+        return self.transform_setting(persist.settings.get(self.setting), matching=matching)
+
     def choose(self, **kwargs):
         """
         Choose or set the setting.
@@ -356,12 +325,10 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
         """
 
-        self.settings = self.get_settings()
-
         if 'value' in kwargs:
             setting = self.transform_setting(kwargs['value'])
         else:
-            setting = self.transform_setting(persist.settings.get(self.setting), matching=True)
+            setting = self.setting_value(matching=True)
 
         index = 0
 

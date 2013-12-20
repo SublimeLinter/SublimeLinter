@@ -445,7 +445,7 @@ def build_submenu(caption):
     commands = []
 
     for name in names:
-        commands.append(CHOOSER_COMMAND.format(name, setting.replace(' ', '_'), name))
+        commands.append(CHOOSER_COMMAND.format(setting.replace(' ', '_'), name))
 
     return ',\n'.join(commands)
 
@@ -1226,6 +1226,5 @@ CHOOSER_MENU = '''{
 }'''
 
 CHOOSER_COMMAND = '''{{
-    "caption": "{}",
     "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
 }}'''

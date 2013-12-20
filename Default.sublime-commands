@@ -95,27 +95,51 @@
     },
     {
         "caption": "SublimeLinter: Show Errors on Save",
-        "command": "sublimelinter_show_errors_on_save"
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "show_errors_on_save",
+            "value": true
+        }
     },
     {
         "caption": "SublimeLinter: Don’t Show Errors on Save",
-        "command": "sublimelinter_dont_show_errors_on_save"
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "show_errors_on_save",
+            "value": false
+        }
+    },
+    {
+        "caption": "SublimeLinter: Enable Linting",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "@disable",
+            "value": null
+        }
     },
     {
         "caption": "SublimeLinter: Disable Linting",
-        "command": "sublimelinter_disable_linting"
-    },
-    {
-        "caption": "SublimeLinter: Don’t Disable Linting",
-        "command": "sublimelinter_dont_disable_linting"
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "@disable",
+            "value": true
+        }
     },
     {
         "caption": "SublimeLinter: Enable Debug Mode",
-        "command": "sublimelinter_enable_debug"
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "debug",
+            "value": true
+        }
     },
     {
         "caption": "SublimeLinter: Disable Debug Mode",
-        "command": "sublimelinter_disable_debug"
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "debug",
+            "value": false
+        }
     },
 
     {

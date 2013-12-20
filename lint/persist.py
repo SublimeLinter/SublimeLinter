@@ -54,6 +54,10 @@ class Settings:
             self.on_update()
             self.observe_prefs()
 
+    def has_setting(self, setting):
+        """Return whether the given setting exists."""
+        return setting in self.settings
+
     def get(self, setting, default=None):
         """Return a plugin setting, defaulting to default if not found."""
         return self.settings.get(setting, default)

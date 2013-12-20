@@ -31,6 +31,7 @@ donated even a few dollars, I wouldn't have to worry. But the reality is
 that without more financial support, I simply cannot continue to provide
 the same level of support for SublimeLinter.
 
-Open source software is not free -- the developers usually end up paying for it!
+I'm sorry to have to beg for donations, but open source software is not free
+-- the developers usually end up paying for it!
 
 Thank you for your support!

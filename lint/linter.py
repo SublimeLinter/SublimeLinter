@@ -26,7 +26,6 @@ import re
 import shlex
 import sublime
 import sys
-import traceback
 
 from . import highlight, persist, util
 
@@ -274,8 +273,8 @@ class Linter(metaclass=Registrar):
 
             try:
                 self.regex = re.compile(self.regex, self.re_flags)
-            except re.error:
-                persist.printf('error compiling regex for {}'.format(self.syntax))
+            except re.error as err:
+                persist.printf('ERROR: compiling regex for {}: {}'.format(self.syntax, str(err)))
 
         self.highlight = highlight.Highlight()
 
@@ -794,7 +793,7 @@ class Linter(metaclass=Registrar):
             path = self.which(which)
 
         if not path:
-            persist.printf('cannot locate \'{}\''.format(which))
+            persist.printf('ERROR: cannot locate \'{}\''.format(which))
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
@@ -950,7 +949,7 @@ class Linter(metaclass=Registrar):
         """
 
         if not (self.syntax and (self.cmd or self.cmd is None) and self.regex):
-            persist.printf('{}: not implemented'.format(self.name))
+            persist.printf('ERROR: {} not implemented'.format(self.name))
 
         if self.cmd is None:
             cmd = None
@@ -1365,16 +1364,16 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 cls.cmd = None
 
             except ImportError:
-                persist.printf('import of {} failed'.format(module))
+                persist.printf('WARNING: import of {} failed'.format(module))
+                module = None
 
             except Exception as ex:
-                persist.printf(str(ex))
+                persist.printf('ERROR:', str(ex))
 
         cls.module = module
 
     def run(self, cmd, code):
         """Run the module checker or executable on code and return the output."""
-
         if self.module is not None:
             use_module = False
 
@@ -1401,8 +1400,8 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
                 try:
                     errors = self.check(code, os.path.basename(self.filename))
-                except:
-                    persist.printf(traceback.format_exc())
+                except Exception as err:
+                    persist.printf('ERROR:', str(err))
                     errors = ''
 
                 if isinstance(errors, (tuple, list)):

@@ -169,7 +169,7 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            persist.printf('error loading \'{}\': {}'.format(path, str(ex)))
+            persist.printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -341,7 +341,7 @@ def install_syntaxes_async():
                     except OSError as ex:
                         from . import persist
                         persist.printf(
-                            'could not remove existing {} syntax package: {}'
+                            'ERROR: could not remove existing {} syntax package: {}'
                             .format(syntax, str(ex))
                         )
                         copy = False
@@ -361,7 +361,7 @@ def install_syntaxes_async():
                     persist.printf('copied {} syntax package'.format(syntax))
                 except OSError as ex:
                     persist.printf(
-                        'could not copy {} syntax package: {}'
+                        'ERROR: could not copy {} syntax package: {}'
                         .format(syntax, str(ex))
                     )
 
@@ -1103,10 +1103,10 @@ def popen(cmd, output_stream=STREAM_BOTH, env=None):
             cmd, stdin=subprocess.PIPE,
             stdout=stdout, stderr=stderr,
             startupinfo=info, env=env)
-    except Exception as exc:
+    except Exception as err:
         from . import persist
-        persist.printf('error launching', repr(cmd))
-        persist.printf('error was:', str(exc))
+        persist.printf('ERROR: could not launch', repr(cmd))
+        persist.printf('reason:', str(err))
         persist.printf('environment:', env)
 
 

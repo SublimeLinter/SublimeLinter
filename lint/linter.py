@@ -1414,7 +1414,11 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             cmd = self.cmd
 
         cmd = self.build_cmd(cmd=cmd)
-        return super().run(cmd, code)
+
+        if cmd:
+            return super().run(cmd, code)
+        else:
+            return ''
 
     def check(self, code, filename):
         """

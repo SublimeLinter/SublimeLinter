@@ -267,13 +267,11 @@ class Highlight:
         for start, end in results:
             self.range(line, start + offset, end - start, error_type=error_type)
 
-    def near(self, line, near, col=None, error_type=ERROR, word_re=None):
+    def near(self, line, near, error_type=ERROR, word_re=None):
         """
         Mark a range of text near a given word.
 
         line, error_type and word_re are the same as in range().
-
-        If col is not None, only select a match at or before that column.
 
         If near is enclosed by quotes, they are stripped. The first occurrence
         of near in the given line of code is matched. If the first and last
@@ -304,12 +302,13 @@ class Highlight:
             if near[pos].isalnum() or near[pos] == '_':
                 fence[i] = r'\b'
 
-        start = -1
+        pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+        match = re.search(pattern, text)
 
-        for match in re.finditer(NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1]), text):
-            if col is None or (col is not None and match.start() <= col):
-                start = match.start()
-                break
+        if match:
+            start = match.start(1)
+        else:
+            start = -1
 
         if start != -1:
             self.range(line, start, len(near), error_type=error_type, word_re=word_re)

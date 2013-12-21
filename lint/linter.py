@@ -1000,10 +1000,10 @@ class Linter(metaclass=Registrar):
                                 break
 
                 # If there is also near, give that precedence and pass a hint of where to look
-                if near:
-                    col = self.highlight.near(line, near, col=col, error_type=error_type, word_re=self.word_re)
-                elif col is not None:
+                if col is not None:
                     self.highlight.range(line, col, error_type=error_type, word_re=self.word_re)
+                elif near:
+                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
                 else:
                     if persist.settings.get('no_column_highlights_line'):
                         pos = -1

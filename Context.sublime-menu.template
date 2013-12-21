@@ -29,13 +29,29 @@
                 "command": "sublimelinter_show_all_errors"
             },
             {
+                "caption": "Show Errors on Save",
+                "command": "sublimelinter_toggle_setting", "args":
+                {
+                    "setting": "show_errors_on_save",
+                    "checked": true
+                }
+            },
+            {
                 "caption": "-"
             },
             {
-                "caption": "User Settings",
+                "caption": "Open User Settings",
                 "command": "open_file", "args":
                 {
                     "file": "${packages}/User/SublimeLinter.sublime-settings"
+                }
+            },
+            {
+                "caption": "Debug Mode",
+                "command": "sublimelinter_toggle_setting", "args":
+                {
+                    "setting": "debug",
+                    "checked": true
                 }
             }
         ]

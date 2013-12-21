@@ -390,7 +390,11 @@ def generate_menus_async():
     commands = []
 
     for chooser in CHOOSERS:
-        commands.append({'caption': chooser, 'menus': build_submenu(chooser)})
+        commands.append({
+            'caption': chooser,
+            'menus': build_submenu(chooser),
+            'toggleItems': ''
+        })
 
     menus = []
     indent = MENU_INDENT_RE.search(CHOOSER_MENU).group(1)
@@ -399,8 +403,11 @@ def generate_menus_async():
         # Indent the commands to where they want to be in the template.
         # The first line doesn't need to be indented, remove the extra indent.
         cmd['menus'] = indent_lines(cmd['menus'], indent)
-        cmd['toggleItems'] = TOGGLE_ITEMS[cmd['caption']]
-        cmd['toggleItems'] = indent_lines(cmd['toggleItems'], indent)
+
+        if cmd['caption'] in TOGGLE_ITEMS:
+            cmd['toggleItems'] = TOGGLE_ITEMS[cmd['caption']]
+            cmd['toggleItems'] = indent_lines(cmd['toggleItems'], indent)
+
         menus.append(Template(CHOOSER_MENU).safe_substitute(cmd))
 
     menus = ',\n'.join(menus)
@@ -1257,21 +1264,10 @@ TOGGLE_ITEMS = {
 },
 {
     "caption": "No Column Highlights Line",
-    "command": "sublimelinter_check_item", "args":
+    "command": "sublimelinter_toggle_setting", "args":
     {
-        "setting": "no_column_highlights_line"
-    }
-}''',
-
-    'Lint Mode': '''
-{
-    "caption": "-"
-},
-{
-    "caption": "Show Errors on Save",
-    "command": "sublimelinter_check_item", "args":
-    {
-        "setting": "show_errors_on_save"
+        "setting": "no_column_highlights_line",
+        "checked": true
     }
 }'''
 }

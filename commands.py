@@ -249,40 +249,35 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
 
     def is_visible(self, **args):
         """Return True if the opposite of the setting is True."""
+        if args.get('checked', False):
+            return True
+
         if persist.settings.has_setting(args['setting']):
             setting = persist.settings.get(args['setting'], None)
             return setting is not None and setting is not args['value']
         else:
             return args['value'] is not None
 
+    def is_checked(self, **args):
+        """Return True if the setting should be checked."""
+        if args.get('checked', False):
+            setting = persist.settings.get(args['setting'], False)
+            return setting is True
+        else:
+            return False
+
     def run(self, **args):
         """Toggle the setting if value is boolean, or remove it if None."""
 
-        if args['value'] is None:
-            persist.settings.pop(args['setting'])
+        if 'value' in args:
+            if args['value'] is None:
+                persist.settings.pop(args['setting'])
+            else:
+                persist.settings.set(args['setting'], args['value'])
         else:
-            persist.settings.set(args['setting'], args['value'])
+            setting = persist.settings.get(args['setting'], False)
+            persist.settings.set(args['setting'], not setting)
 
-        persist.settings.save()
-
-
-class SublimelinterCheckItemCommand(sublime_plugin.WindowCommand):
-
-    """Command that toggles a setting and displays it checked or not in a menu."""
-
-    def __init__(self, window):
-        super().__init__(window)
-
-    def is_checked(self, **args):
-        """Return True if the setting should be checked."""
-        setting = persist.settings.get(args['setting'], False)
-        return setting is True
-
-    def run(self, **args):
-        """Toggle the setting."""
-
-        setting = persist.settings.get(args['setting'], False)
-        persist.settings.set(args['setting'], not setting)
         persist.settings.save()
 
 

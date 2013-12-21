@@ -275,7 +275,7 @@ class Linter(metaclass=Registrar):
             try:
                 self.regex = re.compile(self.regex, self.re_flags)
             except re.error:
-                persist.debug('error compiling regex for {}'.format(self.syntax))
+                persist.printf('error compiling regex for {}'.format(self.syntax))
 
         self.highlight = highlight.Highlight()
 
@@ -794,7 +794,7 @@ class Linter(metaclass=Registrar):
             path = self.which(which)
 
         if not path:
-            persist.debug('cannot locate \'{}\''.format(which))
+            persist.printf('cannot locate \'{}\''.format(which))
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
@@ -950,7 +950,7 @@ class Linter(metaclass=Registrar):
         """
 
         if not (self.syntax and (self.cmd or self.cmd is None) and self.regex):
-            persist.debug('{}: not implemented'.format(self.name))
+            persist.printf('{}: not implemented'.format(self.name))
 
         if self.cmd is None:
             cmd = None
@@ -1402,9 +1402,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 try:
                     errors = self.check(code, os.path.basename(self.filename))
                 except:
-                    if persist.settings.get('debug'):
-                        persist.printf(traceback.format_exc())
-
+                    persist.printf(traceback.format_exc())
                     errors = ''
 
                 if isinstance(errors, (tuple, list)):
@@ -1429,7 +1427,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
         """
 
-        persist.debug(
+        persist.printf(
             '{}: subclasses must override the PythonLinter.check method'
             .format(self.name)
         )

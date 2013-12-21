@@ -169,7 +169,7 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            persist.debug('error loading \'{}\': {}'.format(path, str(ex)))
+            persist.printf('error loading \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -1105,9 +1105,9 @@ def popen(cmd, output_stream=STREAM_BOTH, env=None):
             startupinfo=info, env=env)
     except Exception as exc:
         from . import persist
-        persist.debug('error launching', repr(cmd))
-        persist.debug('error was:', str(exc))
-        persist.debug('environment:', env)
+        persist.printf('error launching', repr(cmd))
+        persist.printf('error was:', str(exc))
+        persist.printf('environment:', env)
 
 
 # view utils

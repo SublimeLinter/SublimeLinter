@@ -175,11 +175,11 @@ class Linter(metaclass=Registrar):
     # in this map, the class' syntax will be used.
     tempfile_suffix = None
 
-    # Linters may output to both stdout and stderr. By default stdout is captured.
+    # Linters may output to both stdout and stderr. By default stdout and sterr are captured.
     # If a linter will never output anything useful on a stream (including when
     # there is an error within the linter), you can ignore that stream by setting
     # this attribute to the other stream.
-    error_stream = util.STREAM_STDOUT
+    error_stream = util.STREAM_BOTH
 
     # Tab width
     tab_width = 1

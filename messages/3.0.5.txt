@@ -3,6 +3,11 @@ SublimeLinter 3.0.5
 
 *** IMPORTANT! ***
 
+PLEASE read this entire message!
+
+
+*** BUG REPORTING ***
+
 Please use github issues only for verified bugs. If you have a general
 usage question, or are having trouble with installation or configuration,
 please use the SublimeLinter google group. That way everyone will
@@ -23,6 +28,14 @@ SublimeLinter 3. At least read the Usage docs.
 *** KEYBOARD CHANGES ***
 
 The Mac OS X keyboard equivalent for Show All Errors is now Control+Command+A.
+
+
+*** LINTER PLUGIN AUTHORS ***
+
+If you have already written a linter plugin, thank you! Please note
+that the usage of error_stream has changed a bit, please read:
+
+https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Writing-Linters#error_stream
 
 
 *** KEEP SUBLIMELINTER ALIVE! ***

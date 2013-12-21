@@ -14,6 +14,12 @@ and then file an issue on github only after it has been confirmed that it's a bu
 https://groups.google.com/forum/#!forum/sublimelinter
 
 
+*** HAVE YOU READ THE DOCS? ***
+
+If not, you are probably missing out on a lot of great new features in
+SublimeLinter 3. At least read the Usage docs.
+
+
 *** KEYBOARD CHANGES ***
 
 The Mac OS X keyboard equivalent for Show All Errors is now Control+Command+A.

@@ -47,7 +47,7 @@ class LinterMeta(type):
         When a Linter subclass is loaded by Sublime Text, this method is called.
         We take this opportunity to do some transformations:
 
-        - Replace regex patterns with compiled regex objects.
+        - Compile regex patterns.
         - Convert strings to tuples where necessary.
         - Add a leading dot to the tempfile_suffix if necessary.
         - Build a map between defaults and linter arguments.
@@ -58,13 +58,30 @@ class LinterMeta(type):
         """
 
         if bases:
+            setattr(self, 'disabled', False)
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
                 setattr(self, 'cmd', shlex.split(cmd))
 
-            if 'word_re' in attrs and isinstance(attrs['word_re'], str):
-                setattr(self, 'word_re', re.compile(self.word_re))
+            for attr in ('regex', 'comment_re', 'word_re'):
+                if attr in attrs and isinstance(attrs[attr], str):
+                    if attr == 'regex' and self.multiline:
+                        setattr(self, 're_flags', self.re_flags | re.MULTILINE)
+
+                    try:
+                        setattr(self, attr, re.compile(getattr(self, attr), self.re_flags))
+                    except re.error as err:
+                        persist.printf(
+                            'ERROR: {} disabled, error compiling {}: {}'
+                            .format(name.lower(), attr, str(err))
+                        )
+                        setattr(self, 'disabled', True)
+
+            if not self.disabled:
+                if not self.syntax or (self.cmd is not None and not self.cmd) or not self.regex:
+                    persist.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
+                    setattr(self, 'disabled', True)
 
             for attr in ('inline_settings', 'inline_overrides'):
                 if attr in attrs and isinstance(attrs[attr], str):
@@ -277,23 +294,7 @@ class Linter(metaclass=LinterMeta):
         self.syntax = syntax
         self.filename = filename
         self.code = ''
-
-        if self.regex:
-            if self.multiline:
-                self.re_flags |= re.MULTILINE
-
-            try:
-                self.regex = re.compile(self.regex, self.re_flags)
-            except re.error as err:
-                persist.printf(
-                    'ERROR: compiling regex for {}: {}'
-                    .format(self.__name__.lower(), str(err))
-                )
-
         self.highlight = highlight.Highlight()
-
-        if isinstance(self.comment_re, str):
-            self.__class__.comment_re = re.compile(self.comment_re)
 
     @classmethod
     def settings(cls):
@@ -506,7 +507,7 @@ class Linter(metaclass=LinterMeta):
         for name, linter_class in persist.linter_classes.items():
             # During import, if the linter is disabled cmd is set to zero
             # to mark it as disabled.
-            if linter_class.cmd is not 0 and linter_class.can_lint(syntax):
+            if not linter_class.disabled and linter_class.can_lint(syntax):
 
                 if reset:
                     instantiate = True
@@ -955,17 +956,16 @@ class Linter(metaclass=LinterMeta):
 
         The flow of control is as follows:
 
-        1. Ensure the linter has the minimum configuration necessary to lint.
-        2. Get the command line. If it is an empty string, bail.
-        3. Run the linter.
-        4. If the view has been modified since the original hit_time, stop.
-        5. Parse the linter output with the regex.
-        6. Highlight warnings and errors.
+        - Get the command line. If it is an empty string, bail.
+        - Run the linter.
+        - If the view has been modified since the original hit_time, stop.
+        - Parse the linter output with the regex.
+        - Highlight warnings and errors.
 
         """
 
-        if not (self.syntax and (self.cmd or self.cmd is None) and self.regex):
-            persist.printf('ERROR: {} not implemented'.format(self.name))
+        if self.disabled:
+            return
 
         if self.cmd is None:
             cmd = None
@@ -1423,8 +1423,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                     cmd
                 ))
 
-            # We use 0 to mark the linter as disabled
-            cls.cmd = 0
+            cls.disabled = True
 
         cls.module = module
 

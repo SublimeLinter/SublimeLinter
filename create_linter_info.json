@@ -1,0 +1,22 @@
+{
+    "javascript": {
+        "platform": "[Node.js](http://nodejs.org) (and [npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager) on Linux)",
+        "installer": "npm install -g {}",
+        "extra_steps": "1. If you are using `nvm` and `zsh`, ensure that the line to load `nvm` is in `.zprofile` and not `.zshrc`."
+    },
+
+    "python": {
+        "platform": "[Python](http://python.org/download/) and [pip](http://www.pip-installer.org/en/latest/installing.html)",
+        "installer": "[sudo] pip install {}",
+        "attributes": ["module = '{}'", "check_version = False"]
+    },
+
+    "ruby": {
+        "installer": "[sudo] gem install {}",
+        "extra_steps": "1. If you are using `rvm` or `rbenv`, ensure that they are loaded in your shell’s “profile” file. See [here](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Usage#profile-vs-rc) for more information."
+    },
+
+    "other": {
+        "installer": "<package manager> install {}"
+    }
+}

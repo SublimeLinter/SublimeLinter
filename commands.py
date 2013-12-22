@@ -654,7 +654,8 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             if language is None:
                 return
 
-            self.fill_template(self.temp_dir, self.name, self.fullname, language)
+            if not self.fill_template(self.temp_dir, self.name, self.fullname, language):
+                return
 
             git = util.which('git')
 
@@ -689,6 +690,20 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         self.window.show_quick_panel(items, on_done)
 
     def fill_template(self, template_dir, name, fullname, language):
+        """Replace placeholders and fill template files in template_dir, return success."""
+
+        # Read per-language info
+        path = os.path.join(os.path.dirname(__file__), 'create_linter_info.json')
+
+        with open(path, mode='r', encoding='utf-8') as f:
+            try:
+                info = json.load(f)
+            except Exception as err:
+                print(err)
+                sublime.error_message('A configuration file could not be opened, the linter cannot be created.')
+                return False
+
+        info = info.get(language, {})
         extra_attributes = []
 
         comment_regexes = {
@@ -703,28 +718,25 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         if comment_re:
             extra_attributes.append('comment_re = ' + comment_re)
 
-        if language == 'python':
-            extra_attributes.append('module = \'{}\'\n    check_version = False'.format(name))
+        attributes = info.get('attributes', [])
+
+        for attr in attributes:
+            extra_attributes.append(attr.format(name))
 
         extra_attributes = '\n    '.join(extra_attributes)
 
         if extra_attributes:
             extra_attributes += '\n'
 
-        installers = {
-            'python': 'pip install {}',
-            'javascript': 'npm install -g {}',
-            'ruby': 'gem install {}',
-            'other': '<package manager> install {}'
-        }
+        extra_steps = info.get('extra_steps', '')
 
-        if language == 'javascript':
-            platform = (
-                '[Node.js](http://nodejs.org) '
-                '(and [npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager) on Linux)'
-            )
-        else:
-            platform = language.capitalize()
+        if isinstance(extra_steps, list):
+            extra_steps = '\n\n'.join(extra_steps)
+
+        if extra_steps:
+            extra_steps = '\n' + extra_steps + '\n'
+
+        platform = info.get('platform', language.capitalize())
 
         # Replace placeholders
         placeholders = {
@@ -736,7 +748,8 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             '__cmd__': '{}@python'.format(name) if language == 'python' else name,
             '__extra_attributes__': extra_attributes,
             '__platform__': platform,
-            '__install__': installers[language].format(name)
+            '__install__': info['installer'].format(name),
+            '__extra_install_steps__': extra_steps
         }
 
         for root, dirs, files in os.walk(template_dir):
@@ -754,6 +767,8 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
 
                     with open(path, mode='w', encoding='utf-8') as f:
                         f.write(text)
+
+        return True
 
     def wait_for_open(self, dest):
         """Wait for new linter window to open in another thread."""

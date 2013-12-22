@@ -15,7 +15,7 @@ Before using this plugin, you must ensure that `__linter__` is installed on your
    ```
    __install__
    ```
-
+__extra_install_steps__
 Once __linter__ is installed, you can proceed to install the SublimeLinter-__linter__ plugin if it is not yet installed.
 
 ### Plugin installation

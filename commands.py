@@ -709,7 +709,10 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         }
 
         if language == 'javascript':
-            platform = '[Node.js](http://nodejs.org)'
+            platform = (
+                '[Node.js](http://nodejs.org) '
+                '(and [npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager) on Linux)'
+            )
         else:
             platform = language.capitalize()
 

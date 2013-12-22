@@ -329,6 +329,18 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         """Return the current value of the setting."""
         return self.transform_setting(persist.settings.get(self.setting), matching=matching)
 
+    def on_highlight(self, index):
+        """
+        Do something when items are highlighted in a quick panel.
+
+        Subclasses may override this to change the setting dynamically.
+        Usually they will do nothing more than:
+
+        self.set(index)
+
+        """
+        pass
+
     def choose(self, **kwargs):
         """
         Choose or set the setting.
@@ -360,28 +372,43 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         if 'value' in kwargs:
             self.set(index)
         else:
-            self.window.show_quick_panel(self.settings, self.set, selected_index=index)
+            self.previous_setting = self.setting_value()
+
+            self.window.show_quick_panel(
+                self.settings,
+                self.set,
+                selected_index=index,
+                on_highlight=self.on_highlight)
 
     def set(self, index):
         """Set the value of the setting."""
 
         if index == -1:
+            if self.settings_differ(self.previous_setting, self.setting_value()):
+                self.update_setting(self.previous_setting)
+
             return
 
-        old_setting = persist.settings.get(self.setting)
         setting = self.selected_setting(index)
 
-        if isinstance(setting, (tuple, list)):
-            setting = setting[0]
-
-        setting = self.transform_setting(setting)
-
-        if setting == old_setting:
+        if not self.settings_differ(persist.settings.get(self.setting), setting):
             return
 
-        persist.settings.set(self.setting, setting)
-        self.setting_was_changed(setting)
+        self.update_setting(setting)
+
+    def update_setting(self, value):
+        """Update the setting with the given value."""
+        persist.settings.set(self.setting, value)
+        self.setting_was_changed(value)
         persist.settings.save()
+
+    def settings_differ(self, old_setting, new_setting):
+        """Return whether two setting values differ."""
+        if isinstance(new_setting, (tuple, list)):
+            new_setting = new_setting[0]
+
+        new_setting = self.transform_setting(new_setting)
+        return new_setting != old_setting
 
     def selected_setting(self, index):
         """
@@ -564,6 +591,10 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return os.path.splitext(os.path.basename(setting))[0]
         else:
             return setting
+
+    def on_highlight(self, index):
+        """Change the gutter theme to the selected theme."""
+        self.set(index)
 
 
 class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):

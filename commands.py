@@ -267,8 +267,8 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
         if args.get('checked', False):
             return True
 
-        if persist.settings.has_setting(args['setting']):
-            setting = persist.settings.get(args['setting'], None)
+        setting = persist.settings.get(args['setting'], None)
+        if setting is not None:            
             return setting is not None and setting is not args['value']
         else:
             return args['value'] is not None

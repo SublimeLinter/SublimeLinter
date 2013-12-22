@@ -1130,11 +1130,11 @@ def clear_caches():
     find_executable.cache_clear()
 
 
-def convert_type(value, type_value, sep=None):
+def convert_type(value, type_value, sep=None, default=None):
     """
     Convert value to the type of type_value.
 
-    If the value cannot be converted to the desired type, None is returned.
+    If the value cannot be converted to the desired type, default is returned.
     If sep is not None, strings are split by sep to make lists/tuples, and
     tuples/lists are joined by sep to make strings.
 
@@ -1155,7 +1155,7 @@ def convert_type(value, type_value, sep=None):
         elif isinstance(type_value, Number):
             return float(value)
         else:
-            return None
+            return default
 
     if isinstance(value, Number):
         if isinstance(type_value, str):
@@ -1163,7 +1163,7 @@ def convert_type(value, type_value, sep=None):
         elif isinstance(type_value, (tuple, list)):
             return [value]
         else:
-            return None
+            return default
 
     if isinstance(value, (tuple, list)):
         if isinstance(type_value, str):
@@ -1171,7 +1171,7 @@ def convert_type(value, type_value, sep=None):
         else:
             return list(value)
 
-    return None
+    return default
 
 
 def get_user_fullname():

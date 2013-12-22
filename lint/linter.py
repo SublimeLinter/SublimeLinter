@@ -274,7 +274,10 @@ class Linter(metaclass=Registrar):
             try:
                 self.regex = re.compile(self.regex, self.re_flags)
             except re.error as err:
-                persist.printf('ERROR: compiling regex for {}: {}'.format(self.syntax, str(err)))
+                persist.printf(
+                    'ERROR: compiling regex for {}: {}'
+                    .format(self.__name__.lower(), str(err))
+                )
 
         self.highlight = highlight.Highlight()
 
@@ -793,14 +796,14 @@ class Linter(metaclass=Registrar):
             path = self.which(which)
 
         if not path:
-            persist.printf('ERROR: cannot locate \'{}\''.format(which))
+            persist.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
 
     def insert_args(self, cmd):
-        """Insert user arguments into cmd."""
+        """Insert user arguments into cmd and return the result."""
         args = self.build_args(self.get_view_settings())
         cmd = list(cmd)
 
@@ -1080,7 +1083,8 @@ class Linter(metaclass=Registrar):
 
             can = cls.can_lint_syntax(syntax)
 
-            persist.printf('{} {}'.format(
+            persist.printf('{}{} {}'.format(
+                '' if can else 'WARNING: ',
                 cls.name,
                 'enabled: {}'.format(cls.executable_path) if can
                 else 'disabled, cannot locate \'{}\''.format(executable)
@@ -1341,7 +1345,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
         if module is not None:
             try:
                 module = importlib.import_module(module)
-                persist.debug('{} imported {}'.format(cls.name, module))
+                persist.debug('{} imported {}'.format(cls.__name__.lower(), module))
 
                 # If the linter specifies a python version, check to see
                 # if ST's python satisfies that version.
@@ -1364,11 +1368,17 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 cls.cmd = None
 
             except ImportError:
-                persist.printf('WARNING: import of {} failed'.format(module))
+                persist.printf(
+                    'WARNING: import of {} module in {} failed'
+                    .format(module, cls.__name__.lower())
+                )
                 module = None
 
             except Exception as ex:
-                persist.printf('ERROR:', str(ex))
+                persist.printf(
+                    'ERROR: unknown exception in {}: {}'
+                    .format(cls.__name__.lower(), str(ex))
+                )
 
         cls.module = module
 
@@ -1401,7 +1411,10 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                 try:
                     errors = self.check(code, os.path.basename(self.filename))
                 except Exception as err:
-                    persist.printf('ERROR:', str(err))
+                    persist.printf(
+                        'ERROR: exception in {}.check: {}'
+                        .format(self.name, str(err))
+                    )
                     errors = ''
 
                 if isinstance(errors, (tuple, list)):

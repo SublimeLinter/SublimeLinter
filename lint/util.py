@@ -1107,7 +1107,7 @@ def popen(cmd, output_stream=STREAM_BOTH, env=None):
         from . import persist
         persist.printf('ERROR: could not launch', repr(cmd))
         persist.printf('reason:', str(err))
-        persist.printf('environment:', env)
+        persist.printf('PATH:', env.get('PATH', ''))
 
 
 # view utils

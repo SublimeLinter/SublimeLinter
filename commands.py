@@ -300,10 +300,11 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
     """An abstract base class for commands that choose a setting from a list."""
 
-    def __init__(self, window, setting=None):
+    def __init__(self, window, setting=None, preview=False):
         super().__init__(window)
         self.setting = setting
         self._settings = None
+        self.preview = preview
 
     def description(self, **args):
         """Return the visible description of the command, used in menus."""
@@ -345,16 +346,9 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         return self.transform_setting(persist.settings.get(self.setting), matching=matching)
 
     def on_highlight(self, index):
-        """
-        Do something when items are highlighted in a quick panel.
-
-        Subclasses may override this to change the setting dynamically.
-        Usually they will do nothing more than:
-
-        self.set(index)
-
-        """
-        pass
+        """If preview is on, set the selected setting."""
+        if self.preview:
+            self.set(index)
 
     def choose(self, **kwargs):
         """
@@ -391,7 +385,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
             self.window.show_quick_panel(
                 self.settings,
-                self.set,
+                on_select=self.set,
                 selected_index=index,
                 on_highlight=self.on_highlight)
 
@@ -405,6 +399,11 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
             return
 
         setting = self.selected_setting(index)
+
+        if isinstance(setting, (tuple, list)):
+            setting = setting[0]
+
+        setting = self.transform_setting(setting)
 
         if not self.settings_differ(persist.settings.get(self.setting), setting):
             return
@@ -447,12 +446,12 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
         pass
 
 
-def choose_setting_command(setting):
+def choose_setting_command(setting, preview):
     """Return a decorator that provides common methods for concrete subclasses of ChooseSettingCommand."""
 
     def decorator(cls):
         def init(self, window):
-            super(cls, self).__init__(window, setting)
+            super(cls, self).__init__(window, setting, preview)
 
         def run(self, **kwargs):
             """Run the command."""
@@ -466,7 +465,7 @@ def choose_setting_command(setting):
     return decorator
 
 
-@choose_setting_command('lint_mode')
+@choose_setting_command('lint_mode', preview=False)
 class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
 
     """A command that selects a lint mode from a list."""
@@ -484,7 +483,7 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
             linter.Linter.clear_all()
 
 
-@choose_setting_command('mark_style')
+@choose_setting_command('mark_style', preview=True)
 class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
 
     """A command that selects a mark style from a list."""
@@ -494,7 +493,7 @@ class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
         return highlight.mark_style_names()
 
 
-@choose_setting_command('gutter_theme')
+@choose_setting_command('gutter_theme', preview=True)
 class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
 
     """A command that selects a gutter theme from a list."""
@@ -606,10 +605,6 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return os.path.splitext(os.path.basename(setting))[0]
         else:
             return setting
-
-    def on_highlight(self, index):
-        """Change the gutter theme to the selected theme."""
-        self.set(index)
 
 
 class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):

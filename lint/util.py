@@ -637,7 +637,7 @@ def create_environment():
         else:
             shell = 'from system'
 
-        persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(':', '\n')))
+        persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin

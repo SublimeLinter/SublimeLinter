@@ -967,6 +967,9 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(self.filename))
+
         if self.cmd is None:
             cmd = None
         else:
@@ -976,6 +979,7 @@ class Linter(metaclass=LinterMeta):
                 return
 
         output = self.run(cmd, self.code)
+        os.chdir(cwd)
 
         if not output:
             return

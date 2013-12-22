@@ -24,7 +24,7 @@ class __class__(__superclass__):
     multiline = False
     line_col_base = (1, 1)
     tempfile_suffix = None
-    error_stream = util.STREAM_STDOUT
+    error_stream = util.STREAM_BOTH
     selectors = {}
     word_re = None
     defaults = {}

@@ -11,7 +11,7 @@
 """
 This module exports linter-related classes.
 
-Registrar       Metaclass for Linter classes that does setup when they are loaded.
+LinterMeta      Metaclass for Linter classes that does setup when they are loaded.
 Linter          The main base class for linters.
 PythonLinter    Linter subclass that provides base python configuration.
 
@@ -36,7 +36,7 @@ ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(
 BASE_CLASSES = ('PythonLinter',)
 
 
-class Registrar(type):
+class LinterMeta(type):
 
     """Metaclass for Linter and its subclasses."""
 
@@ -80,6 +80,17 @@ class Registrar(type):
                 inline_settings = list(getattr(self, 'inline_settings') or [])
                 setattr(self, 'inline_settings', inline_settings + ['@python'])
 
+                if persist.plugin_is_loaded:
+                    # If the plugin has already loaded, then we get here because
+                    # a linter was added or reloaded. In that case we have to
+                    # import its module.
+                    #
+                    # Be sure to clear _cmd so that import_module will re-import.
+                    if hasattr(self, '_cmd'):
+                        delattr(self, '_cmd')
+
+                    self.import_module()
+
             if 'syntax' in attrs and name not in BASE_CLASSES:
                 persist.register_linter(self, name, attrs)
 
@@ -111,7 +122,7 @@ class Registrar(type):
         setattr(self, 'args_map', args_map)
 
 
-class Linter(metaclass=Registrar):
+class Linter(metaclass=LinterMeta):
 
     """
     The base class for linters.
@@ -493,7 +504,9 @@ class Linter(metaclass=Registrar):
         linters = set()
 
         for name, linter_class in persist.linter_classes.items():
-            if linter_class.can_lint(syntax):
+            # During import, if the linter is disabled cmd is set to zero
+            # to mark it as disabled.
+            if linter_class.cmd is not 0 and linter_class.can_lint(syntax):
 
                 if reset:
                     instantiate = True
@@ -1230,7 +1243,7 @@ class Linter(metaclass=Registrar):
         return util.popen(cmd, env=env, output_stream=self.error_stream)
 
 
-class PythonMeta(Registrar):
+class PythonMeta(LinterMeta):
 
     """Metaclass for PythonLinter that keeps track of the PythonLinter subclasses."""
 
@@ -1243,13 +1256,6 @@ class PythonMeta(Registrar):
     def __init__(self, name, bases, attrs):
         if name != 'PythonLinter':
             self.python_linters[name] = self
-
-        if persist.plugin_is_loaded:
-            # Be sure to clear _cmd so that import_module will re-import
-            if hasattr(self, '_cmd'):
-                delattr(self, '_cmd')
-
-            self.import_module()
 
         super().__init__(name, bases, attrs)
 
@@ -1284,15 +1290,15 @@ class PythonLinter(Linter, metaclass=PythonMeta):
     If the module attribute is defined and is successfully imported,
     whether it is used depends on the following algorithm:
 
+      - If the cmd attribute specifies @python and ST's python
+        satisfies that version, the module will be used. Note that this
+        check is done during class construction.
+
       - If the check_version attribute is False, the module will be used
         because the module is not version-sensitive.
 
       - If the "@python" setting is set and ST's python satisfies
         that version, the module will be used.
-
-      - If the cmd attribute specifies @python and ST's python
-        satisfies that version, the module will be used. Note that this
-        check is done during class construction.
 
       - Otherwise the executable will be used with the python specified
         in the "@python" setting, the cmd attribute, or the default system
@@ -1316,9 +1322,6 @@ class PythonLinter(Linter, metaclass=PythonMeta):
     # If a linter is version-sensitive, this attribute should be set to True.
     check_version = False
 
-    # Used internally, do not modify.
-    python_version = None
-
     @staticmethod
     def match_shebang(code):
         """Convert and return a python shebang as a @python:<version> setting."""
@@ -1334,13 +1337,23 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
     @classmethod
     def import_module(cls):
-        # Attempt to import the configured module.
-        # If it could not be imported, use the executable.
+        """
+        Attempt to import the configured module.
+
+        If it could not be imported, use the executable.
+
+        """
+
         if hasattr(cls, '_cmd'):
             return
 
         module = getattr(cls, 'module', None)
         cls._cmd = None
+        cmd = cls.cmd
+        script = None
+
+        if isinstance(cls.cmd, (list, tuple)):
+            cmd = cls.cmd[0]
 
         if module is not None:
             try:
@@ -1349,23 +1362,18 @@ class PythonLinter(Linter, metaclass=PythonMeta):
 
                 # If the linter specifies a python version, check to see
                 # if ST's python satisfies that version.
-                cmd = cls.cmd
-
-                if isinstance(cls.cmd, (list, tuple)):
-                    cmd = cls.cmd[0]
-
-                if cmd:
+                if cmd and not callable(cmd):
                     match = util.PYTHON_CMD_RE.match(cmd)
 
-                    if match:
-                        args = match.groupdict()
-                        args['module'] = module
-                        cls.python_version = util.find_python(**args)
+                    if match and match.group('version'):
+                        version = match.group('version')
+                        script = match.group('script')
+                        version = util.find_python(version=version, script=script, module=module)
 
-                # If the module is successfully imported, save cmd and set cmd to None
-                # so that the run method controls the building of cmd.
-                cls._cmd = cls.cmd
-                cls.cmd = None
+                        # If we cannot find a python or script of the right version,
+                        # we cannot use the module.
+                        if version[0] is None or script and version[1] is None:
+                            module = None
 
             except ImportError:
                 persist.printf(
@@ -1379,6 +1387,44 @@ class PythonLinter(Linter, metaclass=PythonMeta):
                     'ERROR: unknown exception in {}: {}'
                     .format(cls.__name__.lower(), str(ex))
                 )
+                module = None
+
+        # If no module was specified, or the module could not be imported,
+        # or ST's python does not satisfy the version specified, see if
+        # any version of python available satisfies the linter. If not,
+        # set the cmd to '' to disable the linter.
+        can_lint = True
+
+        if not module and cmd and not callable(cmd):
+            match = util.PYTHON_CMD_RE.match(cmd)
+
+            if match and match.group('version'):
+                can_lint = False
+                version = match.group('version')
+                script = match.group('script')
+                version = util.find_python(version=version, script=script)
+
+                if version[0] is not None and (not script or version[1] is not None):
+                    can_lint = True
+
+        if can_lint:
+            cls._cmd = cls.cmd
+
+            # If there is a module, setting cmd to None tells us to
+            # use the check method.
+            if module:
+                cls.cmd = None
+        else:
+            persist.printf(
+                'WARNING: {} disabled, no available version of python{} satisfies {}'
+                .format(
+                    cls.__name__.lower(),
+                    ' or {}'.format(script) if script else '',
+                    cmd
+                ))
+
+            # We use 0 to mark the linter as disabled
+            cls.cmd = 0
 
         cls.module = module
 
@@ -1424,7 +1470,7 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             else:
                 cmd = self._cmd
         else:
-            cmd = self.cmd
+            cmd = self.cmd or self._cmd
 
         cmd = self.build_cmd(cmd=cmd)
 

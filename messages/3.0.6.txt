@@ -1,0 +1,10 @@
+SublimeLinter 3.0.6
+--------------------
+
+- Fixed a bug in setting mark style and lint mode
+  through the Command Palette.
+
+- Show All Errors moves the selection to the highlighted error
+  as you move through the items.
+
+- Live preview of mark styles when choosing from the Command Palette.

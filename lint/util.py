@@ -1184,6 +1184,28 @@ def get_user_fullname():
         return os.environ.get('USERNAME', 'Me')
 
 
+def center_region_in_view(region, view):
+    """
+    Center the given region in view.
+
+    There is a bug in ST3 that prevents a selection change
+    from being drawn when a quick panel is open unless the
+    viewport moves. So we get the current viewport position,
+    move it down 1.0, center the region, see if the viewport
+    moved, and if not, move it up 1.0 and center again.
+
+    """
+
+    x1, y1 = view.viewport_position()
+    view.set_viewport_position((x1, y1 + 1.0))
+    view.show_at_center(region)
+    x2, y2 = view.viewport_position()
+
+    if y2 == y1:
+        view.set_viewport_position((x1, y1 - 1.0))
+        view.show_at_center(region)
+
+
 # color-related constants
 
 DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}

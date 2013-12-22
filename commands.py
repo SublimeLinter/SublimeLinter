@@ -148,22 +148,26 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
     @classmethod
     def select_lint_region(cls, view, region):
         """
-        Select the first marked region that contains region.
+        Select and scroll to the first marked region that contains region.
 
-        If none are found, the cursor is placed at the beginning of region.
+        If none are found, the beginning of region is used. The view is
+        centered on the calculated region and the region is selected.
 
         """
-
-        sel = view.sel()
-        sel.clear()
 
         marked_region = cls.find_mark_within(view, region)
 
         if marked_region is None:
             marked_region = sublime.Region(region.begin(), region.begin())
 
+        sel = view.sel()
+        sel.clear()
         sel.add(marked_region)
-        view.show_at_center(marked_region)
+
+        # There is a bug in ST3 that prevents the selection from changing
+        # when a quick panel is open and the viewport does not change position,
+        # so we call our own custom method that works around that.
+        util.center_region_in_view(marked_region, view)
 
     @classmethod
     def find_mark_within(cls, view, region):
@@ -231,13 +235,24 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
                 code = visible_line[:column] + '➜' + visible_line[column:]
                 options.append(['{}  {}'.format(lineno + 1, message), code])
 
-        view.window().show_quick_panel(options, self.select_error)
+        self.viewport_pos = view.viewport_position()
+        self.selection = list(view.sel())
+
+        view.window().show_quick_panel(
+            options,
+            on_select=self.select_error,
+            on_highlight=self.select_error
+        )
 
     def select_error(self, index):
         """Completion handler for the quick panel. Selects the indexed error."""
         if index != -1:
             point = self.points[index]
             GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
+        else:
+            self.view.set_viewport_position(self.viewport_pos)
+            self.view.sel().clear()
+            self.view.sel().add_all(self.selection)
 
 
 class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):

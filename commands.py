@@ -20,6 +20,7 @@ import subprocess
 import tempfile
 from threading import Thread
 import time
+import functools
 
 import sublime
 import sublime_plugin
@@ -146,7 +147,7 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
             sublime.message_dialog('No {0} lint error.'.format(direction))
 
     @classmethod
-    def select_lint_region(cls, view, region):
+    def select_lint_region(cls, view, region, keepcurpos=False):
         """
         Select the first marked region that contains region.
 
@@ -154,15 +155,16 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
         """
 
-        sel = view.sel()
-        sel.clear()
-
         marked_region = cls.find_mark_within(view, region)
 
         if marked_region is None:
             marked_region = sublime.Region(region.begin(), region.begin())
 
-        sel.add(marked_region)
+        if not keepcurpos:
+            sel = view.sel()
+            sel.clear()
+            sel.add(marked_region)
+
         view.show_at_center(marked_region)
 
     @classmethod
@@ -199,6 +201,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         """Run the command."""
         self.errors = errors
         self.points = []
+        self.view_pos = view.viewport_position()
         options = []
 
         for lineno, line_errors in sorted(errors.items()):
@@ -231,13 +234,15 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
                 code = visible_line[:column] + '➜' + visible_line[column:]
                 options.append(['{}  {}'.format(lineno + 1, message), code])
 
-        view.window().show_quick_panel(options, self.select_error)
+        view.window().show_quick_panel(options, self.select_error, 0, 0, functools.partial(self.select_error, highlight=True))
 
-    def select_error(self, index):
+    def select_error(self, index, highlight=False):
         """Completion handler for the quick panel. Selects the indexed error."""
         if index != -1:
             point = self.points[index]
-            GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
+            GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point), highlight)
+        else:
+            self.view.set_viewport_position(self.view_pos)
 
 
 class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):

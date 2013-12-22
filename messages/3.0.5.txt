@@ -8,9 +8,14 @@ PLEASE read this entire message!
 
 *** BUG REPORTING ***
 
-Please use github issues only for verified bugs. If you have a general
-usage question, or are having trouble with installation or configuration,
-please use the SublimeLinter google group. That way everyone will
+Before running for help, please take the time to read the Troubleshooting
+guide, which has been greatly expanded in this version.
+
+https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Troubleshooting
+
+If you still have a problem, please use github issues only for verified bugs.
+If you have a general usage question, or are having trouble with installation
+or configuration, please use the SublimeLinter google group. That way everyone will
 benefit from the answer.
 
 Even if you suspect there is a bug, it's better to ask on the group first
@@ -23,6 +28,8 @@ https://groups.google.com/forum/#!forum/sublimelinter
 
 If not, you are probably missing out on a lot of great new features in
 SublimeLinter 3. At least read the Usage docs.
+
+A searchable version of docs with a Table of Contents is in the works.
 
 
 *** KEYBOARD CHANGES ***

@@ -303,12 +303,16 @@ class Linter(metaclass=LinterMeta):
         """
         pass
 
-    def __init__(self, view, syntax, filename=None):
+    def __init__(self, view, syntax):
         self.view = view
         self.syntax = syntax
-        self.filename = filename
         self.code = ''
         self.highlight = highlight.Highlight()
+
+    @property
+    def filename(self):
+        """Return the view's file path or '' of unsaved."""
+        return self.view.file_name() or ''
 
     @classmethod
     def settings(cls):
@@ -542,7 +546,7 @@ class Linter(metaclass=LinterMeta):
                         instantiate = linter_name == linter.name
 
                 if instantiate:
-                    linter = linter_class(view, syntax, view.file_name())
+                    linter = linter_class(view, syntax)
 
                 linters.add(linter)
 
@@ -574,7 +578,7 @@ class Linter(metaclass=LinterMeta):
                 linter.clear()
                 persist.view_linters[vid].remove(linter)
                 linter_class = persist.linter_classes[linter.name]
-                linter = linter_class(linter.view, linter.syntax, linter.filename)
+                linter = linter_class(linter.view, linter.syntax)
                 persist.view_linters[vid].add(linter)
 
     @classmethod
@@ -704,7 +708,7 @@ class Linter(metaclass=LinterMeta):
                         continue
 
             if syntax not in linter.selectors:
-                linter.reset(code, filename=filename or 'untitled')
+                linter.reset(code)
                 linter.lint(hit_time)
 
         selectors = Linter.get_selectors(vid, syntax=syntax)
@@ -716,7 +720,7 @@ class Linter(metaclass=LinterMeta):
             linters.add(linter)
 
             if sel in sections:
-                linter.reset(code, filename=filename or 'untitled')
+                linter.reset(code)
                 errors = {}
 
                 for line_offset, start, end in sections[sel]:
@@ -736,11 +740,10 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def reset(self, code, filename=None):
+    def reset(self, code):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
-        self.filename = filename or self.filename
         self.highlight = highlight.Highlight(self.code)
 
     @classmethod
@@ -981,8 +984,9 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(self.filename))
+        if self.view.file_name():
+            cwd = os.getcwd()
+            os.chdir(os.path.dirname(self.filename))
 
         if self.cmd is None:
             cmd = None
@@ -993,7 +997,9 @@ class Linter(metaclass=LinterMeta):
                 return
 
         output = self.run(cmd, self.code)
-        os.chdir(cwd)
+
+        if self.view.file_name():
+            os.chdir(cwd)
 
         if not output:
             return
@@ -1216,7 +1222,7 @@ class Linter(metaclass=LinterMeta):
         """
         if persist.settings.get('debug'):
             persist.printf('{}: {} {}'.format(self.name,
-                                              os.path.basename(self.filename),
+                                              os.path.basename(self.filename or '<unsaved>'),
                                               cmd or '<builtin>'))
 
         if self.tempfile_suffix:
@@ -1445,12 +1451,12 @@ class PythonLinter(Linter):
                     persist.printf(
                         '{}: {} <builtin>'.format(
                             self.name,
-                            os.path.basename(self.filename)
+                            os.path.basename(self.filename or '<unsaved>')
                         )
                     )
 
                 try:
-                    errors = self.check(code, os.path.basename(self.filename))
+                    errors = self.check(code, os.path.basename(self.filename or '<unsaved>'))
                 except Exception as err:
                     persist.printf(
                         'ERROR: exception in {}.check: {}'

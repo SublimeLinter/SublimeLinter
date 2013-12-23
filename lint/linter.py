@@ -902,6 +902,7 @@ class Linter(metaclass=LinterMeta):
                 if values:
                     # If the values can be passed as a single list, join them now
                     if arg_info['sep'] and not arg_info['multiple']:
+                        values = [str(value) for value in values]
                         values = [arg_info['sep'].join(values)]
                 else:
                     continue

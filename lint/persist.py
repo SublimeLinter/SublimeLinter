@@ -319,6 +319,9 @@ if not 'queue' in globals():
     # Info about the gutter mark icons
     gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
 
+    # Whether sys.path has been imported from the system.
+    sys_path_imported = False
+
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
 
@@ -380,6 +383,17 @@ def printf(*args):
         print(arg, end=' ')
 
     print()
+
+
+def import_sys_path():
+    """Import system python 3 sys.path into our sys.path."""
+    global sys_path_imported
+
+    if plugin_is_loaded and not sys_path_imported:
+        # Make sure the system python 3 paths are available to plugins.
+        # We do this here to ensure it is only done once.
+        sys.path.extend(util.get_python_paths())
+        sys_path_imported = True
 
 
 def register_linter(linter_class, name, attrs):

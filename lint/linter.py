@@ -25,7 +25,6 @@ import os
 import re
 import shlex
 import sublime
-import sys
 
 from . import highlight, persist, util
 
@@ -59,22 +58,28 @@ class LinterMeta(type):
 
         if bases:
             setattr(self, 'disabled', False)
+
+            if name in ('PythonLinter',):
+                return
+
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
                 setattr(self, 'cmd', shlex.split(cmd))
 
-            for attr in ('regex', 'comment_re', 'word_re'):
-                if attr in attrs and isinstance(attrs[attr], str):
-                    if attr == 'regex' and self.multiline:
+            for regex in ('regex', 'comment_re', 'word_re'):
+                attr = getattr(self, regex)
+
+                if isinstance(attr, str):
+                    if regex == 'regex' and self.multiline:
                         setattr(self, 're_flags', self.re_flags | re.MULTILINE)
 
                     try:
-                        setattr(self, attr, re.compile(getattr(self, attr), self.re_flags))
+                        setattr(self, regex, re.compile(attr, self.re_flags))
                     except re.error as err:
                         persist.printf(
                             'ERROR: {} disabled, error compiling {}: {}'
-                            .format(name.lower(), attr, str(err))
+                            .format(name.lower(), regex, str(err))
                         )
                         setattr(self, 'disabled', True)
 
@@ -99,14 +104,13 @@ class LinterMeta(type):
 
                 if persist.plugin_is_loaded:
                     # If the plugin has already loaded, then we get here because
-                    # a linter was added or reloaded. In that case we have to
-                    # import its module.
+                    # a linter was added or reloaded. In that case we run initialize.
                     #
                     # Be sure to clear _cmd so that import_module will re-import.
                     if hasattr(self, '_cmd'):
                         delattr(self, '_cmd')
 
-                    self.import_module()
+                    self.initialize()
 
             if 'syntax' in attrs and name not in BASE_CLASSES:
                 persist.register_linter(self, name, attrs)
@@ -288,6 +292,16 @@ class Linter(metaclass=LinterMeta):
     errors = None
     highlight = None
     lint_settings = None
+
+    @classmethod
+    def initialize(cls):
+        """
+        Perform class-level initialization.
+
+        If subclasses override this, they should call super().initialize() first.
+
+        """
+        pass
 
     def __init__(self, view, syntax, filename=None):
         self.view = view
@@ -1247,37 +1261,7 @@ class Linter(metaclass=LinterMeta):
         return util.popen(cmd, env=env, output_stream=self.error_stream)
 
 
-class PythonMeta(LinterMeta):
-
-    """Metaclass for PythonLinter that keeps track of the PythonLinter subclasses."""
-
-    # Keep track of the PythonLinter subclasses.
-    python_linters = {}
-
-    # Have we imported the system python 3 sys.path yet?
-    sys_path_imported = False
-
-    def __init__(self, name, bases, attrs):
-        if name != 'PythonLinter':
-            self.python_linters[name] = self
-
-        super().__init__(name, bases, attrs)
-
-    @classmethod
-    def import_modules(cls):
-        """Try to import modules for any classes that define one."""
-
-        if not cls.sys_path_imported:
-            # Make sure the system python 3 paths are available to plugins.
-            # We do this here to ensure it is only done once.
-            sys.path.extend(util.get_python_paths())
-            cls.sys_path_imported = True
-
-        for linter in cls.python_linters.values():
-            linter.import_module()
-
-
-class PythonLinter(Linter, metaclass=PythonMeta):
+class PythonLinter(Linter):
 
     """
     This Linter subclass provides python-specific functionality.
@@ -1338,6 +1322,14 @@ class PythonLinter(Linter, metaclass=PythonMeta):
             return None
 
     shebang_match = match_shebang
+
+    @classmethod
+    def initialize(cls):
+        """Perform class-level initialization."""
+
+        super().initialize()
+        persist.import_sys_path()
+        cls.import_module()
 
     @classmethod
     def import_module(cls):

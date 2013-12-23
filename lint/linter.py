@@ -25,6 +25,7 @@ import os
 import re
 import shlex
 import sublime
+import html.parser
 
 from . import highlight, persist, util
 
@@ -1145,6 +1146,9 @@ class Linter(metaclass=LinterMeta):
 
         # Strip trailing CR, space and period
         error = ((col or 0), str(error).rstrip('\r .'))
+
+        html_parser = html.parser.HTMLParser()
+        error = html_parser.unescape(error)
 
         if line in self.errors:
             self.errors[line].append(error)

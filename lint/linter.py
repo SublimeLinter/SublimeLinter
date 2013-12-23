@@ -1120,12 +1120,21 @@ class Linter(metaclass=LinterMeta):
 
             can = cls.can_lint_syntax(syntax)
 
-            persist.printf('{}{} {}'.format(
-                '' if can else 'WARNING: ',
-                cls.name,
-                'enabled: {}'.format(cls.executable_path) if can
-                else 'disabled, cannot locate \'{}\''.format(executable)
-            ))
+            if can:
+                settings = persist.settings
+                disabled = (
+                    settings.get('@disabled') or
+                    settings.get('linters', {}).get(cls.name, {}).get('@disable', False)
+                )
+                status = '{} activated: {}{}'.format(
+                    cls.name,
+                    cls.executable_path,
+                    ' (disabled in settings)' if disabled else ''
+                )
+            else:
+                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
+
+            persist.printf(status)
 
         return can
 

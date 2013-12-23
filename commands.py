@@ -288,10 +288,10 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
             if args['value'] is None:
                 persist.settings.pop(args['setting'])
             else:
-                persist.settings.set(args['setting'], args['value'])
+                persist.settings.set(args['setting'], args['value'], changed=True)
         else:
             setting = persist.settings.get(args['setting'], False)
-            persist.settings.set(args['setting'], not setting)
+            persist.settings.set(args['setting'], not setting, changed=True)
 
         persist.settings.save()
 
@@ -412,7 +412,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
     def update_setting(self, value):
         """Update the setting with the given value."""
-        persist.settings.set(self.setting, value)
+        persist.settings.set(self.setting, value, changed=True)
         self.setting_was_changed(value)
         persist.settings.save()
 
@@ -634,7 +634,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
             self.window.show_quick_panel(self.linters, self.on_done)
 
     def on_done(self, index):
-        """Completion handler for quick panel."""
+        """Completion handler for quick panel, toggle the enabled state of the chosen linter."""
         if index == -1:
             return
 
@@ -646,7 +646,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
         settings = persist.settings.get('linters')
         linter_settings = settings.get(linter)
         linter_settings['@disable'] = not linter_settings.get('@disable', False)
-        persist.settings.set('linters', settings)
+        persist.settings.set('linters', settings, changed=True)
         persist.settings.save()
 
 

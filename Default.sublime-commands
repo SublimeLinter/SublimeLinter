@@ -159,22 +159,22 @@
     },
 
     {
-        "caption": "SublimeLinter: List Linters",
-        "command": "sublimelinter_list_linters", "args":
+        "caption": "SublimeLinter: Toggle Linter",
+        "command": "sublimelinter_toggle_linter", "args":
         {
             "disabled": null
         }
     },
     {
         "caption": "SublimeLinter: Enable Linter",
-        "command": "sublimelinter_list_linters", "args":
+        "command": "sublimelinter_toggle_linter", "args":
         {
             "disabled": true
         }
     },
     {
         "caption": "SublimeLinter: Disable Linter",
-        "command": "sublimelinter_list_linters", "args":
+        "command": "sublimelinter_toggle_linter", "args":
         {
             "disabled": false
         }

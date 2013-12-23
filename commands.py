@@ -607,38 +607,45 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return setting
 
 
-class SublimelinterListLintersCommand(sublime_plugin.WindowCommand):
+class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
 
-    """A command that lists, enables, or disables linter plugins."""
+    """A command that toggles, enables, or disables linter plugins."""
 
     def run(self, **args):
         """Run the command."""
-        self.disabled = args['disabled']
+        show_disabled = args['disabled']
         settings = persist.settings.get('linters')
         self.linters = []
 
         for linter in settings:
             linter_settings = settings.get(linter, {})
+            disabled = linter_settings.get('@disable')
 
-            if (
-                self.disabled is None or
-                self.disabled is True and linter_settings.get('@disable') or
-                self.disabled is False and not linter_settings.get('@disable')
+            if (show_disabled is None):
+                self.linters.append([linter, 'disabled' if disabled else 'enabled'])
+            elif(
+                show_disabled is True and disabled or
+                show_disabled is False and not disabled
             ):
                 self.linters.append(linter)
 
-        self.linters.sort()
-        self.window.show_quick_panel(self.linters, self.on_done)
+        if self.linters:
+            self.linters.sort()
+            self.window.show_quick_panel(self.linters, self.on_done)
 
     def on_done(self, index):
         """Completion handler for quick panel."""
-        if index == -1 or self.disabled is None:
+        if index == -1:
             return
 
         linter = self.linters[index]
+
+        if isinstance(linter, list):
+            linter = linter[0]
+
         settings = persist.settings.get('linters')
         linter_settings = settings.get(linter)
-        linter_settings['@disable'] = not self.disabled
+        linter_settings['@disable'] = not linter_settings.get('@disable', False)
         persist.settings.set('linters', settings)
         persist.settings.save()
 

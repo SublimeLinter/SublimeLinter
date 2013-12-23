@@ -1,0 +1,8 @@
+SublimeLinter 3.0.9
+--------------------
+
+- There are new commands to toggle, enable, or disable a linter.
+  No need to go hunting through the settings.
+
+- Please note that the recommended place for PATH changes with zsh
+  is .zshenv instead of .zprofile.

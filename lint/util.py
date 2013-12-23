@@ -690,12 +690,16 @@ def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
 
     try:
-        output = subprocess.check_output((path, '-V'), stderr=subprocess.STDOUT)
-        output = output.decode().strip()
+        output = communicate((path, '-V'), '', output_stream=STREAM_STDERR)
 
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
-    except:
+    except Exception as ex:
+        from . import persist
+        persist.printf(
+            'ERROR: an error occurred retrieving the version for {}: {}'
+            .format(path, str(ex)))
+
         return {'major': None, 'minor': None}
 
 

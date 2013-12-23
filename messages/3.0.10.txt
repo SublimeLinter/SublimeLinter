@@ -1,0 +1,10 @@
+SublimeLinter 3.0.10
+---------------------
+
+- Linting unsaved files works correctly now.
+
+- When a linter plugin is loaded successfully, the console will say "<linter> activated" instead of "linter enabled". In addition, if the linter is disabled in your settings at load time, it will say so in the activation message, to make it clear the linter is active but not currently enabled.
+
+- Non-string values may be used for lists of values in linter settings.
+
+- When loading the first python-based linter on Windows, a command prompt window briefly opened. This has been fixed.

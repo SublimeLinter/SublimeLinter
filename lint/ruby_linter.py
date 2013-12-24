@@ -119,5 +119,4 @@ class RubyLinter(linter.Linter):
             else:
                 cls.env = {}
 
-        ruby_cmd.extend(cmd[1:])
         return ruby_cmd

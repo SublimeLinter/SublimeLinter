@@ -285,6 +285,7 @@ class Linter(metaclass=LinterMeta):
     errors = None
     highlight = None
     lint_settings = None
+    env = None
 
     @classmethod
     def initialize(cls):
@@ -1264,18 +1265,30 @@ class Linter(metaclass=LinterMeta):
 
     def communicate(self, cmd, code):
         """Run an external executable using stdin to pass code and return its output."""
-        if '@' in cmd:
-            cmd[cmd.index('@')] = self.filename
-
-        return util.communicate(cmd, code, output_stream=self.error_stream)
+        return util.communicate(
+            cmd,
+            code,
+            output_stream=self.error_stream,
+            env=self.env)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
-        return util.tmpfile(cmd, code, suffix or self.get_tempfile_suffix(), output_stream=self.error_stream)
+        return util.tmpfile(
+            cmd,
+            code,
+            suffix or self.get_tempfile_suffix(),
+            output_stream=self.error_stream,
+            env=self.env)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""
-        return util.tmpdir(cmd, files, self.filename, code, output_stream=self.error_stream)
+        return util.tmpdir(
+            cmd,
+            files,
+            self.filename,
+            code,
+            output_stream=self.error_stream,
+            env=self.env)
 
     def popen(self, cmd, env=None):
         """Run cmd in a subprocess with the given environment and return the output."""

@@ -459,7 +459,7 @@ def build_submenu(caption):
     return ',\n'.join(commands)
 
 
-# file/directory utils
+# file/directory/environment utils
 
 def climb(start_dir, limit=None):
     """
@@ -502,8 +502,8 @@ def find_file(start_dir, name, parent=False, limit=None):
             return target
 
 
-def extract_path(cmd, delim=':'):
-    """Return the user's PATH as a colon-delimited list."""
+def run_shell_cmd(cmd):
+    """Run a shell command and return stdout."""
     proc = popen(cmd, env=os.environ)
 
     try:
@@ -512,6 +512,12 @@ def extract_path(cmd, delim=':'):
         proc.kill()
         out, err = proc.communicate()
 
+    return out
+
+
+def extract_path(cmd, delim=':'):
+    """Return the user's PATH as a colon-delimited list."""
+    out = run_shell_cmd(cmd)
     path = out.decode().split('__SUBL_PATH__', 2)[1]
     return ':'.join(path.strip().split(delim))
 
@@ -552,6 +558,31 @@ def get_shell_path(env):
             p += (':' + path)
 
     return p
+
+
+@lru_cache(maxsize=None)
+def get_environment_variable(name):
+    """Return the value of the given environment variable, or None if not found."""
+
+    if os.name == 'posix':
+        value = None
+
+        if 'SHELL' in os.environ:
+            shell_path = os.environ['SHELL']
+
+            # We have to delimit the output with markers because
+            # text might be output during shell startup.
+            out = run_shell_cmd((shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
+
+            if out:
+                value = out.decode().split('__SUBL_VAR__', 2)[1].strip() or None
+    else:
+        value = os.environ.get(name, None)
+
+    from . import persist
+    persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
+
+    return value
 
 
 def get_path_components(path):
@@ -965,15 +996,16 @@ def combine_output(out, sep=''):
     return ANSI_COLOR_RE.sub('', output)
 
 
-def communicate(cmd, code, output_stream=STREAM_STDOUT):
+def communicate(cmd, code, output_stream=STREAM_STDOUT, env=None):
     """
     Return the result of sending code via stdin to an executable.
 
     The result is a string combination of stdout and stderr.
+    If env is not None, it is merged with the result of create_environment.
 
     """
 
-    out = popen(cmd, output_stream=output_stream)
+    out = popen(cmd, output_stream=output_stream, extra_env=env)
 
     if out is not None:
         code = code.encode('utf8')
@@ -983,7 +1015,7 @@ def communicate(cmd, code, output_stream=STREAM_STDOUT):
         return ''
 
 
-def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
+def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
     """
     Return the result of running an executable against a temporary file containing code.
 
@@ -991,6 +1023,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
     which is a filename to process.
 
     The result is a string combination of stdout and stderr.
+    If env is not None, it is merged with the result of create_environment.
 
     """
 
@@ -1011,7 +1044,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
         else:
             cmd.append(f.name)
 
-        out = popen(cmd, output_stream=output_stream)
+        out = popen(cmd, output_stream=output_stream, extra_env=env)
 
         if out:
             out = out.communicate()
@@ -1023,7 +1056,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT):
             os.remove(f.name)
 
 
-def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
+def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
     """
     Run an executable against a temporary file containing code.
 
@@ -1031,6 +1064,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
     which is a filename to process.
 
     Returns a string combination of stdout and stderr.
+    If env is not None, it is merged with the result of create_environment.
 
     """
 
@@ -1060,7 +1094,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
                 shutil.copyfile(f, target)
 
         os.chdir(d)
-        out = popen(cmd, output_stream=output_stream)
+        out = popen(cmd, output_stream=output_stream, extra_env=env)
 
         if out:
             out = out.communicate()
@@ -1080,7 +1114,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT):
     return out or ''
 
 
-def popen(cmd, output_stream=STREAM_BOTH, env=None):
+def popen(cmd, output_stream=STREAM_BOTH, env=None, extra_env=None):
     """Open a pipe to an external process and return a Popen object."""
 
     info = None
@@ -1101,6 +1135,9 @@ def popen(cmd, output_stream=STREAM_BOTH, env=None):
 
     if env is None:
         env = create_environment()
+
+    if extra_env is not None:
+        env.update(extra_env)
 
     try:
         return subprocess.Popen(

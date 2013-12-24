@@ -656,6 +656,15 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
 
     def run(self):
         """Run the command."""
+        if not sublime.ok_cancel_dialog(
+            'You will be asked for the linter name. Please enter the name '
+            'of the linter binary, NOT the name of the language being linted. '
+            'For example, to lint CSS with csslint, the linter name is '
+            '“csslint”, NOT “css”.',
+            'I understand'
+        ):
+            return
+
         self.window.show_input_panel(
             'Linter name:',
             '',

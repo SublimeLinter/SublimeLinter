@@ -433,7 +433,6 @@ def register_linter(linter_class, name, attrs):
     """Add a linter class to our mapping of class names <--> linter classes."""
     if name:
         name = name.lower()
-        linter_class.name = name
         linter_classes[name] = linter_class
 
         # By setting the lint_settings to None, they will be set the next

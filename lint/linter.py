@@ -135,6 +135,11 @@ class LinterMeta(type):
 
         setattr(self, 'args_map', args_map)
 
+    @property
+    def name(self):
+        """Return the class name lowercased."""
+        return self.__name__.lower()
+
 
 class Linter(metaclass=LinterMeta):
 
@@ -319,6 +324,11 @@ class Linter(metaclass=LinterMeta):
     def filename(self):
         """Return the view's file path or '' of unsaved."""
         return self.view.file_name() or ''
+
+    @property
+    def name(self):
+        """Return the class name lowercased."""
+        return self.__class__.__name__.lower()
 
     @classmethod
     def settings(cls):

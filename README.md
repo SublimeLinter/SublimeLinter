@@ -16,6 +16,8 @@ A framework for interactive code linting in the [Sublime Text 3](http://sublimet
 
 **Bugs:** Please use the [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter) to report installation and configuration problems. If you think you have found a bug, please ask about it on the [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter) first, and after it is confirmed as a bug you can report it on the [issue tracker](https://github.com/SublimeLinter/SublimeLinter3/issues). Please be sure to put your OS and SublimeLinter version in issue.
 
+**Contributing:** If you would like to submit a fix or enhancement for SublimeLinter, please read the [contributing guidelines](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Contributing) first.
+
 ## Share the love!
 I spent hundreds of hours writing and documenting SublimeLinter to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you use SublimeLinter and feel it is making your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 

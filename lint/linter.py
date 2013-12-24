@@ -334,6 +334,11 @@ class Linter(metaclass=LinterMeta):
         return self.__class__.__name__.lower()
 
     @classmethod
+    def clear_settings_caches(cls):
+        cls.get_view_settings.cache_clear()
+        cls.get_merged_settings.cache_clear()
+
+    @classmethod
     def settings(cls):
         """Return the default settings for this linter, merged with the user settings."""
 
@@ -366,23 +371,7 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        # Start with the overall project settings
-        data = self.view.window().project_data() or {}
-        project_settings = data.get(persist.PLUGIN_NAME, {})
-
-        # Merge global meta settings with project meta settings
-        meta = self.meta_settings(persist.settings.settings)
-        meta.update(self.meta_settings(project_settings))
-
-        # Get the linter's project settings, update them with meta settings
-        project_settings = project_settings.get('linters', {}).get(self.name, {})
-        project_settings.update(meta)
-
-        # Update the linter's settings with the project settings
-        settings = self.merge_project_settings(self.settings().copy(), project_settings)
-
-        # Update with rc settings
-        self.merge_rc_settings(settings)
+        settings = self.get_merged_settings()
 
         if not no_inline:
             inline_settings = {}
@@ -404,6 +393,42 @@ class Linter(metaclass=LinterMeta):
                 ))
 
             settings = self.merge_inline_settings(settings.copy(), inline_settings)
+
+        return settings
+
+    @lru_cache(maxsize=None)
+    def get_merged_settings(self):
+        """
+        Return a union of all non-inline settings specific to this linter, related to the given view.
+
+        The settings are merged in the following order:
+
+        default settings
+        user settings
+        project settings
+        user + project meta settings
+        rc settings
+        rc meta settings
+
+        """
+
+        # Start with the overall project settings
+        data = self.view.window().project_data() or {}
+        project_settings = data.get(persist.PLUGIN_NAME, {})
+
+        # Merge global meta settings with project meta settings
+        meta = self.meta_settings(persist.settings.settings)
+        meta.update(self.meta_settings(project_settings))
+
+        # Get the linter's project settings, update them with meta settings
+        project_settings = project_settings.get('linters', {}).get(self.name, {})
+        project_settings.update(meta)
+
+        # Update the linter's settings with the project settings
+        settings = self.merge_project_settings(self.settings().copy(), project_settings)
+
+        # Update with rc settings
+        self.merge_rc_settings(settings)
 
         return settings
 
@@ -699,7 +724,7 @@ class Linter(metaclass=LinterMeta):
         for linter in linters:
             # Because get_view_settings is expensive, we use an lru_cache
             # to cache its results. Before each lint, reset the cache.
-            linter.get_view_settings.cache_clear()
+            linter.clear_settings_caches()
             view_settings = linter.get_view_settings(no_inline=True)
 
             if view_settings.get('@disable'):

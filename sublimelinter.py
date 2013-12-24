@@ -12,6 +12,7 @@
 
 import os
 import re
+import html.parser
 
 import sublime
 import sublime_plugin
@@ -338,6 +339,9 @@ class SublimeLinter(sublime_plugin.EventListener):
                     status += '; '.join(line_errors)
                 else:
                     status = '%i error%s' % (count, plural)
+
+                html_parser = html.parser.HTMLParser()
+                status = html_parser.unescape(status)
 
                 view.set_status('sublimelinter', status)
             else:

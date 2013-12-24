@@ -46,7 +46,6 @@ class RubyLinter(linter.Linter):
         if not callable(cls.cmd) and cls.cmd:
             cls.executable_path = cls.lookup_executables(cls.cmd)
         elif cls.executable:
-            print('lookup executable:', cls.executable)
             cls.executable_path = cls.lookup_executables(cls.executable)
 
         if not cls.executable_path:

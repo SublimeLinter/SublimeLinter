@@ -13,7 +13,7 @@
 
     "ruby": {
         "installer": "[sudo] gem install {}",
-        "extra_steps": "1. If you are using `rvm` or `rbenv`, ensure that they are loaded in your shell’s “profile” file. See [here](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Usage#profile-vs-rc) for more information."
+        "extra_steps": "1. If you are using `rvm` or `rbenv`, ensure that they are loaded in your shell’s correct startup file. See [here](https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Usage#shell-startup-files) for more information."
     },
 
     "other": {

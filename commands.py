@@ -20,6 +20,7 @@ import subprocess
 import tempfile
 from threading import Thread
 import time
+import html.parser
 
 import sublime
 import sublime_plugin
@@ -233,6 +234,8 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
                 # Insert an arrow at the column in the stripped line
                 code = visible_line[:column] + '➜' + visible_line[column:]
+                html_parser = html.parser.HTMLParser()
+                message = html_parser.unescape(message)
                 options.append(['{}  {}'.format(lineno + 1, message), code])
 
         self.viewport_pos = view.viewport_position()

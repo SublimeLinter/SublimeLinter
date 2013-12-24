@@ -894,8 +894,12 @@ class Linter(metaclass=LinterMeta):
 
         return cmd
 
-    def get_user_args(self, settings):
+    def get_user_args(self, settings=None):
         """Return any args the user specifies in settings as a list."""
+
+        if settings is None:
+            settings = self.get_merged_settings()
+
         args = settings.get('args', [])
 
         if isinstance(args, str):

@@ -10,7 +10,9 @@
 
 """This module exports the linter classes and the highlight, linter, persist and util submodules."""
 
-from .linter import Linter, PythonLinter
+from .linter import Linter
+from .python_linter import PythonLinter
+from .ruby_linter import RubyLinter
 
 from . import (
     highlight,
@@ -23,6 +25,7 @@ __all__ = [
     'highlight',
     'Linter',
     'PythonLinter',
+    'RubyLinter',
     'linter',
     'persist',
     'util',

@@ -13,13 +13,11 @@ This module exports linter-related classes.
 
 LinterMeta      Metaclass for Linter classes that does setup when they are loaded.
 Linter          The main base class for linters.
-PythonLinter    Linter subclass that provides base python configuration.
 
 """
 
 from fnmatch import fnmatch
 from functools import lru_cache
-import importlib
 from numbers import Number
 import os
 import re
@@ -59,7 +57,7 @@ class LinterMeta(type):
         if bases:
             setattr(self, 'disabled', False)
 
-            if name in ('PythonLinter',):
+            if name in ('PythonLinter', 'RubyLinter'):
                 return
 
             cmd = attrs.get('cmd')
@@ -102,15 +100,10 @@ class LinterMeta(type):
                 inline_settings = list(getattr(self, 'inline_settings') or [])
                 setattr(self, 'inline_settings', inline_settings + ['@python'])
 
-                if persist.plugin_is_loaded:
-                    # If the plugin has already loaded, then we get here because
-                    # a linter was added or reloaded. In that case we run initialize.
-                    #
-                    # Be sure to clear _cmd so that import_module will re-import.
-                    if hasattr(self, '_cmd'):
-                        delattr(self, '_cmd')
-
-                    self.initialize()
+            if persist.plugin_is_loaded:
+                # If the plugin has already loaded, then we get here because
+                # a linter was added or reloaded. In that case we run reinitialize.
+                self.reinitialize()
 
             if 'syntax' in attrs and name not in BASE_CLASSES:
                 persist.register_linter(self, name, attrs)
@@ -302,6 +295,18 @@ class Linter(metaclass=LinterMeta):
 
         """
         pass
+
+    @classmethod
+    def reinitialize(cls):
+        """
+        Perform class-level initialization after plugins have been loaded at startup.
+
+        This occurs if a new linter plugin is added or reloaded after startup.
+        Subclasses may override this to provide custom behavior, then they must
+        call cls.initialize().
+
+        """
+        cls.initialize()
 
     def __init__(self, view, syntax):
         self.view = view
@@ -1274,235 +1279,8 @@ class Linter(metaclass=LinterMeta):
 
     def popen(self, cmd, env=None):
         """Run cmd in a subprocess with the given environment and return the output."""
-        return util.popen(cmd, env=env, output_stream=self.error_stream)
-
-
-class PythonLinter(Linter):
-
-    """
-    This Linter subclass provides python-specific functionality.
-
-    Linters that check python should inherit from this class.
-    By doing so, they automatically get the following features:
-
-    - comment_re is defined correctly for python.
-
-    - A python shebang is returned as the @python:<version> meta setting.
-
-    - Execution directly via a module method or via an executable.
-
-    If the module attribute is defined and is successfully imported,
-    whether it is used depends on the following algorithm:
-
-      - If the cmd attribute specifies @python and ST's python
-        satisfies that version, the module will be used. Note that this
-        check is done during class construction.
-
-      - If the check_version attribute is False, the module will be used
-        because the module is not version-sensitive.
-
-      - If the "@python" setting is set and ST's python satisfies
-        that version, the module will be used.
-
-      - Otherwise the executable will be used with the python specified
-        in the "@python" setting, the cmd attribute, or the default system
-        python.
-
-    """
-
-    SHEBANG_RE = re.compile(r'\s*#!(?:(?:/[^/]+)*[/ ])?python(?P<version>\d(?:\.\d)?)')
-
-    comment_re = r'\s*#'
-
-    # If the linter wants to import a module and run a method directly,
-    # it should set this attribute to the module name, suitable for passing
-    # to importlib.import_module. During class construction, the named module
-    # will be imported, and if successful, the attribute will be replaced
-    # with the imported module.
-    module = None
-
-    # Some python-based linters are version-sensitive, i.e. the python version
-    # they are run with has to match the version of the code they lint.
-    # If a linter is version-sensitive, this attribute should be set to True.
-    check_version = False
-
-    @staticmethod
-    def match_shebang(code):
-        """Convert and return a python shebang as a @python:<version> setting."""
-
-        match = PythonLinter.SHEBANG_RE.match(code)
-
-        if match:
-            return '@python', match.group('version')
-        else:
-            return None
-
-    shebang_match = match_shebang
-
-    @classmethod
-    def initialize(cls):
-        """Perform class-level initialization."""
-
-        super().initialize()
-        persist.import_sys_path()
-        cls.import_module()
-
-    @classmethod
-    def import_module(cls):
-        """
-        Attempt to import the configured module.
-
-        If it could not be imported, use the executable.
-
-        """
-
-        if hasattr(cls, '_cmd'):
-            return
-
-        module = getattr(cls, 'module', None)
-        cls._cmd = None
-        cmd = cls.cmd
-        script = None
-
-        if isinstance(cls.cmd, (list, tuple)):
-            cmd = cls.cmd[0]
-
-        if module is not None:
-            try:
-                module = importlib.import_module(module)
-                persist.debug('{} imported {}'.format(cls.__name__.lower(), module))
-
-                # If the linter specifies a python version, check to see
-                # if ST's python satisfies that version.
-                if cmd and not callable(cmd):
-                    match = util.PYTHON_CMD_RE.match(cmd)
-
-                    if match and match.group('version'):
-                        version = match.group('version')
-                        script = match.group('script')
-                        version = util.find_python(version=version, script=script, module=module)
-
-                        # If we cannot find a python or script of the right version,
-                        # we cannot use the module.
-                        if version[0] is None or script and version[1] is None:
-                            module = None
-
-            except ImportError:
-                persist.printf(
-                    'WARNING: import of {} module in {} failed'
-                    .format(module, cls.__name__.lower())
-                )
-                module = None
-
-            except Exception as ex:
-                persist.printf(
-                    'ERROR: unknown exception in {}: {}'
-                    .format(cls.__name__.lower(), str(ex))
-                )
-                module = None
-
-        # If no module was specified, or the module could not be imported,
-        # or ST's python does not satisfy the version specified, see if
-        # any version of python available satisfies the linter. If not,
-        # set the cmd to '' to disable the linter.
-        can_lint = True
-
-        if not module and cmd and not callable(cmd):
-            match = util.PYTHON_CMD_RE.match(cmd)
-
-            if match and match.group('version'):
-                can_lint = False
-                version = match.group('version')
-                script = match.group('script')
-                version = util.find_python(version=version, script=script)
-
-                if version[0] is not None and (not script or version[1] is not None):
-                    can_lint = True
-
-        if can_lint:
-            cls._cmd = cls.cmd
-
-            # If there is a module, setting cmd to None tells us to
-            # use the check method.
-            if module:
-                cls.cmd = None
-        else:
-            persist.printf(
-                'WARNING: {} disabled, no available version of python{} satisfies {}'
-                .format(
-                    cls.__name__.lower(),
-                    ' or {}'.format(script) if script else '',
-                    cmd
-                ))
-
-            cls.disabled = True
-
-        cls.module = module
-
-    def run(self, cmd, code):
-        """Run the module checker or executable on code and return the output."""
-        if self.module is not None:
-            use_module = False
-
-            if not self.check_version:
-                use_module = True
-            else:
-                settings = self.get_view_settings()
-                version = settings.get('@python')
-
-                if version is None:
-                    use_module = cmd is None or cmd[0] == '<builtin>'
-                else:
-                    version = util.find_python(version=version, module=self.module)
-                    use_module = version[0] == '<builtin>'
-
-            if use_module:
-                if persist.settings.get('debug'):
-                    persist.printf(
-                        '{}: {} <builtin>'.format(
-                            self.name,
-                            os.path.basename(self.filename or '<unsaved>')
-                        )
-                    )
-
-                try:
-                    errors = self.check(code, os.path.basename(self.filename or '<unsaved>'))
-                except Exception as err:
-                    persist.printf(
-                        'ERROR: exception in {}.check: {}'
-                        .format(self.name, str(err))
-                    )
-                    errors = ''
-
-                if isinstance(errors, (tuple, list)):
-                    return '\n'.join([str(e) for e in errors])
-                else:
-                    return errors
-            else:
-                cmd = self._cmd
-        else:
-            cmd = self.cmd or self._cmd
-
-        cmd = self.build_cmd(cmd=cmd)
-
-        if cmd:
-            return super().run(cmd, code)
-        else:
-            return ''
-
-    def check(self, code, filename):
-        """
-        Run a built-in check of code, returning errors.
-
-        Subclasses that provide built in checking must override this method
-        and return a string with one more lines per error, an array of strings,
-        or an array of objects that can be converted to strings.
-
-        """
-
-        persist.printf(
-            '{}: subclasses must override the PythonLinter.check method'
-            .format(self.name)
-        )
-
-        return ''
+        return util.popen(
+            cmd,
+            env=env,
+            extra_env=self.env,
+            output_stream=self.error_stream)

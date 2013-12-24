@@ -18,11 +18,13 @@ Linter          The main base class for linters.
 
 from fnmatch import fnmatch
 from functools import lru_cache
+import html.entities
 from numbers import Number
 import os
 import re
 import shlex
 import sublime
+from xml.sax.saxutils import unescape
 
 from . import highlight, persist, util
 
@@ -31,6 +33,7 @@ from . import highlight, persist, util
 #
 ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
+HTML_ENTITY_RE = re.compile(r'&(?:(?:#(x)?([0-9a-fA-F]{1,4}))|(\w+));')
 
 
 class LinterMeta(type):
@@ -1168,20 +1171,37 @@ class Linter(metaclass=LinterMeta):
         """
         return cls.executable_path != ''
 
-    def error(self, line, col, error, error_type):
+    @staticmethod
+    def replace_entity(match):
+        """Return the character corresponding to an HTML entity."""
+        number = match.group(2)
+
+        if number:
+            hex = match.group(1) is not None
+            result = chr(int(number, 16 if hex else 10))
+        else:
+            entity = match.group(3)
+            result = unescape(entity, html.entities.html5)
+
+        return result
+
+    def error(self, line, col, message, error_type):
         """Add a reference to an error/warning on the given line and column."""
         self.highlight.line(line, error_type)
 
         # Capitalize the first word
-        error = error[0].upper() + error[1:]
+        message = message[0].upper() + message[1:]
+
+        # Some linters use html entities in error messages, decode them
+        message = HTML_ENTITY_RE.sub(self.replace_entity, message)
 
         # Strip trailing CR, space and period
-        error = ((col or 0), str(error).rstrip('\r .'))
+        message = ((col or 0), str(message).rstrip('\r .'))
 
         if line in self.errors:
-            self.errors[line].append(error)
+            self.errors[line].append(message)
         else:
-            self.errors[line] = [error]
+            self.errors[line] = [message]
 
     def find_errors(self, output):
         """

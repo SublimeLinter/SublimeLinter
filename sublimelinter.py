@@ -206,12 +206,23 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Clear all marks, errors and status from the given view."""
         Linter.clear_view(view)
 
+    def is_scratch(self, view):
+        """
+        Return whether a view is scratch.
+
+        There is a bug (or feature) in the current ST3 where the Find panel
+        is not marked scratch but has no window.
+
+        """
+
+        return view.is_scratch() or view.window() is None
+
     # sublime_plugin.EventListener event handlers
 
     def on_modified(self, view):
         """Called when a view is modified."""
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         if view.id() not in persist.view_linters:
@@ -230,7 +241,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_activated(self, view):
         """Called when a view gains input focus."""
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         # Reload the plugin settings.
@@ -287,7 +298,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Called when a new buffer is created."""
         self.on_open_settings(view)
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         vid = view.id()
@@ -297,7 +308,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         vid = view.id()
@@ -357,7 +368,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_post_save(self, view):
         """Called after view is saved."""
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         # First check to see if the project settings changed
@@ -406,7 +417,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_close(self, view):
         """Called after view is closed."""
 
-        if view.is_scratch():
+        if self.is_scratch(view):
             return
 
         vid = view.id()

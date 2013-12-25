@@ -1,0 +1,22 @@
+SublimeLinter 3.0.15
+---------------------
+
+- A new method was added, persist.debug_mode, to make it easier
+  for linter plugins to determine if the user has debug mode
+  turned on. Returns True if "debug" setting is on.
+
+- Linters can now declare themselves as universal by setting
+  the syntax to '*'. '*' can also be used as a key in selectors.
+  See the SublimeLinter-annotations plugin for an example.
+
+- When specifying a list setting as a string, for example:
+
+    "annotations": {
+        "warnings": "FOO, BAR",
+    }
+
+  in non-inline setting you can now put whitespace around
+  the separator. Note that space may not be used around the
+  separator if the setting is inline.
+
+- Fixed some problems related to unexpected ST3 behavior.

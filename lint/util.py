@@ -1176,8 +1176,8 @@ def convert_type(value, type_value, sep=None, default=None):
     Convert value to the type of type_value.
 
     If the value cannot be converted to the desired type, default is returned.
-    If sep is not None, strings are split by sep to make lists/tuples, and
-    tuples/lists are joined by sep to make strings.
+    If sep is not None, strings are split by sep (plus surrounding whitespace)
+    to make lists/tuples, and tuples/lists are joined by sep to make strings.
 
     """
 
@@ -1190,7 +1190,7 @@ def convert_type(value, type_value, sep=None, default=None):
                 return [value]
             else:
                 if value:
-                    return value.split(sep)
+                    return re.split(r'\s*{}\s*'.format(sep), value)
                 else:
                     return []
         elif isinstance(type_value, Number):

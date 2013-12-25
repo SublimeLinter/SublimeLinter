@@ -412,9 +412,16 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        # Start with the overall project settings
-        data = self.view.window().project_data() or {}
-        project_settings = data.get(persist.PLUGIN_NAME, {})
+        # Start with the overall project settings. Note that when
+        # files are loaded during quick panel preview, it can happen
+        # that they are linted without having a window.
+        window = self.view.window()
+
+        if window:
+            data = window.project_data() or {}
+            project_settings = data.get(persist.PLUGIN_NAME, {})
+        else:
+            project_settings = {}
 
         # Merge global meta settings with project meta settings
         meta = self.meta_settings(persist.settings.settings)

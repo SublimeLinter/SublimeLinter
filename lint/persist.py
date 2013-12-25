@@ -402,6 +402,11 @@ def view_did_close(vid):
         del last_hit_times[vid]
 
 
+def debug_mode():
+    """Return whether the "debug" setting is True."""
+    return settings.get('debug')
+
+
 def debug(*args):
     """Print args to the console if the "debug" setting is True."""
     if settings.get('debug'):

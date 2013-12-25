@@ -1062,7 +1062,7 @@ class Linter(metaclass=LinterMeta):
         if hit_time is not None and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
             return
 
-        if persist.settings.get('debug'):
+        if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
@@ -1300,7 +1300,7 @@ class Linter(metaclass=LinterMeta):
         method, it will need to override this method.
 
         """
-        if persist.settings.get('debug'):
+        if persist.debug_mode():
             persist.printf('{}: {} {}'.format(self.name,
                                               os.path.basename(self.filename or '<unsaved>'),
                                               cmd or '<builtin>'))

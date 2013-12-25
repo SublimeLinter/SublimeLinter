@@ -659,7 +659,7 @@ def create_environment():
 
     from . import persist
 
-    if persist.settings.get('debug'):
+    if persist.debug_mode():
         if os.name == 'posix':
             if 'SHELL' in env:
                 shell = 'using ' + env['SHELL']
@@ -924,7 +924,7 @@ def get_python_paths():
 
     from . import persist
 
-    if persist.settings.get('debug'):
+    if persist.debug_mode():
         persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
 
     return paths

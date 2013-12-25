@@ -207,7 +207,7 @@ class PythonLinter(linter.Linter):
                     use_module = version[0] == '<builtin>'
 
             if use_module:
-                if persist.settings.get('debug'):
+                if persist.debug_mode():
                     persist.printf(
                         '{}: {} <builtin>'.format(
                             self.name,

@@ -687,11 +687,16 @@ class Linter(metaclass=LinterMeta):
         if not syntax:
             syntax = persist.get_syntax(view)
 
-        return [
-            (linter.selectors[syntax], linter)
-            for linter in cls.get_linters(vid)
-            if syntax in linter.selectors
-        ]
+        selectors = []
+
+        for linter in cls.get_linters(vid):
+            if syntax in linter.selectors:
+                selectors.append((linter.selectors[syntax], linter))
+
+            if '*' in linter.selectors:
+                selectors.append((linter.selectors['*'], linter))
+
+        return selectors
 
     @classmethod
     def lint_view(cls, vid, filename, code, sections, hit_time, callback):
@@ -758,7 +763,7 @@ class Linter(metaclass=LinterMeta):
                         disabled.add(linter)
                         continue
 
-            if syntax not in linter.selectors:
+            if syntax not in linter.selectors and '*' not in linter.selectors:
                 linter.reset(code)
                 linter.lint(hit_time)
 
@@ -1155,9 +1160,10 @@ class Linter(metaclass=LinterMeta):
         syntax = syntax.lower()
 
         if cls.syntax:
-            if isinstance(cls.syntax, (tuple, list)) and syntax in cls.syntax:
-                can = True
-            elif syntax == cls.syntax:
+            if isinstance(cls.syntax, (tuple, list)):
+                if syntax in cls.syntax:
+                    can = True
+            elif syntax == cls.syntax or cls.syntax == '*':
                 can = True
 
         if can and cls.executable_path is None:

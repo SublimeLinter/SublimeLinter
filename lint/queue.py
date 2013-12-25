@@ -14,7 +14,6 @@ from queue import Queue, Empty
 import threading
 import traceback
 import time
-import sys
 
 from . import persist, util
 

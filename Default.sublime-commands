@@ -162,21 +162,21 @@
         "caption": "SublimeLinter: Toggle Linter",
         "command": "sublimelinter_toggle_linter", "args":
         {
-            "disabled": null
+            "which": "all"
         }
     },
     {
         "caption": "SublimeLinter: Enable Linter",
         "command": "sublimelinter_toggle_linter", "args":
         {
-            "disabled": true
+            "which": "disabled"
         }
     },
     {
         "caption": "SublimeLinter: Disable Linter",
         "command": "sublimelinter_toggle_linter", "args":
         {
-            "disabled": false
+            "which": "enabled"
         }
     },
 

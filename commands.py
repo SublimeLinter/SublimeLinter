@@ -611,43 +611,61 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
 
     """A command that toggles, enables, or disables linter plugins."""
 
+    def __init__(self, window):
+        super().__init__(window)
+        self.linters = {}
+
+    def is_visible(self, **args):
+        """Return True if the command would show any linters."""
+        which = args['which']
+
+        if self.linters.get(which) is None:
+            linters = []
+            settings = persist.settings.get('linters', {})
+
+            for linter in persist.linter_classes:
+                linter_settings = settings.get(linter, {})
+                disabled = linter_settings.get('@disable')
+
+                if which == 'all':
+                    include = True
+                    linter = [linter, 'disabled' if disabled else 'enabled']
+                else:
+                    include = (
+                        which == 'enabled' and not disabled or
+                        which == 'disabled' and disabled
+                    )
+
+                if include:
+                    linters.append(linter)
+
+            linters.sort()
+            self.linters[which] = linters
+
+        return len(self.linters[which]) > 0
+
     def run(self, **args):
         """Run the command."""
-        show_disabled = args['disabled']
-        settings = persist.settings.get('linters')
-        self.linters = []
+        self.which = args['which']
 
-        for linter in settings:
-            linter_settings = settings.get(linter, {})
-            disabled = linter_settings.get('@disable')
-
-            if (show_disabled is None):
-                self.linters.append([linter, 'disabled' if disabled else 'enabled'])
-            elif(
-                show_disabled is True and disabled or
-                show_disabled is False and not disabled
-            ):
-                self.linters.append(linter)
-
-        if self.linters:
-            self.linters.sort()
-            self.window.show_quick_panel(self.linters, self.on_done)
+        if self.linters[self.which]:
+            self.window.show_quick_panel(self.linters[self.which], self.on_done)
 
     def on_done(self, index):
         """Completion handler for quick panel, toggle the enabled state of the chosen linter."""
-        if index == -1:
-            return
+        if index != -1:
+            linter = self.linters[self.which][index]
 
-        linter = self.linters[index]
+            if isinstance(linter, list):
+                linter = linter[0]
 
-        if isinstance(linter, list):
-            linter = linter[0]
+            settings = persist.settings.get('linters')
+            linter_settings = settings.get(linter)
+            linter_settings['@disable'] = not linter_settings.get('@disable', False)
+            persist.settings.set('linters', settings, changed=True)
+            persist.settings.save()
 
-        settings = persist.settings.get('linters')
-        linter_settings = settings.get(linter)
-        linter_settings['@disable'] = not linter_settings.get('@disable', False)
-        persist.settings.set('linters', settings, changed=True)
-        persist.settings.save()
+        self.linters = {}
 
 
 class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):

@@ -10,6 +10,13 @@
                 "command": "sublimelinter_choose_gutter_theme"
             },
             {
+                "caption": "Toggle Linter...",
+                "command": "sublimelinter_toggle_linter", "args":
+                {
+                    "which": "all"
+                }
+            },
+            {
                 "caption": "-"
             },
             {

@@ -233,7 +233,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         else:
             syntax_changed = False
 
-        if syntax_changed or persist.settings.get('lint_mode') == 'background':
+        if syntax_changed or persist.settings.get('lint_mode', 'background') == 'background':
             self.hit(view)
         else:
             self.clear(view)
@@ -254,7 +254,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             if not view_id in self.loaded_views:
                 self.on_new(view)
 
-            if persist.settings.get('lint_mode') in ('background', 'load/save'):
+            if persist.settings.get('lint_mode', 'background') in ('background', 'load/save'):
                 self.hit(view)
 
         self.on_selection_modified_async(view)
@@ -392,8 +392,8 @@ class SublimeLinter(sublime_plugin.EventListener):
             elif filename != 'SublimeLinter.sublime-settings':
                 syntax_changed = self.check_syntax(view)
                 vid = view.id()
-                mode = persist.settings.get('lint_mode')
-                show_errors = persist.settings.get('show_errors_on_save')
+                mode = persist.settings.get('lint_mode', 'background')
+                show_errors = persist.settings.get('show_errors_on_save', False)
 
                 if syntax_changed:
                     self.clear(view)

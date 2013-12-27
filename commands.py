@@ -343,7 +343,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
     def setting_value(self, matching=False):
         """Return the current value of the setting."""
-        return self.transform_setting(persist.settings.get(self.setting), matching=matching)
+        return self.transform_setting(persist.settings.get(self.setting, ''), matching=matching)
 
     def on_highlight(self, index):
         """If preview is on, set the selected setting."""
@@ -405,7 +405,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
 
         setting = self.transform_setting(setting)
 
-        if not self.settings_differ(persist.settings.get(self.setting), setting):
+        if not self.settings_differ(persist.settings.get(self.setting, ''), setting):
             return
 
         self.update_setting(setting)
@@ -659,7 +659,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
             if isinstance(linter, list):
                 linter = linter[0]
 
-            settings = persist.settings.get('linters')
+            settings = persist.settings.get('linters', {})
             linter_settings = settings.get(linter)
             linter_settings['@disable'] = not linter_settings.get('@disable', False)
             persist.settings.set('linters', settings, changed=True)

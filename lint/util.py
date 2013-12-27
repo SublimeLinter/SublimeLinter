@@ -517,9 +517,18 @@ def run_shell_cmd(cmd):
 
 def extract_path(cmd, delim=':'):
     """Return the user's PATH as a colon-delimited list."""
-    out = run_shell_cmd(cmd)
-    path = out.decode().split('__SUBL_PATH__', 2)[1]
-    return ':'.join(path.strip().split(delim))
+    from . import persist
+    persist.debug('User shell:', cmd[0])
+
+    out = run_shell_cmd(cmd).decode()
+    path = out.split('__SUBL_PATH__', 2)
+
+    if len(path) > 1:
+        path = path[1]
+        return ':'.join(path.strip().split(delim))
+    else:
+        persist.printf('Could not parse shell PATH output:\n', out)
+        return ''
 
 
 def get_shell_path(env):
@@ -536,7 +545,7 @@ def get_shell_path(env):
 
         # We have to delimit the PATH output with markers because
         # text might be output during shell startup.
-        if shell in ('bash', 'zsh', 'ksh', 'sh'):
+        if shell in ('bash', 'zsh'):
             return extract_path(
                 (shell_path, '-l', '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
             )
@@ -545,6 +554,9 @@ def get_shell_path(env):
                 (shell_path, '-l', '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
                 '\n'
             )
+        else:
+            from . import persist
+            persist.printf('Using an unsupported shell:', shell)
 
     # guess PATH if we haven't returned yet
     split = env['PATH'].split(':')

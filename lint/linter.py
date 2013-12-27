@@ -1051,7 +1051,7 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
-        if self.view.file_name():
+        if self.filename:
             cwd = os.getcwd()
             os.chdir(os.path.dirname(self.filename))
 
@@ -1065,7 +1065,7 @@ class Linter(metaclass=LinterMeta):
 
         output = self.run(cmd, self.code)
 
-        if self.view.file_name():
+        if self.filename:
             os.chdir(cwd)
 
         if not output:
@@ -1343,6 +1343,9 @@ class Linter(metaclass=LinterMeta):
 
     def communicate(self, cmd, code):
         """Run an external executable using stdin to pass code and return its output."""
+        if '@' in cmd:
+            cmd[cmd.index('@')] = self.filename
+
         return util.communicate(
             cmd,
             code,

@@ -1044,7 +1044,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
     try:
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
             if isinstance(code, str):
-                code = code.encode('utf8')
+                code = code.encode('utf-8')
 
             f.write(code)
             f.flush()

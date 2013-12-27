@@ -674,7 +674,7 @@ class Linter(metaclass=LinterMeta):
         return ()
 
     @classmethod
-    def get_selectors(cls, vid, syntax=None):
+    def get_selectors(cls, vid, syntax):
         """
         Return scope selectors and linters for the view with the given id.
 
@@ -683,10 +683,6 @@ class Linter(metaclass=LinterMeta):
 
         """
         view = persist.views[vid]
-
-        if not syntax:
-            syntax = persist.get_syntax(view)
-
         selectors = []
 
         for linter in cls.get_linters(vid):
@@ -699,9 +695,9 @@ class Linter(metaclass=LinterMeta):
         return selectors
 
     @classmethod
-    def lint_view(cls, vid, filename, code, sections, hit_time, callback):
+    def lint_view(cls, view, filename, code, hit_time, callback):
         """
-        Lint the view with the given view id.
+        Lint the given view.
 
         This is the top level lint dispatcher. It is called
         asynchronously. The following checks are done for each linter
@@ -725,6 +721,7 @@ class Linter(metaclass=LinterMeta):
         if not code:
             return
 
+        vid = view.id()
         linters = persist.view_linters.get(vid)
 
         if not linters:
@@ -767,28 +764,32 @@ class Linter(metaclass=LinterMeta):
                 linter.reset(code)
                 linter.lint(hit_time)
 
-        selectors = Linter.get_selectors(vid, syntax=syntax)
+        selectors = Linter.get_selectors(vid, syntax)
 
-        for sel, linter in selectors:
+        for selector, linter in selectors:
             if linter in disabled:
                 continue
 
             linters.add(linter)
+            regions = []
 
-            if sel in sections:
-                linter.reset(code)
-                errors = {}
+            for region in view.find_by_selector(selector):
+                regions.append(region)
 
-                for line_offset, start, end in sections[sel]:
-                    linter.highlight.move_to(line_offset, start)
-                    linter.code = code[start:end]
-                    linter.errors = {}
-                    linter.lint(hit_time)
+            linter.reset(code)
+            errors = {}
 
-                    for line, line_errors in linter.errors.items():
-                        errors[line + line_offset] = line_errors
+            for region in regions:
+                line_offset, col = view.rowcol(region.begin())
+                linter.highlight.move_to(line_offset, col)
+                linter.code = code[region.begin():region.end()]
+                linter.errors = {}
+                linter.lint(hit_time)
 
-                linter.errors = errors
+                for line, line_errors in linter.errors.items():
+                    errors[line + line_offset] = line_errors
+
+            linter.errors = errors
 
         # Remove disabled linters
         linters = list(linters - disabled)

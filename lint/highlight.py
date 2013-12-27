@@ -165,8 +165,15 @@ class Highlight:
 
         """
 
+        # The first line of the code needs the character offset
+        if line == 0:
+            char_offset = self.char_offset
+        else:
+            char_offset = 0
+
         line += self.line_offset
-        start = self.newlines[line]
+        start = self.newlines[line] + char_offset
+
         end = self.newlines[min(line + 1, len(self.newlines) - 1)]
 
         return start, end
@@ -423,8 +430,8 @@ class Highlight:
         """
         Move the highlight to the given line and character offset.
 
-        The character offset is an absolute offset relative to the start
-        of self.code. This method is used to create virtual line numbers
+        The character offset is relative to the start of the line.
+        This method is used to create virtual line numbers
         and character positions when linting embedded code.
 
         """

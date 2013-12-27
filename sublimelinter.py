@@ -112,19 +112,10 @@ class SublimeLinter(sublime_plugin.EventListener):
         if view is None:
             return
 
-        # Build a list of regions that match the linter's selectors
-        sections = {}
-
-        for sel, _ in Linter.get_selectors(view_id):
-            sections[sel] = []
-
-            for region in view.find_by_selector(sel):
-                sections[sel].append((view.rowcol(region.a)[0], region.a, region.b))
-
         filename = view.file_name()
         code = Linter.text(view)
         callback = callback or self.highlight
-        Linter.lint_view(view_id, filename, code, sections, hit_time, callback)
+        Linter.lint_view(view, filename, code, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):
         """

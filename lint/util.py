@@ -510,7 +510,7 @@ def run_shell_cmd(cmd):
         out, err = proc.communicate(timeout=2)
     except subprocess.TimeoutExpired:
         proc.kill()
-        out, err = proc.communicate()
+        out = b''
 
     return out
 
@@ -527,7 +527,12 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        persist.printf('Could not parse shell PATH output:\n', out)
+        persist.printf('Could not parse shell PATH output:\n' + (out if out else '<empty>'))
+        sublime.error_message(
+            'SublimeLinter could not determine your shell PATH. '
+            'It is unlikely that any linters will work. '
+            '\n\n'
+            'Please see the troubleshooting guide for info on how to debug PATH problems.')
         return ''
 
 
@@ -680,7 +685,8 @@ def create_environment():
         else:
             shell = 'from system'
 
-        persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
+        if env['PATH']:
+            persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
@@ -925,19 +931,19 @@ def get_python_paths():
 
     """
 
+    from . import persist
+
     python_path = which('@python3')[0]
 
     if python_path:
         code = r'import sys;print("\n".join(sys.path).strip())'
         out = communicate(python_path, code)
         paths = out.splitlines()
+
+        if persist.debug_mode():
+            persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
     else:
         paths = []
-
-    from . import persist
-
-    if persist.debug_mode():
-        persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
 
     return paths
 

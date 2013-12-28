@@ -63,6 +63,7 @@ class LinterMeta(type):
             if name in ('PythonLinter', 'RubyLinter'):
                 return
 
+            self.alt_name = self.make_alt_name(name)
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
@@ -137,6 +138,21 @@ class LinterMeta(type):
             self.defaults[name] = value
 
         setattr(self, 'args_map', args_map)
+
+    @staticmethod
+    def make_alt_name(name):
+        """Convert a camel-case name to lowercase with dashes."""
+        previous = name[0]
+        alt_name = previous.lower()
+
+        for c in name[1:]:
+            if c.isupper() and previous.islower():
+                alt_name += '-'
+
+            alt_name += c.lower()
+            previous = c
+
+        return alt_name
 
     @property
     def name(self):
@@ -402,7 +418,8 @@ class Linter(metaclass=LinterMeta):
                 inline_settings.update(util.inline_settings(
                     self.comment_re,
                     self.code,
-                    self.name
+                    prefix=self.name,
+                    alt_prefix=self.alt_name
                 ))
 
             settings = self.merge_inline_settings(settings.copy(), inline_settings)

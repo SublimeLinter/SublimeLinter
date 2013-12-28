@@ -77,7 +77,7 @@ def merge_user_settings(settings):
     return default
 
 
-def inline_settings(comment_re, code, prefix=None):
+def inline_settings(comment_re, code, prefix=None, alt_prefix=None):
     r"""
     Return a dict of inline settings within the first two lines of code.
 
@@ -90,8 +90,8 @@ def inline_settings(comment_re, code, prefix=None):
 
     r'\s*/[/*]'
 
-    If prefix is a non-empty string, setting names must begin with the given prefix
-    to be considered as a setting.
+    If prefix or alt_prefix is a non-empty string, setting names must begin with
+    the given prefix or alt_prefix to be considered as a setting.
 
     A dict of matching name/value pairs is returned.
 
@@ -99,6 +99,9 @@ def inline_settings(comment_re, code, prefix=None):
 
     if prefix:
         prefix = prefix.lower() + '-'
+
+    if alt_prefix:
+        alt_prefix = alt_prefix.lower() + '-'
 
     settings = {}
     pos = -1
@@ -127,6 +130,8 @@ def inline_settings(comment_re, code, prefix=None):
             if prefix and key[0] != '@':
                 if key.startswith(prefix):
                     key = key[len(prefix):]
+                elif alt_prefix and key.startswith(alt_prefix):
+                    key = key[len(alt_prefix):]
                 else:
                     continue
 

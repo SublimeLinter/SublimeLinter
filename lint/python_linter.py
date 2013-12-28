@@ -128,8 +128,7 @@ class PythonLinter(linter.Linter):
                     match = util.PYTHON_CMD_RE.match(cmd)
 
                     if match and match.group('version'):
-                        version = match.group('version')
-                        script = match.group('script')
+                        version, script = match.group('version', 'script')
                         version = util.find_python(version=version, script=script, module=module)
 
                         # If we cannot find a python or script of the right version,
@@ -162,8 +161,7 @@ class PythonLinter(linter.Linter):
 
             if match and match.group('version'):
                 can_lint = False
-                version = match.group('version')
-                script = match.group('script')
+                version, script = match.group('version', 'script')
                 version = util.find_python(version=version, script=script)
 
                 if version[0] is not None and (not script or version[1] is not None):

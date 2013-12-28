@@ -10,6 +10,7 @@
 
 """This module exports the RubyLinter subclass of Linter."""
 
+import os
 import re
 import shlex
 
@@ -62,7 +63,7 @@ class RubyLinter(linter.Linter):
     @classmethod
     def lookup_executables(cls, cmd):
         """
-        Attempt to locate the gem and ruby specified in cmd, return new cmd.
+        Attempt to locate the gem and ruby specified in cmd, return new cmd list.
 
         The following forms are valid:
 
@@ -70,18 +71,29 @@ class RubyLinter(linter.Linter):
         gem
         ruby
 
+        If rbenv is installed and the gem is also under rbenv control,
+        the gem will be executed directly. Otherwise [ruby <, gem>] will
+        be returned.
+
+        If rvm-auto-ruby is installed, [rvm-auto-ruby <, gem>] will be
+        returned.
+
+        Otherwise [ruby] or [gem] will be returned.
+
         """
 
-        # See if rvm-auto-ruby is installed. If so use that,
-        # otherwise using ruby will work with rbenv as well.
-        ruby = util.which('rvm-auto-ruby')
+        ruby = None
+        rbenv = util.which('rbenv')
+
+        if not rbenv:
+            ruby = util.which('rvm-auto-ruby')
 
         if not ruby:
             ruby = util.which('ruby')
 
-        if not ruby:
+        if not rbenv and not ruby:
             persist.printf(
-                'WARNING: {} deactivated, cannot locate ruby (or rvm-auto-ruby)'
+                'WARNING: {} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby'
                 .format(cls.name, cmd[0])
             )
             return []
@@ -89,7 +101,6 @@ class RubyLinter(linter.Linter):
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
 
-        ruby_cmd = [ruby]
         match = CMD_RE.match(cmd[0])
 
         if match:
@@ -102,21 +113,32 @@ class RubyLinter(linter.Linter):
         if gem:
             gem_path = util.which(gem)
 
-            if not gem_path:
+            if gem_path:
+                if (rbenv and
+                    ('{0}.rbenv{0}shims{0}'.format(os.sep) in gem_path or
+                     (os.altsep and '{0}.rbenv{0}shims{0}'.format(os.altsep in gem_path)))):
+                    ruby_cmd = [gem_path]
+                else:
+                    ruby_cmd = [ruby, gem_path]
+            else:
                 persist.printf(
                     'WARNING: {} deactivated, cannot locate the gem \'{}\''
                     .format(cls.name, gem)
                 )
                 return []
-
-            ruby_cmd.append(gem_path)
+        else:
+            ruby_cmd = [ruby]
 
         if cls.env is None:
-            gem_home = util.get_environment_variable('GEM_HOME')
-
-            if gem_home:
-                cls.env = {'GEM_HOME': gem_home}
-            else:
+            # Don't use GEM_HOME with rbenv, it prevents it from using gem shims
+            if rbenv:
                 cls.env = {}
+            else:
+                gem_home = util.get_environment_variable('GEM_HOME')
+
+                if gem_home:
+                    cls.env = {'GEM_HOME': gem_home}
+                else:
+                    cls.env = {}
 
         return ruby_cmd

@@ -1,0 +1,11 @@
+SublimeLinter 3.0.18
+---------------------
+- Hopefully dealing correctly with gems under rbenv/rvm now.
+
+- Added Linter.config_file attribute for automating config file
+  lookup. See the Writing Linters docs for more info.
+
+- @ may be used as a prefix for arguments in the Linter.defaults attribute.
+  It suppresses output of the arg name, allowing you to use a named
+  inline setting/override and only have the values passed in the
+  linter command. See the Writing Linters docs for more info.

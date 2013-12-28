@@ -31,7 +31,7 @@ from . import highlight, persist, util
 #
 # Private constants
 #
-ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
 HTML_ENTITY_RE = re.compile(r'&(?:(?:#(x)?([0-9a-fA-F]{1,4}))|(\w+));')
 
@@ -252,11 +252,12 @@ class Linter(metaclass=LinterMeta):
     #
     # <prefix><name><joiner>[<sep>[+]]
     #
-    # - <prefix>: Either '-' or '--'.
+    # - <prefix>: Either '@', '-' or '--'.
     # - <name>: The name of the setting.
-    # - <joiner>: Either '=' or ':'. If '=', the setting value is joined
-    #   with <name> by '=' and passed as a single argument. If ':', <name>
-    #   and the value are passed as separate arguments.
+    # - <joiner>: Either '=' or ':'. If <prefix> is '@', <joiner> is ignored.
+    #   Otherwise, if '=', the setting value is joined with <name> by '=' and
+    #   passed as a single argument. If ':', <name> and the value are passed
+    #   as separate arguments.
     # - <sep>: If the argument accepts a list of values, <sep> specifies
     #   the character used to delimit the list (usually ',').
     # - +: If the setting can be a list of values, but each value must be
@@ -1003,14 +1004,18 @@ class Linter(metaclass=LinterMeta):
                 continue
 
             for value in values:
-                arg = arg_info['prefix'] + arg_info['name']
-                joiner = arg_info['joiner']
+                prefix = arg_info['prefix']
 
-                if joiner == '=':
-                    args.append('{}={}'.format(arg, value))
-                elif joiner == ':':
-                    args.append(arg)
+                if prefix == '@':
                     args.append(str(value))
+                else:
+                    arg = prefix + arg_info['name']
+                    joiner = arg_info['joiner']
+
+                    if joiner == '=':
+                        args.append('{}={}'.format(arg, value))
+                    elif joiner == ':':
+                        args.append(str(value))
 
         if self.config_file:
             if self.config_file[0] not in args and self.filename:

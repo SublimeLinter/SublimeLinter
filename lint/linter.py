@@ -712,7 +712,6 @@ class Linter(metaclass=LinterMeta):
         has selectors, return a tuple of the selector and the linter.
 
         """
-        view = persist.views[vid]
         selectors = []
 
         for linter in cls.get_linters(vid):
@@ -1032,6 +1031,7 @@ class Linter(metaclass=LinterMeta):
                     if joiner == '=':
                         args.append('{}={}'.format(arg, value))
                     elif joiner == ':':
+                        args.append(arg)
                         args.append(str(value))
 
         if self.config_file:

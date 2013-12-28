@@ -1014,7 +1014,7 @@ def combine_output(out, sep=''):
     return ANSI_COLOR_RE.sub('', output)
 
 
-def communicate(cmd, code, output_stream=STREAM_STDOUT, env=None):
+def communicate(cmd, code='', output_stream=STREAM_STDOUT, env=None):
     """
     Return the result of sending code via stdin to an executable.
 

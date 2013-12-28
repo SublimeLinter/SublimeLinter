@@ -1,0 +1,9 @@
+[
+    { "caption": "-"},
+    {
+        "caption": "New Package Control Message",
+        "command": "sublimelinter_new_package_control_message",
+        "args": {"paths": []}
+    },
+    { "caption": "-"}
+]

@@ -15,9 +15,11 @@ import datetime
 from fnmatch import fnmatch
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
+from textwrap import TextWrapper
 from threading import Thread
 import time
 
@@ -864,6 +866,197 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
                     break
 
         sublime.set_timeout_async(open_linter_py, 0)
+
+
+class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
+
+    """
+    Abstract superclass for Package Control utility commands.
+
+    Only works if git is installed.
+
+    """
+
+    TAG_RE = re.compile(r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<release>\d+)(?:\+\d+)?')
+
+    def __init__(self, window):
+        super().__init__(window)
+        self.git = ''
+
+    def is_visible(self, paths=[]):
+        """
+        Return True if any eligible plugin directories are selected.
+
+        """
+
+        if self.git == '':
+            self.git = util.which('git')
+
+        if self.git:
+            for path in paths:
+                if self.is_eligible_path(path):
+                    return True
+
+        return False
+
+    def is_eligible_path(self, path):
+        """
+        Return True if path is an eligible directory.
+
+        A directory is eligible if it is a direct child of Packages,
+        has a messages subdirectory, and has messages.json.
+
+        """
+        packages_path = sublime.packages_path()
+
+        return (
+            os.path.isdir(path) and
+            os.path.dirname(path) == packages_path and
+            os.path.isdir(os.path.join(path, 'messages')) and
+            os.path.isfile(os.path.join(path, 'messages.json'))
+        )
+
+    def get_current_tag(self):
+        """
+        Return the most recent tag components.
+
+        A tuple of (major, minor, release) is returned, or (1, 0, 0) if there are no tags.
+        If the most recent tag does not conform to semver, return (None, None, None).
+
+        """
+
+        tag = util.communicate(['git', 'describe', '--tags', '--abbrev=0']).strip()
+
+        if not tag:
+            return (1, 0, 0)
+
+        match = self.TAG_RE.match(tag)
+
+        if match:
+            return (int(match.group('major')), int(match.group('minor')), int(match.group('release')))
+        else:
+            return None
+
+
+class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCommand):
+
+    """
+    A command that creates a new entry in messages.json for the next version
+    and creates a new file named messages/<version>.txt.
+
+    """
+
+    COMMIT_MSG_RE = re.compile(r'{{{{(.+?)}}}}')
+
+    def __init__(self, window):
+        super().__init__(window)
+
+    def run(self, paths=[]):
+        """Run the command."""
+
+        for path in paths:
+            if self.is_eligible_path(path):
+                self.make_new_version_message(path)
+
+    def make_new_version_message(self, path):
+        """Make a new version message for the repo at the given path."""
+
+        try:
+            cwd = os.getcwd()
+            os.chdir(path)
+
+            version = self.get_current_tag()
+
+            if version[0] is None:
+                return
+
+            messages_path = os.path.join(path, 'messages.json')
+            message_path = self.rewrite_messages_json(messages_path, version)
+
+            if os.path.exists(message_path):
+                os.remove(message_path)
+
+            with open(message_path, mode='w', encoding='utf-8') as f:
+                header = '{} {}'.format(
+                    os.path.basename(path),
+                    os.path.splitext(os.path.basename(message_path))[0])
+                f.write('{}\n{}\n'.format(header, '-' * (len(header) + 1)))
+                f.write(self.get_commit_messages_since(version))
+
+            self.window.run_command('open_file', args={'file': message_path})
+
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        finally:
+            os.chdir(cwd)
+
+    def rewrite_messages_json(self, messages_path, tag):
+        """Add an entry in messages.json for tag, return relative path to the file."""
+
+        with open(messages_path, encoding='utf-8') as f:
+            messages = json.load(f)
+
+        major, minor, release = tag
+        release += 1
+        tag = '{}.{}.{}'.format(major, minor, release)
+        message_path = os.path.join('messages', '{}.txt'.format(tag))
+        messages[tag] = message_path
+        message_path = os.path.join(os.path.dirname(messages_path), message_path)
+
+        with open(messages_path, mode='w', encoding='utf-8') as f:
+            messages_json = '{\n'
+            sorted_messages = []
+
+            if 'install' in messages:
+                install_message = messages.pop('install')
+                sorted_messages.append('    "install": "{}"'.format(install_message))
+
+            keys = sorted(map(self.sortable_tag, messages.keys()))
+
+            for _, key in keys:
+                sorted_messages.append('    "{}": "{}"'.format(key, messages[key]))
+
+            messages_json += ',\n'.join(sorted_messages)
+            messages_json += '\n}\n'
+            f.write(messages_json)
+
+        return message_path
+
+    def sortable_tag(self, tag):
+        if tag == 'install':
+            return (tag, tag)
+
+        major, minor, release = tag.split('.')
+
+        if '+' in release:
+            release, update = release.split('+')
+            update = '+{:04}'.format(int(update))
+        else:
+            update = ''
+
+        return ('{:04}.{:04}.{:04}{}'.format(int(major), int(minor), int(release), update), tag)
+
+    def get_commit_messages_since(self, version):
+        """Return a formatted list of commit messages since the given tagged version."""
+
+        tag = '{}.{}.{}'.format(*version)
+        output = util.communicate([
+            'git', 'log',
+            '--pretty=format:{{{{%w(0,0,0)%s %b}}}}',
+            '--reverse', tag + '..'
+        ])
+
+        # Split the messages, they are bounded by {{{{ }}}}
+        messages = []
+
+        for match in self.COMMIT_MSG_RE.finditer(output):
+            messages.append(match.group(1).strip())
+
+        # Wrap the messages
+        wrapper = TextWrapper(initial_indent='- ', subsequent_indent='  ')
+        messages = list(map(lambda msg: '\n'.join(wrapper.wrap(msg)), messages))
+        return '\n\n'.join(messages) + '\n'
 
 
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):

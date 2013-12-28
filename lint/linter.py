@@ -214,6 +214,18 @@ class Linter(metaclass=LinterMeta):
     # this attribute to the other stream.
     error_stream = util.STREAM_BOTH
 
+    # Many linters look for a config file in the linted file’s directory and in
+    # all parent directories up to the root directory. However, some of them
+    # will not do this if receiving input from stdin, and others use temp files,
+    # so looking in the temp file directory doesn’t work. If this attribute
+    # is set to a tuple of a config file argument and the name of the config file,
+    # the linter will automatically try to find the config file, and if it is found,
+    # add the config file argument to the executed command.
+    #
+    # Example: config_file = ('--config', '.jshintrc')
+    #
+    config_file = None
+
     # Tab width
     tab_width = 1
 
@@ -949,6 +961,10 @@ class Linter(metaclass=LinterMeta):
         - If the joiner is '=', join '=' and the value and append to the args.
         - If the joiner is ':', append the arg and value as separate args.
 
+        Finally, if the config_file attribute is set and the user has not
+        set the config_file arg in the linter's "args" setting, try to
+        locate the config file and if found add the config file arg.
+
         Return the arg list.
 
         """
@@ -995,6 +1011,13 @@ class Linter(metaclass=LinterMeta):
                 elif joiner == ':':
                     args.append(arg)
                     args.append(str(value))
+
+        if self.config_file:
+            if self.config_file[0] not in args and self.filename:
+                config = util.find_file(os.path.dirname(self.filename), self.config_file[1])
+
+                if config:
+                    args += [self.config_file[0], config]
 
         return args
 

@@ -507,7 +507,7 @@ def run_shell_cmd(cmd):
     proc = popen(cmd, env=os.environ)
 
     try:
-        out, err = proc.communicate(timeout=2)
+        out, err = proc.communicate(timeout=1)
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''

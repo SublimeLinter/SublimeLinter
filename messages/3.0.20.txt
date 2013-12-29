@@ -1,0 +1,10 @@
+SublimeLinter 3.0.20
+---------------------
+- When using the "Create Linter Plugin" command, an executable name
+  with dashes will be converted into a camel-case class name. For
+  example, scss-lint becomes ScssLint.
+
+- Added .gitignore with .DS_Store to the linter plugin template.
+
+- You may now define a linter as file-only by setting its tempfile_suffix
+  to '-', which means that linter will only run when its view is not dirty.

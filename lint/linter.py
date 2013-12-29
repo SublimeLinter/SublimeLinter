@@ -1164,13 +1164,15 @@ class Linter(metaclass=LinterMeta):
                                 col = i
                                 break
 
-                # If there is also near, give that precedence and pass a hint of where to look
                 if col is not None:
                     self.highlight.range(line, col, error_type=error_type, word_re=self.word_re)
                 elif near:
                     col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
                 else:
-                    if persist.settings.get('no_column_highlights_line'):
+                    if (
+                        persist.settings.get('no_column_highlights_line') or
+                        persist.settings.get('gutter_theme') == 'none'
+                    ):
                         pos = -1
                     else:
                         pos = 0

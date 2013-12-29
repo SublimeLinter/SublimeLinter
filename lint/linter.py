@@ -223,10 +223,11 @@ class Linter(metaclass=LinterMeta):
     # syntax, after using "syntax_map" in settings. If the view's syntax is not
     # in this map, the class' syntax will be used.
     #
-    # Some linters really can only work from an actual disk file, because they
-    # rely on an entire directory structure that cannot be copied to a temp directory.
-    # In such cases, set this attribute to '-'. That will disable background and manual
-    # mode linting for the linter.
+    # Some linters can only work from an actual disk file, because they
+    # rely on an entire directory structure that cannot be realistically be copied
+    # to a temp directory (e.g. javac). In such cases, set this attribute to '-',
+    # which marks the linter as "file-only". That will disable the linter for
+    # any views that are dirty.
     tempfile_suffix = None
 
     # Linters may output to both stdout and stderr. By default stdout and sterr are captured.
@@ -766,10 +767,7 @@ class Linter(metaclass=LinterMeta):
 
         for linter in linters:
             # First check to see if the linter can run in the current lint mode.
-            if (
-                linter.tempfile_suffix == '-' and
-                persist.settings.get('lint_mode') in ('background', 'manual')
-            ):
+            if linter.tempfile_suffix == '-' and view.is_dirty():
                 disabled.add(linter)
                 continue
 

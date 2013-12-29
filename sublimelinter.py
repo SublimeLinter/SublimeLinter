@@ -208,6 +208,14 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return view.is_scratch() or view.window() is None
 
+    def view_has_file_only_linter(self, vid):
+        """Return True if any linters for the given view are file-only."""
+        for lint in persist.view_linters.get(vid, []):
+            if lint.tempfile_suffix == '-':
+                return True
+
+        return False
+
     # sublime_plugin.EventListener event handlers
 
     def on_modified(self, view):
@@ -397,7 +405,11 @@ class SublimeLinter(sublime_plugin.EventListener):
                     else:
                         show_errors = False
                 else:
-                    if show_errors or mode in ('load/save', 'save only'):
+                    if (
+                        show_errors or
+                        mode in ('load/save', 'save only') or
+                        mode == 'background' and self.view_has_file_only_linter(vid)
+                    ):
                         self.lint(vid)
                     elif mode == 'manual':
                         show_errors = False

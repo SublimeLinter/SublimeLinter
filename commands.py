@@ -64,9 +64,34 @@ class SublimelinterLintCommand(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):
-        """Return True if the current view has a linter and the lint mode is not "background"."""
+        """
+        Return True if the current view can be linted.
+
+        A view can be linted if:
+
+        - It has a linter.
+        - The lint mode is not "background".
+        - At least one linter does not have a tempfile_suffix of '-'.
+
+        """
+
+        mode = persist.settings.get('lint_mode')
+
+        if mode == 'background':
+            return False
+
         vid = self.view.id()
-        return vid in persist.view_linters and persist.settings.get('lint_mode') != 'background'
+        linters = persist.view_linters.get(vid)
+
+        if not linters:
+            return False
+
+        # Check for linters that can only be run on disk files.
+        for lint in linters:
+            if lint.tempfile_suffix == '-':
+                return False
+
+        return True
 
     def run(self, edit):
         """Lint the current view."""

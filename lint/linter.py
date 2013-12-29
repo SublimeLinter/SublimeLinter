@@ -222,6 +222,11 @@ class Linter(metaclass=LinterMeta):
     # to tempfile suffixes. The syntax used to lookup the suffix is the mapped
     # syntax, after using "syntax_map" in settings. If the view's syntax is not
     # in this map, the class' syntax will be used.
+    #
+    # Some linters really can only work from an actual disk file, because they
+    # rely on an entire directory structure that cannot be copied to a temp directory.
+    # In such cases, set this attribute to '-'. That will disable background and manual
+    # mode linting for the linter.
     tempfile_suffix = None
 
     # Linters may output to both stdout and stderr. By default stdout and sterr are captured.
@@ -760,6 +765,14 @@ class Linter(metaclass=LinterMeta):
         syntax = persist.get_syntax(persist.views[vid])
 
         for linter in linters:
+            # First check to see if the linter can run in the current lint mode.
+            if (
+                linter.tempfile_suffix == '-' and
+                persist.settings.get('lint_mode') in ('background', 'manual')
+            ):
+                disabled.add(linter)
+                continue
+
             # Because get_view_settings is expensive, we use an lru_cache
             # to cache its results. Before each lint, reset the cache.
             linter.clear_settings_caches()
@@ -1365,7 +1378,10 @@ class Linter(metaclass=LinterMeta):
                                               cmd or '<builtin>'))
 
         if self.tempfile_suffix:
-            return self.tmpfile(cmd, code, suffix=self.get_tempfile_suffix())
+            if self.tempfile_suffix != '-':
+                return self.tmpfile(cmd, code, suffix=self.get_tempfile_suffix())
+            else:
+                return self.communicate(cmd)
         else:
             return self.communicate(cmd, code)
 
@@ -1386,7 +1402,7 @@ class Linter(metaclass=LinterMeta):
 
     # popen wrappers
 
-    def communicate(self, cmd, code):
+    def communicate(self, cmd, code=''):
         """Run an external executable using stdin to pass code and return its output."""
         if '@' in cmd:
             cmd[cmd.index('@')] = self.filename

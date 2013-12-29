@@ -1138,7 +1138,7 @@ class Linter(metaclass=LinterMeta):
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
-            if match and line is not None:
+            if match and message and line is not None:
                 if error:
                     error_type = highlight.ERROR
                 elif warning:

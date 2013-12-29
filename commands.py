@@ -798,18 +798,8 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
 
         info = info.get(language, {})
         extra_attributes = []
-
-        comment_regexes = {
-            'python': None,
-            'javascript': 'r\'\\s*/[/*]\'',
-            'ruby': 'r\'\\s*#\'',
-            'other': 'None'
-        }
-
-        comment_re = comment_regexes[language]
-
-        if comment_re:
-            extra_attributes.append('comment_re = ' + comment_re)
+        comment_re = info.get('comment_re', 'None')
+        extra_attributes.append('comment_re = ' + comment_re)
 
         attributes = info.get('attributes', [])
 
@@ -837,7 +827,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             '__user__': util.get_user_fullname(),
             '__year__': str(datetime.date.today().year),
             '__class__': self.camel_case(name),
-            '__superclass__': 'PythonLinter' if language == 'python' else 'Linter',
+            '__superclass__': info.get('superclass', 'Linter'),
             '__cmd__': '{}@python'.format(name) if language == 'python' else name,
             '__extra_attributes__': extra_attributes,
             '__platform__': platform,

@@ -678,7 +678,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         """Run the command."""
         if not sublime.ok_cancel_dialog(
             'You will be asked for the linter name. Please enter the name '
-            'of the linter binary, NOT the name of the language being linted. '
+            'of the linter binary (including dashes), NOT the name of the language being linted. '
             'For example, to lint CSS with csslint, the linter name is '
             '“csslint”, NOT “css”.',
             'I understand'
@@ -771,7 +771,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             try:
                 info = json.load(f)
             except Exception as err:
-                print(err)
+                persist.printf(err)
                 sublime.error_message('A configuration file could not be opened, the linter cannot be created.')
                 return False
 
@@ -815,7 +815,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             '__linter__': name,
             '__user__': util.get_user_fullname(),
             '__year__': str(datetime.date.today().year),
-            '__class__': name.capitalize(),
+            '__class__': self.camel_case(name),
             '__superclass__': 'PythonLinter' if language == 'python' else 'Linter',
             '__cmd__': '{}@python'.format(name) if language == 'python' else name,
             '__extra_attributes__': extra_attributes,
@@ -841,6 +841,22 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
                         f.write(text)
 
         return True
+
+    def camel_case(self, name):
+        """Convert a name in the form foo-bar to FooBar."""
+        camel_name = name[0].capitalize()
+        i = 1
+
+        while i < len(name):
+            if name[i] == '-' and i < len(name) - 1:
+                camel_name += name[i + 1].capitalize()
+                i += 1
+            else:
+                camel_name += name[i]
+
+            i += 1
+
+        return camel_name
 
     def wait_for_open(self, dest):
         """Wait for new linter window to open in another thread."""

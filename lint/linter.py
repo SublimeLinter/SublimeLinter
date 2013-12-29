@@ -273,9 +273,9 @@ class Linter(metaclass=LinterMeta):
     #
     # <prefix><name><joiner>[<sep>[+]]
     #
-    # - <prefix>: Either '@', '-' or '--'.
+    # - <prefix>: Either empty, '@', '-' or '--'.
     # - <name>: The name of the setting.
-    # - <joiner>: Either '=' or ':'. If <prefix> is '@', <joiner> is ignored.
+    # - <joiner>: Either '=' or ':'. If <prefix> is empty or '@', <joiner> is ignored.
     #   Otherwise, if '=', the setting value is joined with <name> by '=' and
     #   passed as a single argument. If ':', <name> and the value are passed
     #   as separate arguments.
@@ -976,6 +976,8 @@ class Linter(metaclass=LinterMeta):
           default/user/view settings. If arg is not in settings or is a meta
           setting (beginning with '@'), it is skipped.
 
+        - If the arg has no prefix, it is skipped.
+
         - Get the setting value. If it is None or an empty string/list, skip this arg.
 
         - If the setting value is a non-empty list and the arg was specified
@@ -1003,7 +1005,9 @@ class Linter(metaclass=LinterMeta):
         args_map = getattr(self, 'args_map', {})
 
         for setting, arg_info in args_map.items():
-            if setting not in settings or setting[0] == '@':
+            prefix = arg_info['prefix']
+
+            if setting not in settings or setting[0] == '@' or prefix is None:
                 continue
 
             values = settings[setting]
@@ -1033,8 +1037,6 @@ class Linter(metaclass=LinterMeta):
                 continue
 
             for value in values:
-                prefix = arg_info['prefix']
-
                 if prefix == '@':
                     args.append(str(value))
                 else:

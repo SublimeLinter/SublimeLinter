@@ -683,7 +683,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
                 linter = linter[0]
 
             settings = persist.settings.get('linters', {})
-            linter_settings = settings.get(linter)
+            linter_settings = settings.get(linter, {})
             linter_settings['@disable'] = not linter_settings.get('@disable', False)
             persist.settings.set('linters', settings, changed=True)
             persist.settings.save()

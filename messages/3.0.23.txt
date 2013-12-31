@@ -1,0 +1,15 @@
+SublimeLinter 3.0.23
+---------------------
+- If no gutter marks are showing and there is no column in
+  an error message, the entire line is highlighted.
+
+- When specifying inline settings, "SublimeLinter" is now
+  case-insensitive, so for example both "[SublimeLinter flake8-ignore:E201]"
+  and "[sublimelinter flake8-ignore:E201]" will work.
+
+- If you are using a node-based linter (like jshint), nvm,
+  zsh, and oh-my-zsh, do **not** install the nvm plugin for
+  oh-my-zsh. It interferes with SublimeLinter’s ability to
+  find the path to node.
+
+- Fixed some bugs relating to default settings.

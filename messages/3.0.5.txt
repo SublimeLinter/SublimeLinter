@@ -11,7 +11,7 @@ PLEASE read this entire message!
 Before running for help, please take the time to read the Troubleshooting
 guide, which has been greatly expanded in this version.
 
-https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Troubleshooting
+http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html
 
 If you still have a problem, please use github issues only for verified bugs.
 If you have a general usage question, or are having trouble with installation
@@ -41,7 +41,7 @@ The Mac OS X keyboard equivalent for Show All Errors is now Control+Command+A.
 
 You can now preview gutter themes in the chooser! For more info, see:
 
-https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Gutter-Themes#choosing-a-gutter-theme
+http://sublimelinter.readthedocs.org/en/latest/gutter_themes.html#choosing-a-gutter-theme
 
 
 *** LINTER PLUGIN AUTHORS ***
@@ -49,7 +49,7 @@ https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Gutter-Themes#choo
 If you have already written a linter plugin, thank you! Please note
 that the usage of error_stream has changed a bit, please read:
 
-https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Writing-Linters#error_stream
+http://sublimelinter.readthedocs.org/en/latest/linter_attributes.html#error-stream
 
 
 *** KEEP SUBLIMELINTER ALIVE! ***

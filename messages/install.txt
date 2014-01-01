@@ -20,7 +20,7 @@ you know about all of the great new features in SublimeLinter 3.
 For complete documentation on how to install and use SublimeLinter,
 please see:
 
-https://github.com/SublimeLinter/SublimeLinter.github.io/wiki/Installation
+http://sublimelinter.readthedocs.org
 
 
                  _   _      _       _

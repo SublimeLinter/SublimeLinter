@@ -176,7 +176,7 @@ class PythonLinter(linter.Linter):
                 cls.cmd = None
         else:
             persist.printf(
-                'WARNING: {} disabled, no available version of python{} satisfies {}'
+                'WARNING: {} deactivated, no available version of python{} satisfies {}'
                 .format(
                     cls.name,
                     ' or {}'.format(script) if script else '',

@@ -422,7 +422,7 @@ As noted in the :ref:`examples <re-flags-example>`, these flags can also be incl
 
 regex
 -----
-**Mandatory.** A regex pattern used to extract information from the linter’s output. The pattern must contain at least the following named capture groups:
+**Mandatory.** A `python regular expression`_ pattern used to extract information from the linter’s output. The pattern must contain at least the following named capture groups:
 
 ======= ===========================================
 Name    Description
@@ -545,6 +545,10 @@ A few things to note:
 - We use ``\r?\n`` at the end of a line to ensure Windows CRLF is matched.
 
 - By capturing the dots before the caret with the ``(?P<col>[^\^]*)`` pattern, we get the column position of the error on the line.
+
+.. note::
+
+   |re-try|
 
 
 .. _selectors:

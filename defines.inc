@@ -8,12 +8,14 @@
 .. _rbenv: https://github.com/sstephenson/rbenv
 .. _easy_install: https://pypi.python.org/pypi/setuptools
 .. _pip: http://pip.readthedocs.org/en/latest/
+.. _python regular expression: http://docs.python.org/3/library/re.html#regular-expression-syntax
 
 .. |sl| replace:: SublimeLinter
 .. |st| replace:: Sublime Text 3
 .. |pc| replace:: Package Control
 .. |cmd| replace:: Command Palette (:kbd:`cmd+shift+p` on Mac OS X, :kbd:`ctrl+shift+p` on Linux/Windows)
 .. |path| replace:: ``PATH``
+.. |re-try| replace:: If you need help constructing a regular expression, the `re-try <http://re-try.appspot.com>`__ site provides an easy way to test out your regular expressions. Be sure to uncheck the “options” checkboxes.
 
 .. |_sl| replace:: `SublimeLinter <https://github.com/SublimeLinter/SublimeLinter3>`__
 .. |_org| replace:: `SublimeLinter organization <https://github.com/SublimeLinter>`__

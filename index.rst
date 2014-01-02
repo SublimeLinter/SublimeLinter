@@ -6,13 +6,19 @@ Welcome to SublimeLinter 3
 
 The documentation for |sl| is divided into two sections: one for users, and one for developers who would like to create their own linter plugins.
 
-`User Documentation`_ |bar_sep| `Developer Documentation`_ |bar_sep| `Support`_ |bar_sep| `Source`_
+`User Documentation`_ |bar_sep| `Developer Documentation`_
 
-.. _Support: https://groups.google.com/forum/#!forum/sublimelinter
-.. _Source: https://github.com/SublimeLinter/SublimeLinter3
+If you use `Dash`_, the awesome documentation reader for Mac OS X, there is a `Dash feed`_ available. The |sl| source is available `on github`_.
 
+Support
+=======
+Please use the `SublimeLinter google group`_ for support, even if you think you have found a bug. This will help us to build a knowledgebase of support info.
 
-.. _donate:
+.. _SublimeLinter google group: https://groups.google.com/forum/#!forum/sublimelinter
+.. _on github: https://github.com/SublimeLinter/SublimeLinter3
+.. _Dash: http://kapeli.com/dash
+.. _Dash Feed: dash-feed://https%3A//media.readthedocs.org/dash/sublimelinter/latest/sublimelinter.xml
+
 
 Be Part of the Team
 ===================

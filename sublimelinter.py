@@ -90,7 +90,9 @@ class SublimeLinter(sublime_plugin.EventListener):
         Lint the view with the given id.
 
         This method is called asynchronously by persist.Daemon when a lint
-        request is pulled off the queue.
+        request is pulled off the queue, or called synchronously when the
+        Lint command is executed or a file is saved and Show Errors on Save
+        is enabled.
 
         If provided, hit_time is the time at which the lint request was added
         to the queue. It is used to determine if the view has been modified

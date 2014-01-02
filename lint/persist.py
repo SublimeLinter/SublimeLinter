@@ -32,7 +32,7 @@ LINT_MODES = (
     ('manual', 'Lint only when requested')
 )
 
-SYNTAX_RE = re.compile(r'/([^/]+)\.tmLanguage$')
+SYNTAX_RE = re.compile(r'(?i)/([^/]+)\.tmLanguage$')
 
 DEFAULT_GUTTER_THEME_PATH = 'Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme'
 

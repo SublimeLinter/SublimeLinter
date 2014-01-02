@@ -153,12 +153,26 @@ class SublimeLinter(sublime_plugin.EventListener):
                 for line, errs in linter.errors.items():
                     errors.setdefault(line, []).extend(errs)
 
-        highlights.clear(view)
-        highlights.draw(view)
-        persist.errors[vid] = errors
+        # Keep track of one view in each window that shares view's buffer
+        window_views = {}
+        buffer_id = view.buffer_id()
 
-        # Update the status
-        self.on_selection_modified_async(view)
+        for window in sublime.windows():
+            wid = window.id()
+
+            for other_view in window.views():
+                if other_view.buffer_id() == buffer_id:
+                    vid = other_view.id()
+                    persist.highlights[vid]
+                    highlights.clear(other_view)
+                    highlights.draw(other_view)
+                    persist.errors[vid] = errors
+
+                    if window_views.get(wid) is None:
+                        window_views[wid] = other_view
+
+        for view in window_views.values():
+            self.on_selection_modified_async(view)
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -306,10 +320,30 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
 
+    def get_focused_view_id(self, view):
+        """
+        Return the focused view which shares view's buffer.
+
+        When updating the status, we want to make sure we get
+        the selection of the focused view, since multiple views
+        into the same buffer may be open.
+
+        """
+        active_view = view.window().active_view()
+
+        for view in view.window().views():
+            if view == active_view:
+                return view
+
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
 
         if self.is_scratch(view):
+            return
+
+        view = self.get_focused_view_id(view)
+
+        if view is None:
             return
 
         vid = view.id()

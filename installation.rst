@@ -2,17 +2,16 @@
 
 Installation
 ============
-|sl| itself is only a **framework** for linters. The linters are distributed
-as independent |st| plugins.
+|sl| itself is only a **framework** for linters. The linters are distributed as independent |st| plugins.
 
-|sl| can be installed via |pc| or from source. I **strongly** recommend that you use |pc|! Not only does it ease installation, but more importantly it automatically updates the plugins it installs, which ensures you will get the latest features and bug fixes.
+|sl| (and the linter plugins) can be installed via |_pc| or from source. I **strongly** recommend that you use |pc|! Not only does it ease installation, but more importantly it automatically updates the plugins it installs, which ensures you will get the latest features and bug fixes.
 
 
 Upgrading from previous versions
 ---------------------------------
 If you are upgrading to |sl| 3 from a previous version (including an ST3 branch), please be aware that |sl| 3 is a complete rewrite and is **not** a drop-in replacement. The basic functionality is the same, but there are key differences:
 
-- Linters are not included, you must install them — and the linter binaries they depend on — separately.
+- Linters are not included, you must install them — and the linter binaries they depend on — separately. Linters can be found in |_pc| with the name “|sl|-<linter>”, for example “|sl|-jshint”.
 
 - Settings do not work in the same way.
 
@@ -46,7 +45,8 @@ If you have a previous installation of |sl| via |pc|, including “|sl| Beta”,
 .. note::
 
    |sl| 3 does **not** include linters, unlike earlier versions.
-   You **must** install linter plugins separately.
+   You **must** install linter plugins separately. They can be found in |_pc|
+   with the name “|sl|-<linter>”, for example “|sl|-jshint”.
 
 
 Installing from source

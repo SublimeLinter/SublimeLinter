@@ -1,0 +1,13 @@
+SublimeLinter 3.0.24
+---------------------
+- A new linter setting has been added, "ignore_match",
+  which allows you to ignore errors based on the error message.
+  For more information, please see the documentation:
+
+  http://sublimelinter.readthedocs.org/en/latest/linter_settings.html#ignore-match
+
+- A Dash doc feed is now available so you can read the
+  SublimeLinter docs within Dash and they will always stay
+  up to date with the latest version.
+
+  dash-feed://https%3A//media.readthedocs.org/dash/sublimelinter/latest/sublimelinter.xml

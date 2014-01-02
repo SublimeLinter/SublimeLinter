@@ -776,6 +776,10 @@ class Linter(metaclass=LinterMeta):
             linter.clear_settings_caches()
             view_settings = linter.get_view_settings(no_inline=True)
 
+            # We compile the ignore matches for a linter on each run,
+            # clear the cache first.
+            linter.ignore_matches = None
+
             if view_settings.get('@disable'):
                 disabled.add(linter)
                 continue
@@ -801,7 +805,7 @@ class Linter(metaclass=LinterMeta):
                         continue
 
             if syntax not in linter.selectors and '*' not in linter.selectors:
-                linter.reset(code)
+                linter.reset(code, view_settings)
                 linter.lint(hit_time)
 
         selectors = Linter.get_selectors(vid, syntax)
@@ -816,7 +820,7 @@ class Linter(metaclass=LinterMeta):
             for region in view.find_by_selector(selector):
                 regions.append(region)
 
-            linter.reset(code)
+            linter.reset(code, view_settings)
             errors = {}
 
             for region in regions:
@@ -837,11 +841,75 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def reset(self, code):
+    def compile_ignore_match(self, match):
+        try:
+            return re.compile(match)
+        except re.error as err:
+            persist.printf(
+                'ERROR: {}: invalid ignore_match: "{}" ({})'
+                .format(self.name, match, str(err))
+            )
+            return None
+
+    def compiled_ignore_matches(self, ignore_match):
+        """
+        As an optimization, compile the "ignore_match" linter setting.
+
+        If it's a string, return a list with a single compiled regex.
+        If it's a list, return a list of the compiled regexes.
+        If it's a dict, return a list only of the regexes whose key
+        matches the file's extension.
+
+        """
+
+        if isinstance(ignore_match, str):
+            regex = self.compile_ignore_match(ignore_match)
+            return [regex] if regex else []
+
+        elif isinstance(ignore_match, list):
+            matches = []
+
+            for match in ignore_match:
+                regex = self.compile_ignore_match(match)
+
+                if regex:
+                    matches.append(regex)
+
+            return matches
+
+        elif isinstance(ignore_match, dict):
+            if not self.filename:
+                return []
+
+            ext = os.path.splitext(self.filename)[1].lower()
+
+            if not ext:
+                return []
+
+            # Try to match the extension, then the extension without the dot
+            ignore_match = ignore_match.get(ext, ignore_match.get(ext[1:]))
+
+            if ignore_match:
+                return self.compiled_ignore_matches(ignore_match)
+            else:
+                return []
+
+        else:
+            return []
+
+    def reset(self, code, settings):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
         self.highlight = highlight.Highlight(self.code)
+
+        if self.ignore_matches is None:
+            ignore_match = settings.get('ignore_match')
+
+            if ignore_match:
+                self.ignore_matches = self.compiled_ignore_matches(ignore_match)
+            else:
+                self.ignore_matches = []
 
     @classmethod
     def which(cls, cmd):
@@ -1139,6 +1207,28 @@ class Linter(metaclass=LinterMeta):
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
             if match and message and line is not None:
+                if self.ignore_matches:
+                    ignore = False
+
+                    for ignore_match in self.ignore_matches:
+                        if ignore_match.match(message):
+                            ignore = True
+
+                            if persist.debug_mode():
+                                persist.printf(
+                                    '{} ({}): ignore_match: "{}" == "{}"'
+                                    .format(
+                                        self.name,
+                                        os.path.basename(self.filename) or '<unsaved>',
+                                        ignore_match.pattern,
+                                        message
+                                    )
+                                )
+                            break
+
+                    if ignore:
+                        continue
+
                 if error:
                     error_type = highlight.ERROR
                 elif warning:

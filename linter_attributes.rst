@@ -57,7 +57,9 @@ For example, to specify a match for JavaScript comments, you would use the patte
 
 config_file
 -----------
-Many linters look for a config file in the linted file’s directory and in all parent directories up to the root directory. However, some of them will not do this if receiving input from ``stdin``, and others use temp files, so looking in the temp file directory doesn’t work. If this attribute is set to a tuple of a config file argument and the name of the config file, the linter will automatically try to find the config file, and if it is found, add the config file argument to the executed command.
+Many linters look for a config file in the linted file’s directory and in all parent directories up to the root directory. However, some of them will not do this if receiving input from ``stdin``, and others use temp files, so looking in the temp file directory doesn’t work.
+
+If this attribute is set to a tuple of a config file argument and the name of the config file, the linter will automatically try to find the config file, and if it is found, add the config file argument to the executed command.
 
 For example, if ``config_file`` is set to:
 
@@ -73,7 +75,19 @@ when |sl| builds the argument list for the command line, if the file being linte
 
 to the command line that runs the linter executable. Note that this facility works correctly when ``'*'`` is used as an argument placeholder in :ref:`cmd`.
 
-The default value is ``None``.
+You may also pass an arbitrary number of auxiliary directories to search after the second element, and ``~`` is expanded in those paths. If the hierarchy search fails, the auxiliary directories are checked in the order they are declared.
+
+.. note::
+
+   When checking auxiliary directories, the hierarchy is **not** traversed. Only those directories are checked for the given filename.
+
+Going back to the :file:`.jshintrc` example above, to search in the file hierarchy and then in the user’s home directory for a :file:`.jshintrc` file, we would use this:
+
+.. code-block:: python
+
+    config_file = ('--config', '.jshintrc', '~')
+
+The default value for ``config_file`` is ``None``.
 
 
 default_type

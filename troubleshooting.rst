@@ -111,7 +111,7 @@ If the result of ``which`` displays a path, this means the executable is in your
 
 Shell startup files
 ~~~~~~~~~~~~~~~~~~~
-All shells read a “profile” file of some sort, and when the shell is interactive, it also reads an “rc” (runtime configuration) file. For example, bash reads :file:`.bash_profile` and :file:`.bashrc` (among others) and zsh reads :file:`.zprofile` and :file:`.zshrc` (among others).
+All shells read a “profile/env” file of some sort, and when the shell is interactive, it also reads an “rc” (runtime configuration) file. For example, bash reads :file:`.bash_profile` and :file:`.bashrc` (among others) and zsh reads :file:`.zshenv` and :file:`.zshrc` (among others).
 
 If you aren’t sure what shell you are using, type this in a terminal:
 
@@ -119,7 +119,7 @@ If you aren’t sure what shell you are using, type this in a terminal:
 
     echo $SHELL
 
-When |sl| starts up, it runs your shell as a **login shell** to get the |path|. This forces the shell to read the “profile” file, but for most shells the “rc” file is not read. There is a very good reason for this: performing initialization that only relates to interactive shells is not only wasteful, it will in many cases fail if there is no terminal attached to the process. By the same token, you should avoid putting code in the “profile” file that has any output (such as :program:`motd` or :program:`fortune`), since that only works with interactive shells attached to a terminal.
+When |sl| starts up, it runs your shell as a **login shell** to get the |path|. This forces the shell to read the “profile/env” file, but for most shells the “rc” file is not read. There is a very good reason for this: performing initialization that only relates to interactive shells is not only wasteful, it will in many cases fail if there is no terminal attached to the process. By the same token, you should avoid putting code in the “profile/env” file that has any output (such as :program:`motd` or :program:`fortune`), since that only works with interactive shells attached to a terminal.
 
 The list of shells supported by |sl| and the startup file that must contain |path| augmentations is shown in this table:
 
@@ -128,17 +128,37 @@ The list of shells supported by |sl| and the startup file that must contain |pat
 +=========+============================+
 | bash    | ~/.bash_profile            |
 +---------+----------------------------+
-| zsh     | ~/.zprofile                |
+| zsh     | ~/.zshenv                  |
 +---------+----------------------------+
 | fish    | ~/.config/fish/config.fish |
 +---------+----------------------------+
+
+A special note for oh-my-zsh users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are using :program:`zsh` and :program:`oh-my-zsh`, there is a bug in :program:`oh-my-zsh` that causes :file:`.zshenv` to be loaded twice. To fix it, do the following:
+
+#. Open :file:`~/.oh-my-zsh/oh-my-zsh.sh`. At the very top you will see code something like this:
+
+   .. code-block:: none
+
+        if [ "$DISABLE_AUTO_UPDATE" != "true" ]; then
+            /usr/bin/env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh $ZSH/tools/check_for_upgrade.sh
+        fi
+
+#. On the line the line that begins with ``/usr/bin/env``, change ``zsh`` towards the end to ``zsh -f``. The complete line should then be:
+
+   .. code-block:: none
+
+        /usr/bin/env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh -f $ZSH/tools/check_for_upgrade.sh
+
+#. Save the file.
 
 
 .. _augmenting-path:
 
 Augmenting PATH
 ~~~~~~~~~~~~~~~
-When you installed a linter executable, it may have augmented your |path| in the “rc” file. But for |sl| to pick up these path augmentations, you must move such augmentations to the “profile” file. For example, if you are using bash as your shell and you installed `rbenv`_, you would probably find this in your :file:`.bashrc` file:
+When you installed a linter executable, it may have augmented your |path| in the “rc” file. But for |sl| to pick up these path augmentations, you must move such augmentations to the “profile/env” file. For example, if you are using bash as your shell and you installed `rbenv`_, you would probably find this in your :file:`.bashrc` file:
 
 .. code-block:: none
 
@@ -151,9 +171,9 @@ If :program:`which` or :program:`where` cannot find a linter executable from the
 +---------+----------------------------+-----------------------------------+
 | Shell   | File                       | Code                              |
 +=========+============================+===================================+
-| bash    | ~/.bash\_profile           | export PATH=$PATH:/opt/bin        |
+| bash    | ~/.bash_profile            | export PATH=$PATH:/opt/bin        |
 +---------+----------------------------+-----------------------------------+
-| zsh     | ~/.zprofile                | export PATH=$PATH:/opt/bin        |
+| zsh     | ~/.zshenv                  | export PATH=$PATH:/opt/bin        |
 +---------+----------------------------+-----------------------------------+
 | fish    | ~/.config/fish/config.fish | set PATH $PATH /opt/bin           |
 +---------+----------------------------+-----------------------------------+
@@ -195,6 +215,10 @@ If your changes were correct, it will print the path to the linter executable. I
     > path
 
 At this point you should double-check that you followed the instructions above correctly, and if you still cannot figure out what is going wrong, post a message on the |_group|. Be sure to outline the steps you took and include the contents of your shell startup file.
+
+.. note::
+
+   If all else fails, you can use the :ref:`"paths" setting <paths-setting>` to add directories to the PATH that |sl| uses.
 
 
 Debugging python-based linters

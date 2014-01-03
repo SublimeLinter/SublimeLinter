@@ -10,15 +10,15 @@ If you would like to submit a fix or enhancement to |sl|, thank you!
 
 #. Create an upstream remote if you haven’t already:
 
-.. code-block:: none
+   .. code-block:: none
 
-     git remote add -t master -m master -f upstream git@github.com:SublimeLinter/SublimeLinter3.git
+      git remote add -t master -m master -f upstream git@github.com:SublimeLinter/SublimeLinter3.git
 
 #. Create a new branch from the upstream master:
 
-.. code-block:: none
+   .. code-block:: none
 
-     git checkout --no-track -b fix upstream/master
+      git checkout --no-track -b fix upstream/master
 
    Feel free to change “fix” to something more descriptive, like “fix-no-args”.
 
@@ -28,17 +28,17 @@ If you would like to submit a fix or enhancement to |sl|, thank you!
 
 #. When you are ready to push, merge upstream again to make sure your changes will merge cleanly:
 
-.. code-block:: none
+   .. code-block:: none
 
-     git pull --rebase upstream/master
+      git pull --rebase upstream/master
 
    If there are merge conflicts, fix them, commit the changes, and do this step again until it merges cleanly.
 
 #. Push your branch to your fork:
 
-.. code-block:: none
+   .. code-block:: none
 
-     git push -u origin fix
+      git push -u origin fix
 
    Substitute your branch name for “fix”.
 

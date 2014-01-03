@@ -35,15 +35,15 @@ Got it? Okay, here we go:
 
 #. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-<linter>`, initialize it as a git repository if :program:`git` is available, and then open it in a new window.
 
-.. note::
+   .. note::
 
-   Do **not** rename the plugin directory unless absolutely necessary. The directory name **must** come after “|sl|” alphabetically to ensure |sl| loads before the linter plugins.
+      Do **not** rename the plugin directory unless absolutely necessary. The directory name **must** come after “|sl|” alphabetically to ensure |sl| loads before the linter plugins.
 
 #. The plugin directory will be opened in |st|. You can then start modifying the linter plugin (``linter.py``) according to your needs.
 
-.. note::
+   .. note::
 
-   If you wish to have the linter plugin included in the |sl| organization on github, be sure to follow the :ref:`coding guidelines <coding-guidelines>` below.
+      If you wish to have the linter plugin included in the |sl| organization on github, be sure to follow the :ref:`coding guidelines <coding-guidelines>` below.
 
 
 Updating class attributes

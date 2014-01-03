@@ -61,7 +61,7 @@ If you insist on installing from source, please do not do so unless you are comf
 
 #. Type in a terminal:
 
-.. code-block:: none
+   .. code-block:: none
 
       cd '/path/to/Sublime Text 3/Packages'
       git clone https://github.com/SublimeLinter/SublimeLinter3.git SublimeLinter

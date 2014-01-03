@@ -1,0 +1,9 @@
+SublimeLinter 3.0.26
+---------------------
+- I have switched back to .zshenv as the recommended place
+  to put PATH augmentations for zsh. On Ubuntu, shells are
+  not started as login shells by default in terminals, which
+  prevented .zprofile from loading. If anyone has trouble
+  using .zshenv, let me know.
+
+- Added Retina icons for the Default and Circle gutter themes.

@@ -2,7 +2,7 @@
     "javascript": {
         "platform": "[Node.js](http://nodejs.org) (and [npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager) on Linux)",
         "installer": "npm install -g {}",
-        "extra_steps": "1. If you are using `nvm` and `zsh`, ensure that the line to load `nvm` is in `.zprofile` and not `.zshrc`.\n\n1. If you are using `zsh` and `oh-my-zsh`, do not load the `nvm` plugin for `oh-my-zsh`.",
+        "extra_steps": "1. If you are using `nvm` and `zsh`, ensure that the line to load `nvm` is in `.zshenv` and not `.zshrc`.\n\n1. If you are using `zsh` and `oh-my-zsh`, do not load the `nvm` plugin for `oh-my-zsh`.",
         "comment_re": "r'\\s*/[/*]'"
     },
 

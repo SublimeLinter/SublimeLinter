@@ -1117,7 +1117,11 @@ class Linter(metaclass=LinterMeta):
 
         if self.config_file:
             if self.config_file[0] not in args and self.filename:
-                config = util.find_file(os.path.dirname(self.filename), self.config_file[1])
+                config = util.find_file(
+                    os.path.dirname(self.filename),
+                    self.config_file[1],
+                    aux_dirs=self.config_file[2:]
+                )
 
                 if config:
                     args += [self.config_file[0], config]

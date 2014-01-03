@@ -485,7 +485,7 @@ def climb(start_dir, limit=None):
             limit -= 1
 
 
-def find_file(start_dir, name, parent=False, limit=None):
+def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
     """
     Find the given file by searching up the file hierarchy from start_dir.
 
@@ -495,9 +495,22 @@ def find_file(start_dir, name, parent=False, limit=None):
     If limit is None or <= 0, the search will continue up to the root directory.
     Otherwise a maximum of limit directories will be checked.
 
+    If aux_dirs is not empty and the file hierarchy search failed,
+    those directories are also checked.
+
     """
 
     for d in climb(start_dir, limit=limit):
+        target = os.path.join(d, name)
+
+        if os.path.exists(target):
+            if parent:
+                return d
+
+            return target
+
+    for d in aux_dirs:
+        d = os.path.expanduser(d)
         target = os.path.join(d, name)
 
         if os.path.exists(target):

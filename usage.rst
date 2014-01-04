@@ -25,7 +25,11 @@ For more information on customizing the colors used by |sl|, see :doc:`Global Se
 
 Customized syntax definitions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-|sl| supports linting of embedded syntaxes, such as JavaScript and CSS within an HTML file, by specifying a scope to which the linter is limited. Unfortunately the stock HTML syntax definition that ships with |st| incorrectly classifies the scope of embedded JavaScript and CSS, which leads to false errors during linting. To solve this problem, at load time |sl| installs a fixed version of the HTML syntax package in the :file:`Packages` directory.
+|sl| supports linting of embedded syntaxes, such as JavaScript and CSS within an HTML file, by specifying a scope to which the linter is limited. Unfortunately the stock syntax definitions that ship with |st| incorrectly classify the scope of embedded languages, which leads to false errors during linting. To solve this problem, at load time |sl| installs fixed versions of the ``HTML`` and ``HTML (Rails)`` syntax packages in the :file:`Packages` directory.
+
+.. note::
+
+   The first time the fixed syntaxes are installed, you may need to restart |st| for them to be applied to source files in those syntaxes.
 
 Assigning linters
 -----------------

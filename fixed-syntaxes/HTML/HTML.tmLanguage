@@ -345,7 +345,7 @@
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.tag.begin.html</string>
+							<string>punctuation.definition.tag.end.html</string>
 						</dict>
 						<key>2</key>
 						<dict>

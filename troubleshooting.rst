@@ -123,15 +123,17 @@ When |sl| starts up, it runs your shell as a **login shell** to get the |path|. 
 
 The list of shells supported by |sl| and the startup file that must contain |path| augmentations is shown in this table:
 
-+---------+----------------------------+
-| Shell   | File                       |
-+=========+============================+
-| bash    | ~/.bash_profile            |
-+---------+----------------------------+
-| zsh     | ~/.zshenv                  |
-+---------+----------------------------+
-| fish    | ~/.config/fish/config.fish |
-+---------+----------------------------+
++----------------+----------------------------+
+| Shell          | File                       |
++================+============================+
+| bash           | ~/.bash_profile            |
++----------------+----------------------------+
+| zsh (Mac OS X) | ~/.zprofile                |
++----------------+----------------------------+
+| zsh (Linux)    | ~/.zshenv                  |
++----------------+----------------------------+
+| fish           | ~/.config/fish/config.fish |
++----------------+----------------------------+
 
 A special note for oh-my-zsh users
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,15 +170,17 @@ For |sl| to “see” this, however, you have to move that line from :file:`.bas
 
 If :program:`which` or :program:`where` cannot find a linter executable from the command line, you need to add the executable’s parent directory to your |path|. Assuming a directory of :file:`/opt/bin`, on Mac OS X or Linux the changes you would make are summarized in the following table:
 
-+---------+----------------------------+-----------------------------------+
-| Shell   | File                       | Code                              |
-+=========+============================+===================================+
-| bash    | ~/.bash_profile            | export PATH=$PATH:/opt/bin        |
-+---------+----------------------------+-----------------------------------+
-| zsh     | ~/.zshenv                  | export PATH=$PATH:/opt/bin        |
-+---------+----------------------------+-----------------------------------+
-| fish    | ~/.config/fish/config.fish | set PATH $PATH /opt/bin           |
-+---------+----------------------------+-----------------------------------+
++----------------+----------------------------+-----------------------------------+
+| Shell          | File                       | Code                              |
++================+============================+===================================+
+| bash           | ~/.bash_profile            | export PATH=$PATH:/opt/bin        |
++----------------+----------------------------+-----------------------------------+
+| zsh (Mac OS X) | ~/.zprofile                | export PATH=$PATH:/opt/bin        |
++----------------+----------------------------+-----------------------------------+
+| zsh (Linux)    | ~/.zshenv                  | export PATH=$PATH:/opt/bin        |
++----------------+----------------------------+-----------------------------------+
+| fish           | ~/.config/fish/config.fish | set PATH $PATH /opt/bin           |
++----------------+----------------------------+-----------------------------------+
 
 On Windows you need to edit your |path| environment variable directly. The easiest way to do this is with the `Path Editor`_, a free application. Once you install and launch Path Editor, follow these steps:
 

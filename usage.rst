@@ -33,7 +33,7 @@ Customized syntax definitions
 
 Assigning linters
 -----------------
-When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views into the same file.
+When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views of the same file.
 
 .. _usage-linting:
 
@@ -74,7 +74,7 @@ When calling a system linter binary, the user’s |path| environment variable is
 
    On Mac OS X and Linux, special care must be taken to ensure your |path| is set up in such a way that |sl| can read it. For more information, see :ref:`Debugging PATH problems <debugging-path-problems>`.
 
-In addition to the to the |path| |sl| reads from the system, any directories in the global ``"paths"`` setting for the current platform are searched when attempting to locate a binary. For more information, see the :ref:`Global Settings <paths-setting>` documentation.
+In addition to the |path| |sl| reads from the system, any directories in the global ``"paths"`` setting for the current platform are searched when attempting to locate a binary. For more information, see the :ref:`Global Settings <paths-setting>` documentation.
 
 
 Python paths

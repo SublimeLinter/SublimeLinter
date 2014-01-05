@@ -33,7 +33,7 @@ Customized syntax definitions
 
 Assigning linters
 -----------------
-When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views in the same file.
+When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views of the same file.
 
 .. _usage-linting:
 

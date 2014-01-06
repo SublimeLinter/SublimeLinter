@@ -536,7 +536,7 @@ def run_shell_cmd(cmd):
 def extract_path(cmd, delim=':'):
     """Return the user's PATH as a colon-delimited list."""
     from . import persist
-    persist.debug('User shell:', cmd[0])
+    persist.debug('user shell:', cmd[0])
 
     out = run_shell_cmd(cmd).decode()
     path = out.split('__SUBL_PATH__', 2)

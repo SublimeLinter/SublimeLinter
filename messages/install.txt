@@ -10,9 +10,15 @@ Welcome to SublimeLinter, a linter framework for Sublime Text 3.
 
                  * * * IMPORTANT! * * *
 
-        LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3.
+        SublimeLinter 3 is NOT a drop-in replacement for
+        earlier versions.
 
-          * * * PLEASE READ THE DOCUMENTATION! * * *
+        Linters *NOT* included with SublimeLinter 3, they
+        must be installed separately.
+
+        Settings are different.
+
+                * * * READ THE DOCS! * * *
 
 Otherwise you will never know how to install linters, nor will
 you know about all of the great new features in SublimeLinter 3.

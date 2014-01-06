@@ -717,7 +717,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         """Copy the template linter to a new linter with the given name."""
 
         self.name = name
-        self.fullname = 'SublimeLinter-{}'.format(name)
+        self.fullname = 'SublimeLinter-contrib-{}'.format(name)
         self.dest = os.path.join(sublime.packages_path(), self.fullname)
 
         if os.path.exists(self.dest):

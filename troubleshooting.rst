@@ -56,7 +56,7 @@ Once you are confident the problem is solved, you can turn debug mode off using 
 
 Debugging PATH problems
 -----------------------
-In order for |sl| to use linter executables, it must be able to find them on your system. At startup |sl| queries the system to get your |path| and in debug mode prints the path to the console under the heading ``SublimeLinter: computed PATH <source>:``. You can use that information to help you determine why a linter executable cannot be found.
+In order for |sl| to use linter executables, it must be able to find them on your system. At startup |sl| queries the system to get your |path| and in :ref:`debug mode <debug-mode>` prints the path to the console under the heading ``SublimeLinter: computed PATH <source>:``. You can use that information to help you determine why a linter executable cannot be found.
 
 If a linter’s executable cannot be found when the linter plugin is loaded, the plugin is disabled and you will see a message like this in the console:
 

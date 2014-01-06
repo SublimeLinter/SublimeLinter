@@ -33,11 +33,11 @@ Got it? Okay, here we go:
 
 #. An input field will appear at the bottom of the window. Enter the name of the linter binary — **not** the language — that the plugin will interface with and press :kbd:`Return`.
 
-#. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-<linter>`, initialize it as a git repository if :program:`git` is available, and then open it in a new window.
+#. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-contrib-<linter>`, initialize it as a git repository if :program:`git` is available, and then open it in a new window.
 
    .. note::
 
-      Do **not** rename the plugin directory unless absolutely necessary. The directory name **must** come after “|sl|” alphabetically to ensure |sl| loads before the linter plugins.
+      Do **not** rename the plugin directory unless absolutely necessary. The directory name **must** come after “|sl|” alphabetically to ensure |sl| loads before the linter plugins. Also, user-created linter plugins use the “-contrib” prefix to distinguish them from “official” plugins that have been vetted and moved into the SublimeLinter org on github.
 
 #. The plugin directory will be opened in |st|. You can then start modifying the linter plugin (``linter.py``) according to your needs.
 

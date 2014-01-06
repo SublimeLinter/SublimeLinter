@@ -1,0 +1,28 @@
+SublimeLinter 3.0.28
+---------------------
+
+I am very grateful to everyone who has created linter plugins and made
+the commitment to maintain and support them.
+
+SublimeLinter is only as good as its linters, so I feel every linter
+released to the public should be up to the standards I am holding
+myself to with SublimeLinter. As a result, I have taken the following
+step:
+
+- We have moved all of the SublimeLinter linter plugins to a private channel.
+  In the future, any requests for publishing through Package Control will
+  be vetted for basic correctness.
+
+- Linter plugins that are not in the SublimeLinter org on github have
+  been renamed to SublimeLinter-contrib-*, so users can know that these
+  are user-contributed, vs. the "official" linters in the SublimeLinter
+  org.
+
+- When creating a linter plugin using the "Create Linter Plugin" command,
+  the name is SublimeLinter-contrib-* name.
+
+Of course I want as many linters as possible in the SublimeLinter org.
+Anyone who is willing to have their plugin vetted and is willing to
+maintain and support their linter will be welcome in the org.
+
+Thank you for your support!

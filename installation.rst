@@ -13,11 +13,11 @@ If you are upgrading to |sl| 3 from a previous version (including an ST3 branch)
 
 - Linters are not included, you must install them — and the linter binaries they depend on — separately. Linters can be found in |_pc| with the name “|sl|-<linter>”, for example “|sl|-jshint”.
 
-- Settings do not work in the same way.
+- :doc:`Settings <settings>` do not work in the same way.
 
-- You no longer need to use path settings voodoo to find linter executables. Anything in your system |path| is found automatically.
+- You no longer need to use path settings voodoo to find linter executables. Anything in your system |path| is :ref:`found automatically <how-linter-executables-are-located>`.
 
-- Most settings can be configured via menus and the Command Palette, which you are encouraged to do.
+- Most settings can be configured :doc:`via menus and the Command Palette <usage>`, which you are encouraged to do.
 
 - There are dozens of new features.
 

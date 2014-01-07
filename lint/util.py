@@ -243,7 +243,6 @@ def generate_color_scheme_async():
     original_name = os.path.splitext(os.path.basename(scheme))[0]
     name = original_name + ' (SL)'
     scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
-    have_existing = os.path.exists(scheme_path)
 
     with open(scheme_path, 'w', encoding='utf8') as f:
         f.write(COLOR_SCHEME_PREAMBLE)
@@ -253,12 +252,6 @@ def generate_color_scheme_async():
     path = os.path.join('User', os.path.basename(scheme_path))
     prefs.set('color_scheme', packages_relative_path(path))
     sublime.save_settings('Preferences.sublime-settings')
-
-    if not have_existing:
-        sublime.message_dialog(
-            'SublimeLinter generated and switched to an amended version'
-            ' of “{}” in User.'.format(original_name)
-        )
 
 
 def change_mark_colors(error_color, warning_color):

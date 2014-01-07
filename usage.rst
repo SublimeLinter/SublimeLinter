@@ -19,9 +19,8 @@ The default settings are loaded from the plugin and merged with the settings in 
 
 Color scheme
 ~~~~~~~~~~~~
-In order to color errors, warnings and gutter icons correctly, |sl| relies on specific named colors being available in the current color scheme. Whenever a color scheme is loaded — either implicitly at startup or by selecting a color scheme — |sl| checks to see if the color scheme contains its named colors. If not, it adds those colors to a copy of the color scheme, writes it to the :file:`Packages/User` directory with a “ (SL)” suffix added to the filename, and switches to the modified color scheme. You are then notified of the change. If an existing color scheme with the same name already exists in :file:`Packages/User`, you are asked if you would like to overwrite it or use the existing one.
+SublimeLinter has to convert color schemes for its use. For more information, see :ref:`Choosing color schemes <choosing-color-schemes>`.
 
-For more information on customizing the colors used by |sl|, see :doc:`Global Settings <global_settings>`.
 
 Customized syntax definitions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,6 +103,21 @@ You can quickly toggle a linter on or off. To do so:
 #. Once you select the command, a list of the relevant linters appears. If you chose ``SublimeLinter: Disable Linter``, only the enabled linters appear in the list. If you chose ``SublimeLinter: Enable Linter``, only the disabled linters appear.
 
 #. Select a linter from the list. It will be toggled, disabled or enabled, depending on the command you chose.
+
+
+.. _choosing-color-schemes:
+
+Choosing color schemes
+----------------------
+In order to color errors, warnings and gutter icons correctly, |sl| relies on specific named colors being available in the current color scheme. Whenever a color scheme is loaded — either implicitly at startup or by selecting a color scheme — |sl| checks to see if the color scheme contains its named colors. If not, it adds those colors to a copy of the color scheme, writes it to the :file:`Packages/User` directory with a “ (SL)” suffix added to the filename, and switches to the modified color scheme. You are then notified of the change.
+
+For example, if you select ``Preferences > Color Scheme > Color Scheme - Default > Monokai``, |sl| will convert it, write the converted color scheme to :file:`Packages/User/Monokai (SL).tmTheme`, and switch to that color scheme. If you then open the ``Preferences > Color Scheme`` menu, ``User > Monokai (SL)`` is checked.
+
+.. warning::
+
+   If you choose an unconverted color scheme and an existing converted color scheme exists in :file:`Packages/User`, it will be overwritten.
+
+For more information on customizing the colors used by |sl|, see :doc:`Global Settings <global_settings>`.
 
 
 User interface

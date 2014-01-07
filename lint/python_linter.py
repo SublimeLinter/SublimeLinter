@@ -137,10 +137,16 @@ class PythonLinter(linter.Linter):
                             module = None
 
             except ImportError:
-                persist.printf(
-                    'WARNING: import of {} module in {} failed'
-                    .format(module, cls.name)
-                )
+                message = '{}import of {} module in {} failed'
+
+                if cls.check_version:
+                    warning = 'WARNING: '
+                    message += ', linter will not work with python 3 code'
+                else:
+                    warning = ''
+                    message += ', linter will not run using built in python'
+
+                persist.printf(message.format(warning, module, cls.name))
                 module = None
 
             except Exception as ex:

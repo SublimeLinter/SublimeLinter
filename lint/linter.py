@@ -141,7 +141,7 @@ class LinterMeta(type):
 
     @staticmethod
     def make_alt_name(name):
-        """Convert a camel-case name to lowercase with dashes."""
+        """Convert and return a camel-case name to lowercase with dashes."""
         previous = name[0]
         alt_name = previous.lower()
 
@@ -370,6 +370,7 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def clear_settings_caches(cls):
+        """Clear lru caches for this class' methods."""
         cls.get_view_settings.cache_clear()
         cls.get_merged_settings.cache_clear()
 
@@ -841,19 +842,20 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def compile_ignore_match(self, match):
+    def compile_ignore_match(self, pattern):
+        """Return the compiled pattern, log the error if compilation fails."""
         try:
-            return re.compile(match)
+            return re.compile(pattern)
         except re.error as err:
             persist.printf(
                 'ERROR: {}: invalid ignore_match: "{}" ({})'
-                .format(self.name, match, str(err))
+                .format(self.name, pattern, str(err))
             )
             return None
 
     def compiled_ignore_matches(self, ignore_match):
         """
-        As an optimization, compile the "ignore_match" linter setting.
+        Compile the "ignore_match" linter setting as an optimization.
 
         If it's a string, return a list with a single compiled regex.
         If it's a list, return a list of the compiled regexes.

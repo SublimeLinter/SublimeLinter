@@ -967,22 +967,12 @@ class Linter(metaclass=LinterMeta):
             cmd = list(cmd)
 
         which = cmd[0]
+        have_path, path = self.context_sensitive_executable_path(cmd)
 
-        # Check to see if we have a @python command
-        match = util.PYTHON_CMD_RE.match(cmd[0])
-        settings = self.get_view_settings()
-
-        if match and '@python' in settings:
-            script = match.group('script') or ''
-            which = '{}@python{}'.format(script, settings.get('@python'))
-            path = self.which(which)
-
-            if path:
-                # Returning None means the linter runs code internally
-                if path[0] == '<builtin>':
-                    return None
-                elif path[0] is None or script and path[1] is None:
-                    path = None
+        if have_path:
+            # Returning None means the linter runs code internally
+            if path == '<builtin>':
+                return None
         elif self.executable_path:
             path = self.executable_path
 
@@ -997,6 +987,15 @@ class Linter(metaclass=LinterMeta):
 
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
+
+    def context_sensitive_executable_path(self, cmd):
+        """
+        Calculate the context-sensitive executable path, return a tuple of (have_path, path).
+
+        Subclasses may override this to return a special path.
+
+        """
+        return False, None
 
     def insert_args(self, cmd):
         """Insert user arguments into cmd and return the result."""

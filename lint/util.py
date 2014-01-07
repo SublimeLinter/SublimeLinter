@@ -243,31 +243,21 @@ def generate_color_scheme_async():
     original_name = os.path.splitext(os.path.basename(scheme))[0]
     name = original_name + ' (SL)'
     scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
-    generate = True
     have_existing = os.path.exists(scheme_path)
 
-    if have_existing:
-        generate = sublime.ok_cancel_dialog(
-            'SublimeLinter wants to generate an amended version of “{}”,'
-            ' but one already exists. Overwrite it, or cancel and use'
-            ' the existing amended version?'.format(original_name),
-            'Overwrite'
-        )
-
-    if (generate):
-        with open(scheme_path, 'w', encoding='utf8') as f:
-            f.write(COLOR_SCHEME_PREAMBLE)
-            f.write(ElementTree.tostring(plist, encoding='unicode'))
+    with open(scheme_path, 'w', encoding='utf8') as f:
+        f.write(COLOR_SCHEME_PREAMBLE)
+        f.write(ElementTree.tostring(plist, encoding='unicode'))
 
     # Set the amended color scheme to the current color scheme
     path = os.path.join('User', os.path.basename(scheme_path))
     prefs.set('color_scheme', packages_relative_path(path))
     sublime.save_settings('Preferences.sublime-settings')
 
-    if generate and not have_existing:
+    if not have_existing:
         sublime.message_dialog(
             'SublimeLinter generated and switched to an amended version'
-            ' of “{}”.'.format(original_name)
+            ' of “{}” in User.'.format(original_name)
         )
 
 

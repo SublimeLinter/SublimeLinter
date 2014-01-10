@@ -964,7 +964,7 @@ def find_executable(executable):
     env = create_environment()
 
     for base in env.get('PATH', '').split(os.pathsep):
-        path = os.path.join(base, executable)
+        path = os.path.join(os.path.expanduser(base), executable)
 
         # On Windows, if path does not have an extension, try .exe, .cmd, .bat
         if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:

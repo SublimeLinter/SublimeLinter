@@ -945,6 +945,7 @@ def get_python_paths():
         if persist.debug_mode():
             persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
     else:
+        persist.debug('no python 3 available to augment sys.path')
         paths = []
 
     return paths

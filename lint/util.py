@@ -508,7 +508,8 @@ def run_shell_cmd(cmd):
     proc = popen(cmd, env=os.environ)
 
     try:
-        out, err = proc.communicate(timeout=1)
+        from . import persist
+        out, err = proc.communicate(timeout=persist.settings.get('shell_timeout', 10))
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''

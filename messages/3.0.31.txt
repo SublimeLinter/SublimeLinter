@@ -1,0 +1,7 @@
+SublimeLinter 3.0.31
+---------------------
+- When reading PATH from the shell, the default timeout has been increased
+  to 10 seconds. If that is not sufficient, a new setting, "shell_timeout",
+  has been added, which can be set to the desired amount of time in seconds.
+
+- When searching for executables, ~ is expanded in PATH components.

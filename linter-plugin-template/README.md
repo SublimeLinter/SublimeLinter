@@ -1,5 +1,5 @@
-SublimeLinter-__linter__
-=========================
+SublimeLinter-contrib-__linter__
+================================
 
 This linter plugin for [SublimeLinter][docs] provides an interface to [__linter__](__linter_homepage__). It will be used with files that have the “__syntax__” syntax.
 
@@ -18,7 +18,10 @@ Before using this plugin, you must ensure that `__linter__` is installed on your
 __extra_install_steps__
 Once `__linter__` is installed, you must ensure it is in your system PATH so that SublimeLinter can find it. This may not be as straightforward as you think, so please read about [how linter executables are located][locating-executables] in the documentation.
 
-Once you have installed `__linter__` you can proceed to install the SublimeLinter-__linter__ plugin if it is not yet installed.
+### Linter configuration
+In order for `__linter__` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [“Finding a linter executable”](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation.
+
+Once you have installed and configured `__linter__`, you can proceed to install the SublimeLinter-contrib-__linter__ plugin if it is not yet installed.
 
 ### Plugin installation
 Please use [Package Control][pc] to install the linter plugin. This will ensure that the plugin will be updated when new versions are available. If you want to install from source so you can modify the source code, you probably know what you are doing so we won’t cover that here.
@@ -27,12 +30,12 @@ To install via Package Control, do the following:
 
 1. Within Sublime Text, bring up the [Command Palette][cmd] and type `install`. Among the commands you should see `Package Control: Install Package`. If that command is not highlighted, use the keyboard or mouse to select it. There will be a pause of a few seconds while Package Control fetches the list of available plugins.
 
-1. When the plugin list appears, type `__linter__`. Among the entries you should see `SublimeLinter-__linter__`. If that entry is not highlighted, use the keyboard or mouse to select it.
+1. When the plugin list appears, type `__linter__`. Among the entries you should see `SublimeLinter-contrib-__linter__`. If that entry is not highlighted, use the keyboard or mouse to select it.
 
 ## Settings
 For general information on how SublimeLinter works with settings, please see [Settings][settings]. For information on generic linter settings, please see [Linter Settings][linter-settings].
 
-In addition to the standard SublimeLinter settings, SublimeLinter-__linter__ provides its own settings. Those marked as “Inline Setting” or “Inline Override” may also be [used inline][inline-settings].
+In addition to the standard SublimeLinter settings, SublimeLinter-contrib-__linter__ provides its own settings. Those marked as “Inline Setting” or “Inline Override” may also be [used inline][inline-settings].
 
 |Setting|Description|Inline Setting|Inline Override|
 |:------|:----------|:------------:|:-------------:|

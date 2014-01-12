@@ -111,6 +111,8 @@ Here is an example user settings file:
 
 All of these values were initially filled in by |sl| when the file was first opened. After that, it’s just a matter of changing the settings.
 
+.. _opening-user-settings:
+
 There are three easy ways to open the user settings:
 
 **Command Palette**

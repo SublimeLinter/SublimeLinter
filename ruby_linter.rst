@@ -27,10 +27,10 @@ The following forms are valid for the first argument of ``cmd``:
     gem
     ruby
 
-If :program:`rbenv` is installed and the gem is also under :program:`rbenv` control,
+If ``rbenv`` is installed and the gem is also under ``rbenv`` control,
 the gem will be executed directly. Otherwise ``(ruby [, gem])`` will be executed.
 
-If :program:`rvm-auto-ruby` is installed, ``(rvm-auto-ruby [, gem])`` will be executed.
+If ``rvm-auto-ruby`` is installed, ``(rvm-auto-ruby [, gem])`` will be executed.
 
 Otherwise ``ruby`` or ``gem`` will be executed.
 

@@ -33,7 +33,7 @@ Got it? Okay, here we go:
 
 #. An input field will appear at the bottom of the window. Enter the name of the linter binary — **not** the language — that the plugin will interface with and press :kbd:`Return`.
 
-#. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-contrib-<linter>`, initialize it as a git repository if :program:`git` is available, and then open it in a new window.
+#. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-contrib-<linter>`, initialize it as a git repository if ``git`` is available, and then open it in a new window.
 
    .. note::
 

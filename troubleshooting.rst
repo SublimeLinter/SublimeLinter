@@ -56,7 +56,13 @@ Once you are confident the problem is solved, you can turn debug mode off using 
 
 Debugging PATH problems
 -----------------------
-In order for |sl| to use linter executables, it must be able to find them on your system. At startup |sl| queries the system to get your |path| and in :ref:`debug mode <debug-mode>` prints the path to the console under the heading ``SublimeLinter: computed PATH <source>:``. You can use that information to help you determine why a linter executable cannot be found.
+In order for |sl| to use linter executables, it must be able to find them on your system. There are two possible sources for executable path information:
+
+#. The |path| environment variable.
+
+#. The :ref:`"paths" <paths-setting>` global setting.
+
+At startup |sl| queries the system to get your |path| and merges that with paths in the :ref:`"paths" <paths-setting>` setting. In :ref:`debug mode <debug-mode>` |sl| prints the computed path to the console under the heading ``SublimeLinter: computed PATH <source>:``. You can use that information to help you determine why a linter executable cannot be found.
 
 If a linter’s executable cannot be found when the linter plugin is loaded, the plugin is disabled and you will see a message like this in the console:
 
@@ -102,16 +108,50 @@ First you need to see if the linter executable is in your |path|. Enter the foll
     cd
     where linter
 
-If the result says that the linter could not be found, that means the linter executable is in a directory which is not in your |path|, and |sl| will not be able to find it. At this point you will have to find out what directory the executable was installed in from the linter’s documentation. Once you find that, you will need to add that directory to your |path| by following the steps in :ref:`Augmenting PATH <augmenting-path>` below.
+If the result says that the linter could not be found, that means the linter executable is in a directory which is not in your |path|, and |sl| will not be able to find it. At this point you will have to find out what directory the executable was installed in from the linter’s documentation. Once you find that, you will need to augment your |path| by following the steps in :ref:`Augmenting PATH <augmenting-path>` below.
 
-If the result of ``which`` displays a path, this means the executable is in your |path|, but you are on Mac OS X or Linux and the path to the executable is loaded in the wrong shell startup file.
+If the result of ``which`` displays a path, this means the executable is in your |path|, but you are on Mac OS X or Linux and the path to the executable is exported in a shell startup file that |sl| does not read. This means you must add the parent directory of the executable to your |path| by following the steps in :ref:`Augmenting PATH <augmenting-path>` below.
 
 
-.. _shell-startup-files:
+.. _augmenting-path:
 
-Shell startup files
-~~~~~~~~~~~~~~~~~~~
-All shells read a “profile/env” file of some sort, and when the shell is interactive, it also reads an “rc” (runtime configuration) file. For example, bash reads :file:`.bash_profile` and :file:`.bashrc` (among others) and zsh reads :file:`.zshenv` and :file:`.zshrc` (among others).
+Augmenting PATH
+~~~~~~~~~~~~~~~
+If the path to an executable’s parent directory is not available to |sl|, you have two choices:
+
+#. Add the path to the :ref:`"paths" <paths-setting>` global setting.
+
+#. On Mac OS X or Linux, adjust your shell startup files. On Windows, add the directory to your |path| environment variable.
+
+.. note::
+
+   Paths in the :ref:`"paths" <paths-setting>` setting will be searched before system paths.
+
+
+Adding to the "paths" setting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This approach is the quickest and usually the easiest, but means that you will have to maintain paths both in your system and in |sl|. In addition, it isn’t always obvious what path to add without consulting the documentation for software you install.
+
+Once you determine a path that needs to be added, :ref:`open your user settings <opening-user-settings>` and add the path to the ``"paths"`` array for your platform. For example, let’s say you are using `rbenv`_ on Mac OS X, which adds the path :file:`~/.rbenv/shims` to your |path|. You would change the ``"paths"`` setting like this:
+
+.. code-block:: json
+
+    {
+        "paths": {
+            "linux": [],
+            "osx": [
+                "~/.rbenv/shims"
+            ],
+            "windows": []
+        }
+    }
+
+
+Adjusting shell startup files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This approach is a little more complicated, but once you get it right then your |path| will be correct for command line usage and for |sl|.
+
+All shells read various files when they are run. Depending on the command line arguments, shells read a “profile/env” file of some sort and an “rc” (runtime configuration) file. For example, ``bash`` reads :file:`.bash_profile` and :file:`.bashrc` (among others) and zsh reads :file:`.zshenv` and :file:`.zshrc` (among others).
 
 If you aren’t sure what shell you are using, type this in a terminal:
 
@@ -119,7 +159,7 @@ If you aren’t sure what shell you are using, type this in a terminal:
 
     echo $SHELL
 
-When |sl| starts up, it runs your shell as a **login shell** to get the |path|. This forces the shell to read the “profile/env” file, but for most shells the “rc” file is not read. There is a very good reason for this: performing initialization that only relates to interactive shells is not only wasteful, it will in many cases fail if there is no terminal attached to the process. By the same token, you should avoid putting code in the “profile/env” file that has any output (such as :program:`motd` or :program:`fortune`), since that only works with interactive shells attached to a terminal.
+When |sl| starts up, it runs your shell as a **login shell** to get the |path|. This forces the shell to read the “profile/env” file, but for most shells the “rc” file is not read. There is a very good reason for this: performing initialization that only relates to interactive shells is not only wasteful, it will in many cases fail if there is no terminal attached to the process. By the same token, you should avoid putting code in the “profile/env” file that has any output (such as ``motd`` or ``fortune``), since that only works with interactive shells attached to a terminal.
 
 The list of shells supported by |sl| and the startup file that must contain |path| augmentations is shown in this table:
 
@@ -135,9 +175,11 @@ The list of shells supported by |sl| and the startup file that must contain |pat
 | fish           | ~/.config/fish/config.fish |
 +----------------+----------------------------+
 
+----
+
 A special note for oh-my-zsh users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are using :program:`zsh` and :program:`oh-my-zsh`, there is a bug in :program:`oh-my-zsh` that causes :file:`.zshenv` to be loaded twice. To fix it, do the following:
+""""""""""""""""""""""""""""""""""
+If you are using ``zsh`` and ``oh-my-zsh``, there is a bug in ``oh-my-zsh`` that causes :file:`.zshenv` to be loaded twice. To fix it, do the following:
 
 #. Open :file:`~/.oh-my-zsh/oh-my-zsh.sh`. At the very top you will see code something like this:
 
@@ -155,12 +197,9 @@ If you are using :program:`zsh` and :program:`oh-my-zsh`, there is a bug in :pro
 
 #. Save the file.
 
+----
 
-.. _augmenting-path:
-
-Augmenting PATH
-~~~~~~~~~~~~~~~
-When you installed a linter executable, it may have augmented your |path| in the “rc” file. But for |sl| to pick up these path augmentations, you must move such augmentations to the “profile/env” file. For example, if you are using bash as your shell and you installed `rbenv`_, you would probably find this in your :file:`.bashrc` file:
+When you installed a linter executable, it may have augmented your |path| in the “rc” file. But for these path augmentations to be visible to |sl|, you must move such augmentations to the “profile/env” file. For example, if you are using ``bash`` as your shell and you installed `rbenv`_, you would probably find this in your :file:`.bashrc` file:
 
 .. code-block:: none
 
@@ -168,20 +207,46 @@ When you installed a linter executable, it may have augmented your |path| in the
 
 For |sl| to “see” this, however, you have to move that line from :file:`.bashrc` to the file that |sl| will see, which is :file:`.bash_profile` from the table above.
 
-If :program:`which` or :program:`where` cannot find a linter executable from the command line, you need to add the executable’s parent directory to your |path|. Assuming a directory of :file:`/opt/bin`, on Mac OS X or Linux the changes you would make are summarized in the following table:
+If ``which`` or ``where`` cannot find a linter executable from the command line, you need to add the executable’s parent directory to your |path|. Assuming a directory of :file:`/opt/bin`, on Mac OS X or Linux the changes you would make are summarized in the following table:
 
 +----------------+----------------------------+-----------------------------------+
 | Shell          | File                       | Code                              |
 +================+============================+===================================+
-| bash           | ~/.bash_profile            | export PATH=$PATH:/opt/bin        |
+| bash           | ~/.bash_profile            | export PATH=/opt/bin:$PATH        |
 +----------------+----------------------------+-----------------------------------+
-| zsh (Mac OS X) | ~/.zprofile                | export PATH=$PATH:/opt/bin        |
+| zsh (Mac OS X) | ~/.zprofile                | export PATH=/opt/bin:$PATH        |
 +----------------+----------------------------+-----------------------------------+
-| zsh (Linux)    | ~/.zshenv                  | export PATH=$PATH:/opt/bin        |
+| zsh (Linux)    | ~/.zshenv                  | export PATH=/opt/bin:$PATH        |
 +----------------+----------------------------+-----------------------------------+
-| fish           | ~/.config/fish/config.fish | set PATH $PATH /opt/bin           |
+| fish           | ~/.config/fish/config.fish | set PATH /opt/bin $PATH           |
 +----------------+----------------------------+-----------------------------------+
 
+
+Special considerations for ``bash``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are using ``bash`` as your shell, there is one more step you must take after augmenting your |path| in :file:`.bash_profile`.
+
+- On Mac OS X, add this code to the **bottom** of :file:`.bash_profile`:
+
+  .. code-block:: none
+
+    case $- in
+       *i*) source ~/.bashrc
+    esac
+
+  On Mac OS X, ``bash`` does **not** load :file:`.bashrc` unless explicitly run with the ``-i`` command line argument. On the other hand, :file:`.bash_profile` is loaded in each new interactive Terminal session and if ``bash`` is run as a login shell. So you must load :file:`.bashrc` in :file:`.bash_profile`, but should only do so if the shell is interactive, which is what the code above does.
+
+- On Linux, add this code to the **top** of :file:`.bashrc`:
+
+  .. code-block:: none
+
+    source ~/.bash_profile
+
+  On Linux, by default ``bash`` does **not** load :file:`.bash_profile` for an interactive session, but it does for a login shell. So if you move your |path| augmentations to :file:`.bash_profile` and source that in :file:`.bashrc`, your |path| augmentations will always be loaded.
+
+
+Editing |path| on Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~
 On Windows you need to edit your |path| environment variable directly. The easiest way to do this is with the `Path Editor`_, a free application. Once you install and launch Path Editor, follow these steps:
 
 #. Click the Add button.
@@ -219,10 +284,6 @@ If your changes were correct, it will print the path to the linter executable. I
     > path
 
 At this point you should double-check that you followed the instructions above correctly, and if you still cannot figure out what is going wrong, post a message on the |_group|. Be sure to outline the steps you took and include the contents of your shell startup file.
-
-.. note::
-
-   If all else fails, you can use the :ref:`"paths" setting <paths-setting>` to add directories to the PATH that |sl| uses.
 
 
 Debugging python-based linters

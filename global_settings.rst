@@ -83,7 +83,7 @@ This setting provides extra paths to be searched when :ref:`locating system exec
 
 .. note::
 
-   You are **strongly** discouraged from using this setting instead of :ref:`setting up your PATH correctly <debugging-path-problems>` in your shell.
+   Instead of using this setting, consider :ref:`setting up your PATH correctly <debugging-path-problems>` in your shell.
 
    This setting works like the |path| environment variable; you provide **directories** that will be searched for executables (e.g. ``"/opt/bin"``), **not** paths to specific executables.
 
@@ -110,6 +110,13 @@ When |sl| starts up, it reads ``sys.path`` from the system python 3 (if it is av
 rc_search_limit
 ---------------
 This setting determines how many directories will be searched when looking for a :file:`.sublimelinterrc` settings file. The default value is 3. See :ref:`.sublimelinterrc settings <sublimelinterrc-settings>` for more information.
+
+
+.. _shell_timeout:
+
+shell_timeout
+-------------
+This setting determines the number of seconds that |sl| will wait when executing a shell command, for example when getting the value of PATH. The default value is 10. If the |sl| debug log says that shell commands are timing out, you may need to increase the value of this setting.
 
 
 .. _show_errors_on_save:

@@ -267,7 +267,7 @@ Here is an example of using the ‘@’ prefix. The `phpmd`_ linter does not use
     inline_overrides = 'rulesets'
     comment_re = r'\s*<!--'
 
-By default, the following arguments are passed to :program:`phpmd`:
+By default, the following arguments are passed to ``phpmd``:
 
 .. code-block:: none
 
@@ -279,7 +279,7 @@ The user can turn off individual rulesets inline, like this:
 
     <!-- [SublimeLinter phpmd-rulesets:-controversial,-codesize] -->
 
-which results in these arguments being passed to :program:`phpmd`:
+which results in these arguments being passed to ``phpmd``:
 
 .. code-block:: none
 
@@ -662,7 +662,7 @@ For example, here is a ``tempfile_suffix`` map for a linter that supports three 
 
 File-only linters
 ~~~~~~~~~~~~~~~~~
-Some linters can only work from an actual disk file, because they rely on an entire directory structure that cannot be realistically be copied to a temp directory (e.g. :program:`javac`). In such cases, you can mark a linter as “file-only” by setting ``tempfile_suffix`` to ``'-'``.
+Some linters can only work from an actual disk file, because they rely on an entire directory structure that cannot be realistically be copied to a temp directory (e.g. ``javac``). In such cases, you can mark a linter as “file-only” by setting ``tempfile_suffix`` to ``'-'``.
 
 File-only linters will only run on files that have not been modified since their last save, ensuring that what the user sees and what the linter executable sees is in sync.
 

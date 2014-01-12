@@ -99,7 +99,7 @@ For example, the `SublimeLinter-pyflakes`_ linter plugin defines ``cmd`` as:
 
     cmd = 'pyflakes@python'
 
-This tells |sl| to locate the :program:`pyflakes` script and run it on the system python or the version of python configured in settings.
+This tells |sl| to locate the ``pyflakes`` script and run it on the system python or the version of python configured in settings.
 
 When using the ``script@python`` form, |sl| does the following:
 

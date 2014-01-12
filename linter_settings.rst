@@ -72,7 +72,7 @@ The value of this setting may be:
 
    The pattern strings are regular JSON strings, not raw strings as you would usually use in python. If you need to escape regular expression pattern characters, be sure to use double backslashes (``\\``). For example, to match ``Undeclared (variable)``, you would have to use the string ``"Undeclared \\(variable\\)"``.
 
-For example, the :program:`html-tidy` linter complains if you are editing a portion of a page, as is often the case with :program:`php`. The errors are:
+For example, the ``html-tidy`` linter complains if you are editing a portion of a page, as is often the case with ``php``. The errors are:
 
 .. code-block:: none
 

@@ -63,7 +63,7 @@ When you activate or make any modifications to a file, the following sequence of
 
 How linter executables are located
 ----------------------------------
-When calling a system linter binary, the user’s |path| environment variable is used to locate the binary. On Windows, the |path| environment variable is used as is. On Mac OS X and Linux, if the user’s shell is :program:`bash`, :program:`zsh`, or :program:`fish`, a login shell is used to get the |path| value. If you are using a shell other than the ones just mentioned, |path| effectively becomes:
+When calling a system linter binary, the user’s |path| environment variable is used to locate the binary. On Windows, the |path| environment variable is used as is. On Mac OS X and Linux, if the user’s shell is ``bash``, ``zsh``, or ``fish``, a login shell is used to get the |path| value. If you are using a shell other than the ones just mentioned, |path| effectively becomes:
 
 .. code-block:: none
 

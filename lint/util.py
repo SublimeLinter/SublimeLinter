@@ -506,13 +506,15 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 def run_shell_cmd(cmd):
     """Run a shell command and return stdout."""
     proc = popen(cmd, env=os.environ)
+    from . import persist
 
     try:
-        from . import persist
-        out, err = proc.communicate(timeout=persist.settings.get('shell_timeout', 10))
+        timeout = persist.settings.get('shell_timeout', 10)
+        out, err = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''
+        persist.printf('shell timed out after {} seconds, executing {}'.format(timeout, cmd))
 
     return out
 
@@ -674,7 +676,7 @@ def create_environment():
         paths = []
 
     if paths:
-        env['PATH'] += os.pathsep + os.pathsep.join(paths)
+        env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
     from . import persist
 

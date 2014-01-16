@@ -1503,6 +1503,8 @@ class Linter(metaclass=LinterMeta):
         """Run an external executable using stdin to pass code and return its output."""
         if '@' in cmd:
             cmd[cmd.index('@')] = self.filename
+        elif not code:
+            cmd.append(self.filename)
 
         return util.communicate(
             cmd,

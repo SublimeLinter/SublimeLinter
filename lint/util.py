@@ -777,6 +777,12 @@ def find_python(version=None, script=None, module=None):
 
     """
 
+    from . import persist
+    persist.debug(
+        'find_python(version={}, script={}, module={})'
+        .format(repr(version), repr(script), repr(module))
+    )
+
     path = None
     script_path = None
 
@@ -794,13 +800,17 @@ def find_python(version=None, script=None, module=None):
         # If no specific version is requested and we have a module,
         # assume the linter will run using ST's python.
         if module is not None:
-            return ('<builtin>', script, available_version['major'], available_version['minor'])
+            result = ('<builtin>', script, available_version['major'], available_version['minor'])
+            persist.debug('find_python: <=', repr(result))
+            return result
 
         # No version was specified, get the default python
         path = find_executable('python')
+        persist.debug('find_python: default python =', path)
     else:
         version = str(version)
         requested_version = extract_major_minor_version(version)
+        persist.debug('find_python: requested version =', repr(requested_version))
 
         # If there is no module, we will use a system python.
         # If there is a module, a specific version was requested,
@@ -809,6 +819,7 @@ def find_python(version=None, script=None, module=None):
         if module is None:
             need_system_python = True
         else:
+            persist.debug('find_python: available version =', repr(available_version))
             need_system_python = not version_fulfills_request(available_version, requested_version)
             path = '<builtin>'
 
@@ -818,19 +829,25 @@ def find_python(version=None, script=None, module=None):
             else:
                 path = find_windows_python(version)
 
+            persist.debug('find_python: system python =', path)
+
     if path and path != '<builtin>':
         available_version = get_python_version(path)
+        persist.debug('find_python: available version =', repr(available_version))
 
         if version_fulfills_request(available_version, requested_version):
             if script:
                 script_path = find_python_script(path, script)
+                persist.debug('find_python: {} path = {}'.format(repr(script), script_path))
 
                 if script_path is None:
                     path = None
         else:
             path = script_path = None
 
-    return (path, script_path, available_version['major'], available_version['minor'])
+    result = (path, script_path, available_version['major'], available_version['minor'])
+    persist.debug('find_python: <=', repr(result))
+    return result
 
 
 def version_fulfills_request(available_version, requested_version):
@@ -864,19 +881,25 @@ def version_fulfills_request(available_version, requested_version):
 def find_posix_python(version):
     """Find the nearest version of python and return its path."""
 
+    from . import persist
+
     if version:
         # Try the exact requested version first
         path = find_executable('python' + version)
+        persist.debug('find_posix_python: python{} => {}'.format(version, path))
 
         # If that fails, try the major version
         if not path:
             path = find_executable('python' + version[0])
+            persist.debug('find_posix_python: python{} => {}'.format(version[0], path))
 
             # If the major version failed, see if the default is available
             if not path:
                 path = find_executable('python')
+                persist.debug('find_posix_python: python =>', path)
     else:
         path = find_executable('python')
+        persist.debug('find_posix_python: python =>', path)
 
     return path
 
@@ -896,19 +919,24 @@ def find_windows_python(version):
         prefix = os.path.abspath('\\Python')
         prefix_len = len(prefix)
         dirs = glob(prefix + '*')
+        from . import persist
 
         # Try the exact version first, then the major version
         for version in (stripped_version, stripped_version[0]):
             for python_dir in dirs:
                 path = os.path.join(python_dir, 'python.exe')
                 python_version = python_dir[prefix_len:]
+                persist.debug('find_windows_python: matching =>', path)
 
                 # Try the exact version first, then the major version
                 if python_version.startswith(version) and can_exec(path):
+                    persist.debug('find_windows_python: <=', path)
                     return path
 
     # No version or couldn't find a version match, try the default python
-    return find_executable('python')
+    path = find_executable('python')
+    persist.debug('find_windows_python: <=', path)
+    return path
 
 
 @lru_cache(maxsize=None)

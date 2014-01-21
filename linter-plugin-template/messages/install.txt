@@ -1,4 +1,4 @@
-SublimeLinter-__linter__
+SublimeLinter-contrib-__linter__
 -------------------------------
 This linter plugin for SublimeLinter provides an interface to __linter__.
 
@@ -7,4 +7,4 @@ This linter plugin for SublimeLinter provides an interface to __linter__.
 Before this plugin will activate, you *must*
 follow the installation instructions here:
 
-https://github.com/__user__/SublimeLinter-__linter__
+https://github.com/__user__/SublimeLinter-contrib-__linter__

@@ -1455,7 +1455,7 @@ class Linter(metaclass=LinterMeta):
         cmd += args
         persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
 
-        version = util.communicate(cmd)
+        version = util.communicate(cmd, output_stream=util.STREAM_BOTH)
         match = cls.version_re.search(version)
 
         if match:

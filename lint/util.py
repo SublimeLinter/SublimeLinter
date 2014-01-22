@@ -1051,7 +1051,8 @@ def communicate(cmd, code='', output_stream=STREAM_STDOUT, env=None):
     """
     Return the result of sending code via stdin to an executable.
 
-    The result is a string combination of stdout and stderr.
+    The result is a string which comes from stdout, stderr or the
+    combining of the two, depending on the value of output_stream.
     If env is not None, it is merged with the result of create_environment.
 
     """

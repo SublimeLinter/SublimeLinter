@@ -164,7 +164,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             for other_view in window.views():
                 if other_view.buffer_id() == buffer_id:
                     vid = other_view.id()
-                    persist.highlights[vid]
+                    persist.highlights[vid] = highlights
                     highlights.clear(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors

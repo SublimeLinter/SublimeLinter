@@ -17,6 +17,8 @@ Before using this plugin, you must ensure that `__linter__` is installed on your
    ```
 __extra_install_steps__
 
+**Note:** This plugin requires `__linter__` __version__ or later.
+
 ### Linter configuration
 In order for `__linter__` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [“Finding a linter executable”](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation.
 

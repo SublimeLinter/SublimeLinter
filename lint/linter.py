@@ -16,6 +16,7 @@ Linter          The main base class for linters.
 
 """
 
+from distutils.versionpredicate import VersionPredicate
 from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
@@ -193,6 +194,25 @@ class Linter(metaclass=LinterMeta):
     # If the executable is not available, it is set an empty string.
     # Subclasses should consider this read only.
     executable_path = None
+
+    # Some linter plugins have version requirements as far as the linter executable.
+    # The following three attributes can be defined to define the requirements.
+    # version_cmd is a string/list/tuple that represents the args used to get
+    # the linter executable's version as a string.
+    version_cmd = None
+
+    # A regex pattern or compiled regex used to match the numeric portion of the version
+    # from the output of version_cmd. It must contain a named capture group called
+    # "version" that captures only the version, including dots but excluding a prefix
+    # such as "v".
+    version_re = None
+
+    # A string which describes the version requirements, suitable for passing to
+    # the distutils.versionpredicate.VersionPredicate constructor, as documented here:
+    # http://pydoc.org/2.5.1/distutils.versionpredicate.html
+    # Only the version requirements (what is inside the parens) should be
+    # specified here, do not include the package name or parens.
+    version_requirement = None
 
     # A regex pattern used to extract information from the executable's output.
     regex = ''
@@ -1309,7 +1329,9 @@ class Linter(metaclass=LinterMeta):
 
         1. syntax must be one of the syntaxes the linter defines.
         2. If the linter uses an external executable, it must be available.
-        3. can_lint_syntax must return True.
+        3. If there is a version requirement and the executable is available,
+           its version must fulfill the requirement.
+        4. can_lint_syntax must return True.
 
         """
 
@@ -1342,7 +1364,16 @@ class Linter(metaclass=LinterMeta):
             else:
                 cls.executable_path = ''
 
-            can = cls.can_lint_syntax(syntax)
+            status = None
+
+            if cls.executable_path:
+                can = cls.fulfills_version_requirement()
+
+                if not can:
+                    status = ''  # Warning was already printed
+
+            if can:
+                can = cls.can_lint_syntax(syntax)
 
             if can:
                 settings = persist.settings
@@ -1355,10 +1386,11 @@ class Linter(metaclass=LinterMeta):
                     cls.executable_path,
                     ' (disabled in settings)' if disabled else ''
                 )
-            else:
+            elif status is None:
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
 
-            persist.printf(status)
+            if status:
+                persist.printf(status)
 
         return can
 
@@ -1374,6 +1406,65 @@ class Linter(metaclass=LinterMeta):
 
         """
         return cls.executable_path != ''
+
+    @classmethod
+    def fulfills_version_requirement(cls):
+        """
+        Return whether the executable fulfills version_requirement.
+
+        When this is called, cls.executable_path has been set.
+
+        """
+
+        if not(cls.version_cmd is not None and cls.version_re and cls.version_requirement):
+            return True
+
+        version = cls.get_executable_version()
+
+        if version:
+            predicate = VersionPredicate(
+                '{} ({})'.format(cls.name.replace('-', '.'), cls.version_requirement)
+            )
+
+            if predicate.satisfied_by(version):
+                persist.debug('{}: ({}) satisfied by {}'.format(cls.name, cls.version_requirement, version))
+                return True
+            else:
+                persist.printf(
+                    'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
+                    .format(cls.name, cls.version_requirement, version)
+                )
+
+        return False
+
+    @classmethod
+    def get_executable_version(cls):
+        """Extract and return the string version of the linter executable."""
+        cmd = cls.version_cmd
+
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
+        else:
+            cmd = list(cmd)
+
+        if isinstance(cls.executable_path, str):
+            path = [cls.executable_path]
+        else:
+            path = list(cls.executable_path)
+
+        cmd = path + cmd
+        persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
+
+        version = util.communicate(cmd)
+        match = cls.version_re.search(version)
+
+        if match:
+            version = match.group('version')
+            persist.debug('{} version: {}'.format(cls.name, version))
+            return version
+        else:
+            persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            return None
 
     @staticmethod
     def replace_entity(match):

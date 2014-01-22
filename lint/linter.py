@@ -197,12 +197,12 @@ class Linter(metaclass=LinterMeta):
 
     # Some linter plugins have version requirements as far as the linter executable.
     # The following three attributes can be defined to define the requirements.
-    # version_cmd is a string/list/tuple that represents the args used to get
+    # version_args is a string/list/tuple that represents the args used to get
     # the linter executable's version as a string.
-    version_cmd = None
+    version_args = None
 
     # A regex pattern or compiled regex used to match the numeric portion of the version
-    # from the output of version_cmd. It must contain a named capture group called
+    # from the output of version_args. It must contain a named capture group called
     # "version" that captures only the version, including dots but excluding a prefix
     # such as "v".
     version_re = None
@@ -1416,7 +1416,7 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        if not(cls.version_cmd is not None and cls.version_re and cls.version_requirement):
+        if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
             return True
 
         version = cls.get_executable_version()
@@ -1440,19 +1440,19 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def get_executable_version(cls):
         """Extract and return the string version of the linter executable."""
-        cmd = cls.version_cmd
+        args = cls.version_args
 
-        if isinstance(cmd, str):
-            cmd = shlex.split(cmd)
+        if isinstance(args, str):
+            args = shlex.split(args)
         else:
-            cmd = list(cmd)
+            args = list(args)
 
         if isinstance(cls.executable_path, str):
-            path = [cls.executable_path]
+            cmd = [cls.executable_path]
         else:
-            path = list(cls.executable_path)
+            cmd = list(cls.executable_path)
 
-        cmd = path + cmd
+        cmd += args
         persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
 
         version = util.communicate(cmd)

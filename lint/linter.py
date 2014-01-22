@@ -40,7 +40,7 @@ class LinterMeta(type):
 
     """Metaclass for Linter and its subclasses."""
 
-    def __init__(self, name, bases, attrs):
+    def __init__(cls, name, bases, attrs):
         """
         Initialize a Linter class.
 
@@ -58,61 +58,61 @@ class LinterMeta(type):
         """
 
         if bases:
-            setattr(self, 'disabled', False)
+            setattr(cls, 'disabled', False)
 
             if name in ('PythonLinter', 'RubyLinter'):
                 return
 
-            self.alt_name = self.make_alt_name(name)
+            cls.alt_name = cls.make_alt_name(name)
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
-                setattr(self, 'cmd', shlex.split(cmd))
+                setattr(cls, 'cmd', shlex.split(cmd))
 
-            for regex in ('regex', 'comment_re', 'word_re'):
-                attr = getattr(self, regex)
+            for regex in ('regex', 'comment_re', 'word_re', 'version_re'):
+                attr = getattr(cls, regex)
 
                 if isinstance(attr, str):
-                    if regex == 'regex' and self.multiline:
-                        setattr(self, 're_flags', self.re_flags | re.MULTILINE)
+                    if regex == 'regex' and cls.multiline:
+                        setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
 
                     try:
-                        setattr(self, regex, re.compile(attr, self.re_flags))
+                        setattr(cls, regex, re.compile(attr, cls.re_flags))
                     except re.error as err:
                         persist.printf(
                             'ERROR: {} disabled, error compiling {}: {}'
                             .format(name.lower(), regex, str(err))
                         )
-                        setattr(self, 'disabled', True)
+                        setattr(cls, 'disabled', True)
 
-            if not self.disabled:
-                if not self.syntax or (self.cmd is not None and not self.cmd) or not self.regex:
+            if not cls.disabled:
+                if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
                     persist.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
-                    setattr(self, 'disabled', True)
+                    setattr(cls, 'disabled', True)
 
             for attr in ('inline_settings', 'inline_overrides'):
                 if attr in attrs and isinstance(attrs[attr], str):
-                    setattr(self, attr, (attrs[attr],))
+                    setattr(cls, attr, (attrs[attr],))
 
             # If this class has its own defaults, create an args_map.
             # Otherwise we use the superclass' args_map.
             if 'defaults' in attrs and attrs['defaults']:
-                self.map_args(attrs['defaults'])
+                cls.map_args(attrs['defaults'])
 
             if 'PythonLinter' in [base.__name__ for base in bases]:
                 # Set attributes necessary for the @python inline setting
-                inline_settings = list(getattr(self, 'inline_settings') or [])
-                setattr(self, 'inline_settings', inline_settings + ['@python'])
+                inline_settings = list(getattr(cls, 'inline_settings') or [])
+                setattr(cls, 'inline_settings', inline_settings + ['@python'])
 
             if persist.plugin_is_loaded:
                 # If the plugin has already loaded, then we get here because
                 # a linter was added or reloaded. In that case we run reinitialize.
-                self.reinitialize()
+                cls.reinitialize()
 
             if 'syntax' in attrs and name not in BASE_CLASSES:
-                persist.register_linter(self, name, attrs)
+                persist.register_linter(cls, name, attrs)
 
-    def map_args(self, defaults):
+    def map_args(cls, defaults):
         """
         Map plain setting names to args that will be passed to the linter executable.
 
@@ -126,7 +126,7 @@ class LinterMeta(type):
         # If so, add a mapping between the setting and the argument format,
         # then change the name in the defaults to the setting name.
         args_map = {}
-        setattr(self, 'defaults', {})
+        setattr(cls, 'defaults', {})
 
         for name, value in defaults.items():
             match = ARG_RE.match(name)
@@ -135,9 +135,9 @@ class LinterMeta(type):
                 name = match.group('name')
                 args_map[name] = match.groupdict()
 
-            self.defaults[name] = value
+            cls.defaults[name] = value
 
-        setattr(self, 'args_map', args_map)
+        setattr(cls, 'args_map', args_map)
 
     @staticmethod
     def make_alt_name(name):
@@ -155,9 +155,9 @@ class LinterMeta(type):
         return alt_name
 
     @property
-    def name(self):
+    def name(cls):
         """Return the class name lowercased."""
-        return self.__name__.lower()
+        return cls.__name__.lower()
 
 
 class Linter(metaclass=LinterMeta):
@@ -329,6 +329,7 @@ class Linter(metaclass=LinterMeta):
     highlight = None
     lint_settings = None
     env = None
+    disabled = False
 
     @classmethod
     def initialize(cls):

@@ -378,6 +378,7 @@ class Linter(metaclass=LinterMeta):
         self.syntax = syntax
         self.code = ''
         self.highlight = highlight.Highlight()
+        self.ignore_matches = None
 
     @property
     def filename(self):
@@ -632,8 +633,6 @@ class Linter(metaclass=LinterMeta):
         linters = set()
 
         for name, linter_class in persist.linter_classes.items():
-            # During import, if the linter is disabled cmd is set to zero
-            # to mark it as disabled.
             if not linter_class.disabled and linter_class.can_lint(syntax):
 
                 if reset:
@@ -1440,6 +1439,7 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def get_executable_version(cls):
         """Extract and return the string version of the linter executable."""
+
         args = cls.version_args
 
         if isinstance(args, str):

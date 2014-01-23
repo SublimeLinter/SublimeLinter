@@ -1344,24 +1344,25 @@ class Linter(metaclass=LinterMeta):
             elif syntax == cls.syntax or cls.syntax == '*':
                 can = True
 
-        if can and cls.executable_path is None:
-            executable = ''
+        if can:
+            if cls.executable_path is None:
+                executable = ''
 
-            if not callable(cls.cmd):
-                if isinstance(cls.cmd, (tuple, list)):
-                    executable = (cls.cmd or [''])[0]
-                elif isinstance(cls.cmd, str):
-                    executable = cls.cmd
+                if not callable(cls.cmd):
+                    if isinstance(cls.cmd, (tuple, list)):
+                        executable = (cls.cmd or [''])[0]
+                    elif isinstance(cls.cmd, str):
+                        executable = cls.cmd
 
-            if not executable and cls.executable:
-                executable = cls.executable
+                if not executable and cls.executable:
+                    executable = cls.executable
 
-            if executable:
-                cls.executable_path = cls.which(executable) or ''
-            elif cls.cmd is None:
-                cls.executable_path = '<builtin>'
-            else:
-                cls.executable_path = ''
+                if executable:
+                    cls.executable_path = cls.which(executable) or ''
+                elif cls.cmd is None:
+                    cls.executable_path = '<builtin>'
+                else:
+                    cls.executable_path = ''
 
             status = None
 
@@ -1386,7 +1387,7 @@ class Linter(metaclass=LinterMeta):
                     ' (disabled in settings)' if disabled else ''
                 )
             elif status is None:
-                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
+                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 
             if status:
                 persist.printf(status)
@@ -1415,10 +1416,26 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
+        version = None
+
+        if cls.executable_path == '<builtin>':
+            if callable(getattr(cls, 'get_module_version', None)):
+                if not(cls.version_re and cls.version_requirement):
+                    return True
+
+                version = cls.get_module_version()
+
+                if version:
+                    persist.debug('{} version: {}'.format(cls.name, version))
+                else:
+                    persist.printf('WARNING: {} unable to determine module version'.format(cls.name))
+            else:
+                return True
+        elif not(cls.version_args is not None and cls.version_re and cls.version_requirement):
             return True
 
-        version = cls.get_executable_version()
+        if version is None:
+            version = cls.get_executable_version()
 
         if version:
             predicate = VersionPredicate(

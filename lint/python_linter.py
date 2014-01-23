@@ -230,6 +230,32 @@ class PythonLinter(linter.Linter):
 
         return False, None
 
+    @classmethod
+    def get_module_version(cls):
+        """
+        Return the string version of the imported module, without any prefix/suffix.
+
+        This method handles the common case where a module (or one of its parents)
+        defines a __version__ string. For other cases, subclasses should override
+        this method and return the version string.
+
+        """
+
+        if cls.module:
+            module = cls.module
+
+            while True:
+                if isinstance(getattr(module, '__version__', None), str):
+                    return module.__version__
+
+                if hasattr(module, '__package__'):
+                    try:
+                        module = importlib.import_module(module.__package__)
+                    except ImportError:
+                        return None
+        else:
+            return None
+
     def run(self, cmd, code):
         """Run the module checker or executable on code and return the output."""
         if self.module is not None:

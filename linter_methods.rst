@@ -58,7 +58,7 @@ For example, the `coffeelint`_ linter plugin does the following:
 .. code-block:: python
 
     def cmd(self):
-        """Return a tuple with the command line to execute."""
+        """Return a list with the command line to execute."""
 
         result = [self.executable_path, '--jslint', '--stdin']
 

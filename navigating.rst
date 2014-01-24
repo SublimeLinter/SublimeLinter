@@ -32,9 +32,9 @@ You can also use the keyboard to access the navigation commands.
 =============== ======================= ====================
 Command         Mac OS X                Linux/Windows
 =============== ======================= ====================
-Next Error      Command+Control+E       Control+K, Control+N
-Previous Error  Command+Control+Shift+E Control+K, Control+P
-Show All Errors Command+Control+A       Control+K, Control+A
+Next Error      Command+Control+E       Control+K, n
+Previous Error  Command+Control+Shift+E Control+K, p
+Show All Errors Command+Control+A       Control+K, a
 =============== ======================= ====================
 
 If there are any errors in the current view, the next/previous error will be selected, or all errors will be displayed in a Quick Panel. If there are no errors, an alert will appear which indicates there are no errors.

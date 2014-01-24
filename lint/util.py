@@ -325,31 +325,38 @@ def install_syntaxes_async():
             else:
                 copy = sublime.ok_cancel_dialog(
                     'An existing {} syntax definition exists, '.format(syntax) +
-                    'and SublimeLinter wants to overwrite it with its version. ' +
+                    'and SublimeLinter wants to overwrite it with its own version. ' +
                     'Is that okay?')
 
         else:
             copy = True
 
         if copy:
-            try:
-                cached = os.path.join(sublime.cache_path(), syntax)
+            copy_syntax(syntax, src_dir, my_version, dest_dir)
 
-                if os.path.isdir(cached):
-                    shutil.rmtree(cached)
 
-                if not os.path.exists(dest_dir):
-                    os.mkdir(dest_dir)
+def copy_syntax(syntax, src_dir, version, dest_dir):
+    """Copy a customized syntax and related files to Packages."""
+    from . import persist
 
-                for filename in os.listdir(src_dir):
-                    shutil.copy2(os.path.join(src_dir, filename), dest_dir)
+    try:
+        cached = os.path.join(sublime.cache_path(), syntax)
 
-                persist.printf('copied {} syntax version {}'.format(syntax, my_version))
-            except OSError as ex:
-                persist.printf(
-                    'ERROR: could not copy {} syntax package: {}'
-                    .format(syntax, str(ex))
-                )
+        if os.path.isdir(cached):
+            shutil.rmtree(cached)
+
+        if not os.path.exists(dest_dir):
+            os.mkdir(dest_dir)
+
+        for filename in os.listdir(src_dir):
+            shutil.copy2(os.path.join(src_dir, filename), dest_dir)
+
+        persist.printf('copied {} syntax version {}'.format(syntax, version))
+    except OSError as ex:
+        persist.printf(
+            'ERROR: could not copy {} syntax package: {}'
+            .format(syntax, str(ex))
+        )
 
 
 # menu utils

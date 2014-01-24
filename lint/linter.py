@@ -1487,6 +1487,11 @@ class Linter(metaclass=LinterMeta):
             cmd = list(cls.executable_path)
 
         cmd += args
+
+        if None in cmd:
+            persist.printf("WARNING: Could not get executable versioning command for {}".format(cls.name))
+            return None
+
         persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
 
         version = util.communicate(cmd, output_stream=util.STREAM_BOTH)

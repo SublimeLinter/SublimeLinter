@@ -334,6 +334,8 @@ def install_syntaxes_async():
         if copy:
             copy_syntax(syntax, src_dir, my_version, dest_dir)
 
+    update_syntax_map()
+
 
 def copy_syntax(syntax, src_dir, version, dest_dir):
     """Copy a customized syntax and related files to Packages."""
@@ -357,6 +359,27 @@ def copy_syntax(syntax, src_dir, version, dest_dir):
             'ERROR: could not copy {} syntax package: {}'
             .format(syntax, str(ex))
         )
+
+
+def update_syntax_map():
+    """Update the user syntax_map setting with any missing entries from the defaults."""
+
+    from . import persist
+
+    syntax_map = {}
+    syntax_map.update(persist.settings.get('syntax_map', {}))
+    default_syntax_map = persist.settings.plugin_settings.get('default', {}).get('syntax_map', {})
+    modified = False
+
+    for key, value in default_syntax_map.items():
+        if key not in syntax_map:
+            syntax_map[key] = value
+            modified = True
+            persist.debug('added syntax mapping: \'{}\' => \'{}\''.format(key, value))
+
+    if modified:
+        persist.settings.set('syntax_map', syntax_map)
+        persist.settings.save()
 
 
 # menu utils

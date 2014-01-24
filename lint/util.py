@@ -293,6 +293,8 @@ def install_syntaxes_async():
 
     """
 
+    from . import persist
+
     plugin_dir = os.path.dirname(os.path.dirname(__file__))
     syntaxes_dir = os.path.join(plugin_dir, 'fixed-syntaxes')
 
@@ -301,57 +303,53 @@ def install_syntaxes_async():
         src_dir = os.path.join(syntaxes_dir, syntax)
         version_file = os.path.join(src_dir, 'sublimelinter.version')
 
-        if os.path.isdir(src_dir) and os.path.isfile(version_file):
-            with open(version_file, encoding='utf8') as f:
-                my_version = int(f.read().strip())
+        if not os.path.isdir(src_dir) or not os.path.isfile(version_file):
+            continue
 
-            dest_dir = os.path.join(sublime.packages_path(), syntax)
-            version_file = os.path.join(dest_dir, 'sublimelinter.version')
+        with open(version_file, encoding='utf8') as f:
+            my_version = int(f.read().strip())
 
-            if os.path.isdir(dest_dir):
-                if os.path.isfile(version_file):
-                    with open(version_file, encoding='utf8') as f:
-                        try:
-                            other_version = int(f.read().strip())
-                        except ValueError:
-                            other_version = 0
+        dest_dir = os.path.join(sublime.packages_path(), syntax)
+        version_file = os.path.join(dest_dir, 'sublimelinter.version')
 
-                    copy = my_version > other_version
-                else:
-                    copy = sublime.ok_cancel_dialog(
-                        'An existing {} syntax package exists, '.format(syntax) +
-                        'and SublimeLinter wants to overwrite it with its version. ' +
-                        'Is that okay?')
-
-                if copy:
+        if os.path.isdir(dest_dir):
+            if os.path.isfile(version_file):
+                with open(version_file, encoding='utf8') as f:
                     try:
-                        shutil.rmtree(dest_dir)
-                    except OSError as ex:
-                        from . import persist
-                        persist.printf(
-                            'ERROR: could not remove existing {} syntax package: {}'
-                            .format(syntax, str(ex))
-                        )
-                        copy = False
+                        other_version = int(f.read().strip())
+                    except ValueError:
+                        other_version = 0
+
+                persist.debug('found existing {} syntax, version {}'.format(syntax, other_version))
+                copy = my_version > other_version
             else:
-                copy = True
+                copy = sublime.ok_cancel_dialog(
+                    'An existing {} syntax definition exists, '.format(syntax) +
+                    'and SublimeLinter wants to overwrite it with its version. ' +
+                    'Is that okay?')
 
-            if copy:
-                from . import persist
+        else:
+            copy = True
 
-                try:
-                    cached = os.path.join(sublime.cache_path(), syntax)
+        if copy:
+            try:
+                cached = os.path.join(sublime.cache_path(), syntax)
 
-                    if os.path.isdir(cached):
-                        shutil.rmtree(cached)
+                if os.path.isdir(cached):
+                    shutil.rmtree(cached)
 
-                    shutil.copytree(src_dir, dest_dir)
-                    persist.printf('copied {} syntax package'.format(syntax))
-                except OSError as ex:
-                    persist.printf(
-                        'ERROR: could not copy {} syntax package: {}'
-                        .format(syntax, str(ex))
-                    )
+                if not os.path.exists(dest_dir):
+                    os.mkdir(dest_dir)
+
+                for filename in os.listdir(src_dir):
+                    shutil.copy2(os.path.join(src_dir, filename), dest_dir)
+
+                persist.printf('copied {} syntax version {}'.format(syntax, my_version))
+            except OSError as ex:
+                persist.printf(
+                    'ERROR: could not copy {} syntax package: {}'
+                    .format(syntax, str(ex))
+                )
 
 
 # menu utils

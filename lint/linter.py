@@ -70,21 +70,34 @@ class LinterMeta(type):
             if isinstance(cmd, str):
                 setattr(cls, 'cmd', shlex.split(cmd))
 
-            for regex in ('regex', 'comment_re', 'word_re', 'version_re'):
-                attr = getattr(cls, regex)
+            syntax = attrs.get('syntax')
 
-                if isinstance(attr, str):
-                    if regex == 'regex' and cls.multiline:
-                        setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
+            try:
+                if isinstance(syntax, str) and syntax[0] == '^':
+                    setattr(cls, 'syntax', re.compile(syntax))
+            except re.error as err:
+                persist.printf(
+                    'ERROR: {} disabled, error compiling syntax: {}'
+                    .format(name.lower(), str(err))
+                )
+                setattr(cls, 'disabled', True)
 
-                    try:
-                        setattr(cls, regex, re.compile(attr, cls.re_flags))
-                    except re.error as err:
-                        persist.printf(
-                            'ERROR: {} disabled, error compiling {}: {}'
-                            .format(name.lower(), regex, str(err))
-                        )
-                        setattr(cls, 'disabled', True)
+            if not cls.disabled:
+                for regex in ('regex', 'comment_re', 'word_re', 'version_re'):
+                    attr = getattr(cls, regex)
+
+                    if isinstance(attr, str):
+                        if regex == 'regex' and cls.multiline:
+                            setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
+
+                        try:
+                            setattr(cls, regex, re.compile(attr, cls.re_flags))
+                        except re.error as err:
+                            persist.printf(
+                                'ERROR: {} disabled, error compiling {}: {}'
+                                .format(name.lower(), regex, str(err))
+                            )
+                            setattr(cls, 'disabled', True)
 
             if not cls.disabled:
                 if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
@@ -1326,7 +1339,7 @@ class Linter(metaclass=LinterMeta):
 
         The following tests must all pass for this method to return True:
 
-        1. syntax must be one of the syntaxes the linter defines.
+        1. syntax must match one of the syntaxes the linter defines.
         2. If the linter uses an external executable, it must be available.
         3. If there is a version requirement and the executable is available,
            its version must fulfill the requirement.
@@ -1339,10 +1352,13 @@ class Linter(metaclass=LinterMeta):
 
         if cls.syntax:
             if isinstance(cls.syntax, (tuple, list)):
-                if syntax in cls.syntax:
-                    can = True
-            elif syntax == cls.syntax or cls.syntax == '*':
+                can = syntax in cls.syntax
+            elif cls.syntax == '*':
                 can = True
+            elif isinstance(cls.syntax, str):
+                can = syntax == cls.syntax
+            else:
+                can = cls.syntax.match(syntax) is not None
 
         if can:
             if cls.executable_path is None:

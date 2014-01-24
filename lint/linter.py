@@ -1330,6 +1330,7 @@ class Linter(metaclass=LinterMeta):
     # Helper methods
 
     @classmethod
+    @lru_cache(maxsize=None)
     def can_lint(cls, syntax):
         """
         Determine if a linter class can lint the given syntax.

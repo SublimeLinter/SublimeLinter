@@ -1376,6 +1376,12 @@ class Linter(metaclass=LinterMeta):
 
                 if executable:
                     cls.executable_path = cls.which(executable) or ''
+
+                    if (
+                        cls.executable_path is None or
+                        (isinstance(cls.executable_path, (tuple, list)) and None in cls.executable_path)
+                    ):
+                        cls.executable_path = ''
                 elif cls.cmd is None:
                     cls.executable_path = '<builtin>'
                 else:
@@ -1404,7 +1410,7 @@ class Linter(metaclass=LinterMeta):
                     ' (disabled in settings)' if disabled else ''
                 )
             elif status is None:
-                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
+                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
 
             if status:
                 persist.printf(status)

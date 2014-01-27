@@ -1524,9 +1524,6 @@ class Linter(metaclass=LinterMeta):
         """Add a reference to an error/warning on the given line and column."""
         self.highlight.line(line, error_type)
 
-        # Capitalize the first word
-        message = message[0].upper() + message[1:]
-
         # Some linters use html entities in error messages, decode them
         message = HTML_ENTITY_RE.sub(self.replace_entity, message)
 

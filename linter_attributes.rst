@@ -608,9 +608,11 @@ For example, the ``SublimeLinter.lint.PythonLinter`` class defines the following
 
 syntax
 ------
-**Mandatory.** The syntax that the linter handles. This may be a single string, or a list/tuple of strings if the linter supports multiple syntaxes. This is the primary way that |sl| associates a linter plugin with files of a given syntax. See :ref:`Syntax names <syntax-names>` below for info on how to determine the correct syntax names to use.
+**Mandatory.** This attribute is the primary way that |sl| associates a linter plugin with files of a given syntax. See :ref:`Syntax names <syntax-names>` below for info on how to determine the correct syntax names to use.
 
-If the linter supports embedded syntaxes, be sure to make this attribute a tuple which includes the embedding syntax, which should match one of the keys in the :ref:`selectors <selectors>` dict. For example, ``CSSLint`` defines the ``syntax`` and ``selectors`` attributes as:
+This may be a single string, or a list/tuple of strings. If the linter supports multiple syntaxes, you may either use a list/tuple of strings, or a single string which begins with ``^``, in which case it is compiled as a regular expression pattern which is matched against a syntax name.
+
+If the linter supports embedded syntaxes, be sure to make this attribute a list/tuple or regex pattern which includes the embedding syntax, one of whose values should match one of the keys in the :ref:`selectors <selectors>` dict. For example, ``CSSLint`` defines the ``syntax`` and ``selectors`` attributes as:
 
 .. code-block:: python
 
@@ -665,6 +667,69 @@ File-only linters
 Some linters can only work from an actual disk file, because they rely on an entire directory structure that cannot be realistically be copied to a temp directory (e.g. ``javac``). In such cases, you can mark a linter as “file-only” by setting ``tempfile_suffix`` to ``'-'``.
 
 File-only linters will only run on files that have not been modified since their last save, ensuring that what the user sees and what the linter executable sees is in sync.
+
+
+.. _version_args:
+
+version_args
+---------------
+This attribute defines the arguments that should be passed to the linter executable to get its version. It may be a string, in which case it may contains multiple arguments separated by spaces, or it may be a list or tuple containing one argument per element.
+
+For example, most linter executables return the current version when passed ``--version`` as an argument:
+
+.. code-block:: python
+
+    version_args = '--version'
+
+.. note::
+
+   This attribute should **not** include the linter executable name or path.
+
+
+.. _version_re:
+
+version_re
+---------------
+This attribute should be a regex pattern or compiled regex used to match the numeric portion of the version returned by executing the linter binary with :ref:`version_args`. It must contain a named capture group called “version” that captures only the version, including dots but excluding a prefix such as “v”.
+
+For example, ``jshint --version`` returns ``jshint v2.4.1``, so the ``version_re`` is:
+
+.. code-block:: python
+
+   version_re = r'\bv(?P<version>\d+\.\d+\.\d+)'
+
+Note that we did not try to match “jshint ” at the beginning, just in case that text changes in the future.
+
+.. note::
+
+   In general, it is best to make the regex as lenient as possible to allow for changes in the way linter executables format version output.
+
+
+.. _version_requirement:
+
+version_requirement
+--------------------
+This attribute should be a string which describes the version requirements, suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor`_.
+
+.. note::
+
+   Only the version requirements (what is inside the parens) should be specified here, do not include the package name or parens.
+
+.. _distutils.versionpredicate.VersionPredicate constructor: http://epydoc.sourceforge.net/stdlib/distutils.versionpredicate.VersionPredicate-class.html
+
+For example, the SublimeLinter-jsl plugin requires version 0.3.x of ``jsl``, and will not work with a minor version higher than 3. So the version requirement is:
+
+.. code-block:: python
+
+   version_requirement = '>= 0.3.0, < 0.4.0'
+
+Note that if you were actually constructing a ``VersionPredicate``, you would have to pass a string like this:
+
+.. code-block:: python
+
+   predicate = VersionPredicate('SublimeLinter.jsl (>= 0.3.0, < 0.4.0)')
+
+In the case of ``version_requirement`` however, you only need to specify what is inside the parentheses. |sl| fills in the rest.
 
 
 word_re

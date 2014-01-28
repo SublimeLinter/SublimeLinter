@@ -854,7 +854,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
         return True
 
     def camel_case(self, name):
-        """Convert a name in the form foo-bar to FooBar."""
+        """Convert and return a name in the form foo-bar to FooBar."""
         camel_name = name[0].capitalize()
         i = 1
 
@@ -911,10 +911,7 @@ class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
         self.git = ''
 
     def is_visible(self, paths=[]):
-        """
-        Return True if any eligible plugin directories are selected.
-
-        """
+        """Return True if any eligible plugin directories are selected."""
 
         if self.git == '':
             self.git = util.which('git')
@@ -968,7 +965,9 @@ class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
 class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCommand):
 
     """
-    A command that creates a new entry in messages.json for the next version
+    This command automates the process of creating new Package Control release messages.
+
+    It creates a new entry in messages.json for the next version
     and creates a new file named messages/<version>.txt.
 
     """
@@ -1051,6 +1050,8 @@ class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCo
         return message_path
 
     def sortable_tag(self, tag):
+        """Return a version tag in a sortable form."""
+
         if tag == 'install':
             return (tag, tag)
 

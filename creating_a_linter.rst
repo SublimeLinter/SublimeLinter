@@ -58,6 +58,8 @@ Template linter plugins are created with almost all of the Linter class attribut
 
 - Change the :ref:`multiline` attribute to ``True`` if the regex parses multiline error messages.
 
+- Determine the minimum/maximum versions of the linter executable that will work with your plugin and change the :ref:`version_args`, :ref:`version_re` and :ref:`version_requirement` attributes accordingly.
+
 - If the linter executable does not accept input via ``stdin``, set the :ref:`tempfile_suffix` attribute to the filename suffix of the temp files that will be created.
 
 These are the minimum requirements to make a linter plugin functional. However, depending on the features of the linter executable, you may need to configure other class attributes.

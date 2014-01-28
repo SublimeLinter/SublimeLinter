@@ -187,12 +187,7 @@
 
     {
         "caption": "SublimeLinter: Report (Open Files)",
-        "command": "x_sublimelinter_report",
+        "command": "sublimelinter_report",
         "args": {"on": "files"}
-    },
-    {
-        "caption": "SublimeLinter: Report (Open Files and Folders)",
-        "command": "x_sublimelinter_report",
-        "args": {"on": "both"}
     }
 ]

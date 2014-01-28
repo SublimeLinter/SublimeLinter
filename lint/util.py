@@ -807,8 +807,8 @@ def find_python(version=None, script=None, module=None):
 
     from . import persist
     persist.debug(
-        'find_python(version={}, script={}, module={})'
-        .format(repr(version), repr(script), repr(module))
+        'find_python(version={!r}, script={!r}, module={!r})'
+        .format(version, script, module)
     )
 
     path = None
@@ -866,7 +866,7 @@ def find_python(version=None, script=None, module=None):
         if version_fulfills_request(available_version, requested_version):
             if script:
                 script_path = find_python_script(path, script)
-                persist.debug('find_python: {} path = {}'.format(repr(script), script_path))
+                persist.debug('find_python: {!r} path = {}'.format(script, script_path))
 
                 if script_path is None:
                     path = None

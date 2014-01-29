@@ -45,12 +45,40 @@ Among the information dumped to the console in debug mode:
 - The output from the linter, including both linting reports and internal linter errors.
 
 
+The linter doesn’t work!
+-------------------------
+The first thing you should do when a linter does not work within |sl| is to test it from the command line (Terminal in Mac OS X/Linux, Command Prompt in Windows). If it does not work from the command line, it definitely won’t work in |sl|.
+
+Here are the most common reasons why a linter does not work:
+
+- The linter binary is not installed. In that case the linter plugin will print a warning to the |st| console like this:
+
+  .. code-block:: none
+
+     SublimeLinter: WARNING: jshint deactivated, cannot locate 'jshint'
+
+  Be sure to install the linter as documented in the linter plugin’s README.
+
+- The linter binary is installed (as verified from the command line), but its path is not available to |sl|. In that case you will see a warning message like the one above for a missing linter binary. Follow the steps in :ref:`debugging-path-problems` below to ensure the binary’s path is available to |sl|.
+
+- The linter binary is installed, but it does not fulfill the plugin’s version requirements. In that case |sl| will print a warning to the |st| console like this:
+
+  .. code-block:: none
+
+     SublimeLinter: WARNING: jshint deactivated, version requirement (>= 2.5.0) not fulfilled by 2.4.3
+
+  In most cases this means you have an old version of the linter binary installed. Upgrading to the latest version should fix the problem.
+
+- A python-based linter binary is installed, but it does not work with python 2 or python 3 code. In that case, follow the steps in :ref:`debugging-python-based-linters` below.
+
+
 Use the group, Luke
 -------------------
 Please do **not** open a ticket on github issues until you have verified on the |_group| that there is an actual bug. By using the |_group|, we get a searchable knowledge base of problems and solutions, which benefits everyone.
 
 Once you are confident the problem is solved, you can turn debug mode off using the steps above to uncheck the ``Debug Mode`` menu item.
 
+----
 
 .. _debugging-path-problems:
 
@@ -285,6 +313,8 @@ If your changes were correct, it will print the path to the linter executable. I
 
 At this point you should double-check that you followed the instructions above correctly, and if you still cannot figure out what is going wrong, post a message on the |_group|. Be sure to outline the steps you took and include the contents of your shell startup file.
 
+
+.. _debugging-python-based-linters:
 
 Debugging python-based linters
 ------------------------------

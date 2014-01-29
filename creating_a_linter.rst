@@ -101,6 +101,10 @@ Updating documentation
 
 #. Post a message on the |_group| with a link to your repo and I'll review it for correctness and completeness.
 
+   .. note::
+
+      Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
+
 
 .. _coding-guidelines:
 

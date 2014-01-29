@@ -99,6 +99,10 @@ Again, I **strongly** recommend that you use |pc| to locate and install linter p
 
 If you have problems installing or configuring |sl|, please do **not** open a ticket on github. First read the :doc:`Troubleshooting guide <troubleshooting>`. Then if necessary, report your problem on the |_group|.
 
+.. note::
+
+   Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
+
 
 Read the docs!
 --------------------------

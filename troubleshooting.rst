@@ -32,6 +32,10 @@ To turn on debug mode, follow these steps:
 
 #. Go to the |_group| and report the problem along with any :samp:`SublimeLinter:` console output.
 
+   .. note::
+
+      Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
+
 Among the information dumped to the console in debug mode:
 
 - The |path| detected from your system plus whatever you put in the :ref:`"paths" global setting <paths-setting>`, used to locate executables.
@@ -77,6 +81,10 @@ Use the group, Luke
 Please do **not** open a ticket on github issues until you have verified on the |_group| that there is an actual bug. By using the |_group|, we get a searchable knowledge base of problems and solutions, which benefits everyone.
 
 Once you are confident the problem is solved, you can turn debug mode off using the steps above to uncheck the ``Debug Mode`` menu item.
+
+.. note::
+
+   Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
 
 ----
 
@@ -312,6 +320,10 @@ If your changes were correct, it will print the path to the linter executable. I
     > path
 
 At this point you should double-check that you followed the instructions above correctly, and if you still cannot figure out what is going wrong, post a message on the |_group|. Be sure to outline the steps you took and include the contents of your shell startup file.
+
+.. note::
+
+   Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
 
 
 .. _debugging-python-based-linters:

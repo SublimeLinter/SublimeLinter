@@ -106,6 +106,20 @@ Updating documentation
       Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
 
 
+.. _preparing-for-publication:
+
+Preparing for publication
+-------------------------
+Once your plugin has been reviewed and all issues have been fixed, you need to tag the final commit with a version number before publishing to Package Control:
+
+.. code-block:: none
+
+   git tag 1.0.0
+   git push origin 1.0.0
+
+After the plugin is published to Package Control, every time you make a change, you must increment the version and tag the commit you want to publish. If it is a bug fix, increment the last number in the version. If you add functionality, increment the middle number. Then do the steps above with the new version.
+
+
 .. _coding-guidelines:
 
 Coding guidelines

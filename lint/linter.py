@@ -1294,7 +1294,7 @@ class Linter(metaclass=LinterMeta):
                                 break
 
                 if col is not None:
-                    self.highlight.range(line, col, error_type=error_type, word_re=self.word_re)
+                    self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re)
                 elif near:
                     col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
                 else:

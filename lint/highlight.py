@@ -156,6 +156,16 @@ class Highlight:
 
         newlines.append(len(code))
 
+    @staticmethod
+    def strip_quotes(text):
+        """Return text stripped of enclosing single/double quotes."""
+        first = text[0]
+
+        if first in ('\'', '"') and text[-1] == first:
+            text = text[1:-1]
+
+        return text
+
     def full_line(self, line):
         """
         Return the start/end character positions for the given line.
@@ -178,13 +188,15 @@ class Highlight:
 
         return start, end
 
-    def range(self, line, pos, length=-1, error_type=ERROR, word_re=None):
+    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None):
         """
         Mark a range of text.
 
         line and pos should be zero-based. The pos and length argument can be used to control marking:
 
             - If pos < 0, the entire line is marked and length is ignored.
+
+            - If near is not None, it is stripped of quotes and length = len(near)
 
             - If length < 0, the nearest word starting at pos is marked, and if
               no word is matched, the character at pos is marked.
@@ -207,6 +219,9 @@ class Highlight:
         if pos < 0:
             pos = 0
             length = (end - start) - 1
+        elif near is not None:
+            near = self.strip_quotes(near)
+            length = len(near)
         elif length < 0:
             code = self.code[start:end][pos:]
             match = (word_re or WORD_RE).search(code)
@@ -295,12 +310,7 @@ class Highlight:
 
         start, end = self.full_line(line)
         text = self.code[start:end]
-
-        # Strip enclosing quotes from the text to match
-        first = near[0]
-
-        if first in ('\'', '"') and near[-1] == first:
-            near = near[1:-1]
+        near = self.strip_quotes(near)
 
         # Add \b fences around the text if it begins/ends with a word character
         fence = ['', '']

@@ -465,7 +465,10 @@ In addition to the above capture groups, the pattern should contain the followin
 |           | mentions a name, match the name with this capture      |
 |           | group and |sl| will attempt to highlight that name.    |
 |           | Enclosing single or double quotes will be stripped,    |
-|           | you may include them in the capture group.             |
+|           | you may include them in the capture group. If the      |
+|           | linter provides a column number, you may still use     |
+|           | this capture group and |sl| will highlight that text   |
+|           | (stripped of quotes) exactly.                          |
 +-----------+--------------------------------------------------------+
 
 

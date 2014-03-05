@@ -44,7 +44,7 @@ def error_command(method):
         vid = self.view.id()
 
         if vid in persist.errors and persist.errors[vid]:
-            method(self, self.view, persist.errors[vid], **kwargs)
+            method(self, self.view, persist.errors[vid], persist.highlights[vid], **kwargs)
         else:
             sublime.message_dialog('No lint errors.')
 
@@ -212,7 +212,7 @@ class SublimelinterGotoErrorCommand(GotoErrorCommand):
     """A command that selects the next/previous error."""
 
     @error_command
-    def run(self, view, errors, **kwargs):
+    def run(self, view, errors, highlights, **kwargs):
         """Run the command."""
         self.goto_error(view, errors, **kwargs)
 
@@ -222,13 +222,18 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
     """A command that shows a quick panel with all of the errors in the current view."""
 
     @error_command
-    def run(self, view, errors):
+    def run(self, view, errors, highlights):
         """Run the command."""
         self.errors = errors
+        self.highlights = highlights
         self.points = []
         options = []
 
         for lineno, line_errors in sorted(errors.items()):
+            if persist.settings.get("hide_warnings_from_all_errors", False):
+                if self.highlights.line_type(lineno) != highlight.ERROR:
+                    continue
+
             line = view.substr(view.full_line(view.text_point(lineno, 0))).rstrip('\n\r')
 
             # Strip whitespace from the front of the line, but keep track of how much was

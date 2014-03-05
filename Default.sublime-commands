@@ -94,6 +94,22 @@
         "command": "sublimelinter_show_all_errors"
     },
     {
+        "caption": "SublimeLinter: Hide Warnings in All Errors",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "hide_warnings_from_all_errors",
+            "value": true
+        }
+    },
+    {
+        "caption": "SublimeLinter: Show Warnings in All Errors",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "hide_warnings_from_all_errors",
+            "value": false
+        }
+    },
+    {
         "caption": "SublimeLinter: Show Errors on Save",
         "command": "sublimelinter_toggle_setting", "args":
         {

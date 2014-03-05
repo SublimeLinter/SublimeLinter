@@ -94,6 +94,22 @@
         "command": "sublimelinter_show_all_errors"
     },
     {
+        "caption": "SublimeLinter: Make Warnings Subtle",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "make_warnings_subtle",
+            "value": true
+        }
+    },
+    {
+        "caption": "SublimeLinter: Don't Make Warnings Subtle",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "make_warnings_subtle",
+            "value": false
+        }
+    },
+    {
         "caption": "SublimeLinter: Show Errors on Save",
         "command": "sublimelinter_toggle_setting", "args":
         {

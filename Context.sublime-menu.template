@@ -36,6 +36,14 @@
                 "command": "sublimelinter_show_all_errors"
             },
             {
+                "caption": "Make Warnings Subtle",
+                "command": "sublimelinter_toggle_setting", "args":
+                {
+                    "setting": "make_warnings_subtle",
+                    "checked": false
+                }
+            },
+            {
                 "caption": "Show Errors on Save",
                 "command": "sublimelinter_toggle_setting", "args":
                 {

@@ -771,7 +771,21 @@ def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
 
     try:
-        output = communicate((path, '-V'), '', output_stream=STREAM_STDERR)
+        #
+        # output_stream=STREAM_BOTH is required below because the output stream
+        # that Python prints its version string to varies depending on which
+        # Python release is being used.
+        #
+        #   Starting with Python 3.4.0a1 (3.4.x), STDOUT is used is in Python3.
+        #   (see http://bugs.python.org/issue18338,
+        #        http://hg.python.org/lookup/e6384b8b2325)
+        #
+        #   As of Python 2.7.6, STDERR is still used in Python2. (As with the
+        #   compatibility-wary handling of the Python_3_ patch
+        #   [http://bugs.python.org/msg192122], this behaviour fix is unlikely
+        #   to be updated in Python2 before the next minor version release.)
+        #
+        output = communicate((path, '-V'), '', output_stream=STREAM_BOTH)
 
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])

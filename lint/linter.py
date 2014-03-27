@@ -1244,7 +1244,7 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-        for match, line, col, error, warning, message, near in self.find_errors(output):
+        for match, line, col, error, warning, message, near, length in self.find_errors(output):
             if match and message and line is not None:
                 if self.ignore_matches:
                     ignore = False
@@ -1305,8 +1305,11 @@ class Linter(metaclass=LinterMeta):
                         pos = -1
                     else:
                         pos = 0
-
-                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
+                        
+                    if length is not None:
+                        self.highlight.range(line, 0, length=length, error_type=error_type, word_re=self.word_re)
+                    else:
+                        self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
 
                 self.error(line, col, message, error_type)
 
@@ -1572,10 +1575,10 @@ class Linter(metaclass=LinterMeta):
         """
 
         if match:
-            items = {'line': None, 'col': None, 'error': None, 'warning': None, 'message': '', 'near': None}
+            items = {'line': None, 'col': None, 'length': None, 'error': None, 'warning': None, 'message': '', 'near': None}
             items.update(match.groupdict())
-            line, col, error, warning, message, near = [
-                items[k] for k in ('line', 'col', 'error', 'warning', 'message', 'near')
+            line, col, length, error, warning, message, near = [
+                items[k] for k in ('line', 'col', 'length', 'error', 'warning', 'message', 'near')
             ]
 
             if line is not None:
@@ -1587,9 +1590,12 @@ class Linter(metaclass=LinterMeta):
                 else:
                     col = len(col)
 
-            return match, line, col, error, warning, message, near
+            if length is not None:
+                length = int(length)
+
+            return match, line, col, error, warning, message, near, length
         else:
-            return match, None, None, None, None, '', None
+            return match, None, None, None, None, '', None, None
 
     def run(self, cmd, code):
         """

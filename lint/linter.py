@@ -1244,7 +1244,14 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-        for match, line, col, error, warning, message, near, length in self.find_errors(output):
+        # To keep backward compatibility and dont break linters that overrides split_match generating
+        # 7 element tuples, we first check the length of the tuple to check if the extra "length" value was passed
+        for error_tuple in self.find_errors(output):
+            if len(error_tuple) == 7:
+                match, line, col, error, warning, message, near = error_tuple
+            elif len(error_tuple) == 8:
+                match, line, col, error, warning, message, near, length = error_tuple
+
             if match and message and line is not None:
                 if self.ignore_matches:
                     ignore = False

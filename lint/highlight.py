@@ -30,13 +30,14 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 import re
 import sublime
+from collections import defaultdict
 from . import persist
 
 #
 # Error types
 #
-WARNING = 'warning'
-ERROR = 'error'
+WARNING = 'warning' #TODO
+ERROR = 'error' #TODO
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
@@ -101,7 +102,7 @@ class HighlightSet:
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        for error_type in (WARNING, ERROR):
+        for error_type in (WARNING, ERROR): #TODO
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
 
@@ -122,10 +123,11 @@ class Highlight:
 
     """This class maintains error marks and knows how to draw them."""
 
-    def __init__(self, code=''):
+    def __init__(self, code='', linter_name=None):
         """Initialize a new instance."""
+        self.linter_name = linter_name
         self.code = code
-        self.marks = {WARNING: [], ERROR: []}
+        self.marks = defaultdict(list)
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
 
@@ -190,6 +192,20 @@ class Highlight:
 
         return start, end
 
+    #TODO
+    def localize_mark_type(self, mark_type):
+        word="penis"
+        print(self.linter_name)
+        if self.linter_name:
+            colors = persist.settings.colors()
+            print(colors)
+            if mark_type in colors:
+                specific_type = '{}.{}'.format(self.linter_name, mark_type)
+                if specific_type in colors[mark_type]:
+                    return specific_type
+
+        return mark_type
+
     def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None):
         """
         Mark a range of text.
@@ -216,6 +232,10 @@ class Highlight:
 
         """
 
+        error_type = self.localize_mark_type(error_type)
+        print("local type")
+        print(error_type)
+
         start, end = self.full_line(line)
 
         if pos < 0:
@@ -233,20 +253,22 @@ class Highlight:
             else:
                 length = 1
 
-        pos += start
-        region = sublime.Region(pos, pos + length)
-        other_type = ERROR if error_type == WARNING else WARNING
+        pos += start#test
+        region = sublime.Region(pos, pos + length) # FIXME
+        other_type = ERROR if error_type == WARNING else WARNING #TODO FIXME - assumes 2 types
         i_offset = 0
 
         for i, mark in enumerate(self.marks[other_type].copy()):
             if mark.a == region.a and mark.b == region.b:
-                if error_type == WARNING:
+                pass
+                if error_type == WARNING: #TODO
                     return
                 else:
                     self.marks[other_type].pop(i - i_offset)
                     i_offset += 1
 
         self.marks[error_type].append(region)
+        print(self.marks)
 
     def regex(self, line, regex, error_type=ERROR,
               line_match=None, word_match=None, word_re=None):
@@ -335,6 +357,7 @@ class Highlight:
         else:
             return 0
 
+    #TODO
     def update(self, other):
         """
         Update this object with another Highlight.
@@ -345,16 +368,17 @@ class Highlight:
         object takes the newlines array from other.
 
         """
-
-        for error_type in (WARNING, ERROR):
-            self.marks[error_type].extend(other.marks[error_type])
+        self.linter_name = other.linter_name
+        
+        for mark_type in other.marks:
+            self.marks[mark_type].extend(other.marks[mark_type])
 
         # Errors override warnings on the same line
-        for line, error_type in other.lines.items():
+        for line, mark_type in other.lines.items():
             current_type = self.lines.get(line)
 
             if current_type is None or current_type == WARNING:
-                self.lines[line] = error_type
+                self.lines[line] = mark_type
 
         self.newlines = other.newlines
 
@@ -376,45 +400,78 @@ class Highlight:
         """
         self.set_mark_style()
 
-        gutter_regions = {WARNING: [], ERROR: []}
+        gutter_regions = defaultdict(list)
         draw_gutter_marks = persist.settings.get('gutter_theme') != 'None'
 
         if draw_gutter_marks:
             # We use separate regions for the gutter marks so we can use
             # a scope that will not colorize the gutter icon, and to ensure
             # that errors will override warnings.
+            print(self.lines)
             for line, error_type in self.lines.items():
+                error_type = self.localize_mark_type(error_type)
                 region = sublime.Region(self.newlines[line], self.newlines[line])
                 gutter_regions[error_type].append(region)
 
-        for error_type in (WARNING, ERROR):
-            if self.marks[error_type]:
+        # for error_type in (WARNING, ERROR):
+        #     if self.marks[error_type]:
+        #         view.add_regions(
+        #             MARK_KEY_FORMAT.format(error_type),
+        #             self.marks[error_type],
+        #             MARK_SCOPE_FORMAT.format(error_type),
+        #             flags=self.mark_flags
+        #         )
+
+        #     if draw_gutter_marks and gutter_regions[error_type]:
+        #         if persist.gutter_marks['colorize']:
+        #             scope = MARK_SCOPE_FORMAT.format(error_type)
+        #         else:
+        #             scope = 'sublimelinter.gutter-mark'
+
+        #         view.add_regions(
+        #             GUTTER_MARK_KEY_FORMAT.format(error_type),
+        #             gutter_regions[error_type],
+        #             scope,
+        #             icon=persist.gutter_marks[error_type]
+        #         )
+        print("Get your mind out of the gutter")
+        print(gutter_regions)
+        print(persist.gutter_marks)
+        for mark_type in self.marks:
+            sans_context = mark_type.split('.')[-1] # TODO - evaluate this in the context of possible subclassed messages (i.e., warning.whitespace)
+            if self.marks[mark_type]:
                 view.add_regions(
-                    MARK_KEY_FORMAT.format(error_type),
-                    self.marks[error_type],
-                    MARK_SCOPE_FORMAT.format(error_type),
+                    MARK_KEY_FORMAT.format(mark_type),
+                    self.marks[mark_type],
+                    MARK_SCOPE_FORMAT.format(mark_type),
                     flags=self.mark_flags
                 )
-
-            if draw_gutter_marks and gutter_regions[error_type]:
+                
+            if draw_gutter_marks and mark_type in gutter_regions:
                 if persist.gutter_marks['colorize']:
-                    scope = MARK_SCOPE_FORMAT.format(error_type)
+                    scope = MARK_SCOPE_FORMAT.format(mark_type)
                 else:
                     scope = 'sublimelinter.gutter-mark'
 
-                view.add_regions(
-                    GUTTER_MARK_KEY_FORMAT.format(error_type),
-                    gutter_regions[error_type],
+                print((
+                    GUTTER_MARK_KEY_FORMAT.format(mark_type),
+                    gutter_regions[mark_type],
                     scope,
-                    icon=persist.gutter_marks[error_type]
+                    persist.gutter_marks.get(sans_context, "dot")
+                ))
+                view.add_regions(
+                    GUTTER_MARK_KEY_FORMAT.format(mark_type),
+                    gutter_regions[mark_type],
+                    scope,
+                    icon=persist.gutter_marks.get(sans_context, "dot")
                 )
 
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        for error_type in (WARNING, ERROR):
-            view.erase_regions(MARK_KEY_FORMAT.format(error_type))
-            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+        for mark_type in (WARNING, ERROR): #TODO
+            view.erase_regions(MARK_KEY_FORMAT.format(mark_type))
+            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(mark_type))
 
     def reset(self):
         """
@@ -424,12 +481,14 @@ class Highlight:
         The next time this object is used to draw, the marks will be cleared.
 
         """
-        for error_type in (WARNING, ERROR):
-            del self.marks[error_type][:]
+        for mark_type in self.marks.keys():
+            del self.marks[mark_type][:]
             self.lines.clear()
 
+    #TODO
     def line(self, line, error_type):
         """Record the given line as having the given error type."""
+        error_type = self.localize_mark_type(error_type)
         line += self.line_offset
 
         # Errors override warnings, if it's already an error leave it

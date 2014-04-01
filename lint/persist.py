@@ -12,6 +12,7 @@
 
 from collections import defaultdict
 from copy import deepcopy
+from functools import lru_cache
 import json
 import os
 import re
@@ -125,6 +126,10 @@ class Settings:
         settings = util.merge_user_settings(self.plugin_settings)
         self.settings.clear()
         self.settings.update(settings)
+        previous_colors = self.colors()
+        self.colors.cache_clear()
+        print("self.settings = ")
+        print(self.settings)
 
         if (
             '@disable' in self.changeset or
@@ -189,6 +194,17 @@ class Settings:
         error_color = self.settings.get('error_color', '')
         warning_color = self.settings.get('warning_color', '')
 
+        colors = self.colors()
+
+        if (previous_colors != colors):
+            if (
+                sublime.ok_cancel_dialog(
+                    'You changed the error and/or warning color. '
+                    'Would you like to update the user color schemes '
+                    'with the new colors?')
+            ):
+                util.update_mark_colors()
+
         if (
             ('error_color' in self.changeset or 'warning_color' in self.changeset) or
             (self.previous_settings and error_color and warning_color and
@@ -204,7 +220,7 @@ class Settings:
                     'Would you like to update the user color schemes '
                     'with the new colors?')
             ):
-                util.change_mark_colors(error_color, warning_color)
+                pass#util.change_mark_colors(error_color, warning_color)
 
         # If any other settings changed, relint
         if (self.previous_settings or len(self.changeset) > 0):
@@ -299,12 +315,15 @@ class Settings:
                 pass
 
         if info is not None:
+            print("holy infoz, batmens")
+            print(info)
             if theme != 'Default' and os.path.basename(path) == 'Default.gutter-theme':
                 printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
             path = os.path.dirname(path)
 
-            for error_type in ('warning', 'error'):
+            #we want to do this for alladeez
+            for error_type in self.colors():
                 icon_path = '{}/{}.png'.format(path, error_type)
                 gutter_marks[error_type] = icon_path
 
@@ -322,6 +341,20 @@ class Settings:
                 'No gutter marks will display.'.format(theme)
             )
             gutter_marks['warning'] = gutter_marks['error'] = ''
+
+    @lru_cache(maxsize=None)
+    def colors(self):
+        """Return a dict of merged color settings for all linters."""
+        colors = defaultdict(dict)
+        # make sure all SL options get enumerated
+        for mark_type in self.get('colors', {}).keys():
+            colors[mark_type] = {}
+        # enumerate for linters
+        for linter_name, linter_settings in self.get('linters', {}).items():
+            for mark_type, color in linter_settings.get('colors', {}).items():
+                colors[mark_type]['{}.{}'.format(linter_name, mark_type)] = color
+
+        return colors
 
 
 if 'queue' not in globals():
@@ -351,7 +384,10 @@ if 'queue' not in globals():
     edits = defaultdict(list)
 
     # Info about the gutter mark icons
-    gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
+    gutter_marks = defaultdict(str)
+    gutter_marks['warning'] = 'Default'
+    gutter_marks['error'] = 'Default'
+    gutter_marks['colorize'] = True
 
     # Whether sys.path has been imported from the system.
     sys_path_imported = False

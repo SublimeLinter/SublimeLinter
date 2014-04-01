@@ -235,9 +235,38 @@ def generate_color_scheme_async():
 
     from . import persist
 
-    for style in COLOR_SCHEME_STYLES:
+    #instead of just the root colors, we want some form of merged all-colors setting
+    merged_colors = persist.settings.colors()
+    sl_colors = persist.settings.get('colors', {})
+
+    for mark_type, code in sl_colors.items():
+        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=mark_type, title=mark_type.title(), color=code)))
+
+    for mark_type, codes in merged_colors.items():
+        for context, code in codes.items():
+            styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code)))
+            
+
+    # print("colors2")
+    # print(colors2)
+    # colors = persist.settings.get('colors', {}).items()
+    # print(colors)
+    # for style, code in colors:
+    #     #print("NEW: Appending style %s with color %s" % (style, code))
+    #     color_xml = COLOR_SCHEME_STYLES['color'].format(name=style, title=style.title(), color=code)
+    #     #print(color_xml)
+    #     xmlthing = ElementTree.XML(color_xml)
+    #     #print(xmlthing)
+    #     styles.append(xmlthing)
+    #     pass
+
+    for style in ["gutter"]:
         color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
-        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
+        #print("OLD: Appending style %s with color %s" % (style, color))
+        color_xml = COLOR_SCHEME_STYLES[style].format(color)
+        #print(color_xml)
+        xmlthing = ElementTree.XML(color_xml)
+        styles.append(xmlthing)
 
     # Write the amended color scheme to Packages/User
     original_name = os.path.splitext(os.path.basename(scheme))[0]
@@ -253,6 +282,31 @@ def generate_color_scheme_async():
     prefs.set('color_scheme', packages_relative_path(path))
     sublime.save_settings('Preferences.sublime-settings')
 
+#TODO
+def update_mark_colors():
+    path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
+    themes = glob(path)
+
+    from . import persist
+    merged_colors = persist.settings.colors()
+    sl_colors = persist.settings.get('colors', {})
+
+    for theme in themes:
+        with open(theme, encoding='utf8') as f:
+            text = f.read()
+
+        #this is obviously not working
+        text_test = text
+        if re.search(MARK_COLOR_RE.format(r'mark\.error'), text):
+            for mark_type, code in sl_colors.items():
+                text = re.sub(MARK_COLOR_RE.format(r'mark\.%s' % mark_type), r'\1#{}\2'.format(code), text)
+            for mark_type, codes in merged_colors.items():
+                for context, code in codes.items():
+                    text = re.sub(MARK_COLOR_RE.format(r'mark\.%s' % context), r'\1#{}\2'.format(code), text)
+            if text_test == text:
+                print("TEXT UNCHANGED")
+            with open(theme, encoding='utf8', mode='w') as f:
+                f.write(text)
 
 def change_mark_colors(error_color, warning_color):
     """Change SublimeLinter error/warning colors in user color schemes."""
@@ -1337,6 +1391,20 @@ COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 '''
 
 COLOR_SCHEME_STYLES = {
+    'color': '''
+        <dict>
+            <key>name</key>
+            <string>SublimeLinter {title}</string>
+            <key>scope</key>
+            <string>sublimelinter.mark.{name}</string>
+            <key>settings</key>
+            <dict>
+                <key>foreground</key>
+                <string>#{color}</string>
+            </dict>
+        </dict>
+    ''',
+    
     'warning': '''
         <dict>
             <key>name</key>

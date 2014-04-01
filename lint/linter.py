@@ -392,7 +392,7 @@ class Linter(metaclass=LinterMeta):
         self.view = view
         self.syntax = syntax
         self.code = ''
-        self.highlight = highlight.Highlight()
+        self.highlight = highlight.Highlight(linter_name=self.name)
         self.ignore_matches = None
 
     @property
@@ -445,6 +445,8 @@ class Linter(metaclass=LinterMeta):
         """
 
         settings = self.get_merged_settings()
+        print("OH HAY SETTINGS")
+        print(settings)
 
         if not no_inline:
             inline_settings = {}
@@ -938,7 +940,7 @@ class Linter(metaclass=LinterMeta):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
-        self.highlight = highlight.Highlight(self.code)
+        self.highlight = highlight.Highlight(self.code, linter_name=self.name)
 
         if self.ignore_matches is None:
             ignore_match = settings.get('ignore_match')

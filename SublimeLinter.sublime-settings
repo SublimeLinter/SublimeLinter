@@ -1,5 +1,9 @@
 {
     "default": {
+        "colors":{
+            "error":"D02000",
+            "warning":"DDB700"
+        },
         "debug": false,
         "delay": 0.25,
         "error_color": "D02000",

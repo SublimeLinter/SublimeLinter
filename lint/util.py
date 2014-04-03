@@ -206,38 +206,37 @@ def generate_color_scheme_async():
     the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User.
 
     """
-
+    from . import persist
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')
+    base_scheme = None
 
     if scheme is None:
         return
 
-    scheme_text = sublime.load_resource(scheme)
+    #this is a non-linter-version scheme (i.e., the user just picked one)
+    if scheme.find(" (SL)") == -1:
+        #so, set the base
+        prefs.set('base_color_scheme', scheme)
+        base_scheme = scheme
+    else:
+        base_scheme = prefs.get('base_color_scheme')
+
+    scheme_text = sublime.load_resource(base_scheme)
 
     # Ensure that all SublimeLinter colors are in the scheme
-    scopes = {
-        'mark.warning': False,
-        'mark.error': False,
-        'gutter-mark': False
-    }
+    merged_colors = persist.settings.colors()
+    sl_colors = persist.settings.get('colors', {})
 
-    for scope in scopes:
-        if re.search(MARK_COLOR_RE.format(re.escape(scope)), scheme_text):
-            scopes[scope] = True
-
-    if False not in scopes.values():
-        return
+    # We used to decide whether or not to write based on whether or not
+    # we detected updates via regex. Now that we don't know for sure what 
+    # the message types are, there's no clear way to know if one has gone
+    # missing. The easiest way to stay up-to-date is to just re-generate
+    # from our source template each time.
 
     # Append style dicts with our styles to the style array
     plist = ElementTree.XML(scheme_text)
     styles = plist.find('./dict/array')
-
-    from . import persist
-
-    #instead of just the root colors, we want some form of merged all-colors setting
-    merged_colors = persist.settings.colors()
-    sl_colors = persist.settings.get('colors', {})
 
     for mark_type, code in sl_colors.items():
         styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=mark_type, title=mark_type.title(), color=code)))
@@ -245,32 +244,16 @@ def generate_color_scheme_async():
     for mark_type, codes in merged_colors.items():
         for context, code in codes.items():
             styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code)))
-            
-
-    # print("colors2")
-    # print(colors2)
-    # colors = persist.settings.get('colors', {}).items()
-    # print(colors)
-    # for style, code in colors:
-    #     #print("NEW: Appending style %s with color %s" % (style, code))
-    #     color_xml = COLOR_SCHEME_STYLES['color'].format(name=style, title=style.title(), color=code)
-    #     #print(color_xml)
-    #     xmlthing = ElementTree.XML(color_xml)
-    #     #print(xmlthing)
-    #     styles.append(xmlthing)
-    #     pass
 
     for style in ["gutter"]:
         color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
-        #print("OLD: Appending style %s with color %s" % (style, color))
-        color_xml = COLOR_SCHEME_STYLES[style].format(color)
-        #print(color_xml)
-        xmlthing = ElementTree.XML(color_xml)
-        styles.append(xmlthing)
+        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
 
     # Write the amended color scheme to Packages/User
     original_name = os.path.splitext(os.path.basename(scheme))[0]
-    name = original_name + ' (SL)'
+    name = original_name
+    if not original_name.endswith(' (SL)'):
+        name = original_name + ' (SL)'
     scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
 
     with open(scheme_path, 'w', encoding='utf8') as f:
@@ -281,52 +264,11 @@ def generate_color_scheme_async():
     path = os.path.join('User', os.path.basename(scheme_path))
     prefs.set('color_scheme', packages_relative_path(path))
     sublime.save_settings('Preferences.sublime-settings')
+    print("ACTUALLY UPDATING COLOR SCHEME")
 
-#TODO
-def update_mark_colors():
-    path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
-    themes = glob(path)
-
-    from . import persist
-    merged_colors = persist.settings.colors()
-    sl_colors = persist.settings.get('colors', {})
-
-    for theme in themes:
-        with open(theme, encoding='utf8') as f:
-            text = f.read()
-
-        #this is obviously not working
-        text_test = text
-        if re.search(MARK_COLOR_RE.format(r'mark\.error'), text):
-            for mark_type, code in sl_colors.items():
-                text = re.sub(MARK_COLOR_RE.format(r'mark\.%s' % mark_type), r'\1#{}\2'.format(code), text)
-            for mark_type, codes in merged_colors.items():
-                for context, code in codes.items():
-                    text = re.sub(MARK_COLOR_RE.format(r'mark\.%s' % context), r'\1#{}\2'.format(code), text)
-            if text_test == text:
-                print("TEXT UNCHANGED")
-            with open(theme, encoding='utf8', mode='w') as f:
-                f.write(text)
 
 def change_mark_colors(error_color, warning_color):
-    """Change SublimeLinter error/warning colors in user color schemes."""
-
-    error_color = error_color.lstrip('#')
-    warning_color = warning_color.lstrip('#')
-
-    path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
-    themes = glob(path)
-
-    for theme in themes:
-        with open(theme, encoding='utf8') as f:
-            text = f.read()
-
-        if re.search(MARK_COLOR_RE.format(r'mark\.error'), text):
-            text = re.sub(MARK_COLOR_RE.format(r'mark\.error'), r'\1#{}\2'.format(error_color), text)
-            text = re.sub(MARK_COLOR_RE.format(r'mark\.warning'), r'\1#{}\2'.format(warning_color), text)
-
-            with open(theme, encoding='utf8', mode='w') as f:
-                f.write(text)
+    raise DeprecationWarning("change_mark_colors has been deprecated; generate_color_scheme is an indrect replacement.")
 
 
 def install_syntaxes():

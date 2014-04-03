@@ -203,7 +203,7 @@ class Settings:
                     'Would you like to update the user color schemes '
                     'with the new colors?')
             ):
-                util.update_mark_colors()
+                util.generate_color_scheme()
 
         if (
             ('error_color' in self.changeset or 'warning_color' in self.changeset) or

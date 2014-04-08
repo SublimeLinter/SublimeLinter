@@ -63,6 +63,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         return cls.shared_instance
 
     def __init__(self, *args, **kwargs):
+        """Initialize a new instance."""
         super().__init__(*args, **kwargs)
 
         # Keeps track of which views we have assigned linters to
@@ -202,7 +203,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         syntax = persist.get_syntax(view)
 
         # Syntax either has never been set or just changed
-        if not vid in self.view_syntax or self.view_syntax[vid] != syntax:
+        if vid not in self.view_syntax or self.view_syntax[vid] != syntax:
             self.view_syntax[vid] = syntax
             Linter.assign(view, reset=True)
             self.clear(view)
@@ -266,8 +267,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.check_syntax(view)
         view_id = view.id()
 
-        if not view_id in self.linted_views:
-            if not view_id in self.loaded_views:
+        if view_id not in self.linted_views:
+            if view_id not in self.loaded_views:
                 self.on_new(view)
 
             if persist.settings.get('lint_mode', 'background') in ('background', 'load/save'):
@@ -292,7 +293,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if not filename:
             return False
-        
+
         if not filename.startswith(sublime.packages_path()):
             return False
 

@@ -71,6 +71,7 @@ class HighlightSet:
     """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
     def __init__(self):
+        """Initialize a new instance."""
         self.all = set()
 
     def add(self, highlight):
@@ -122,6 +123,7 @@ class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
     def __init__(self, code=''):
+        """Initialize a new instance."""
         self.code = code
         self.marks = {WARNING: [], ERROR: []}
         self.mark_style = 'outline'

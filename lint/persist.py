@@ -42,6 +42,7 @@ class Settings:
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):
+        """Initialize a new instance."""
         self.settings = {}
         self.previous_settings = {}
         self.changeset = set()
@@ -323,7 +324,7 @@ class Settings:
             gutter_marks['warning'] = gutter_marks['error'] = ''
 
 
-if not 'queue' in globals():
+if 'queue' not in globals():
     settings = Settings()
 
     # A mapping between view ids and errors, which are line:(col, message) dicts

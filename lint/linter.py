@@ -388,6 +388,7 @@ class Linter(metaclass=LinterMeta):
         cls.initialize()
 
     def __init__(self, view, syntax):
+        """Initialize a new instance."""
         self.view = view
         self.syntax = syntax
         self.code = ''

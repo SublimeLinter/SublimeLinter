@@ -603,7 +603,7 @@ def get_shell_path(env):
         '/usr/bin', '/usr/local/bin',
         '/usr/local/php/bin', '/usr/local/php5/bin'
     ):
-        if not path in split:
+        if path not in split:
             p += (':' + path)
 
     return p

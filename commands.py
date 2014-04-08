@@ -283,6 +283,7 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
     """Command that toggles a setting."""
 
     def __init__(self, window):
+        """Initialize a new instance."""
         super().__init__(window)
 
     def is_visible(self, **args):
@@ -324,6 +325,7 @@ class ChooseSettingCommand(sublime_plugin.WindowCommand):
     """An abstract base class for commands that choose a setting from a list."""
 
     def __init__(self, window, setting=None, preview=False):
+        """Initialize a new instance."""
         super().__init__(window)
         self.setting = setting
         self._settings = None
@@ -635,6 +637,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
     """A command that toggles, enables, or disables linter plugins."""
 
     def __init__(self, window):
+        """Initialize a new instance."""
         super().__init__(window)
         self.linters = {}
 
@@ -646,13 +649,13 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
             linters = []
             settings = persist.settings.get('linters', {})
 
-            for linter in persist.linter_classes:
-                linter_settings = settings.get(linter, {})
+            for instance in persist.linter_classes:
+                linter_settings = settings.get(instance, {})
                 disabled = linter_settings.get('@disable')
 
                 if which == 'all':
                     include = True
-                    linter = [linter, 'disabled' if disabled else 'enabled']
+                    instance = [instance, 'disabled' if disabled else 'enabled']
                 else:
                     include = (
                         which == 'enabled' and not disabled or
@@ -660,7 +663,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
                     )
 
                 if include:
-                    linters.append(linter)
+                    linters.append(instance)
 
             linters.sort()
             self.linters[which] = linters
@@ -907,6 +910,7 @@ class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
     TAG_RE = re.compile(r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<release>\d+)(?:\+\d+)?')
 
     def __init__(self, window):
+        """Initialize a new instance."""
         super().__init__(window)
         self.git = ''
 
@@ -975,6 +979,7 @@ class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCo
     COMMIT_MSG_RE = re.compile(r'{{{{(.+?)}}}}')
 
     def __init__(self, window):
+        """Initialize a new instance."""
         super().__init__(window)
 
     def run(self, paths=[]):
@@ -1141,10 +1146,10 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                 filename = os.path.basename(linters[0].filename or 'untitled')
                 out = '\n{}:\n'.format(filename)
 
-                for linter in sorted(linters, key=lambda linter: linter.name):
-                    if linter.errors:
-                        out += '\n  {}:\n'.format(linter.name)
-                        items = sorted(linter.errors.items())
+                for lint in sorted(linters, key=lambda lint: lint.name):
+                    if lint.errors:
+                        out += '\n  {}:\n'.format(lint.name)
+                        items = sorted(lint.errors.items())
 
                         # Get the highest line number so we know how much padding numbers need
                         highest_line = items[-1][0]

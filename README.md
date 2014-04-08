@@ -1,7 +1,7 @@
 SublimeLinter
 =========
 
-[![Build Status](https://khancdn.eu/badges.php?service=https%3A%2F%2Ftravis-ci.org%2FSublimeLinter%2FSublimeLinter3.png%3Fbranch%3Dmaster)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
+[![Build Status](https://travis-ci.org/SublimeLinter/SublimeLinter3.svg?branch=master)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
 
 **To those upgrading from SublimeLinter v1.7:**
 

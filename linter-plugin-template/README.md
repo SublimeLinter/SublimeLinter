@@ -1,7 +1,7 @@
 SublimeLinter-contrib-__linter__
 ================================
 
-[![Build Status](https://khancdn.eu/badges.php?service=https%3A%2F%2Ftravis-ci.org%2FSublimeLinter%2FSublimeLinter-contrib-__linter__.png%3Fbranch%3Dmaster)](https://travis-ci.org/SublimeLinter/SublimeLinter-contrib-__linter__)
+[![Build Status](https://travis-ci.org/SublimeLinter/SublimeLinter-contrib-__linter__.svg?branch=master)](https://travis-ci.org/SublimeLinter/SublimeLinter-contrib-__linter__)
 
 This linter plugin for [SublimeLinter][docs] provides an interface to [__linter__](__linter_homepage__). It will be used with files that have the “__syntax__” syntax.
 

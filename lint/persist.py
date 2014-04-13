@@ -46,6 +46,7 @@ class Settings:
         """Initialize a new instance."""
         self.settings = {}
         self.previous_settings = {}
+        self.previous_colors = {}
         self.changeset = set()
         self.plugin_settings = None
         self.on_update_callback = None
@@ -96,6 +97,7 @@ class Settings:
     def copy(self):
         """Save a copy of the plugin settings."""
         self.previous_settings = deepcopy(self.settings)
+        self.previous_colors = deepcopy(self.colors())
 
     def observe_prefs(self, observer=None):
         """Observe changes to the ST prefs."""
@@ -126,10 +128,7 @@ class Settings:
         settings = util.merge_user_settings(self.plugin_settings)
         self.settings.clear()
         self.settings.update(settings)
-        previous_colors = self.colors()
         self.colors.cache_clear()
-        print("self.settings = ")
-        print(self.settings)
 
         if (
             '@disable' in self.changeset or
@@ -191,36 +190,49 @@ class Settings:
             self.changeset.discard('gutter_theme')
             self.update_gutter_marks()
 
-        error_color = self.settings.get('error_color', '')
-        warning_color = self.settings.get('warning_color', '')
+        # These are deprecated, but I guess we may want to shoehorn
+        # changes to them into the new form.
+        error_color = self.settings.get('error_color')
+        warning_color = self.settings.get('warning_color')
 
         colors = self.colors()
+        if not len(self.previous_colors):
+            self.previous_colors = self.colors()
 
-        if (previous_colors != colors):
+        if self.previous_colors != colors:
             if (
                 sublime.ok_cancel_dialog(
-                    'You changed the error and/or warning color. '
+                    'You changed your color settings. '
                     'Would you like to update the user color schemes '
                     'with the new colors?')
             ):
                 util.generate_color_scheme()
 
-        if (
-            ('error_color' in self.changeset or 'warning_color' in self.changeset) or
-            (self.previous_settings and error_color and warning_color and
-             (self.previous_settings.get('error_color') != error_color or
-              self.previous_settings.get('warning_color') != warning_color))
-        ):
-            self.changeset.discard('error_color')
-            self.changeset.discard('warning_color')
+        # we no longer care if these are changed--we need to squeak if present
+        deprecated_color_settings = False
 
-            if (
-                sublime.ok_cancel_dialog(
-                    'You changed the error and/or warning color. '
-                    'Would you like to update the user color schemes '
-                    'with the new colors?')
-            ):
-                pass#util.change_mark_colors(error_color, warning_color)
+        try:
+            del self.settings['error_color']
+            self.settings['colors']['error'] = error_color
+            deprecated_color_settings = True
+        except KeyError:
+            pass
+
+        try:
+            del self.settings['warning_color']
+            self.settings['colors']['warning'] = warning_color
+            deprecated_color_settings = True
+        except KeyError:
+            pass
+
+        if deprecated_color_settings:
+            self.save()
+            sublime.message_dialog(
+                'The error_color or warning_color settings were '
+                'present in your settings file. These now live in '
+                'the colors setting. Your settings have been moved '
+                'and error/warning_color have been deleted.'
+            )
 
         # If any other settings changed, relint
         if (self.previous_settings or len(self.changeset) > 0):
@@ -302,7 +314,8 @@ class Settings:
         theme = os.path.splitext(os.path.basename(theme_path))[0]
 
         if theme_path.lower() == 'none':
-            gutter_marks['warning'] = gutter_marks['error'] = ''
+            for mark_type in [x for x in gutter_marks if x is not 'colorize']:
+                gutter_marks[mark_type] = ''
             return
 
         info = None
@@ -322,7 +335,6 @@ class Settings:
 
             path = os.path.dirname(path)
 
-            #we want to do this for alladeez
             for error_type in self.colors():
                 icon_path = '{}/{}.png'.format(path, error_type)
                 gutter_marks[error_type] = icon_path
@@ -340,17 +352,21 @@ class Settings:
                 ' and the default is also not available. '
                 'No gutter marks will display.'.format(theme)
             )
-            gutter_marks['warning'] = gutter_marks['error'] = ''
+            for mark_type in [x for x in gutter_marks if x is not 'colorize']:
+                gutter_marks[mark_type] = ''
 
     @lru_cache(maxsize=None)
     def colors(self):
         """Return a dict of merged color settings for all linters."""
         colors = defaultdict(dict)
+
         # make sure all SL options get enumerated
-        for mark_type in self.get('colors', {}).keys():
-            colors[mark_type] = {}
+        for mark_type, setting in self.get('colors', {}).items():
+            colors[mark_type] = {mark_type: setting}
+
         # enumerate for linters
         for linter_name, linter_settings in self.get('linters', {}).items():
+
             for mark_type, color in linter_settings.get('colors', {}).items():
                 colors[mark_type]['{}.{}'.format(linter_name, mark_type)] = color
 

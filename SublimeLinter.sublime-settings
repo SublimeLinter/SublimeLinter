@@ -6,7 +6,6 @@
         },
         "debug": false,
         "delay": 0.25,
-        "error_color": "D02000",
         "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
         "gutter_theme_excludes": [],
         "lint_mode": "background",
@@ -17,6 +16,10 @@
             "osx": [],
             "windows": []
         },
+        "precedence": [
+            "error",
+            "warning"
+            ],
         "python_paths": {
             "linux": [],
             "osx": [],
@@ -33,7 +36,6 @@
             "html (rails)": "html",
             "php": "html"
         },
-        "warning_color": "DDB700",
         "wrap_find": true
     }
 }

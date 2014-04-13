@@ -214,22 +214,19 @@ def generate_color_scheme_async():
     if scheme is None:
         return
 
-    #this is a non-linter-version scheme (i.e., the user just picked one)
+    # this is a non-linter-version scheme (i.e., the user just picked one)
     if scheme.find(" (SL)") == -1:
-        #so, set the base
+        # so, set their choice as the base scheme
         prefs.set('base_color_scheme', scheme)
         base_scheme = scheme
     else:
         base_scheme = prefs.get('base_color_scheme')
 
     scheme_text = sublime.load_resource(base_scheme)
-
-    # Ensure that all SublimeLinter colors are in the scheme
     merged_colors = persist.settings.colors()
-    sl_colors = persist.settings.get('colors', {})
 
     # We used to decide whether or not to write based on whether or not
-    # we detected updates via regex. Now that we don't know for sure what 
+    # we detected updates via regex. Now that we don't know for sure what
     # the message types are, there's no clear way to know if one has gone
     # missing. The easiest way to stay up-to-date is to just re-generate
     # from our source template each time.
@@ -238,16 +235,14 @@ def generate_color_scheme_async():
     plist = ElementTree.XML(scheme_text)
     styles = plist.find('./dict/array')
 
-    for mark_type, code in sl_colors.items():
-        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=mark_type, title=mark_type.title(), color=code)))
-
     for mark_type, codes in merged_colors.items():
         for context, code in codes.items():
-            styles.append(ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code)))
+            styles.append(
+                ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code))
+                )
 
-    for style in ["gutter"]:
-        color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
-        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
+    color = persist.settings.get('{}_color'.format("gutter"), DEFAULT_MARK_COLORS["gutter"]).lstrip('#')
+    styles.append(ElementTree.XML(COLOR_SCHEME_STYLES["gutter"].format(color)))
 
     # Write the amended color scheme to Packages/User
     original_name = os.path.splitext(os.path.basename(scheme))[0]
@@ -264,7 +259,6 @@ def generate_color_scheme_async():
     path = os.path.join('User', os.path.basename(scheme_path))
     prefs.set('color_scheme', packages_relative_path(path))
     sublime.save_settings('Preferences.sublime-settings')
-    print("ACTUALLY UPDATING COLOR SCHEME")
 
 
 def change_mark_colors(error_color, warning_color):
@@ -1325,8 +1319,7 @@ def center_region_in_view(region, view):
 
 
 # color-related constants
-
-DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
+DEFAULT_MARK_COLORS = {'gutter': 'FFFFFF'}
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -1343,34 +1336,6 @@ COLOR_SCHEME_STYLES = {
             <dict>
                 <key>foreground</key>
                 <string>#{color}</string>
-            </dict>
-        </dict>
-    ''',
-    
-    'warning': '''
-        <dict>
-            <key>name</key>
-            <string>SublimeLinter Warning</string>
-            <key>scope</key>
-            <string>sublimelinter.mark.warning</string>
-            <key>settings</key>
-            <dict>
-                <key>foreground</key>
-                <string>#{}</string>
-            </dict>
-        </dict>
-    ''',
-
-    'error': '''
-        <dict>
-            <key>name</key>
-            <string>SublimeLinter Error</string>
-            <key>scope</key>
-            <string>sublimelinter.mark.error</string>
-            <key>settings</key>
-            <dict>
-                <key>foreground</key>
-                <string>#{}</string>
             </dict>
         </dict>
     ''',

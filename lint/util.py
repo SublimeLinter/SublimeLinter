@@ -209,7 +209,7 @@ def generate_color_scheme_async():
     from . import persist
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')
-    base_scheme = None
+    base_scheme = scheme
 
     if scheme is None:
         return

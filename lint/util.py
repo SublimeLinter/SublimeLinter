@@ -209,7 +209,7 @@ def generate_color_scheme_async():
     from . import persist
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')
-    base_scheme = scheme
+    base_scheme = None
 
     if scheme is None:
         return
@@ -220,7 +220,7 @@ def generate_color_scheme_async():
         prefs.set('base_color_scheme', scheme)
         base_scheme = scheme
     else:
-        base_scheme = prefs.get('base_color_scheme')
+        base_scheme = prefs.get('base_color_scheme', scheme)
 
     scheme_text = sublime.load_resource(base_scheme)
     merged_colors = persist.settings.colors()

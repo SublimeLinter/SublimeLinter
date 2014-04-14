@@ -214,9 +214,9 @@ def generate_color_scheme_async():
     if scheme is None:
         return
 
-    # this is a non-linter-version scheme (i.e., the user just picked one)
+    # This is a non-linter-version scheme (i.e., the user just picked one).
     if scheme.find(" (SL)") == -1:
-        # so, set their choice as the base scheme
+        # So set their choice as the base scheme.
         prefs.set('base_color_scheme', scheme)
         base_scheme = scheme
     else:
@@ -225,9 +225,9 @@ def generate_color_scheme_async():
     scheme_text = sublime.load_resource(base_scheme)
     merged_colors = persist.settings.colors()
 
-    # We used to decide whether or not to write based on whether or not
+    # We used to decide whether or not to write based on whether
     # we detected updates via regex. Now that we don't know for sure what
-    # the message types are, there's no clear way to know if one has gone
+    # the mark types are, there's no clear way to know if one has gone
     # missing. The easiest way to stay up-to-date is to just re-generate
     # from our source template each time.
 
@@ -236,6 +236,7 @@ def generate_color_scheme_async():
     styles = plist.find('./dict/array')
 
     for mark_type, codes in merged_colors.items():
+
         for context, code in codes.items():
             styles.append(
                 ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code))
@@ -247,13 +248,14 @@ def generate_color_scheme_async():
     # Write the amended color scheme to Packages/User
     original_name = os.path.splitext(os.path.basename(scheme))[0]
     name = original_name
+
     if not original_name.endswith(' (SL)'):
         name = original_name + ' (SL)'
+
     scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
 
-    with open(scheme_path, 'w', encoding='utf8') as f:
-        f.write(COLOR_SCHEME_PREAMBLE)
-        f.write(ElementTree.tostring(plist, encoding='unicode'))
+    with open(scheme_path+"temp", 'w', encoding='utf8') as f:
+        f.write(COLOR_SCHEME_PREAMBLE + ElementTree.tostring(plist, encoding='unicode'))
 
     # Set the amended color scheme to the current color scheme
     path = os.path.join('User', os.path.basename(scheme_path))

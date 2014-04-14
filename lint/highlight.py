@@ -297,15 +297,16 @@ class Highlight:
         region = sublime.Region(pos, pos + length)
         region_coords = (region.a, region.b)
 
-        if region_coords in self.coordinates:
+        try:
             current_type = self.coordinates[region_coords]
 
             if more_important(error_type, current_type):
                 self.marks[current_type].remove(region)
             else:
-                # entry is either MORE important than us
-                # or precedence was undefined but it was made first
                 return
+
+        except KeyError:
+            pass
 
         self.coordinates[region_coords] = error_type
         self.marks[error_type].append(region)
@@ -417,7 +418,7 @@ class Highlight:
                     if more_important(mark_type, existing_type):
                         self.marks[existing_type].remove(mark)
                     else:
-                        pass
+                        continue
 
                 self.marks[mark_type].append(mark)
                 self.coordinates[new_coord] = mark_type
@@ -453,9 +454,9 @@ class Highlight:
 
     def fix_icon(self, mark_type):
         """Return appropriate icon file path--generating the file if necessary."""
-        if mark_type in self.icon_generators:
+        try:
             return next(self.icon_generators[mark_type])
-        else:
+        except KeyError:
 
             def iconerator(mark_type):
                 """Return an icon generator for a given mark_type."""

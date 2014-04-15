@@ -156,7 +156,7 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
                     "excludes": [
                         "*/test/**"
                     ],
-                    "ignores": "W"
+                    "ignore": "W"
                 }
             }
         }

@@ -328,7 +328,7 @@ class Settings:
                 pass
 
         if info is not None:
-            
+
             if theme != 'Default' and os.path.basename(path) == 'Default.gutter-theme':
                 printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 

@@ -264,6 +264,7 @@ def generate_color_scheme_async():
 
 
 def change_mark_colors(error_color, warning_color):
+    """Change SublimeLinter error/warning colors in user color schemes."""
     raise DeprecationWarning("change_mark_colors has been deprecated; generate_color_scheme is an indrect replacement.")
 
 

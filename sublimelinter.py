@@ -251,6 +251,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             syntax_changed = False
 
         if syntax_changed or persist.settings.get('lint_mode', 'background') == 'background':
+            self.clear(view)
             self.hit(view)
         else:
             self.clear(view)

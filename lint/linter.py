@@ -511,6 +511,94 @@ class Linter(metaclass=LinterMeta):
         # Update with rc settings
         self.merge_rc_settings(settings)
 
+        # Helpers for recursively expanding tokens within a nested dictionary.
+        class Expression:
+            def __init__(self, is_regex, token, new_value):
+                self.is_regex = is_regex
+                self.token = token
+                self.new_value = new_value
+        def recursive_replace(expressions, mutable_input):
+            for k, v in mutable_input.items():
+                if type(v) is dict:
+                    recursive_replace(expressions, mutable_input[k])
+                elif type(v) is list:
+                    for exp in expressions:
+                        if exp.is_regex:
+                            mutable_input[k] = [re.sub(exp.token,
+                                exp.new_value, i) for i in mutable_input[k]]
+                        else:
+                            mutable_input[k] = [i.replace(exp.token,
+                                exp.new_value) for i in mutable_input[k]]
+                elif type(v) is str:
+                    for exp in expressions:
+                        if exp.is_regex:
+                            mutable_input[k] = re.sub(exp.token,
+                                                      exp.new_value,
+                                                      mutable_input[k])
+                        else:
+                            mutable_input[k] = mutable_input[k].replace(
+                                exp.token, exp.new_value)
+
+        # Go through and expand the supported path tokens in place.
+        # Supported tokens, in the order they are expanded:
+        # ${project}: the project's base directory, if available. Else the
+        #    location of the first open folder containing a *.sublime-project
+        #    file.
+        # ${current_file}: the dirname for the currently viewed file.
+        # ${env:<x>}: the environment variable 'x'.
+        # ${home}: the user's $HOME directory.
+        # ${folder:<x>}: the dirname for the file 'x'.
+        #
+        # ${project} and ${current_file} expansion are dependent on
+        # having a window.
+
+        # expressions are evaluated in list order.
+        expressions = []
+        if window:
+            view = window.active_view()
+            project = None
+            if (hasattr(window, "project_file_name") and
+                    window.project_file_name() is not None):
+                project = os.path.split(window.project_file_name())[0]
+            else:
+                for f in window.folders():
+                    projects = glob.glob(os.path.join(f, '*.sublime-project'))
+                    if len(projects):
+                        project = f
+                        break
+
+            if project:
+                expressions += [Expression(
+                    is_regex = False,
+                    token = '${project}',
+                    new_value = project),]
+            expressions += [Expression(
+                is_regex = False,
+                token = '${current_file}',
+                new_value = os.path.dirname(view.file_name()) if view and
+                    view.file_name() else "FILE_NOT_ON_DISK"),]
+
+        expressions += [Expression(
+            is_regex = True,
+            token = r'\${env:(?P<variable>[^}]+)}',
+            new_value = lambda m: os.getenv(m.group('variable')) if \
+                os.getenv(m.group('variable')) else \
+                "%s_NOT_SET" % m.group('variable')),]
+        expressions += [Expression(
+            is_regex = False,
+            token = '${home}',
+            new_value = re.escape(os.getenv('HOME')) if os.getenv('HOME')
+                else "HOME_NOT_SET"),]
+        expressions += [Expression(
+            is_regex = True,
+            token = r'\${folder:(?P<file>[^}]+)}',
+            new_value = lambda m: os.path.dirname(m.group('file'))),]
+        expressions += [Expression(
+            is_regex = False,
+            token = '\\',
+            new_value = '/'),]
+        recursive_replace(expressions, settings)
+
         return settings
 
     def merge_rc_settings(self, settings):

@@ -566,7 +566,7 @@ class Linter(metaclass=LinterMeta):
                 project = os.path.split(window.project_file_name())[0]
             else:
                 for f in window.folders():
-                    projects = glob.glob(os.path.join(f, '*.sublime-project'))
+                    projects = glob(os.path.join(f, '*.sublime-project'))
                     if len(projects):
                         project = f
                         break

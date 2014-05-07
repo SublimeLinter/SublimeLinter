@@ -21,6 +21,7 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
 from numbers import Number
+from glob import glob
 import os
 import re
 import shlex
@@ -517,6 +518,7 @@ class Linter(metaclass=LinterMeta):
                 self.is_regex = is_regex
                 self.token = token
                 self.new_value = new_value
+
         def recursive_replace(expressions, mutable_input):
             for k, v in mutable_input.items():
                 if type(v) is dict:
@@ -524,10 +526,12 @@ class Linter(metaclass=LinterMeta):
                 elif type(v) is list:
                     for exp in expressions:
                         if exp.is_regex:
-                            mutable_input[k] = [re.sub(exp.token,
+                            mutable_input[k] = [re.sub(
+                                exp.token,
                                 exp.new_value, i) for i in mutable_input[k]]
                         else:
-                            mutable_input[k] = [i.replace(exp.token,
+                            mutable_input[k] = [i.replace(
+                                exp.token,
                                 exp.new_value) for i in mutable_input[k]]
                 elif type(v) is str:
                     for exp in expressions:
@@ -544,7 +548,7 @@ class Linter(metaclass=LinterMeta):
         # ${project}: the project's base directory, if available. Else the
         #    location of the first open folder containing a *.sublime-project
         #    file.
-        # ${current_file}: the dirname for the currently viewed file.
+        # ${current_file}: the dirname of the current view's file.
         # ${env:<x>}: the environment variable 'x'.
         # ${home}: the user's $HOME directory.
         # ${folder:<x>}: the dirname for the file 'x'.
@@ -552,7 +556,7 @@ class Linter(metaclass=LinterMeta):
         # ${project} and ${current_file} expansion are dependent on
         # having a window.
 
-        # expressions are evaluated in list order.
+        # Expressions are evaluated in list order.
         expressions = []
         if window:
             view = window.active_view()
@@ -569,34 +573,37 @@ class Linter(metaclass=LinterMeta):
 
             if project:
                 expressions += [Expression(
-                    is_regex = False,
-                    token = '${project}',
-                    new_value = project),]
+                    is_regex=False,
+                    token='${project}',
+                    new_value=project), ]
             expressions += [Expression(
-                is_regex = False,
-                token = '${current_file}',
-                new_value = os.path.dirname(view.file_name()) if view and
-                    view.file_name() else "FILE_NOT_ON_DISK"),]
+                is_regex=False,
+                token='${current_file}',
+                new_value=(
+                    os.path.dirname(view.file_name()) if
+                    view and view.file_name() else "FILE_NOT_ON_DISK")), ]
 
         expressions += [Expression(
-            is_regex = True,
-            token = r'\${env:(?P<variable>[^}]+)}',
-            new_value = lambda m: os.getenv(m.group('variable')) if \
-                os.getenv(m.group('variable')) else \
-                "%s_NOT_SET" % m.group('variable')),]
+            is_regex=True,
+            token=r'\${env:(?P<variable>[^}]+)}',
+            new_value=(
+                lambda m: os.getenv(m.group('variable')) if
+                os.getenv(m.group('variable')) else
+                "%s_NOT_SET" % m.group('variable'))), ]
         expressions += [Expression(
-            is_regex = False,
-            token = '${home}',
-            new_value = re.escape(os.getenv('HOME')) if os.getenv('HOME')
-                else "HOME_NOT_SET"),]
+            is_regex=False,
+            token='${home}',
+            new_value=(
+                re.escape(os.getenv('HOME')) if os.getenv('HOME')
+                else "HOME_NOT_SET")), ]
         expressions += [Expression(
-            is_regex = True,
-            token = r'\${folder:(?P<file>[^}]+)}',
-            new_value = lambda m: os.path.dirname(m.group('file'))),]
+            is_regex=True,
+            token=r'\${folder:(?P<file>[^}]+)}',
+            new_value=lambda m: os.path.dirname(m.group('file'))), ]
         expressions += [Expression(
-            is_regex = False,
-            token = '\\',
-            new_value = '/'),]
+            is_regex=False,
+            token='\\',
+            new_value='/'), ]
         recursive_replace(expressions, settings)
 
         return settings

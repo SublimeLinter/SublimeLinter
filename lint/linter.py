@@ -21,6 +21,7 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
 from numbers import Number
+from glob import glob
 import os
 import re
 import shlex
@@ -510,6 +511,87 @@ class Linter(metaclass=LinterMeta):
 
         # Update with rc settings
         self.merge_rc_settings(settings)
+
+        def recursive_replace(expressions, mutable_input):
+            for k, v in mutable_input.items():
+                if type(v) is dict:
+                    recursive_replace(expressions, mutable_input[k])
+                elif type(v) is list:
+                    for exp in expressions:
+                        if exp['is_regex']:
+                            mutable_input[k] = [re.sub(
+                                exp['token'],
+                                exp['value'], i) for i in mutable_input[k]]
+                        else:
+                            mutable_input[k] = [i.replace(
+                                exp['token'],
+                                exp['value']) for i in mutable_input[k]]
+                elif type(v) is str:
+                    for exp in expressions:
+                        if exp['is_regex']:
+                            mutable_input[k] = re.sub(exp['token'],
+                                                      exp['value'],
+                                                      mutable_input[k])
+                        else:
+                            mutable_input[k] = mutable_input[k].replace(
+                                exp['token'], exp['value'])
+
+        # Go through and expand the supported path tokens in place.
+        # Supported tokens, in the order they are expanded:
+        # ${project}: the project's base directory, if available. Else the
+        #    location of the first open folder containing a *.sublime-project
+        #    file.
+        # ${directory}: the dirname of the current view's file.
+        # ${env:<x>}: the environment variable 'x'.
+        # ${home}: the user's $HOME directory.
+        #
+        # ${project} and ${directory} expansion are dependent on
+        # having a window.
+
+        # Expressions are evaluated in list order.
+        expressions = []
+
+        if window:
+            view = window.active_view()
+            project = None
+            if window and window.project_file_name():
+                project = os.path.dirname(window.project_file_name())
+
+            if project is None:
+                for f in window.folders():
+                    projects = glob(os.path.join(f, '*.sublime-project'))
+
+                    if len(projects):
+                        project = f
+                        break
+
+            if project:
+                expressions.append({
+                    'is_regex': False,
+                    'token': '${project}',
+                    'value': project})
+
+            expressions.append({
+                'is_regex': False,
+                'token': '${directory}',
+                'value': (
+                    os.path.dirname(view.file_name()) if
+                    view and view.file_name() else "FILE NOT ON DISK")})
+
+        expressions.append({
+            'is_regex': True,
+            'token': r'\${env:(?P<variable>[^}]+)}',
+            'value': (
+                lambda m: os.getenv(m.group('variable')) if
+                os.getenv(m.group('variable')) else
+                "%s NOT SET" % m.group('variable'))})
+
+        expressions.append({
+            'is_regex': False,
+            'token': '${home}',
+            'value': re.escape(os.getenv('HOME') or 'HOME NOT SET')})
+
+        recursive_replace(expressions, settings)
 
         return settings
 

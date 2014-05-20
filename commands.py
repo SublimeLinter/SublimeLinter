@@ -931,15 +931,12 @@ class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
         """
         Return True if path is an eligible directory.
 
-        A directory is eligible if it is a direct child of Packages,
-        has a messages subdirectory, and has messages.json.
+        A directory is eligible if it has a messages subdirectory
+        and has messages.json.
 
         """
-        packages_path = sublime.packages_path()
-
         return (
             os.path.isdir(path) and
-            os.path.dirname(path) == packages_path and
             os.path.isdir(os.path.join(path, 'messages')) and
             os.path.isfile(os.path.join(path, 'messages.json'))
         )

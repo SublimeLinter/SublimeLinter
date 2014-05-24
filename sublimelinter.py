@@ -28,6 +28,7 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
     persist.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
+    util.create_tempdir()
 
     for linter in persist.linter_classes.values():
         linter.initialize()

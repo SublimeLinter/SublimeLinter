@@ -50,6 +50,11 @@ MARK_COLOR_RE = (
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
+UNSAVED_FILENAME = 'untitled'
+
+# Temp directory used to store temp files for linting
+tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3')
+
 
 # settings utils
 
@@ -1096,7 +1101,17 @@ def communicate(cmd, code='', output_stream=STREAM_STDOUT, env=None):
         return ''
 
 
-def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
+def create_tempdir():
+    """Create a directory within the system temp directory used to create temp files."""
+    if os.path.isdir(tempdir):
+        shutil.rmtree(tempdir)
+
+    os.mkdir(tempdir)
+    from . import persist
+    persist.debug('temp directory:', tempdir)
+
+
+def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None):
     """
     Return the result of running an executable against a temporary file containing code.
 
@@ -1108,10 +1123,18 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
 
     """
 
-    f = None
+    if not filename:
+        filename = UNSAVED_FILENAME
+    else:
+        filename = os.path.basename(filename)
+
+    if suffix:
+        filename = os.path.splitext(filename)[0] + suffix
+
+    path = os.path.join(tempdir, filename)
 
     try:
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        with open(path, mode='wb') as f:
             if isinstance(code, str):
                 code = code.encode('utf-8')
 
@@ -1121,9 +1144,9 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
         cmd = list(cmd)
 
         if '@' in cmd:
-            cmd[cmd.index('@')] = f.name
+            cmd[cmd.index('@')] = path
         else:
-            cmd.append(f.name)
+            cmd.append(path)
 
         out = popen(cmd, output_stream=output_stream, extra_env=env)
 
@@ -1133,8 +1156,7 @@ def tmpfile(cmd, code, suffix='', output_stream=STREAM_STDOUT, env=None):
         else:
             return ''
     finally:
-        if f:
-            os.remove(f.name)
+        os.remove(path)
 
 
 def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
@@ -1149,11 +1171,10 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
 
     """
 
-    filename = os.path.basename(filename)
-    d = tempfile.mkdtemp()
+    filename = os.path.basename(filename) if filename else ''
     out = None
 
-    try:
+    with tempfile.TemporaryDirectory(dir=tempdir) as d:
         for f in files:
             try:
                 os.makedirs(os.path.join(d, os.path.dirname(f)))
@@ -1189,8 +1210,6 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
             ])
         else:
             out = ''
-    finally:
-        shutil.rmtree(d, True)
 
     return out or ''
 

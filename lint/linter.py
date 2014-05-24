@@ -1692,7 +1692,7 @@ class Linter(metaclass=LinterMeta):
 
         if self.tempfile_suffix:
             if self.tempfile_suffix != '-':
-                return self.tmpfile(cmd, code, suffix=self.get_tempfile_suffix())
+                return self.tmpfile(cmd, code)
             else:
                 return self.communicate(cmd)
         else:
@@ -1706,7 +1706,7 @@ class Linter(metaclass=LinterMeta):
             else:
                 suffix = self.tempfile_suffix
 
-            if suffix and suffix[0] != '.':
+            if not suffix.startswith('.'):
                 suffix = '.' + suffix
 
             return suffix
@@ -1733,6 +1733,7 @@ class Linter(metaclass=LinterMeta):
         return util.tmpfile(
             cmd,
             code,
+            self.filename,
             suffix or self.get_tempfile_suffix(),
             output_stream=self.error_stream,
             env=self.env)

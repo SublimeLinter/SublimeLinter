@@ -727,8 +727,12 @@ def create_environment():
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
-    # in the target executable is looking for utf-8.
+    # in the target executable is looking for utf-8. Some
+    # linters (like ruby) need to have LANG and/or LC_CTYPE
+    # set as well.
     env['PYTHONIOENCODING'] = 'utf8'
+    env['LANG'] = 'en_US.UTF-8'
+    env['LC_CTYPE'] = 'en_US.UTF-8'
 
     return env
 

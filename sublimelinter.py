@@ -217,14 +217,23 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def is_scratch(self, view):
         """
-        Return whether a view is scratch.
+        Return whether a view is effectively scratch.
 
         There is a bug (or feature) in the current ST3 where the Find panel
         is not marked scratch but has no window.
 
+        There is also a bug where files opened from within .sublime-package files
+        are not marked scratch during the on_activate event, so we have to
+        check that a view with a filename actually exists on disk.
+
         """
 
-        return view.is_scratch() or view.window() is None
+        if view.is_scratch() or view.is_read_only() or view.window() is None:
+            return True
+        elif view.file_name() and not os.path.exists(view.file_name()):
+            return True
+        else:
+            return False
 
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""

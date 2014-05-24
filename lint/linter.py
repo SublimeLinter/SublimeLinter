@@ -398,7 +398,7 @@ class Linter(metaclass=LinterMeta):
 
     @property
     def filename(self):
-        """Return the view's file path or '' of unsaved."""
+        """Return the view's file path or '' if unsaved."""
         return self.view.file_name() or ''
 
     @property

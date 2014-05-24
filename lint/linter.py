@@ -512,6 +512,11 @@ class Linter(metaclass=LinterMeta):
         # Update with rc settings
         self.merge_rc_settings(settings)
 
+        self.replace_settings_tokens(settings)
+        return settings
+
+    def replace_settings_tokens(self, settings):
+        """Replace tokens with values in settings."""
         def recursive_replace(expressions, mutable_input):
             for k, v in mutable_input.items():
                 if type(v) is dict:
@@ -519,22 +524,21 @@ class Linter(metaclass=LinterMeta):
                 elif type(v) is list:
                     for exp in expressions:
                         if exp['is_regex']:
-                            mutable_input[k] = [re.sub(
-                                exp['token'],
-                                exp['value'], i) for i in mutable_input[k]]
+                            mutable_input[k] = [
+                                exp['token'].sub(exp['value'], i)
+                                for i in mutable_input[k]
+                            ]
                         else:
-                            mutable_input[k] = [i.replace(
-                                exp['token'],
-                                exp['value']) for i in mutable_input[k]]
+                            mutable_input[k] = [
+                                i.replace(exp['token'], exp['value'])
+                                for i in mutable_input[k]
+                            ]
                 elif type(v) is str:
                     for exp in expressions:
                         if exp['is_regex']:
-                            mutable_input[k] = re.sub(exp['token'],
-                                                      exp['value'],
-                                                      mutable_input[k])
+                            mutable_input[k] = exp['token'].sub(exp['value'], mutable_input[k])
                         else:
-                            mutable_input[k] = mutable_input[k].replace(
-                                exp['token'], exp['value'])
+                            mutable_input[k] = mutable_input[k].replace(exp['token'], exp['value'])
 
         # Go through and expand the supported path tokens in place.
         # Supported tokens, in the order they are expanded:
@@ -550,10 +554,12 @@ class Linter(metaclass=LinterMeta):
 
         # Expressions are evaluated in list order.
         expressions = []
+        window = self.view.window()
 
         if window:
             view = window.active_view()
             project = None
+
             if window and window.project_file_name():
                 project = os.path.dirname(window.project_file_name())
 
@@ -580,7 +586,7 @@ class Linter(metaclass=LinterMeta):
 
         expressions.append({
             'is_regex': True,
-            'token': r'\${env:(?P<variable>[^}]+)}',
+            'token': re.compile(r'\${env:(?P<variable>[^}]+)}'),
             'value': (
                 lambda m: os.getenv(m.group('variable')) if
                 os.getenv(m.group('variable')) else
@@ -592,8 +598,6 @@ class Linter(metaclass=LinterMeta):
             'value': re.escape(os.getenv('HOME') or 'HOME NOT SET')})
 
         recursive_replace(expressions, settings)
-
-        return settings
 
     def merge_rc_settings(self, settings):
         """

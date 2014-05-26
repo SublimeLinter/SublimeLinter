@@ -542,9 +542,7 @@ class Linter(metaclass=LinterMeta):
 
         # Go through and expand the supported path tokens in place.
         # Supported tokens, in the order they are expanded:
-        # ${project}: the project's base directory, if available. Else the
-        #    location of the first open folder containing a *.sublime-project
-        #    file.
+        # ${project}: the project's base directory, if available.
         # ${directory}: the dirname of the current view's file.
         # ${env:<x>}: the environment variable 'x'.
         # ${home}: the user's $HOME directory.
@@ -558,20 +556,10 @@ class Linter(metaclass=LinterMeta):
 
         if window:
             view = window.active_view()
-            project = None
 
-            if window and window.project_file_name():
+            if window.project_file_name():
                 project = os.path.dirname(window.project_file_name())
 
-            if project is None:
-                for f in window.folders():
-                    projects = glob(os.path.join(f, '*.sublime-project'))
-
-                    if len(projects):
-                        project = f
-                        break
-
-            if project:
                 expressions.append({
                     'is_regex': False,
                     'token': '${project}',

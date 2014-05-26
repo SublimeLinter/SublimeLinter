@@ -21,7 +21,6 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
 from numbers import Number
-from glob import glob
 import os
 import re
 import shlex

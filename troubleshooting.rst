@@ -141,7 +141,6 @@ First you need to see if the linter executable is in your |path|. Enter the foll
     which linter
 
     # Windows
-    cd
     where linter
 
 If the result says that the linter could not be found, that means the linter executable is in a directory which is not in your |path|, and |sl| will not be able to find it. At this point you will have to find out what directory the executable was installed in from the linter’s documentation. Once you find that, you will need to augment your |path| by following the steps in :ref:`Augmenting PATH <augmenting-path>` below.

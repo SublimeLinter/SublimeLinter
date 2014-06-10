@@ -517,27 +517,29 @@ class Linter(metaclass=LinterMeta):
     def replace_settings_tokens(self, settings):
         """Replace tokens with values in settings."""
         def recursive_replace(expressions, mutable_input):
-            for k, v in mutable_input.items():
-                if type(v) is dict:
-                    recursive_replace(expressions, mutable_input[k])
-                elif type(v) is list:
+            for key, value in mutable_input.items():
+                if type(value) is dict:
+                    recursive_replace(expressions, mutable_input[key])
+                elif type(value) is list:
                     for exp in expressions:
                         if exp['is_regex']:
-                            mutable_input[k] = [
-                                exp['token'].sub(exp['value'], i)
-                                for i in mutable_input[k]
+                            mutable_input[key] = [
+                                exp['token'].sub(exp['value'], item)
+                                if type(item) is str else item
+                                for item in mutable_input[key]
                             ]
                         else:
-                            mutable_input[k] = [
-                                i.replace(exp['token'], exp['value'])
-                                for i in mutable_input[k]
+                            mutable_input[key] = [
+                                item.replace(exp['token'], exp['value'])
+                                if type(item) is str else item
+                                for item in mutable_input[key]
                             ]
-                elif type(v) is str:
+                elif type(value) is str:
                     for exp in expressions:
                         if exp['is_regex']:
-                            mutable_input[k] = exp['token'].sub(exp['value'], mutable_input[k])
+                            mutable_input[key] = exp['token'].sub(exp['value'], mutable_input[key])
                         else:
-                            mutable_input[k] = mutable_input[k].replace(exp['token'], exp['value'])
+                            mutable_input[key] = mutable_input[key].replace(exp['token'], exp['value'])
 
         # Go through and expand the supported path tokens in place.
         # Supported tokens, in the order they are expanded:

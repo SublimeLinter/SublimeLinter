@@ -1,0 +1,8 @@
+SublimeLinter 3.4.3
+--------------------
+
+The "rc_search_limit" setting has changed. To disable the use of .sublimelinterrc
+completely (which may be necessary when using slow remote filesystems),
+set "rc_search_limit" to 0 (zero).
+
+To enable an unlimited search, set "rc_search_limit" to null.

@@ -183,7 +183,9 @@ When reading the settings for a given file, |sl| does the following:
 
 - If it is not found, the parent directories are searched until the root directory is reached or until the maximum number of search directories (including the file’s directory) are searched.
 
-The maximum number of search directories is determined by the :ref:`"rc_search_limit" setting <rc_search_limit>`. By default, the limit is 3. Setting ``"rc_search_limit"`` to ``null`` or <= 0 means the search will stop only at the root directory. The first :file:`.sublimelinterrc` file found is used; |sl| does **not** merge multiple :file:`.sublimelinterrc` files in the search path together.
+The maximum number of search directories is determined by the :ref:`"rc_search_limit" setting <rc_search_limit>`. By default, the limit is 3. Setting ``"rc_search_limit"`` to ``null`` means the search will stop only at the root directory. Setting it to ``0`` disables the search for :file:`.sublimelinterrc` entirely for the scope of the settings file in which ``"rc_search_limit"`` is found. This can be useful for projects that are hosted on slow remote filesystems.
+
+The first :file:`.sublimelinterrc` file found is used; |sl| does **not** merge multiple :file:`.sublimelinterrc` files in the search path together.
 
 So, for example, let’s assume we have the following file structure:
 

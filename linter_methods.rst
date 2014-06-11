@@ -83,9 +83,9 @@ get_view_settings
 -----------------
 .. code-block:: python
 
-   get_view_settings(self, no_inline=False)
+   get_view_settings(self, inline=True)
 
-If you need to get the :ref:`merged settings <settings-stack>` for a view, use this method. If *no_inline* is ``True``, inline settings will not be included with the merged settings.
+If you need to get the :ref:`merged settings <settings-stack>` for a view, use this method. If *inline* is ``False``, inline settings will not be included with the merged settings.
 
 
 .. _run:

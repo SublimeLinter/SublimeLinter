@@ -142,7 +142,7 @@ class Settings:
              self.previous_settings.get('paths') != self.settings.get('paths'))
         ):
             need_relint = True
-            util.clear_caches()
+            util.clear_path_caches()
             self.changeset.discard('paths')
 
         # Add python paths if they changed

@@ -60,7 +60,11 @@
                     "setting": "debug",
                     "checked": true
                 }
-            }
+            },
+            {
+                "caption": "Clear Caches",
+                "command": "sublimelinter_clear_caches"
+            },
         ]
     }
 ]

@@ -186,6 +186,11 @@
     },
 
     {
+        "caption": "SublimeLinter: Clear Caches",
+        "command": "sublimelinter_clear_caches"
+    },
+
+    {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",
         "args": {"on": "files"}

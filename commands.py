@@ -1089,6 +1089,17 @@ class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCo
         return '\n\n'.join(messages) + '\n'
 
 
+class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
+
+    """A command that clears all of SublimeLinter's internal caches."""
+
+    def run(self):
+        """Run the command."""
+        util.clear_path_caches()
+        util.get_rc_settings.cache_clear()
+        linter.Linter.clear_settings_caches()
+
+
 class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
     """

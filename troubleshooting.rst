@@ -224,7 +224,7 @@ If you are using ``zsh`` and ``oh-my-zsh``, there is a bug in ``oh-my-zsh`` that
             /usr/bin/env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh $ZSH/tools/check_for_upgrade.sh
         fi
 
-#. On the line the line that begins with ``/usr/bin/env``, change ``zsh`` towards the end to ``zsh -f``. The complete line should then be:
+#. On the line that begins with ``/usr/bin/env``, change ``zsh`` towards the end to ``zsh -f``. The complete line should then be:
 
    .. code-block:: none
 

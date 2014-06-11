@@ -357,7 +357,6 @@ class Linter(metaclass=LinterMeta):
     #
     # Internal class storage, do not set
     #
-    RC_SEARCH_LIMIT = 3
     errors = None
     highlight = None
     lint_settings = None
@@ -407,9 +406,8 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def clear_settings_caches(cls):
-        """Clear lru caches for this class' methods."""
+        """Clear settings-related caches for this class' methods."""
         cls.get_view_settings.cache_clear()
-        cls.get_merged_settings.cache_clear()
 
     @classmethod
     def settings(cls):
@@ -428,7 +426,7 @@ class Linter(metaclass=LinterMeta):
         return {key: value for key, value in settings.items() if key.startswith('@')}
 
     @lru_cache(maxsize=None)
-    def get_view_settings(self, no_inline=False):
+    def get_view_settings(self, inline=True):
         """
         Return a union of all settings specific to this linter, related to the given view.
 
@@ -446,34 +444,15 @@ class Linter(metaclass=LinterMeta):
 
         settings = self.get_merged_settings()
 
-        if not no_inline:
-            inline_settings = {}
-
-            if self.shebang_match:
-                eol = self.code.find('\n')
-
-                if eol != -1:
-                    setting = self.shebang_match(self.code[0:eol])
-
-                    if setting is not None:
-                        inline_settings[setting[0]] = setting[1]
-
-            if self.comment_re and (self.inline_settings or self.inline_overrides):
-                inline_settings.update(util.inline_settings(
-                    self.comment_re,
-                    self.code,
-                    prefix=self.name,
-                    alt_prefix=self.alt_name
-                ))
-
+        if inline:
+            inline_settings = self.get_inline_settings()
             settings = self.merge_inline_settings(settings.copy(), inline_settings)
 
         return settings
 
-    @lru_cache(maxsize=None)
     def get_merged_settings(self):
         """
-        Return a union of all non-inline settings specific to this linter, related to the given view.
+        Return a union of all non-inline, non-rc settings specific to this view's linter.
 
         The settings are merged in the following order:
 
@@ -505,13 +484,33 @@ class Linter(metaclass=LinterMeta):
         project_settings = project_settings.get('linters', {}).get(self.name, {})
         project_settings.update(meta)
 
-        # Update the linter's settings with the project settings
+        # Update the linter's settings with the project settings and rc settings
         settings = self.merge_project_settings(self.settings().copy(), project_settings)
-
-        # Update with rc settings
         self.merge_rc_settings(settings)
-
         self.replace_settings_tokens(settings)
+        return settings
+
+    def get_inline_settings(self):
+        """Return shebang and inline settings from the current file."""
+        settings = {}
+
+        if self.shebang_match:
+            eol = self.code.find('\n')
+
+            if eol != -1:
+                setting = self.shebang_match(self.code[0:eol])
+
+                if setting is not None:
+                    settings[setting[0]] = setting[1]
+
+        if self.comment_re and (self.inline_settings or self.inline_overrides):
+            settings.update(util.inline_settings(
+                self.comment_re,
+                self.code,
+                prefix=self.name,
+                alt_prefix=self.alt_name
+            ))
+
         return settings
 
     def replace_settings_tokens(self, settings):
@@ -588,14 +587,14 @@ class Linter(metaclass=LinterMeta):
         """
         Merge .sublimelinterrc settings with settings.
 
-        Searches for .sublimelinterrc in, starting at the directory of the linter's view.
+        Searches for .sublimelinterrc, starting at the directory of the linter's view.
         The search is limited to rc_search_limit directories. If found, the meta settings
         and settings for this linter in the rc file are merged with settings.
 
         """
 
-        search_limit = persist.settings.get('rc_search_limit', self.RC_SEARCH_LIMIT)
-        rc_settings = util.get_view_rc_settings(self.view, limit=search_limit)
+        limit = persist.settings.get('rc_search_limit', None)
+        rc_settings = util.get_view_rc_settings(self.view, limit=limit)
 
         if rc_settings:
             meta = self.meta_settings(rc_settings)
@@ -878,10 +877,10 @@ class Linter(metaclass=LinterMeta):
                 disabled.add(linter)
                 continue
 
-            # Because get_view_settings is expensive, we use an lru_cache
+            # Because get_view_settings is potentially expensive, we use an lru_cache
             # to cache its results. Before each lint, reset the cache.
             linter.clear_settings_caches()
-            view_settings = linter.get_view_settings(no_inline=True)
+            view_settings = linter.get_view_settings(inline=False)
 
             # We compile the ignore matches for a linter on each run,
             # clear the cache first.
@@ -1107,7 +1106,7 @@ class Linter(metaclass=LinterMeta):
 
     def insert_args(self, cmd):
         """Insert user arguments into cmd and return the result."""
-        args = self.build_args(self.get_view_settings())
+        args = self.build_args(self.get_view_settings(inline=True))
         cmd = list(cmd)
 
         if '*' in cmd:
@@ -1126,7 +1125,7 @@ class Linter(metaclass=LinterMeta):
         """Return any args the user specifies in settings as a list."""
 
         if settings is None:
-            settings = self.get_merged_settings()
+            settings = self.get_view_settings(inline=False)
 
         args = settings.get('args', [])
 
@@ -1257,7 +1256,7 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        view_settings = self.get_view_settings()
+        view_settings = self.get_view_settings(inline=True)
 
         for name, info in self.args_map.items():
             value = view_settings.get(name)

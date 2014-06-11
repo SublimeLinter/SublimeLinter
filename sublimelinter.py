@@ -429,44 +429,45 @@ class SublimeLinter(sublime_plugin.EventListener):
             filename = os.path.basename(view.file_name())
 
             if filename == '.sublimelinterrc':
-                # If it's the main .sublimelinterrc, reload the settings
-                rc_path = os.path.join(os.path.dirname(__file__), '.sublimelinterrc')
-
-                if view.file_name() == rc_path:
-                    persist.settings.load(force=True)
-                else:
-                    self.lint_all_views()
+                # If a .sublimelinterrc has changed, to be safe
+                # clear the rc cache and relint.
+                util.get_rc_settings.cache_clear()
+                self.lint_all_views()
 
             # If a file other than one of our settings files changed,
             # check if the syntax changed or if we need to show errors.
             elif filename != 'SublimeLinter.sublime-settings':
-                syntax_changed = self.check_syntax(view)
-                vid = view.id()
-                mode = persist.settings.get('lint_mode', 'background')
-                show_errors = persist.settings.get('show_errors_on_save', False)
+                self.file_was_saved(view)
 
-                if syntax_changed:
-                    self.clear(view)
+    def file_was_saved(self, view):
+        """Check if the syntax changed or if we need to show errors."""
+        syntax_changed = self.check_syntax(view)
+        vid = view.id()
+        mode = persist.settings.get('lint_mode', 'background')
+        show_errors = persist.settings.get('show_errors_on_save', False)
 
-                    if vid in persist.view_linters:
-                        if mode != 'manual':
-                            self.lint(vid)
-                        else:
-                            show_errors = False
-                    else:
-                        show_errors = False
+        if syntax_changed:
+            self.clear(view)
+
+            if vid in persist.view_linters:
+                if mode != 'manual':
+                    self.lint(vid)
                 else:
-                    if (
-                        show_errors or
-                        mode in ('load/save', 'save only') or
-                        mode == 'background' and self.view_has_file_only_linter(vid)
-                    ):
-                        self.lint(vid)
-                    elif mode == 'manual':
-                        show_errors = False
+                    show_errors = False
+            else:
+                show_errors = False
+        else:
+            if (
+                show_errors or
+                mode in ('load/save', 'save only') or
+                mode == 'background' and self.view_has_file_only_linter(vid)
+            ):
+                self.lint(vid)
+            elif mode == 'manual':
+                show_errors = False
 
-                if show_errors and vid in persist.errors and persist.errors[vid]:
-                    view.run_command('sublimelinter_show_all_errors')
+        if show_errors and vid in persist.errors and persist.errors[vid]:
+            view.run_command('sublimelinter_show_all_errors')
 
     def on_close(self, view):
         """Called after view is closed."""

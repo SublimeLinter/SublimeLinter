@@ -155,6 +155,7 @@ def get_view_rc_settings(view, limit=None):
         return None
 
 
+@lru_cache(maxsize=None)
 def get_rc_settings(start_dir, limit=None):
     """
     Search for a file named .sublimelinterrc starting in start_dir.
@@ -167,7 +168,7 @@ def get_rc_settings(start_dir, limit=None):
     """
 
     if not start_dir:
-        return
+        return None
 
     path = find_file(start_dir, '.sublimelinterrc', limit=limit)
 

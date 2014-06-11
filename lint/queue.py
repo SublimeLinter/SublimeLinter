@@ -123,7 +123,9 @@ class Daemon:
         if persist.settings.get('lint_mode') != 'background':
             return 0
 
-        delay = (util.get_view_rc_settings(view) or {}).get('delay')
+        limit = persist.settings.get('rc_search_limit', None)
+        rc_settings = util.get_view_rc_settings(view, limit=limit)
+        delay = (rc_settings or {}).get('delay')
 
         if delay is None:
             delay = persist.settings.get('delay', self.MIN_DELAY)

@@ -515,41 +515,37 @@ class Linter(metaclass=LinterMeta):
         return settings
 
     def replace_settings_tokens(self, settings):
-        """Replace tokens with values in settings."""
+        """
+        Replace tokens with values in settings.
+
+        Supported tokens, in the order they are expanded:
+
+        ${project}: the project's base directory, if available.
+        ${directory}: the dirname of the current view's file.
+        ${env:<x>}: the environment variable 'x'.
+        ${home}: the user's $HOME directory.
+
+        ${project} and ${directory} expansion are dependent on
+        having a window.
+
+        """
+        def recursive_replace_value(expressions, value):
+            if isinstance(value, dict):
+                return recursive_replace(expressions, value)
+            elif isinstance(value, list):
+                return [recursive_replace_value(expressions, item) for item in value]
+            elif isinstance(value, str):
+                for exp in expressions:
+                    if exp['is_regex']:
+                        return exp['token'].sub(exp['value'], value)
+                    else:
+                        return value.replace(exp['token'], exp['value'])
+            else:
+                return value
+
         def recursive_replace(expressions, mutable_input):
             for key, value in mutable_input.items():
-                if type(value) is dict:
-                    recursive_replace(expressions, mutable_input[key])
-                elif type(value) is list:
-                    for exp in expressions:
-                        if exp['is_regex']:
-                            mutable_input[key] = [
-                                exp['token'].sub(exp['value'], item)
-                                if type(item) is str else item
-                                for item in mutable_input[key]
-                            ]
-                        else:
-                            mutable_input[key] = [
-                                item.replace(exp['token'], exp['value'])
-                                if type(item) is str else item
-                                for item in mutable_input[key]
-                            ]
-                elif type(value) is str:
-                    for exp in expressions:
-                        if exp['is_regex']:
-                            mutable_input[key] = exp['token'].sub(exp['value'], mutable_input[key])
-                        else:
-                            mutable_input[key] = mutable_input[key].replace(exp['token'], exp['value'])
-
-        # Go through and expand the supported path tokens in place.
-        # Supported tokens, in the order they are expanded:
-        # ${project}: the project's base directory, if available.
-        # ${directory}: the dirname of the current view's file.
-        # ${env:<x>}: the environment variable 'x'.
-        # ${home}: the user's $HOME directory.
-        #
-        # ${project} and ${directory} expansion are dependent on
-        # having a window.
+                mutable_input[key] = recursive_replace_value(expressions, value)
 
         # Expressions are evaluated in list order.
         expressions = []

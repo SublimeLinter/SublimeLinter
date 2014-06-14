@@ -1703,7 +1703,7 @@ class Linter(metaclass=LinterMeta):
 
     # popen wrappers
 
-    def communicate(self, cmd, code=''):
+    def communicate(self, cmd, code=None):
         """Run an external executable using stdin to pass code and return its output."""
         if '@' in cmd:
             cmd[cmd.index('@')] = self.filename
@@ -1735,11 +1735,3 @@ class Linter(metaclass=LinterMeta):
             code,
             output_stream=self.error_stream,
             env=self.env)
-
-    def popen(self, cmd, env=None):
-        """Run cmd in a subprocess with the given environment and return the output."""
-        return util.popen(
-            cmd,
-            env=env,
-            extra_env=self.env,
-            output_stream=self.error_stream)

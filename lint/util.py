@@ -14,6 +14,7 @@
 from functools import lru_cache
 from glob import glob
 import json
+import locale
 from numbers import Number
 import os
 import re
@@ -1077,12 +1078,27 @@ def get_subl_executable_path():
 
 # popen utils
 
+def decode(bytes):
+    """
+    Decode and return a byte string using utf8, falling back to system's encoding if that fails.
+
+    So far we only have to do this because javac is so utterly hopeless it uses CP1252
+    for its output on Windows instead of UTF8, even if the input encoding is specified as UTF8.
+    Brilliant! But then what else would you expect from Oracle?
+
+    """
+    if not bytes:
+        return ''
+
+    try:
+        return bytes.decode('utf8')
+    except UnicodeError:
+        return bytes.decode(locale.getpreferredencoding(), errors='replace')
+
+
 def combine_output(out, sep=''):
     """Return stdout and/or stderr combined into a string, stripped of ANSI colors."""
-    output = sep.join((
-        (out[0].decode('utf8') or '') if out[0] else '',
-        (out[1].decode('utf8') or '') if out[1] else '',
-    ))
+    output = sep.join((decode(out[0]), decode(out[1])))
 
     return ANSI_COLOR_RE.sub('', output)
 

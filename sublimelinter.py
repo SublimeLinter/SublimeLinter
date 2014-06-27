@@ -216,7 +216,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Clear all marks, errors and status from the given view."""
         Linter.clear_view(view)
 
-    def is_scratch(self, view):
+    def is_scratch(self, view, on_activated=False):
         """
         Return whether a view is effectively scratch.
 
@@ -231,7 +231,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if view.is_scratch() or view.is_read_only() or view.window() is None:
             return True
-        elif view.file_name() and not os.path.exists(view.file_name()):
+        elif on_activated and view.file_name() and not os.path.exists(view.file_name()):
             return True
         else:
             return False
@@ -268,7 +268,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_activated(self, view):
         """Called when a view gains input focus."""
 
-        if self.is_scratch(view):
+        if self.is_scratch(view, on_activated=True):
             return
 
         # Reload the plugin settings.

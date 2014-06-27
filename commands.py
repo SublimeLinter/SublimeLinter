@@ -1097,6 +1097,7 @@ class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
         """Run the command."""
         util.clear_path_caches()
         util.get_rc_settings.cache_clear()
+        util.find_file.cache_clear()
         linter.Linter.clear_settings_caches()
 
 

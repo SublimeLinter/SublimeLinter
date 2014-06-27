@@ -502,6 +502,7 @@ def climb(start_dir, limit=None):
             limit -= 1
 
 
+@lru_cache(maxsize=None)
 def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
     """
     Find the given file by searching up the file hierarchy from start_dir.

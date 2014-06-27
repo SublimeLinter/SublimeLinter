@@ -1287,7 +1287,7 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
-        if self.filename and os.path.exists(self.filename):
+        if self.filename:
             cwd = os.getcwd()
             os.chdir(os.path.dirname(self.filename))
 

@@ -1297,6 +1297,7 @@ class Linter(metaclass=LinterMeta):
 
         if self.filename:
             cwd = os.getcwd()
+
             try:
                 os.chdir(os.path.dirname(self.filename))
             except OSError:

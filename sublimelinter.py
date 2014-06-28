@@ -216,22 +216,27 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Clear all marks, errors and status from the given view."""
         Linter.clear_view(view)
 
-    def is_scratch(self, view, on_activated=False):
+    def is_scratch(self, view):
         """
         Return whether a view is effectively scratch.
 
         There is a bug (or feature) in the current ST3 where the Find panel
         is not marked scratch but has no window.
 
-        There is also a bug where files opened from within .sublime-package files
-        are not marked scratch during the on_activate event, so we have to
-        check that a view with a filename actually exists on disk.
+        There is also a bug where settings files opened from within .sublime-package
+        files are not marked scratch during the initial on_modified event, so we have
+        to check that a view with a filename actually exists on disk if the file
+        being opened is in the Sublime Text packages directory.
 
         """
 
         if view.is_scratch() or view.is_read_only() or view.window() is None:
             return True
-        elif on_activated and view.file_name() and not os.path.exists(view.file_name()):
+        elif (
+            view.file_name() and
+            view.file_name().startswith(sublime.packages_path() + os.path.sep) and
+            not os.path.exists(view.file_name())
+        ):
             return True
         else:
             return False
@@ -268,7 +273,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_activated(self, view):
         """Called when a view gains input focus."""
 
-        if self.is_scratch(view, on_activated=True):
+        if self.is_scratch(view):
             return
 
         # Reload the plugin settings.

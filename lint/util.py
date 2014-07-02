@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 from string import Template
+import stat
 import sublime
 import subprocess
 import sys
@@ -1155,6 +1156,11 @@ def create_tempdir():
         shutil.rmtree(tempdir)
 
     os.mkdir(tempdir)
+
+    # Make sure the directory can be removed by anyone in case the user
+    # runs ST later as another user.
+    os.chmod(tempdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
     from . import persist
     persist.debug('temp directory:', tempdir)
 

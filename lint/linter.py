@@ -1714,6 +1714,10 @@ class Linter(metaclass=LinterMeta):
         elif not code:
             cmd.append(self.filename)
 
+        project_file_path = sublime.active_window().project_file_name()
+        project_path = os.path.dirname(project_file_path)
+        cmd = [arg.replace('$project_path', project_path) for arg in cmd]
+
         return util.communicate(
             cmd,
             code,
@@ -1722,6 +1726,11 @@ class Linter(metaclass=LinterMeta):
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
+
+        project_file_path = sublime.active_window().project_file_name()
+        project_path = os.path.dirname(project_file_path)
+        cmd = [arg.replace('$project_path', project_path) for arg in cmd]
+
         return util.tmpfile(
             cmd,
             code,
@@ -1732,6 +1741,11 @@ class Linter(metaclass=LinterMeta):
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""
+
+        project_file_path = sublime.active_window().project_file_name()
+        project_path = os.path.dirname(project_file_path)
+        cmd = [arg.replace('$project_path', project_path) for arg in cmd]
+
         return util.tmpdir(
             cmd,
             files,

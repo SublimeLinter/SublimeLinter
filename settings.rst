@@ -20,6 +20,8 @@ When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings fr
     User settings
     Default settings
 
+After the default, user, and project settings are merged, :ref:`tokens <settings-tokens>` are replaced within the settings. Each of the settings sources is covered in detail :ref:`below <settings-sources>`.
+
 
 Setting types
 -------------
@@ -43,6 +45,8 @@ Meta settings may also be set within a single linter’s settings, and in that c
 
    A meta setting at the global level overrides the same linter meta setting. For example, even if ``"@disable"`` is ``true`` within a linter’s settings, setting ``"@disable"`` to ``false`` at the global level will override the linter setting and enable that linter.
 
+
+.. _settings-sources:
 
 Settings sources
 ----------------
@@ -366,3 +370,70 @@ In the example above, without the inline overrides, the ignore option passed to 
 .. note::
 
    Please see the documentation for each linter to find out what inline overrides it supports.
+
+
+.. _settings-tokens:
+
+Setting tokens
+--------------
+After the default, user and project settings are merged, SublimeLinter iterates over all settings values and replaces the following tokens with their current values:
+
+=================== =========================================================================
+Token               Value
+=================== =========================================================================
+${project}          The full path to the project’s parent directory, if available.
+${directory}        The full path to the parent directory of the current view’s file.
+${home}             The full path to the current user’s home directory.
+${env:x}            The environment variable 'x'.
+=================== =========================================================================
+
+Please note:
+
+- Directory paths do **not** include a trailing directory separator.
+
+- ``${project}`` and ``${directory}`` expansion are dependent on a file being open in a window, and thus may not work when running lint reports.
+
+- The environment variables available to the ``${env:x}`` token are those available within the Sublime Text python context, which is a very limited subset of those available within a command line shell.
+
+Project and parent directory paths are especially useful if you want to load specific configuration files for a linter.
+For example, you could use the ``${project}`` and ``${home}`` tokens in your project settings:
+
+.. code-block:: json
+
+    {
+        "folders":
+        [
+            {
+                "follow_symlinks": true,
+                "path": "/Users/tinytim/Projects/Tulips"
+            }
+        ],
+        "SublimeLinter":
+        {
+            "linters":
+            {
+                "phpcs": {
+                    "standard": "${project}/build/phpcs/MyPHPCS"
+                },
+                "phpmd": {
+                    "args": ["${home}/phpmd-ruleset.xml"]
+                }
+            }
+        }
+    }
+
+After token replacement, SublimeLinter sees the linter settings as:
+
+.. code-block:: json
+
+    {
+        "linters":
+        {
+            "phpcs": {
+                "standard": "/Users/tinytim/Projects/Tulips/build/phpcs/MyPHPCS"
+            },
+            "phpmd": {
+                "args": ["/Users/tinytim/phpmd-ruleset.xml"]
+            }
+        }
+    }

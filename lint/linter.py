@@ -452,7 +452,7 @@ class Linter(metaclass=LinterMeta):
 
     def get_merged_settings(self):
         """
-        Return a union of all non-inline, non-rc settings specific to this view's linter.
+        Return a union of all non-inline settings specific to this view's linter.
 
         The settings are merged in the following order:
 
@@ -462,6 +462,8 @@ class Linter(metaclass=LinterMeta):
         user + project meta settings
         rc settings
         rc meta settings
+
+        After merging, tokens in the settings are replaced.
 
         """
 
@@ -519,28 +521,28 @@ class Linter(metaclass=LinterMeta):
 
         Supported tokens, in the order they are expanded:
 
-        ${project}: the project's base directory, if available.
-        ${directory}: the dirname of the current view's file.
-        ${env:<x>}: the environment variable 'x'.
+        ${project}: full path to the project's parent directory, if available.
+        ${directory}: full path to the parent directory of the current view's file.
         ${home}: the user's $HOME directory.
+        ${env:x}: the environment variable 'x'.
 
         ${project} and ${directory} expansion are dependent on
-        having a window.
+        having a window. Paths do not contain trailing directory separators.
 
         """
         def recursive_replace_value(expressions, value):
             if isinstance(value, dict):
-                return recursive_replace(expressions, value)
+                value = recursive_replace(expressions, value)
             elif isinstance(value, list):
-                return [recursive_replace_value(expressions, item) for item in value]
+                value = [recursive_replace_value(expressions, item) for item in value]
             elif isinstance(value, str):
                 for exp in expressions:
-                    if exp['is_regex']:
-                        return exp['token'].sub(exp['value'], value)
+                    if isinstance(exp['value'], str):
+                        value = value.replace(exp['token'], exp['value'])
                     else:
-                        return value.replace(exp['token'], exp['value'])
-            else:
-                return value
+                        value = exp['token'].sub(exp['value'], value)
+
+            return value
 
         def recursive_replace(expressions, mutable_input):
             for key, value in mutable_input.items():
@@ -557,29 +559,29 @@ class Linter(metaclass=LinterMeta):
                 project = os.path.dirname(window.project_file_name())
 
                 expressions.append({
-                    'is_regex': False,
                     'token': '${project}',
-                    'value': project})
+                    'value': project
+                })
 
             expressions.append({
-                'is_regex': False,
                 'token': '${directory}',
                 'value': (
                     os.path.dirname(view.file_name()) if
-                    view and view.file_name() else "FILE NOT ON DISK")})
+                    view and view.file_name() else "FILE NOT ON DISK")
+            })
 
         expressions.append({
-            'is_regex': True,
+            'token': '${home}',
+            'value': os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep) or 'HOME NOT SET'
+        })
+
+        expressions.append({
             'token': re.compile(r'\${env:(?P<variable>[^}]+)}'),
             'value': (
                 lambda m: os.getenv(m.group('variable')) if
                 os.getenv(m.group('variable')) else
-                "%s NOT SET" % m.group('variable'))})
-
-        expressions.append({
-            'is_regex': False,
-            'token': '${home}',
-            'value': re.escape(os.getenv('HOME') or 'HOME NOT SET')})
+                "%s NOT SET" % m.group('variable'))
+        })
 
         recursive_replace(expressions, settings)
 

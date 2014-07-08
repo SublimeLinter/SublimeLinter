@@ -137,17 +137,39 @@ This setting determines whether error marks are shown in the minimap. The defaul
 
 syntax_map
 ----------
-This setting allows you to map one syntax name to another. Because linters are tied to a syntax name, this is useful when there are variations on a syntax that should use the same linter.
+This setting allows you to map one syntax **name** to another. Because linters are tied to a syntax name, this is useful when there are variations on a syntax that should use the same linter.
+
+.. note::
+
+  Syntax names are what appear in the ``View > Syntax`` menu and in the lower right of the status bar, **not** the file extension.
 
 The syntax names in the map should be lowercase. The default value is:
 
 .. code-block:: json
 
     {
+        "python django": "python",
+        "html 5": "html",
+        "html (django)": "html",
+        "html (rails)": "html",
         "php": "html"
     }
 
-This means that any file that has the ``php`` syntax will be linted by any linter than supports the ``html`` syntax, including linters that support embedded ``php`` code.
+This means that any file that has the named syntax which is one of the keys will be linted by any linter than supports the named syntax corresponding to that key. For example, any file with the "python django" syntax will be linted by any linter that supports the "python" syntax.
+
+Let’s say you install some fancy new syntax package for python named "Totally Awesome Python". To ensure |sl| will lint files that use that syntax, you would modify the ``"syntax_map"`` setting as follows:
+
+.. code-block:: json
+
+    {
+        "totally awesome python": "python",
+        "python django": "python",
+        "html 5": "html",
+        "html (django)": "html",
+        "html (rails)": "html",
+        "php": "html"
+    }
+
 
 .. _warning_color:
 

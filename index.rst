@@ -8,7 +8,8 @@ The documentation for |sl| is divided into two sections: one for users, and one 
 
 `User Documentation`_ |bar_sep| `Developer Documentation`_
 
-If you use `Dash`_, the awesome documentation reader for Mac OS X, there is a `Dash feed`_ available. The |sl| source is available `on github`_.
+The |sl| source is available `on github`_.
+
 
 Support
 =======
@@ -16,8 +17,6 @@ Please use the `SublimeLinter google group`_ for support, even if you think you 
 
 .. _SublimeLinter google group: https://groups.google.com/forum/#!forum/sublimelinter
 .. _on github: https://github.com/SublimeLinter/SublimeLinter3
-.. _Dash: http://kapeli.com/dash
-.. _Dash Feed: dash-feed://https%3A//media.readthedocs.org/dash/sublimelinter/latest/sublimelinter.xml
 
 
 Be Part of the Team

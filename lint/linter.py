@@ -1353,9 +1353,7 @@ class Linter(metaclass=LinterMeta):
                     error_type = self.default_type
 
                 if col is not None:
-                    # Pin the column to the start/end line offsets
                     start, end = self.highlight.full_line(line)
-                    col = max(min(col, (end - start) - 1), 0)
 
                     # Adjust column numbers to match the linter's tabs if necessary
                     if self.tab_width > 1:
@@ -1369,6 +1367,9 @@ class Linter(metaclass=LinterMeta):
                             if col - diff <= i:
                                 col = i
                                 break
+
+                    # Pin the column to the start/end line offsets
+                    col = max(min(col, (end - start) - 1), 0)
 
                 if col is not None:
                     self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re)

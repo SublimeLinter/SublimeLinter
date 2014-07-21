@@ -223,7 +223,7 @@ class PythonLinter(linter.Linter):
                 if path:
                     if path[0] == '<builtin>':
                         return True, '<builtin>'
-                    elif path[0] is None or script and path[1] is None:
+                    elif path[0] is None:
                         return True, None
 
                 return True, path

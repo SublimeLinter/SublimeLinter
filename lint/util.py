@@ -752,8 +752,9 @@ def which(cmd, module=None):
     Return the full path to the given command, or None if not found.
 
     If cmd is in the form [script]@python[version], find_python is
-    called to locate the appropriate version of python. The result
-    is a tuple of the full python path and the full path to the script
+    called to locate the appropriate version of python. If an executable
+    version of the script can be found, its path is returned. Otherwise
+    the result is a tuple of the full python path and the full path to the script
     (or None if there is no script).
 
     """
@@ -763,7 +764,19 @@ def which(cmd, module=None):
     if match:
         args = match.groupdict()
         args['module'] = module
-        return find_python(**args)[0:2]
+        path = find_python(**args)[0:2]
+
+        # If a script is requested and an executable path is returned
+        # with no script path, just use the executable.
+        if (
+            path is not None and
+            path[0] is not None and
+            path[1] is None and
+            args['script']  # for the case where there is no script in cmd
+        ):
+            return path[0]
+        else:
+            return path
     else:
         return find_executable(cmd)
 
@@ -884,6 +897,9 @@ def find_python(version=None, script=None, module=None):
 
                 if script_path is None:
                     path = None
+                elif script_path.endswith('.exe'):
+                    path = script_path
+                    script_path = None
         else:
             path = script_path = None
 
@@ -987,13 +1003,19 @@ def find_python_script(python_path, script):
     if sublime.platform() in ('osx', 'linux'):
         return which(script)
     else:
-        # On Windows, scripts are .py files in <python directory>/Scripts
-        script_path = os.path.join(os.path.dirname(python_path), 'Scripts', script + '-script.py')
+        # On Windows, scripts may be .exe files or .py files in <python directory>/Scripts
+        scripts_path = os.path.join(os.path.dirname(python_path), 'Scripts')
+        script_path = os.path.join(scripts_path, script + '.exe')
 
         if os.path.exists(script_path):
             return script_path
-        else:
-            return None
+
+        script_path = os.path.join(scripts_path, script + '-script.py')
+
+        if os.path.exists(script_path):
+            return script_path
+
+        return None
 
 
 @lru_cache(maxsize=None)

@@ -186,7 +186,7 @@ Adjusting shell startup files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This approach is a little more complicated, but once you get it right then your |path| will be correct for command line usage and for |sl|.
 
-All shells read various files when they are run. Depending on the command line arguments, shells read a “profile/env” file of some sort and an “rc” (runtime configuration) file. For example, ``bash`` reads :file:`.bash_profile` and :file:`.bashrc` (among others) and zsh reads :file:`.zshenv` and :file:`.zshrc` (among others).
+All shells read various files when they are run. Depending on the command line arguments, shells read a “profile/env” file of some sort and an “rc” (runtime configuration) file. For example, ``bash`` reads :file:`.bash_profile` and :file:`.bashrc` (among others) and ``zsh`` reads :file:`.zshenv` and/or :file:`.zprofile` (depending on the platform) and :file:`.zshrc` (among others).
 
 If you aren’t sure what shell you are using, type this in a terminal:
 
@@ -205,32 +205,20 @@ The list of shells supported by |sl| and the startup file that must contain |pat
 +----------------+----------------------------+
 | zsh (Mac OS X) | ~/.zprofile                |
 +----------------+----------------------------+
-| zsh (Linux)    | ~/.zshenv                  |
+| zsh (Linux)    | ~/.zshenv or ~/.zprofile   |
 +----------------+----------------------------+
 | fish           | ~/.config/fish/config.fish |
 +----------------+----------------------------+
 
-----
+If you are using ``zsh`` on Linux, you need to determine which file is used in your flavor of Linux. To do so, follow these steps:
 
-A special note for oh-my-zsh users
-""""""""""""""""""""""""""""""""""
-If you are using ``zsh`` and ``oh-my-zsh``, there is a bug in ``oh-my-zsh`` that causes :file:`.zshenv` to be loaded twice. To fix it, do the following:
+#. Open :file:`.zshenv` in an editor and insert ``echo env`` on the first line. If the file does not exist, create it.
 
-#. Open :file:`~/.oh-my-zsh/oh-my-zsh.sh`. At the very top you will see code something like this:
+#. Do the same for :file:`.zprofile`, but insert ``echo profile``.
 
-   .. code-block:: none
+#. Enter ``$SHELL -l -c 'echo hello'``. If you see both “env” and “profile”, use :file:`.zshenv` for |path| augmentations. If you see only one of the two, use that file for |path| augmentations.
 
-        if [ "$DISABLE_AUTO_UPDATE" != "true" ]; then
-            /usr/bin/env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh $ZSH/tools/check_for_upgrade.sh
-        fi
-
-#. On the line that begins with ``/usr/bin/env``, change ``zsh`` towards the end to ``zsh -f``. The complete line should then be:
-
-   .. code-block:: none
-
-        /usr/bin/env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh -f $ZSH/tools/check_for_upgrade.sh
-
-#. Save the file.
+#. Remove or comment out the ``echo`` lines you added.
 
 ----
 
@@ -251,7 +239,7 @@ If ``which`` or ``where`` cannot find a linter executable from the command line,
 +----------------+----------------------------+-----------------------------------+
 | zsh (Mac OS X) | ~/.zprofile                | export PATH=/opt/bin:$PATH        |
 +----------------+----------------------------+-----------------------------------+
-| zsh (Linux)    | ~/.zshenv                  | export PATH=/opt/bin:$PATH        |
+| zsh (Linux)    | ~/.zshenv or ~/.zprofile   | export PATH=/opt/bin:$PATH        |
 +----------------+----------------------------+-----------------------------------+
 | fish           | ~/.config/fish/config.fish | set PATH /opt/bin $PATH           |
 +----------------+----------------------------+-----------------------------------+

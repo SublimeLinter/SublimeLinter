@@ -216,7 +216,7 @@ If you are using ``zsh`` on Linux, you need to determine which file is used in y
 
 #. Do the same for :file:`.zprofile`, but insert ``echo profile``.
 
-#. Enter ``$SHELL -l -c 'echo hello'``. If you see both “env” and “profile”, use :file:`.zshenv` for |path| augmentations. If you see only one of the two, use that file for |path| augmentations.
+#. In a terminal, enter ``$SHELL -l -c 'echo hello'``. If you see both “env” and “profile”, use :file:`.zshenv` for |path| augmentations. If you see only one of the two, use that file for |path| augmentations.
 
 #. Remove or comment out the ``echo`` lines you added.
 

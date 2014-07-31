@@ -351,6 +351,7 @@ class Settings:
                 ' and the default is also not available. '
                 'No gutter marks will display.'.format(theme)
             )
+
             for mark_type in [x for x in gutter_marks if x is not 'colorize']:
                 gutter_marks[mark_type] = ''
 
@@ -365,7 +366,6 @@ class Settings:
 
         # enumerate for linters
         for linter_name, linter_settings in self.get('linters', {}).items():
-
             for mark_type, color in linter_settings.get('colors', {}).items():
                 colors[mark_type]['{}.{}'.format(linter_name, mark_type)] = color
 

@@ -236,7 +236,6 @@ def generate_color_scheme_async():
     styles = plist.find('./dict/array')
 
     for mark_type, codes in merged_colors.items():
-
         for context, code in codes.items():
             styles.append(
                 ElementTree.XML(COLOR_SCHEME_STYLES['color'].format(name=context, title=context.title(), color=code))

@@ -237,7 +237,6 @@ class Highlight:
             subtype = next(parts)
 
             while subtype:
-
                 if subtype in colors:
                     specific_type = '{}.{}'.format(self.linter_name, subtype)
 
@@ -408,13 +407,11 @@ class Highlight:
         """
         # merge following precedence rules
         for mark_type in other.marks:
-
             for mark in other.marks[mark_type]:
                 new_coord = (mark.a, mark.b)
                 existing_type = self.coordinates.get(new_coord)
 
                 if existing_type:
-
                     if more_important(mark_type, existing_type):
                         self.marks[existing_type].remove(mark)
                     else:
@@ -428,10 +425,8 @@ class Highlight:
             current_type = self.lines.get(line)
 
             if current_type:
-
                 if more_important(mark_type, current_type):
                     self.lines[line] = mark_type
-
             else:
                 self.lines[line] = mark_type
 

@@ -19,7 +19,7 @@
         "precedence": [
             "error",
             "warning"
-            ],
+        ],
         "python_paths": {
             "linux": [],
             "osx": [],

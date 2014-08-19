@@ -1170,7 +1170,7 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
                         for line, messages in items:
                             for col, message in messages:
-                                out += '    {:>{width}}: {}\n'.format(line, message, width=width)
+                                out += '    {:>{width}}: {}\n'.format(line + 1, message, width=width)
 
                 output.insert(edit, output.size(), out)
 

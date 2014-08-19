@@ -238,9 +238,8 @@ class Linter(metaclass=LinterMeta):
     # If you want to set flags on the regex *other* than re.MULTILINE, set this.
     re_flags = 0
 
-    # The default type assigned to non-classified errors. Should be either
-    # highlight.ERROR or highlight.WARNING.
-    default_type = highlight.ERROR
+    # The default type assigned to non-classified errors.
+    default_type = highlight.DEFAULT_MARK
 
     # Linters usually report errors with a line number, some with a column number
     # as well. In general, most linters report one-based line numbers and column
@@ -391,7 +390,7 @@ class Linter(metaclass=LinterMeta):
         self.view = view
         self.syntax = syntax
         self.code = ''
-        self.highlight = highlight.Highlight()
+        self.highlight = highlight.Highlight(linter_name=self.name)
         self.ignore_matches = None
 
     @property
@@ -1010,7 +1009,8 @@ class Linter(metaclass=LinterMeta):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
-        self.highlight = highlight.Highlight(self.code)
+        self.clear()
+        self.highlight = highlight.Highlight(self.code, linter_name=self.name)
 
         if self.ignore_matches is None:
             ignore_match = settings.get('ignore_match')
@@ -1345,6 +1345,7 @@ class Linter(metaclass=LinterMeta):
                     if ignore:
                         continue
 
+                # TODO - sane way for linters to report complex mark types
                 if error:
                     error_type = highlight.ERROR
                 elif warning:
@@ -1397,7 +1398,7 @@ class Linter(metaclass=LinterMeta):
         """Clear marks, status and all other cached error info for the given view."""
 
         view.erase_status('sublimelinter')
-        highlight.Highlight.clear(view)
+        highlight.HighlightSet.clear(view)
 
         if view.id() in persist.errors:
             del persist.errors[view.id()]

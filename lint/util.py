@@ -253,7 +253,7 @@ def generate_color_scheme_async():
 
     scheme_path = os.path.join(sublime.packages_path(), 'User', name + '.tmTheme')
 
-    with open(scheme_path+"temp", 'w', encoding='utf8') as f:
+    with open(scheme_path, 'w', encoding='utf8') as f:
         f.write(COLOR_SCHEME_PREAMBLE + ElementTree.tostring(plist, encoding='unicode'))
 
     # Set the amended color scheme to the current color scheme

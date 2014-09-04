@@ -188,7 +188,12 @@ def get_rc_settings(start_dir, limit=None):
 
 
 def generate_color_scheme(from_reload=True):
-    """Asynchronously call generate_color_scheme_async."""
+    """
+    Asynchronously call generate_color_scheme_async.
+
+    from_reload is True if this is called from the change callback for user settings.
+
+    """
 
     # If this was called from a reload of prefs, turn off the prefs observer,
     # otherwise we'll end up back here when ST updates the prefs with the new color.
@@ -208,12 +213,24 @@ def generate_color_scheme_async():
     """
     Generate a modified copy of the current color scheme that contains SublimeLinter color entries.
 
-    from_reload is True if this is called from the change callback for user settings.
-
     The current color scheme is checked for SublimeLinter color entries. If any are missing,
     the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User.
 
     """
+
+    # First make sure the user prefs are valid. If not, bail.
+    path = os.path.join(sublime.packages_path(), 'User', 'Preferences.sublime-settings')
+
+    if (os.path.isfile(path)):
+        try:
+            with open(path, mode='r') as f:
+                json = f.read()
+
+            sublime.decode_value(json)
+        except:
+            from . import persist
+            persist.printf('generate_color_scheme: Preferences.sublime-settings invalid, aborting')
+            return
 
     prefs = sublime.load_settings('Preferences.sublime-settings')
     scheme = prefs.get('color_scheme')

@@ -41,9 +41,20 @@ Got it? Okay, here we go:
 
 #. The plugin directory will be opened in |st|. You can then start modifying the linter plugin (``linter.py``) according to your needs.
 
-   .. note::
 
-      If you wish to have the linter plugin included in the |sl| organization on github, be sure to follow the :ref:`coding guidelines <coding-guidelines>` below.
+Coding guidelines
+-----------------
+For the benefit of all users, I try to maintain a consistently high standard in all third party SublimeLinter plugins. This is enforced by maintaining control over the channel Package Control uses for all SublimeLinter-related repos. If you would like your linter plugin to be published to Package Control, you must follow these guidelines:
+
+-  Indent is 4 spaces.
+
+-  Install the `flake8`_ and `pep257`_ linters to check your code and fix all errors.
+
+-  Vertical whitespace helps readability, don’t be afraid to use it.
+
+-  Please use descriptive variable names, no abbrevations unless they are very well known.
+
+.. _pep257: https://github.com/GreenSteam/pep257
 
 
 Updating class attributes
@@ -99,17 +110,21 @@ Updating documentation
 
 #. Follow your own instructions! Try following the installation instructions in the README — if possible on Mac OS X, Linux and Windows — to see if you missed any important information or possibilities for confusion.
 
-#. Post a message on the |_group| with a link to your repo and I'll review it for correctness and completeness.
-
-   .. note::
-
-      Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
-
 
 .. _preparing-for-publication:
 
 Preparing for publication
 -------------------------
+When you have followed all of the steps above and you think your plugin is ready for release, post a message on the |_group| with a link to your repo and I’ll review it for correctness and completeness.
+
+   .. warning::
+
+      Do **NOT** make a pull request on `wbond/package_control_channel <https://github.com/wbond/package_control_channel>`_. All SublimeLinter plugins must go through `SublimeLinter/package_control_channel <https://github.com/SublimeLinter/package_control_channel>`_.
+
+   .. note::
+
+      Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
+
 Once your plugin has been reviewed and all issues have been fixed, you need to tag the final commit with a version number before publishing to Package Control:
 
 .. code-block:: none
@@ -118,21 +133,3 @@ Once your plugin has been reviewed and all issues have been fixed, you need to t
    git push origin 1.0.0
 
 After the plugin is published to Package Control, every time you make a change, you must increment the version and tag the commit you want to publish. If it is a bug fix, increment the last number in the version. If you add functionality, increment the middle number. Then do the steps above with the new version.
-
-
-.. _coding-guidelines:
-
-Coding guidelines
------------------
-
-If you would like your linter plugin to be published in the |_org| on github, you must follow these guidelines:
-
--  Indent is 4 spaces.
-
--  Use the `flake8`_ and `pep257`_ linters to check your code.
-
--  Vertical whitespace helps readability, don’t be afraid to use it.
-
--  Please use descriptive variable names, no abbrevations unless they are very well known.
-
-.. _pep257: https://github.com/GreenSteam/pep257

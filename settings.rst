@@ -125,11 +125,11 @@ Bring up the |_cmd| and type :kbd:`prefs`. Among the commands you should see ``P
 
 **Tools menu**
 :raw-html:`<br>`
-At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > User Settings``.
+At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Open User Settings``.
 
 **Context menu**
 :raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > User Settings``.
+If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Open User Settings``.
 
 
 Project settings

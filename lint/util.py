@@ -17,7 +17,6 @@ import json
 import locale
 from numbers import Number
 import os
-import pwd
 import re
 import shutil
 from string import Template
@@ -27,6 +26,8 @@ import subprocess
 import sys
 import tempfile
 from xml.etree import ElementTree
+if sublime.platform() != 'windows':
+    import pwd
 
 #
 # Public constants

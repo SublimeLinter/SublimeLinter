@@ -17,6 +17,7 @@ import json
 import locale
 from numbers import Number
 import os
+import pwd
 import re
 import shutil
 from string import Template
@@ -1191,14 +1192,33 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None):
 
 def create_tempdir():
     """Create a directory within the system temp directory used to create temp files."""
-    if os.path.isdir(tempdir):
-        shutil.rmtree(tempdir)
+    try:
+        if os.path.isdir(tempdir):
+            shutil.rmtree(tempdir)
 
-    os.mkdir(tempdir)
+        os.mkdir(tempdir)
 
-    # Make sure the directory can be removed by anyone in case the user
-    # runs ST later as another user.
-    os.chmod(tempdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+        # Make sure the directory can be removed by anyone in case the user
+        # runs ST later as another user.
+        os.chmod(tempdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
+    except PermissionError:
+        if sublime.platform() != 'windows':
+            current_user = pwd.getpwuid(os.geteuid())[0]
+            temp_uid = os.stat(tempdir).st_uid
+            temp_user = pwd.getpwuid(temp_uid)[0]
+            message = (
+                'The SublimeLinter temp directory:\n\n{0}\n\ncould not be cleared '
+                'because it is owned by \'{1}\' and you are logged in as \'{2}\'. '
+                'Please use sudo to remove the temp directory from a terminal.'
+            ).format(tempdir, temp_user, current_user)
+        else:
+            message = (
+                'The SublimeLinter temp directory ({}) could not be reset '
+                'because it belongs to a different user.'
+            ).format(tempdir)
+
+        sublime.error_message(message)
 
     from . import persist
     persist.debug('temp directory:', tempdir)

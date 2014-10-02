@@ -996,7 +996,7 @@ def find_windows_python(version):
         stripped_version = version.replace('.', '')
         prefix = os.path.abspath('\\Python')
         prefix_len = len(prefix)
-        dirs = glob(prefix + '*')
+        dirs = sorted(glob(prefix + '*'), reverse=True)
         from . import persist
 
         # Try the exact version first, then the major version

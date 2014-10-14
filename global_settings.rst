@@ -141,7 +141,7 @@ This setting allows you to map one syntax **name** to another. Because linters a
 
 .. note::
 
-  Syntax names are what appear in the ``View > Syntax`` menu and in the lower right of the status bar, **not** the file extension.
+  Syntax names are the name of the .tmLanguage file that defines the syntax. This is **not** the file extension of the files to be linted, and may not necessarily be what is in the ``View > Syntax`` menu and in the lower right of the status bar.
 
 The syntax names in the map should be lowercase. The default value is:
 

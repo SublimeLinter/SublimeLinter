@@ -230,7 +230,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
 
-        if view.is_scratch() or view.is_read_only() or view.window() is None:
+        if view.is_scratch() or view.is_read_only() or view.window() is None or view.settings().get("repl") is not None:
             return True
         elif (
             view.file_name() and
@@ -239,7 +239,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         ):
             return True
         else:
-            return view.settings().get("repl") or False
+            return False
 
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""

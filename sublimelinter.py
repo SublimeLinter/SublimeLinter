@@ -230,7 +230,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
 
-        if view.is_scratch() or view.is_read_only() or view.window() is None:
+        if view.is_scratch() or view.is_read_only() or view.window() is None or view.settings().get("repl") is not None:
             return True
         elif (
             view.file_name() and

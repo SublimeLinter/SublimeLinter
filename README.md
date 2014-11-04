@@ -3,6 +3,18 @@ SublimeLinter
 
 [![Build Status](https://travis-ci.org/SublimeLinter/SublimeLinter3.svg?branch=master)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
 
+## Save SublimeLinter!
+
+After a year of working on SublimeLinter, the time has come for me to pass the torch.
+I am grateful to everyone who valued SublimeLinter enough to donate, and also to those
+who contributed code, but I can no longer afford to maintain or support SublimeLinter
+and its many linter plugins.
+
+I am looking for developers who are willing to take over coding and/or support.
+If you are interested, please leave a comment [here](https://github.com/SublimeLinter/SublimeLinter3/issues/146).
+
+---
+
 **To those upgrading from SublimeLinter v1.7:**
 
 **LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3.**

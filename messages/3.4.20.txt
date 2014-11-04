@@ -1,0 +1,14 @@
+SublimeLinter 3.4.20
+---------------------
+
+SAVE SUBLIMELINTER!
+
+After a year of working on SublimeLinter, the time has come for me to pass the torch.
+I am grateful to everyone who valued SublimeLinter enough to donate, and also to those
+who contributed code, but I can no longer afford to maintain or support SublimeLinter
+and its many linter plugins.
+
+I am looking for developers who are willing to take over coding and/or support.
+If you are interested, please leave a comment at:
+
+https://github.com/SublimeLinter/SublimeLinter3/issues/146

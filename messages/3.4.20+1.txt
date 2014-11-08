@@ -1,0 +1,21 @@
+************************
+* Good news, everyone! *
+************************
+
+We have had great support recently and are truly 
+thankful to everyone who has wished Aparajita a 
+fond farewell. We expect he will continue to 
+contribute in the future and appreciate the 
+amazing stewardship he has shown to the project.
+
+Please join us in welcoming Blake (@skj3gg) as 
+the new project administrator for the SublimeLinter 
+organization. We know the project will continue 
+for a long time to come with this new change in 
+leadership. Our number one priority will always be
+to help developers craft better code.
+
+As a final note, all donations will continue to go
+to Aparajita until November 14, 2014, so please
+consider thanking him for his services before that
+time.

@@ -36,11 +36,11 @@
                 "command": "sublimelinter_show_all_errors"
             },
             {
-                "caption": "Passive Warnings",
+                "caption": "Make Warnings Passive",
                 "command": "sublimelinter_toggle_setting", "args":
                 {
                     "setting": "passive_warnings",
-                    "checked": false
+                    "checked": true
                 }
             },
             {

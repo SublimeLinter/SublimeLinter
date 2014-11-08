@@ -36,10 +36,10 @@
                 "command": "sublimelinter_show_all_errors"
             },
             {
-                "caption": "Make Warnings Subtle",
+                "caption": "Passive Warnings",
                 "command": "sublimelinter_toggle_setting", "args":
                 {
-                    "setting": "make_warnings_subtle",
+                    "setting": "passive_warnings",
                     "checked": false
                 }
             },

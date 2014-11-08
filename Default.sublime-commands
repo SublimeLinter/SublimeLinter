@@ -94,18 +94,18 @@
         "command": "sublimelinter_show_all_errors"
     },
     {
-        "caption": "SublimeLinter: Make Warnings Subtle",
+        "caption": "SublimeLinter: Passive Warnings",
         "command": "sublimelinter_toggle_setting", "args":
         {
-            "setting": "make_warnings_subtle",
+            "setting": "passive_warnings",
             "value": true
         }
     },
     {
-        "caption": "SublimeLinter: Don't Make Warnings Subtle",
+        "caption": "SublimeLinter: Don't Passive Warnings",
         "command": "sublimelinter_toggle_setting", "args":
         {
-            "setting": "make_warnings_subtle",
+            "setting": "passive_warnings",
             "value": false
         }
     },

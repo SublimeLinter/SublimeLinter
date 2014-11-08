@@ -5,7 +5,7 @@
         "error_color": "D02000",
         "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
         "gutter_theme_excludes": [],
-        "make_warnings_subtle": true,
+        "passive_warnings": true,
         "lint_mode": "background",
         "mark_style": "outline",
         "no_column_highlights_line": false,

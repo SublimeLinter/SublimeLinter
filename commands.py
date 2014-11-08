@@ -230,7 +230,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         options = []
 
         for lineno, line_errors in sorted(errors.items()):
-            if persist.settings.get("make_warnings_subtle", False):
+            if persist.settings.get("passive_warnings", False):
                 if self.highlights.line_type(lineno) != highlight.ERROR:
                     continue
 

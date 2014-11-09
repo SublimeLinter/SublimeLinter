@@ -117,6 +117,21 @@ class HighlightSet:
         for highlight in self.all:
             highlight.reset()
 
+    def line_type(self, line):
+        """Return the primary error type for the given line number."""
+        if not self.all:
+            return None
+
+        line_type = None
+        for highlight in self.all:
+            if line_type == ERROR:
+                continue
+            _line_type = highlight.lines.get(line)
+            if _line_type != WARNING and line_type == WARNING:
+                continue
+            line_type = _line_type
+        return line_type
+
 
 class Highlight:
 

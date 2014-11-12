@@ -446,10 +446,12 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""
+        show_errors = persist.settings.get('show_errors_on_save', False)
+        if not show_errors:
+            return
         syntax_changed = self.check_syntax(view)
         vid = view.id()
         mode = persist.settings.get('lint_mode', 'background')
-        show_errors = persist.settings.get('show_errors_on_save', False)
 
         if syntax_changed:
             self.clear(view)

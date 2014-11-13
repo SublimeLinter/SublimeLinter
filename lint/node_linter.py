@@ -13,6 +13,7 @@
 import os
 import re
 import shlex
+import json
 import sublime_plugin
 
 from . import linter, persist, util
@@ -58,7 +59,6 @@ class NodeLinter(linter.Linter):
                 pkgpath = self.find_pkgpath(cwd)
                 if pkgpath:
                     local_cmd = self.find_local_cmd_path(pkgpath, cmd[0])
-                    print(local_cmd, "<-- local_cmd")
 
         if not local_cmd and not global_cmd:
             persist.printf(
@@ -70,9 +70,11 @@ class NodeLinter(linter.Linter):
         # if isinstance(cmd, str):
         #     cmd = shlex.split(cmd)
 
-        # node_cmd = local_cmd if local_cmd else global_cmd
-        node_cmd = global_cmd
-        return True, node_cmd
+        node_cmd_path = local_cmd if local_cmd else global_cmd
+
+        self.executable_path = node_cmd_path
+
+        return False, node_cmd_path
 
     def find_pkgpath(self, cwd):
         """
@@ -98,7 +100,13 @@ class NodeLinter(linter.Linter):
         look in node_modules/.bin for that binary.
 
         """
+
         cwd = os.path.dirname(pkgpath)
+
+        binary = self.get_pkg_bin_cmd(pkgpath, cmd)
+
+        if binary:
+            return os.path.normpath(os.path.join(cwd, binary))
 
         node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
 
@@ -107,3 +115,18 @@ class NodeLinter(linter.Linter):
         # TODO: check if binary is executable: os.access(binary, os.X_OK)
 
         return binary if binary else None
+
+    def get_pkg_bin_cmd(self, pkgpath, cmd):
+        """
+        Loading a linter to check its own source code is a special case.
+        For example, the local eslint binary when linting eslint is
+        installed at ./bin/eslint.js and not ./node_modules/.bin/eslint
+
+        This function checks the package.json `bin` property keys to
+        see if the cmd we're looking for is defined for the current
+        project.
+
+        """
+
+        pkg = json.load(open(pkgpath))
+        return pkg['bin'][cmd] if pkg['bin'] and pkg['bin'][cmd] else None

@@ -90,7 +90,8 @@ class NodeLinter(linter.Linter):
 
         parent = os.path.normpath(os.path.join(cwd, '../'))
 
-        # TODO: check if parent is root dir, if so, return False
+        if parent == '/':
+            return None
 
         return self.find_pkgpath(parent)
 
@@ -112,9 +113,7 @@ class NodeLinter(linter.Linter):
 
         binary = os.path.join(node_modules_bin, cmd)
 
-        # TODO: check if binary is executable: os.access(binary, os.X_OK)
-
-        return binary if binary else None
+        return binary if binary and os.access(binary, os.X_OK) else None
 
     def get_pkg_bin_cmd(self, pkgpath, cmd):
         """

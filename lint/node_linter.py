@@ -10,13 +10,11 @@
 
 """This module exports the NodeLinter subclass of Linter."""
 
-import os
-import re
-import shlex
 import json
-import sublime_plugin
 
+from os import path, access, X_OK
 from . import linter, persist, util
+
 
 class NodeLinter(linter.Linter):
 
@@ -54,7 +52,7 @@ class NodeLinter(linter.Linter):
         curr_file = self.view.file_name()
 
         if curr_file:
-            cwd = os.path.dirname(curr_file)
+            cwd = path.dirname(curr_file)
             if cwd:
                 pkgpath = self.find_pkgpath(cwd)
                 if pkgpath:
@@ -63,7 +61,7 @@ class NodeLinter(linter.Linter):
         if not local_cmd and not global_cmd:
             persist.printf(
                 'WARNING: {} deactivated, cannot locate local or global binary'
-                .format(cls.name, cmd[0])
+                .format(self.name, cmd[0])
             )
             return False, ''
 
@@ -83,12 +81,12 @@ class NodeLinter(linter.Linter):
         """
         name = 'package.json'
 
-        pkgpath = os.path.normpath(os.path.join(cwd, name))
+        pkgpath = path.normpath(path.join(cwd, name))
 
-        if os.path.isfile(pkgpath):
+        if path.isfile(pkgpath):
             return pkgpath
 
-        parent = os.path.normpath(os.path.join(cwd, '../'))
+        parent = path.normpath(path.join(cwd, '../'))
 
         if parent == '/':
             return None
@@ -102,18 +100,18 @@ class NodeLinter(linter.Linter):
 
         """
 
-        cwd = os.path.dirname(pkgpath)
+        cwd = path.dirname(pkgpath)
 
         binary = self.get_pkg_bin_cmd(pkgpath, cmd)
 
         if binary:
-            return os.path.normpath(os.path.join(cwd, binary))
+            return path.normpath(path.join(cwd, binary))
 
-        node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
+        node_modules_bin = path.normpath(path.join(cwd, 'node_modules/.bin/'))
 
-        binary = os.path.join(node_modules_bin, cmd)
+        binary = path.join(node_modules_bin, cmd)
 
-        return binary if binary and os.access(binary, os.X_OK) else None
+        return binary if binary and access(binary, X_OK) else None
 
     def get_pkg_bin_cmd(self, pkgpath, cmd):
         """

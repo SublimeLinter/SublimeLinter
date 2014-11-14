@@ -39,10 +39,11 @@ class NodeLinter(linter.Linter):
 
     def context_sensitive_executable_path(self, cmd):
         """
-        Attempt to locate the npm module specified in cmd, searching
-        the local node_modules/.bin folder first before looking in
-        the global system node_modules folder. return a tuple of
-        (have_path, path).
+        Attempt to locate the npm module specified in cmd.
+
+        Searches the local node_modules/.bin folder first before
+        looking in the global system node_modules folder. return
+        a tuple of (have_path, path).
 
         """
 
@@ -76,9 +77,14 @@ class NodeLinter(linter.Linter):
 
     def find_pkgpath(self, cwd):
         """
-        Given a current working directory, go back until root directory
+        Search parent directories for package.json.
+
+        Starting at the current working directory. Go up one directory
+        at a time checking if that directory contains a package.json
+        file. If it does, return that directory.
 
         """
+
         name = 'package.json'
 
         pkgpath = path.normpath(path.join(cwd, name))
@@ -95,7 +101,9 @@ class NodeLinter(linter.Linter):
 
     def find_local_cmd_path(self, pkgpath, cmd):
         """
-        Given the path to a package.json file and a local binary to find,
+        Find a local binary in node_modules/.bin.
+
+        Given package.json filepath and a local binary to find,
         look in node_modules/.bin for that binary.
 
         """
@@ -115,6 +123,8 @@ class NodeLinter(linter.Linter):
 
     def get_pkg_bin_cmd(self, pkgpath, cmd):
         """
+        Check is binary path is defined in package.json bin property.
+
         Loading a linter to check its own source code is a special case.
         For example, the local eslint binary when linting eslint is
         installed at ./bin/eslint.js and not ./node_modules/.bin/eslint

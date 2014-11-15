@@ -19,11 +19,11 @@ Bring up the |_cmd| and type :kbd:`next`, :kbd:`previous`, or :kbd:`show`. Among
 
 **Tools menu**
 :raw-html:`<br>`
-At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Next Error``, ``SublimeLinter > Next Error``, or ``SublimeLinter > Show All Errors``.
+At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Next Error``, ``SublimeLinter > Previous Error``, or ``SublimeLinter > Show All Errors``.
 
 **Context menu**
 :raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Next Error``, ``SublimeLinter > Next Error``, or ``SublimeLinter > Show All Errors``.
+If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Next Error``, ``SublimeLinter > Previous Error``, or ``SublimeLinter > Show All Errors``.
 
 **Keyboard**
 :raw-html:`<br>`

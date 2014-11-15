@@ -54,8 +54,10 @@ class NodeLinter(linter.Linter):
 
         if curr_file:
             cwd = path.dirname(curr_file)
+
             if cwd:
                 pkgpath = self.find_pkgpath(cwd)
+
                 if pkgpath:
                     local_cmd = self.find_local_cmd_path(pkgpath, cmd[0])
 
@@ -66,11 +68,7 @@ class NodeLinter(linter.Linter):
             )
             return False, ''
 
-        # if isinstance(cmd, str):
-        #     cmd = shlex.split(cmd)
-
         node_cmd_path = local_cmd if local_cmd else global_cmd
-
         self.executable_path = node_cmd_path
 
         return False, node_cmd_path
@@ -86,7 +84,6 @@ class NodeLinter(linter.Linter):
         """
 
         name = 'package.json'
-
         pkgpath = path.normpath(path.join(cwd, name))
 
         if path.isfile(pkgpath):

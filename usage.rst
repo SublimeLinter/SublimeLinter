@@ -42,7 +42,7 @@ Here’s where the magic happens.
 
 When you activate or make any modifications to a file, the following sequence of events occurs:
 
-- |sl| checks to see if the syntax of the file has changed, and if so reassigns linters to the view.
+- |sl| checks to see if the syntax of the file has changed; and if so, reassigns linters to the view.
 
 - If the **lint mode** is ``background``, a lint request is added to a threaded queue with a delay. The delay is there to prevent lints from occurring instantly on every keystroke — you don’t want the linter complaining too much while you are typing, it quickly becomes annoying. The delay is there to allow a little idle time before a lint occurs.
 

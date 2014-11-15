@@ -16,7 +16,7 @@ If there are linting errors in the current view, the status bar is updated as yo
 
 Code mark styles
 ----------------
-There are four different code mark styles available: **fill**, **outline**, **solid underline**, **squiggly underline**, and **stippled underline**. In addition, you can choose to turn code marks off completely if you just want to see gutter marks.
+There are five different code mark styles available: **fill**, **outline**, **solid underline**, **squiggly underline**, and **stippled underline**. In addition, you can choose to turn code marks off completely if you just want to see gutter marks.
 
 There are actually two types of marks: errors and warnings. Most linters classify the issues they find as errors or warnings, and the linter plugins in turn decide whether to report them to |sl| as errors or warnings. Errors and warnings are drawn in separate, :ref:`configurable colors <error_color>`. This helps you to visually identify which marks are errors and which are warnings.
 

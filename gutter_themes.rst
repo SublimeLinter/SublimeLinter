@@ -169,7 +169,7 @@ Gutter images
 ~~~~~~~~~~~~~
 |st| scales gutter images to 16 x 16. For best results with Retina displays, gutter images should be 32 x 32 at 72dpi.
 
-If your gutter icons will be colorized, they should be mostly white, with shades of grade used to create shadow areas. The entire image should be grayscale, so that the error and warning colors do not change when they are applied to the icons.
+If your gutter icons will be colorized, they should be mostly white, with shades of gray used to create shadow areas. The entire image should be grayscale, so that the error and warning colors do not change when they are applied to the icons.
 
 
 Installing gutter themes

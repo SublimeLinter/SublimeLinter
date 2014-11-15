@@ -75,6 +75,12 @@ This setting determines what happens when a linter reports an error with no colu
 Rather than change this setting manually, you are better off using the user interface to :ref:`set the no-column highlight mode <no-column-mode>`.
 
 
+.. _passive_warnings:
+
+passive_warnings
+----------------
+This setting allows you the ability to hide warnings in the `"Show All Errors"` Quick Panel. See :doc:`Navigating Errors <navigating>` for more information on this setting. The default value is ``false``.
+
 .. _paths-setting:
 
 paths

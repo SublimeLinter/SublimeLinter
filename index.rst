@@ -21,18 +21,14 @@ Please use the `SublimeLinter google group`_ for support, even if you think you 
 
 Be Part of the Team
 ===================
-I spent months writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
+Months spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 
 |Donate|
 
-.. |Donate| image:: http://www.aparajitaworld.com/cappuccino/Donate-button.png?v=1
-   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55KC77W2MU9VW
-
-.. raw:: html
-
-   <a class="coinbase-button" data-code="3265d1a223f01885e92514751e45cc55" data-button-style="custom_large" href="https://coinbase.com/checkouts/3265d1a223f01885e92514751e45cc55">Donate Bitcoins</a><script src="https://coinbase.com/assets/button.js" type="text/javascript"></script>
-   &nbsp;<br>
-   &nbsp;<br>
+.. |Donate| image:: http://grotewold.me/assets/button-paypal.png
+   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
+.. |Donate| image:: http://grotewold.me/assets/button-gratipay.png
+   :target: https://gratipay.com/skj3gg
 
 
 User Documentation

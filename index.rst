@@ -21,13 +21,15 @@ Please use the `SublimeLinter google group`_ for support, even if you think you 
 
 Be Part of the Team
 ===================
-Months spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
+Hundreds of hours have been spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 
-|Donate|
+|Donate Paypal|
+|Donate Gratipay|
 
-.. |Donate| image:: http://grotewold.me/assets/button-paypal.png
+.. |Donate PayPal| image:: http://grotewold.me/assets/button-paypal.png
    :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
-.. |Donate| image:: http://grotewold.me/assets/button-gratipay.png
+
+.. |Donate Gratipay| image:: http://grotewold.me/assets/button-gratipay.png
    :target: https://gratipay.com/skj3gg
 
 

@@ -133,4 +133,4 @@ class NodeLinter(linter.Linter):
         """
 
         pkg = json.load(open(pkgpath))
-        return pkg['bin'][cmd] if pkg['bin'] and pkg['bin'][cmd] else None
+        return pkg['bin'][cmd] if pkg['bin'] and cmd in pkg['bin'] else None

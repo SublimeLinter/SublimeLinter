@@ -37,6 +37,59 @@ class NodeLinter(linter.Linter):
 
     comment_re = r'\s*/[/*]'
 
+    def lint(self, hit_time):
+        """
+        Check NodeLinter options then run lint() in super.
+
+        """
+        view_settings = self.get_view_settings(inline=True)
+
+        is_dep = self.is_dependency()
+
+        enable_if_dependency = view_settings.get('enable_if_dependency', False)
+        disable_if_not_dependency = \
+            view_settings.get('disable_if_not_dependency', False)
+
+        if enable_if_dependency and is_dep:
+            self.disabled = False
+
+        if disable_if_not_dependency and not is_dep:
+            self.disabled = True
+
+        super(NodeLinter, self).lint(hit_time)
+
+    def is_dependency(self):
+        """
+        Check package.json to see if linter is a dependency.
+        """
+
+        is_dep = False
+
+        npm_name = 'lint-trap'
+
+        pkgpath = self.get_pkgpath()
+
+        pkg = json.load(open(pkgpath))
+
+        # also return true if the name is the same so linters can lint their
+        # own code (e.g. eslint can lint the eslint project)
+        is_dep = True if npm_name == pkg['name'] else False
+
+        if not is_dep:
+            is_dep = True if (
+                'dependencies' in pkg and
+                npm_name in pkg['dependencies']
+            ) else False
+
+        if not is_dep:
+            is_dep = True if (
+                'devDependencies' in pkg and
+                npm_name in pkg['devDependencies']
+            ) else False
+
+        print("is_dependency", is_dep)
+        return is_dep
+
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the npm module specified in cmd.
@@ -50,16 +103,10 @@ class NodeLinter(linter.Linter):
         local_cmd = None
         global_cmd = util.which(cmd[0])
 
-        curr_file = self.view.file_name()
+        pkgpath = self.get_pkgpath()
 
-        if curr_file:
-            cwd = path.dirname(curr_file)
-
-            if cwd:
-                pkgpath = self.find_pkgpath(cwd)
-
-                if pkgpath:
-                    local_cmd = self.find_local_cmd_path(pkgpath, cmd[0])
+        if pkgpath:
+            local_cmd = self.find_local_cmd_path(pkgpath, cmd[0])
 
         if not local_cmd and not global_cmd:
             persist.printf(
@@ -73,7 +120,23 @@ class NodeLinter(linter.Linter):
 
         return False, node_cmd_path
 
-    def find_pkgpath(self, cwd):
+    def get_pkgpath(self):
+        """
+        Get the path to the package.json file for the current file.
+        """
+        curr_file = self.view.file_name()
+
+        pkgpath = None
+
+        if curr_file:
+            cwd = path.dirname(curr_file)
+
+            if cwd:
+                pkgpath = self.rev_parse_pkgpath(cwd)
+
+        return pkgpath
+
+    def rev_parse_pkgpath(self, cwd):
         """
         Search parent directories for package.json.
 
@@ -94,7 +157,7 @@ class NodeLinter(linter.Linter):
         if parent == '/':
             return None
 
-        return self.find_pkgpath(parent)
+        return self.rev_parse_pkgpath(parent)
 
     def find_local_cmd_path(self, pkgpath, cmd):
         """

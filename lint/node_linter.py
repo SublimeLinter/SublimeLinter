@@ -26,7 +26,8 @@ class NodeLinter(linter.Linter):
     By doing so, they automatically get the following features:
 
     - Support for finding local binaries in a project's
-      ./node_modules/.bin/ folder.
+      ./node_modules/.bin/ folder. You need to override npm_name
+      variable to use this linter.
 
     - comment_re is defined correctly for JavaScript. If your
       linter can be found in the node_modules folder, but lints
@@ -37,6 +38,9 @@ class NodeLinter(linter.Linter):
     """
 
     comment_re = r'\s*/[/*]'
+
+    # must be overridden by the linter
+    npm_name = ''
 
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""
@@ -70,24 +74,22 @@ class NodeLinter(linter.Linter):
 
         is_dep = False
 
-        npm_name = 'lint-trap'
-
         pkg = self.get_manifest()
 
         # also return true if the name is the same so linters can lint their
         # own code (e.g. eslint can lint the eslint project)
-        is_dep = True if npm_name == pkg['name'] else False
+        is_dep = True if self.npm_name == pkg['name'] else False
 
         if not is_dep:
             is_dep = True if (
                 'dependencies' in pkg and
-                npm_name in pkg['dependencies']
+                self.npm_name in pkg['dependencies']
             ) else False
 
         if not is_dep:
             is_dep = True if (
                 'devDependencies' in pkg and
-                npm_name in pkg['devDependencies']
+                self.npm_name in pkg['devDependencies']
             ) else False
 
         return is_dep

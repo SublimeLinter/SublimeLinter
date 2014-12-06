@@ -11,6 +11,7 @@
 """This module exports the NodeLinter subclass of Linter."""
 
 import json
+import hashlib
 
 from os import path, access, X_OK
 from . import linter, persist, util
@@ -37,6 +38,60 @@ class NodeLinter(linter.Linter):
 
     comment_re = r'\s*/[/*]'
 
+    def __init__(self, view, syntax):
+        """Initialize a new NodeLinter instance."""
+
+        super(NodeLinter, self).__init__(view, syntax)
+
+        self.manifest_path = self.get_manifest_path()
+        self.read_manifest(path.getmtime(self.manifest_path))
+
+    def lint(self, hit_time):
+        """Check NodeLinter options then run lint."""
+
+        view_settings = self.get_view_settings(inline=True)
+
+        is_dep = self.is_dependency()
+
+        enable_if_dependency = view_settings.get('enable_if_dependency', False)
+        disable_if_not_dependency = \
+            view_settings.get('disable_if_not_dependency', False)
+
+        if enable_if_dependency and is_dep:
+            self.disabled = False
+
+        if disable_if_not_dependency and not is_dep:
+            self.disabled = True
+
+        super(NodeLinter, self).lint(hit_time)
+
+    def is_dependency(self):
+        """Check package.json to see if linter is a dependency."""
+
+        is_dep = False
+
+        npm_name = 'lint-trap'
+
+        pkg = self.get_manifest()
+
+        # also return true if the name is the same so linters can lint their
+        # own code (e.g. eslint can lint the eslint project)
+        is_dep = True if npm_name == pkg['name'] else False
+
+        if not is_dep:
+            is_dep = True if (
+                'dependencies' in pkg and
+                npm_name in pkg['dependencies']
+            ) else False
+
+        if not is_dep:
+            is_dep = True if (
+                'devDependencies' in pkg and
+                npm_name in pkg['devDependencies']
+            ) else False
+
+        return is_dep
+
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the npm module specified in cmd.
@@ -50,16 +105,8 @@ class NodeLinter(linter.Linter):
         local_cmd = None
         global_cmd = util.which(cmd[0])
 
-        curr_file = self.view.file_name()
-
-        if curr_file:
-            cwd = path.dirname(curr_file)
-
-            if cwd:
-                pkgpath = self.find_pkgpath(cwd)
-
-                if pkgpath:
-                    local_cmd = self.find_local_cmd_path(pkgpath, cmd[0])
+        if self.manifest_path:
+            local_cmd = self.find_local_cmd_path(cmd[0])
 
         if not local_cmd and not global_cmd:
             persist.printf(
@@ -73,7 +120,21 @@ class NodeLinter(linter.Linter):
 
         return False, node_cmd_path
 
-    def find_pkgpath(self, cwd):
+    def get_manifest_path(self):
+        """Get the path to the package.json file for the current file."""
+        curr_file = self.view.file_name()
+
+        manifest_path = None
+
+        if curr_file:
+            cwd = path.dirname(curr_file)
+
+            if cwd:
+                manifest_path = self.rev_parse_manifest_path(cwd)
+
+        return manifest_path
+
+    def rev_parse_manifest_path(self, cwd):
         """
         Search parent directories for package.json.
 
@@ -84,19 +145,19 @@ class NodeLinter(linter.Linter):
         """
 
         name = 'package.json'
-        pkgpath = path.normpath(path.join(cwd, name))
+        manifest_path = path.normpath(path.join(cwd, name))
 
-        if path.isfile(pkgpath):
-            return pkgpath
+        if path.isfile(manifest_path):
+            return manifest_path
 
         parent = path.normpath(path.join(cwd, '../'))
 
         if parent == '/':
             return None
 
-        return self.find_pkgpath(parent)
+        return self.rev_parse_manifest_path(parent)
 
-    def find_local_cmd_path(self, pkgpath, cmd):
+    def find_local_cmd_path(self, cmd):
         """
         Find a local binary in node_modules/.bin.
 
@@ -105,9 +166,9 @@ class NodeLinter(linter.Linter):
 
         """
 
-        cwd = path.dirname(pkgpath)
+        cwd = path.dirname(self.manifest_path)
 
-        binary = self.get_pkg_bin_cmd(pkgpath, cmd)
+        binary = self.get_pkg_bin_cmd(cmd)
 
         if binary:
             return path.normpath(path.join(cwd, binary))
@@ -118,7 +179,7 @@ class NodeLinter(linter.Linter):
 
         return binary if binary and access(binary, X_OK) else None
 
-    def get_pkg_bin_cmd(self, pkgpath, cmd):
+    def get_pkg_bin_cmd(self, cmd):
         """
         Check is binary path is defined in package.json bin property.
 
@@ -132,5 +193,29 @@ class NodeLinter(linter.Linter):
 
         """
 
-        pkg = json.load(open(pkgpath))
+        pkg = self.get_manifest()
         return pkg['bin'][cmd] if 'bin' in pkg and cmd in pkg['bin'] else None
+
+    def get_manifest(self):
+        """Load manifest file (package.json)."""
+
+        current_manifest_mtime = path.getmtime(self.manifest_path)
+
+        if (current_manifest_mtime != self.cached_manifest_mtime and
+                self.hash_manifest() != self.cached_manifest_hash):
+            self.read_manifest(current_manifest_mtime)
+
+        return self.cached_manifest
+
+    def read_manifest(self, current_manifest_mtime):
+        """Read manifest and cache mtime, hash and json content."""
+
+        self.cached_manifest_mtime = current_manifest_mtime
+        self.cached_manifest_hash = self.hash_manifest()
+        self.cached_manifest = json.load(open(self.manifest_path))
+
+    def hash_manifest(self):
+        """Calculate the hash of the manifest file."""
+
+        f = open(self.manifest_path, 'r')
+        return hashlib.sha1(f.read().encode('utf-8')).hexdigest()

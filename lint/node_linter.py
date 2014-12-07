@@ -40,7 +40,7 @@ class NodeLinter(linter.Linter):
     comment_re = r'\s*/[/*]'
 
     # must be overridden by the linter
-    npm_name = ''
+    npm_name = None
 
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""

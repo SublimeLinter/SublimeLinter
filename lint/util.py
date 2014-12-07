@@ -17,6 +17,7 @@ import json
 import locale
 from numbers import Number
 import os
+import getpass
 import re
 import shutil
 from string import Template
@@ -58,7 +59,7 @@ ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 UNSAVED_FILENAME = 'untitled'
 
 # Temp directory used to store temp files for linting
-tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3')
+tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
 
 
 # settings utils

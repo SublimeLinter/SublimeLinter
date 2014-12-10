@@ -5,7 +5,7 @@ SublimeLinter
 
 **To those upgrading from SublimeLinter v1.7:**
 
-**LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3.**
+###### LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3. ######
 
 **Please read the [installation documentation](http://sublimelinter.readthedocs.org/en/latest/installation.html)!**
 

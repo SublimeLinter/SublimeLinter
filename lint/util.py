@@ -1022,6 +1022,11 @@ def find_windows_python(version):
 def find_python_script(python_path, script):
     """Return the path to the given script, or None if not found."""
     if sublime.platform() in ('osx', 'linux'):
+        pyenv = which('pyenv')
+        if pyenv:
+            out = run_shell_cmd((pyenv, 'which', script)).strip().decode()
+            if os.path.isfile(out):
+                return out
         return which(script)
     else:
         # On Windows, scripts may be .exe files or .py files in <python directory>/Scripts

@@ -38,30 +38,38 @@ class NodeLinter(linter.Linter):
 
     comment_re = r'\s*/[/*]'
 
+    # must be overridden by the linter
+    npm_name = None
+
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""
 
         super(NodeLinter, self).__init__(view, syntax)
 
         self.manifest_path = self.get_manifest_path()
-        self.read_manifest(path.getmtime(self.manifest_path))
+
+        if self.manifest_path:
+            self.read_manifest(path.getmtime(self.manifest_path))
 
     def lint(self, hit_time):
         """Check NodeLinter options then run lint."""
 
         view_settings = self.get_view_settings(inline=True)
 
-        is_dep = self.is_dependency()
+        if self.manifest_path:
+            is_dep = self.is_dependency()
 
-        enable_if_dependency = view_settings.get('enable_if_dependency', False)
-        disable_if_not_dependency = \
-            view_settings.get('disable_if_not_dependency', False)
+            enable_if_dependency = \
+                view_settings.get('enable_if_dependency', False)
 
-        if enable_if_dependency and is_dep:
-            self.disabled = False
+            disable_if_not_dependency = \
+                view_settings.get('disable_if_not_dependency', False)
 
-        if disable_if_not_dependency and not is_dep:
-            self.disabled = True
+            if enable_if_dependency and is_dep:
+                self.disabled = False
+
+            if disable_if_not_dependency and not is_dep:
+                self.disabled = True
 
         super(NodeLinter, self).lint(hit_time)
 
@@ -70,24 +78,22 @@ class NodeLinter(linter.Linter):
 
         is_dep = False
 
-        npm_name = 'lint-trap'
-
         pkg = self.get_manifest()
 
         # also return true if the name is the same so linters can lint their
         # own code (e.g. eslint can lint the eslint project)
-        is_dep = True if npm_name == pkg['name'] else False
+        is_dep = True if self.npm_name == pkg['name'] else False
 
         if not is_dep:
             is_dep = True if (
                 'dependencies' in pkg and
-                npm_name in pkg['dependencies']
+                self.npm_name in pkg['dependencies']
             ) else False
 
         if not is_dep:
             is_dep = True if (
                 'devDependencies' in pkg and
-                npm_name in pkg['devDependencies']
+                self.npm_name in pkg['devDependencies']
             ) else False
 
         return is_dep
@@ -117,7 +123,6 @@ class NodeLinter(linter.Linter):
 
         node_cmd_path = local_cmd if local_cmd else global_cmd
         self.executable_path = node_cmd_path
-
         return False, node_cmd_path
 
     def get_manifest_path(self):

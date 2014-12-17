@@ -202,6 +202,11 @@
     },
 
     {
+        "caption": "SublimeLinter: Clear Color Scheme Folder",
+        "command": "sublimelinter_clear_color_scheme_folder"
+    },
+
+    {
         "caption": "SublimeLinter: Clear Caches",
         "command": "sublimelinter_clear_caches"
     },

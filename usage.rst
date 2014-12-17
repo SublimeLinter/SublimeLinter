@@ -109,13 +109,13 @@ You can quickly toggle a linter on or off. To do so:
 
 Choosing color schemes
 ----------------------
-In order to color errors, warnings and gutter icons correctly, |sl| relies on specific named colors being available in the current color scheme. Whenever a color scheme is loaded — either implicitly at startup or by selecting a color scheme — |sl| checks to see if the color scheme contains its named colors. If not, it adds those colors to a copy of the color scheme, writes it to the :file:`Packages/User` directory with a “ (SL)” suffix added to the filename, and switches to the modified color scheme.
+In order to color errors, warnings and gutter icons correctly, |sl| relies on specific named colors being available in the current color scheme. Whenever a color scheme is loaded — either implicitly at startup or by selecting a color scheme — |sl| checks to see if the color scheme contains its named colors. If not, it adds those colors to a copy of the color scheme, writes it to the :file:`Packages/User/SublimeLinter` directory with a “ (SL)” suffix added to the filename, and switches to the modified color scheme.
 
-For example, if you select ``Preferences > Color Scheme > Color Scheme - Default > Monokai``, |sl| will convert it, write the converted color scheme to :file:`Packages/User/Monokai (SL).tmTheme`, and switch to that color scheme. If you then open the ``Preferences > Color Scheme`` menu, ``User > Monokai (SL)`` is checked.
+For example, if you select ``Preferences > Color Scheme > Color Scheme - Default > Monokai``, |sl| will convert it, write the converted color scheme to :file:`Packages/User/SublimeLinter/Monokai (SL).tmTheme`, and switch to that color scheme. If you then open the ``Preferences > Color Scheme`` menu, ``User > SublimeLinter > Monokai (SL)`` is checked.
 
 .. warning::
 
-   If you choose an unconverted color scheme and an existing converted color scheme exists in :file:`Packages/User`, it will be overwritten.
+   If you choose an unconverted color scheme and an existing converted color scheme exists in :file:`Packages/User/SublimeLinter`, it will be overwritten.
 
 For more information on customizing the colors used by |sl|, see :doc:`Global Settings <global_settings>`.
 

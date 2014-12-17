@@ -117,6 +117,10 @@ For example, if you select ``Preferences > Color Scheme > Color Scheme - Default
 
    If you choose an unconverted color scheme and an existing converted color scheme exists in :file:`Packages/User/SublimeLinter`, it will be overwritten.
 
+.. note::
+
+   If you ever want to clean up, and delete all the |sl| made color schemes not being used in the settings, simply use the ``SublimeLinter: Clear Color Scheme Folder`` command from the Command Pallete, Tools menus, or Context menu.
+
 For more information on customizing the colors used by |sl|, see :doc:`Global Settings <global_settings>`.
 
 

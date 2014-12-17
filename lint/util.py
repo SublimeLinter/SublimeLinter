@@ -17,6 +17,7 @@ import json
 import locale
 from numbers import Number
 import os
+import getpass
 import re
 import shutil
 from string import Template
@@ -58,7 +59,7 @@ ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 UNSAVED_FILENAME = 'untitled'
 
 # Temp directory used to store temp files for linting
-tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3')
+tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
 
 
 # settings utils
@@ -1024,6 +1025,11 @@ def find_windows_python(version):
 def find_python_script(python_path, script):
     """Return the path to the given script, or None if not found."""
     if sublime.platform() in ('osx', 'linux'):
+        pyenv = which('pyenv')
+        if pyenv:
+            out = run_shell_cmd((pyenv, 'which', script)).strip().decode()
+            if os.path.isfile(out):
+                return out
         return which(script)
     else:
         # On Windows, scripts may be .exe files or .py files in <python directory>/Scripts

@@ -292,8 +292,9 @@ def change_mark_colors(error_color, warning_color):
     error_color = error_color.lstrip('#')
     warning_color = warning_color.lstrip('#')
 
+    base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
     sublime_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
-    themes = glob(sublime_path)
+    themes = glob(sublime_path) + glob(base_path)
 
     for theme in themes:
         with open(theme, encoding='utf8') as f:

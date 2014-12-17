@@ -1108,7 +1108,9 @@ class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
         scheme = prefs.get('color_scheme')
 
         for theme in themes:
-            if re.search(r'\(SL\)', theme) and scheme not in theme:
+            # Ensure it is a (SL) theme and it is not current current scheme
+            if re.search(r'\(SL\)', theme) and os.path.normpath(scheme) not in theme:
+                persist.debug('deleting {}'.format(os.path.split(theme)[1]))
                 os.remove(theme)
 
 

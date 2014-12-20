@@ -1,7 +1,7 @@
 SublimeLinter 3.4.29
 ---------------------
 
-To lower the amount of administation we have to do, the google group has been
+To lower the amount of administration we have to do, the google group has been
 deprecated. From now on, please follow these steps when seeking support or
 completing a bug report:
 

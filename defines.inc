@@ -21,7 +21,7 @@
 .. |_org| replace:: `SublimeLinter organization <https://github.com/SublimeLinter>`__
 .. |_st| replace:: `Sublime Text 3 <http://www.sublimetext.com/3>`__
 .. |_pc| replace:: `Package Control <https://sublime.wbond.net/installation>`__
-.. |_group| replace:: `SublimeLinter google group <https://groups.google.com/forum/#!forum/sublimelinter>`__
+.. |_group| replace:: `SublimeLinter issue tracker <https://github.com/SublimeLinter/SublimeLinter3/issues>`__
 .. |_cmd| replace:: `Command Palette <http://docs.sublimetext.info/en/sublime-text-3/extensibility/command_palette.html>`__
 .. |_fnmatch| replace:: python’s `fnmatch method <http://docs.python.org/3/library/fnmatch.html>`__
 

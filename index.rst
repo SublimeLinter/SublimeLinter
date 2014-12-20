@@ -13,7 +13,7 @@ The |sl| source is available `on github`_.
 
 Support
 =======
-Please use the `SublimeLinter google group`_ for support, even if you think you have found a bug. This will help us to build a knowledgebase of support info.
+Please use the |_group| for support and bug reporting but before opening a new ticket, verify there isn't already a ticket in the |_group| or the now deprecated `SublimeLinter google group`_.
 
 .. _SublimeLinter google group: https://groups.google.com/forum/#!forum/sublimelinter
 .. _on github: https://github.com/SublimeLinter/SublimeLinter3

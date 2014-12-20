@@ -97,11 +97,7 @@ Again, I **strongly** recommend that you use |pc| to locate and install linter p
 
    Most linter plugins require you to install a linter binary or library and :ref:`configure your PATH <how-linter-executables-are-located>` so that |sl| can find it. You **must** follow the linter plugin’s installation instructions to successfully use it.
 
-If you have problems installing or configuring |sl|, please do **not** open a ticket on github. First read the :doc:`Troubleshooting guide <troubleshooting>`. Then if necessary, report your problem on the |_group|.
-
-.. note::
-
-   Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
+If you have problems installing or configuring |sl|. First read the :doc:`Troubleshooting guide <troubleshooting>`. Then if necessary, report your problem on the |_group|.
 
 
 Read the docs!

@@ -115,15 +115,11 @@ Updating documentation
 
 Preparing for publication
 -------------------------
-When you have followed all of the steps above and you think your plugin is ready for release, post a message on the |_group| with a link to your repo and I’ll review it for correctness and completeness.
+When you have followed all of the steps above and you think your plugin is ready for release, post a message on the |_group| with a link to your repo and it will be reviewed for correctness and completeness.
 
    .. warning::
 
       Do **NOT** make a pull request on `wbond/package_control_channel <https://github.com/wbond/package_control_channel>`_. All SublimeLinter plugins must go through `SublimeLinter/package_control_channel <https://github.com/SublimeLinter/package_control_channel>`_.
-
-   .. note::
-
-      Your first post to the |_group| is moderated to allow us to filter out spam. Please do not post multiple times if your post does not appear immediately.
 
 Once your plugin has been reviewed and all issues have been fixed, you need to tag the final commit with a version number before publishing to Package Control:
 

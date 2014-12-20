@@ -1,5 +1,5 @@
 SublimeLinter
-=========
+=============
 
 [![Build Status](https://travis-ci.org/SublimeLinter/SublimeLinter3.svg?branch=master)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
 
@@ -14,9 +14,7 @@ A framework for interactive code linting in the [Sublime Text 3](http://sublimet
 
 **Documentation:** See it on [readthedocs.org](http://sublimelinter.readthedocs.org).
 
-**Support:** Please use the [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter).
-
-**Bugs:** Please use the [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter) to report installation and configuration problems. If you think you have found a bug, please ask about it on the [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter) first, and after it is confirmed as a bug you can report it on the [issue tracker](https://github.com/SublimeLinter/SublimeLinter3/issues). Please be sure to put your OS and SublimeLinter version in issue.
+**Support & Bugs:** Please use the [issue tracker](https://github.com/SublimeLinter/SublimeLinter3/issues) to report installation and configuration problems. If you think you have found a bug, please search for it on the deprecated [SublimeLinter google group](https://groups.google.com/forum/#!forum/sublimelinter) first, and if it can't be found you can report it on the [issue tracker](https://github.com/SublimeLinter/SublimeLinter3/issues). Please be sure to put your OS, SublimeLinter version, and **ENTIRE** debug console output in the issue.
 
 **Contributing:** If you would like to submit a fix or enhancement for SublimeLinter, please read the [contributing guidelines](http://sublimelinter.readthedocs.org/contributing.html) first.
 

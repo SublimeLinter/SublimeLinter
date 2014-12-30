@@ -963,7 +963,6 @@ def version_fulfills_request(available_version, requested_version):
 @lru_cache(maxsize=None)
 def find_posix_python(version):
     """Find the nearest version of python and return its path."""
-
     from . import persist
 
     if version:
@@ -990,34 +989,47 @@ def find_posix_python(version):
 @lru_cache(maxsize=None)
 def find_windows_python(version):
     """Find the nearest version of python and return its path."""
+    from . import persist
 
+    path = None
     if version:
-        # On Windows, there may be no separately named python/python3 binaries,
-        # so it seems the only reliable way to check for a given version is to
-        # check the root drive for 'Python*' directories, and try to match the
-        # version based on the directory names. The 'Python*' directories end
-        # with the <major><minor> version number, so for matching with the version
-        # passed in, strip any decimal points.
-        stripped_version = version.replace('.', '')
-        prefix = os.path.abspath('\\Python')
-        prefix_len = len(prefix)
-        dirs = sorted(glob(prefix + '*'), reverse=True)
-        from . import persist
+        # First, try conforming to a MinGW/MinGW64 environment which is POSIX-type.
+        # Try the exact requested version first. The .exe is needed here, 
+        # because the version may contain a dot in it, which brakes the implicit .exe
+        path = find_executable('python' + version + ".exe")
+        persist.debug('find_windows_python[posix-way]: python{} => {}'.format(version, path))
 
-        # Try the exact version first, then the major version
-        for version in (stripped_version, stripped_version[0]):
-            for python_dir in dirs:
-                path = os.path.join(python_dir, 'python.exe')
-                python_version = python_dir[prefix_len:]
-                persist.debug('find_windows_python: matching =>', path)
+        # If that fails, try the major version.
+        if not path:
+            path = find_executable('python' + version[0])
+            persist.debug('find_windows_python[posix-way]: python{} => {}'.format(version[0], path))
 
-                # Try the exact version first, then the major version
-                if python_version.startswith(version) and can_exec(path):
-                    persist.debug('find_windows_python: <=', path)
-                    return path
+        if not path:
+            # On plain Windows, there may be no separately named python/python3 binaries
+            # so it seems the only reliable way to check for a given version is to
+            # check the root drive for 'Python*' directories, and try to match the
+            # version based on the directory names. The 'Python*' directories end
+            # with the <major><minor> version number, so for matching with the version
+            # passed in, strip any decimal points.
+            
+            stripped_version = version.replace('.', '')
+            prefix = os.path.abspath('\\Python')
+            prefix_len = len(prefix)
+            dirs = sorted(glob(prefix + '*'), reverse=True)
 
-    # No version or couldn't find a version match, try the default python
-    path = find_executable('python')
+            # Try the exact version first, then the major version
+            for version in (stripped_version, stripped_version[0]):
+                for python_dir in dirs:
+                    path = os.path.join(python_dir, 'python.exe')
+                    python_version = python_dir[prefix_len:]
+                    persist.debug('find_windows_python: matching =>', path)
+
+                    if python_version.startswith(version) and can_exec(path):
+                        break
+                    else:
+                        path = None
+    if not path:
+        path = find_executable('python')
     persist.debug('find_windows_python: <=', path)
     return path
 
@@ -1025,6 +1037,12 @@ def find_windows_python(version):
 @lru_cache(maxsize=None)
 def find_python_script(python_path, script):
     """Return the path to the given script, or None if not found."""
+    from . import persist
+    persist.debug(
+        'find_python_script(python_path={!r}, script={!r})'
+        .format(python_path, script)
+    )
+
     if sublime.platform() in ('osx', 'linux'):
         pyenv = which('pyenv')
         if pyenv:
@@ -1033,8 +1051,9 @@ def find_python_script(python_path, script):
                 return out
         return which(script)
     else:
-        # On Windows, scripts may be .exe files or .py files in <python directory>/Scripts
-        scripts_path = os.path.join(os.path.dirname(python_path), 'Scripts')
+        python_dir_path = os.path.dirname(python_path)
+        # On plain Windows, scripts may be .exe files or .py files in <python directory>/Scripts
+        scripts_path = os.path.join(python_dir_path, 'Scripts')
         script_path = os.path.join(scripts_path, script + '.exe')
 
         if os.path.exists(script_path):
@@ -1044,6 +1063,12 @@ def find_python_script(python_path, script):
 
         if os.path.exists(script_path):
             return script_path
+        else:
+            # Under a MinGW64 environment, the scripts are wrapped in .exe files and placed
+            # in the same directory as the python runtime.
+            script_path = os.path.join(python_dir_path, script + '.exe')
+            if os.path.exists(script_path):
+                return script_path
 
         return None
 

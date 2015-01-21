@@ -4,7 +4,7 @@ Installation
 ============
 |sl| itself is only a **framework** for linters. The linters are distributed as independent |st| plugins.
 
-|sl| (and the linter plugins) can be installed via |_pc| or from source. I **strongly** recommend that you use |pc|! Not only does it ease installation, but more importantly it automatically updates the plugins it installs, which ensures you will get the latest features and bug fixes.
+|sl| (and the linter plugins) can be installed via a plugin called |_pc| or from source. I **strongly** recommend that you use |pc|! Not only does it ease installation, but more importantly it automatically updates the plugins it installs, which ensures you will get the latest features and bug fixes.
 
 
 Upgrading from previous versions

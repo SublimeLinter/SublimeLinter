@@ -227,7 +227,7 @@ def generate_color_scheme_async():
 
     if (os.path.isfile(path)):
         try:
-            with open(path, mode='r') as f:
+            with open(path, mode='r', encoding='utf-8') as f:
                 json = f.read()
 
             sublime.decode_value(json)

@@ -159,7 +159,7 @@ class NodeLinter(linter.Linter):
 
         parent = path.normpath(path.join(cwd, '../'))
 
-        if parent == '/':
+        if parent == '/' or parent == cwd:
             return None
 
         return self.rev_parse_manifest_path(parent)

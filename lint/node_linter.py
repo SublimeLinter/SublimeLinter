@@ -183,6 +183,9 @@ class NodeLinter(linter.Linter):
         node_modules_bin = path.normpath(path.join(cwd, 'node_modules/.bin/'))
 
         binary = path.join(node_modules_bin, cmd)
+        
+        if sublime.platform() == 'windows' and os.path.splitext(binary)[1] != '.cmd':
+            binary += '.cmd'
 
         return binary if binary and access(binary, X_OK) else None
 

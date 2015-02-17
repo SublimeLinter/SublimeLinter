@@ -142,16 +142,16 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         if direction == 'next':
             for region in regions:
                 if (
-                    (point == region.begin() and empty_selection and not region.empty())
-                    or (point < region.begin())
+                    (point == region.begin() and empty_selection and not region.empty()) or
+                    (point < region.begin())
                 ):
                     region_to_select = region
                     break
         else:
             for region in reversed(regions):
                 if (
-                    (point == region.end() and empty_selection and not region.empty())
-                    or (point > region.end())
+                    (point == region.end() and empty_selection and not region.empty()) or
+                    (point > region.end())
                 ):
                     region_to_select = region
                     break

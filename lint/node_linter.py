@@ -229,7 +229,7 @@ class NodeLinter(linter.Linter):
         """Calculate the hash of the manifest file."""
 
         f = open(self.manifest_path, 'r')
-        return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
+        return hashlib.sha1(f.read()).hexdigest()
 
     @classmethod
     @lru_cache(maxsize=None)

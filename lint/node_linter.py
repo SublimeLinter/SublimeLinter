@@ -12,6 +12,7 @@
 
 import json
 import hashlib
+import codecs
 import sublime
 
 from functools import lru_cache
@@ -223,13 +224,13 @@ class NodeLinter(linter.Linter):
 
         self.cached_manifest_mtime = current_manifest_mtime
         self.cached_manifest_hash = self.hash_manifest()
-        self.cached_manifest = json.load(open(self.manifest_path))
+        self.cached_manifest = json.load(codecs.open(self.manifest_path, 'r', 'utf-8'))
 
     def hash_manifest(self):
         """Calculate the hash of the manifest file."""
 
-        f = open(self.manifest_path, 'r')
-        return hashlib.sha1(f.read()).hexdigest()
+        f = codecs.open(self.manifest_path, 'r', 'utf-8')
+        return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
 
     @classmethod
     @lru_cache(maxsize=None)

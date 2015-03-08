@@ -86,7 +86,7 @@ class NodeLinter(linter.Linter):
 
         # also return true if the name is the same so linters can lint their
         # own code (e.g. eslint can lint the eslint project)
-        is_dep = True if self.npm_name == pkg['name'] else False
+        is_dep = 'name' in pkg and self.npm_name == pkg['name']
 
         if not is_dep:
             is_dep = True if (

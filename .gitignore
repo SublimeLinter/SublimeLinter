@@ -1,4 +1,6 @@
 .DS_Store
+.cache
+.tox
 *.pyc
 *.sublime-project
 /Context.sublime-menu

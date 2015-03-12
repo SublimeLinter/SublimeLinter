@@ -838,7 +838,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             '__class__': self.camel_case(name),
             '__superclass__': info.get('superclass', 'Linter'),
             '__cmd__': '{}@python'.format(name) if language == 'python' else name,
-            '__extra_attributes__': extra_attributes,
+            '# __extra_attributes__': extra_attributes,
             '__platform__': platform,
             '__install__': info['installer'].format(name),
             '__extra_install_steps__': extra_steps

@@ -33,4 +33,4 @@ class __class__(__superclass__):
     defaults = {}
     inline_settings = None
     inline_overrides = None
-    __extra_attributes__
+    # __extra_attributes__

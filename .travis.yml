@@ -5,6 +5,7 @@ env:
   - TOXENV=py34
   - TOXENV=flake8
   - TOXENV=pep257
+  - TOXENV=cover
 
 install:
   - pip install tox

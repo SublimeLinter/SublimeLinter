@@ -11,7 +11,39 @@
 
 """This module tests functions in the lint.util module."""
 
+from pytest import fixture
 from mock import call, MagicMock
+
+
+class TestSettingsUtils:
+
+    """Test cases for functions in lint.util pertaining to settings."""
+
+    @fixture(params=[
+        ({'default': {'linters': {'pep8': {}}}},
+         {'linters': {'pep8': {}}}),
+
+        ({'user':    {'linters': {'pep8': {}}}},
+         {'linters': {'pep8': {}}}),
+
+        ({'default': {'linters': {'pep8': {}}},
+          'user':    {'linters': {'pep257': {}}}},
+         {'linters': {'pep8': {}, 'pep257': {}}}),
+
+        ({'default': {'linters': {'pep8': {'@disable': True}}},
+          'user':    {'linters': {'pep8': {'@disable': False}}}},
+         {'linters': {'pep8': {'@disable': False}}})],
+        ids=['no_user', 'no_default', 'no_overwrite', 'overwrite'])
+    def linter_settings(self, request):
+        """Fixture for linter settings."""
+        return request.param
+
+    def test_merge_user_settings(self, linter_settings):
+        """Test that user linter settings override defaults."""
+        from lint import util
+        settings, expected = linter_settings
+        actual = util.merge_user_settings(settings)
+        assert actual == expected
 
 
 class TestViewUtils:

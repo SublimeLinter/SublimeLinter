@@ -2,6 +2,7 @@ SublimeLinter
 =============
 
 [![Build Status](https://travis-ci.org/SublimeLinter/SublimeLinter3.svg?branch=master)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
+[![Coverage Status](https://coveralls.io/repos/SublimeLinter/SublimeLinter3/badge.svg)](https://coveralls.io/r/SublimeLinter/SublimeLinter3)
 
 **To those upgrading from SublimeLinter v1.7:**
 

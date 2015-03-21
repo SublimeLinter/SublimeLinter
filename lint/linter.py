@@ -1413,6 +1413,13 @@ class Linter(metaclass=LinterMeta):
                         continue
 
                 if error:
+                    error_type = highlight.ERROR
+                elif warning:
+                    error_type = highlight.WARNING
+                else:
+                    error_type = self.default_type
+
+                if error_type is highlight.ERROR:
                     demote_to_warning = False
 
                     if self.demote_to_warning_matches:
@@ -1434,12 +1441,6 @@ class Linter(metaclass=LinterMeta):
 
                     if demote_to_warning:
                         error_type = highlight.WARNING
-                    else:
-                        error_type = highlight.ERROR
-                elif warning:
-                    error_type = highlight.WARNING
-                else:
-                    error_type = self.default_type
 
                 if col is not None:
                     start, end = self.highlight.full_line(line)

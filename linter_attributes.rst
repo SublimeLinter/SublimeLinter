@@ -565,7 +565,7 @@ A few things to note:
 
 .. note::
 
-   |re-try|
+   |regex|
 
 
 .. _selectors:

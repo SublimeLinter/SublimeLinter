@@ -119,4 +119,4 @@ In :ref:`debug mode <debug-mode>`, |sl| logs each occurrence of an ignore match.
 
 .. note::
 
-   |re-try|
+   |regex|

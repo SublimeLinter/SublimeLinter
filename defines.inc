@@ -15,7 +15,7 @@
 .. |pc| replace:: Package Control
 .. |cmd| replace:: Command Palette (:kbd:`cmd+shift+p` on Mac OS X, :kbd:`ctrl+shift+p` on Linux/Windows)
 .. |path| replace:: ``PATH``
-.. |re-try| replace:: If you need help constructing a regular expression, the `re-try <http://re-try.appspot.com>`__ site provides an easy way to test out your regular expressions. Be sure to uncheck the “options” checkboxes.
+.. |regex| replace:: If you need help constructing, testing or debugging a regular expression, `regular expressions 101 <https://regex101.com/>`__ provides an easy way to do so.
 
 .. |_sl| replace:: `SublimeLinter <https://github.com/SublimeLinter/SublimeLinter3>`__
 .. |_org| replace:: `SublimeLinter organization <https://github.com/SublimeLinter>`__

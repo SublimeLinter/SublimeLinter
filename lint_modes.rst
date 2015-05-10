@@ -13,7 +13,7 @@ There are four lint modes in |sl|: :ref:`background <background-lint-mode>`, :re
 
 Background
 ~~~~~~~~~~~
-In **background** mode, lint requests are generated for every modification of a view. This is the default mode. Remember that lint requests only trigger a lint if the associated view has not been modified when the request is pulled off the queue.
+In **background** mode, lint requests are generated for every modification of a view, as well as on file loading and saving. This is the default mode. Remember that background lint requests only trigger a lint if the associated view has not been modified when the request is pulled off the queue (see :ref:`Linting <usage-linting>`).
 
 **Pros**
 

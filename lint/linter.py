@@ -1427,17 +1427,18 @@ class Linter(metaclass=LinterMeta):
                             if demote_to_warning_match.match(message):
                                 demote_to_warning = True
 
-                            if persist.debug_mode():
-                                persist.printf(
-                                    '{} ({}): demote_to_warning_match: "{}" == "{}"'
-                                    .format(
-                                        self.name,
-                                        os.path.basename(self.filename) or '<unsaved>',
-                                        demote_to_warning_match.pattern,
-                                        message
+                                if persist.debug_mode():
+                                    persist.printf(
+                                        '{} ({}): demote_to_warning_match: "{}" == "{}"'
+                                        .format(
+                                            self.name,
+                                            os.path.basename(self.filename) or '<unsaved>',
+                                            demote_to_warning_match.pattern,
+                                            message
+                                        )
                                     )
-                                )
-                            break
+                                    
+                                break
 
                     if demote_to_warning:
                         error_type = highlight.WARNING

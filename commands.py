@@ -93,7 +93,7 @@ class SublimelinterLintCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         """Lint the current view."""
         from .sublimelinter import SublimeLinter
-        SublimeLinter.shared_plugin().lint(self.view.id())
+        SublimeLinter.shared_plugin().hit(self.view)
 
 
 class HasErrorsCommand:

@@ -26,4 +26,4 @@ Hundreds of hours have been spent writing and documenting SublimeLinter to make 
 [![Donate](http://grotewold.me/assets/button-gratipay.png)](https://gratipay.com/skj3gg)
 
 ## Contributing linter plugins
-Please see the documentation on [creating linter plugins](http://sublimelinter.readthedocs.org/en/latest/creating_a_linter.html) for more information.
+Please see the documentation on [creating linter plugins](https://sublimelinter.readthedocs.org/en/latest/creating_a_linter.html) for more information.

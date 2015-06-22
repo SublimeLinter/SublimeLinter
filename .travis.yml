@@ -9,6 +9,7 @@ env:
 
 matrix:
   allow_failures:
+    - env: TOXENV=py33,coveralls
     - env: TOXENV=py34,coveralls
   fast_finish: true
 

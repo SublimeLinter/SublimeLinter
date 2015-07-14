@@ -149,7 +149,7 @@ This file is what |sl| uses to locate gutter themes, and **<name>** (without the
 .. code-block:: json
 
     {
-        "colorized": true
+        "colorize": true
     }
 
 If the gutter theme is not colorized, the file may be empty, or it may include the same JSON but set ``"colorized"`` to ``false``.

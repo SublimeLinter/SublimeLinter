@@ -28,6 +28,7 @@
             "html 5": "html",
             "html (django)": "html",
             "html (rails)": "html",
+            "javascript (babel)": "javascript",
             "php": "html"
         },
         "warning_color": "DDB700",

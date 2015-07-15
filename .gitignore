@@ -6,3 +6,4 @@
 *.sublime-project
 /Context.sublime-menu
 /Main.sublime-menu
+_build/

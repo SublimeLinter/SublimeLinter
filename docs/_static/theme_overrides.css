@@ -1,0 +1,27 @@
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: .5em;
+}
+
+.wy-plain-list-decimal li, .rst-content .section ol li {
+    margin-bottom: 9px;
+}
+
+.rst-content .toctree-wrapper ol li {
+    margin-bottom: 0;
+}
+
+.wy-alert-title, .rst-content .admonition-title {
+    display: block !important;
+}
+
+.wy-plain-list-disc li, .rst-content .section ul li {
+    margin-bottom: 9px;
+}
+
+.rst-content .toctree-wrapper ul li {
+    margin-bottom: 0;
+}
+
+.reference em {
+    font-style: normal;
+}

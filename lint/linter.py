@@ -1364,17 +1364,23 @@ class Linter(metaclass=LinterMeta):
             if cmd is not None and not cmd:
                 return
 
+        cwd = None
+
         if self.filename:
-            cwd = os.getcwd()
+            try:
+                cwd = os.getcwd()
+            except OSError:
+                pass
 
             try:
                 os.chdir(os.path.dirname(self.filename))
             except OSError:
-                pass
+                # If chdir fails, there's no need to chdir back later on
+                cwd = None
 
         output = self.run(cmd, self.code)
 
-        if self.filename:
+        if cwd:
             os.chdir(cwd)
 
         if not output:

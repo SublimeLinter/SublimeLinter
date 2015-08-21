@@ -30,7 +30,7 @@ Hundreds of hours have been spent writing and documenting |sl| to make it the be
    :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
 
 .. |Donate Gratipay| image:: http://grotewold.me/assets/button-gratipay.png
-   :target: https://gratipay.com/skj3gg
+   :target: https://gratipay.com/sublimelinter/
 
 
 User Documentation

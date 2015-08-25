@@ -91,10 +91,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         """
         Lint the view with the given id.
 
-        This method is called asynchronously by persist.Daemon when a lint
-        request is pulled off the queue, or called synchronously when the
-        Lint command is executed or a file is saved and Show Errors on Save
-        is enabled.
+        This method is called asynchronously by queue.Daemon when a lint
+        request is pulled off the queue.
 
         If provided, hit_time is the time at which the lint request was added
         to the queue. It is used to determine if the view has been modified
@@ -455,7 +453,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             if vid in persist.view_linters:
                 if mode != 'manual':
-                    self.lint(vid)
+                    self.hit(view)
                 else:
                     show_errors = False
             else:
@@ -466,7 +464,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 mode in ('load/save', 'save only') or
                 mode == 'background' and self.view_has_file_only_linter(vid)
             ):
-                self.lint(vid)
+                self.hit(view)
             elif mode == 'manual':
                 show_errors = False
 

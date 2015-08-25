@@ -20,7 +20,7 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
-from .lint import persist, util
+from .lint import persist, util, tooltip
 
 
 def plugin_loaded():
@@ -77,6 +77,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         self.view_syntax = {}
 
         self.__class__.shared_instance = self
+
+        self.tooltip = tooltip.Tooltip()
 
     @classmethod
     def lint_all_views(cls):
@@ -402,46 +404,15 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
-                    
                     if view.show_popup:
-                        style_file = persist.settings.get('tooltip_theme','')
-                        if not style_file:
-                            style = ''
-                        else:
-                            style = '<style>' + re.sub(r'(\n+)|(\r+)|( +)|(\t+)', ' ', sublime.load_resource(style_file) + '</style>'
-                        divcont = ''
-                        for err in line_errors:
-                            divcont += '<p><a href="open:' + persist.get_syntax(view) + ' ' + err + '">' + err + '</a></p>'
-                        view.show_popup(''.join(style) + '<div class="content">' + divcont +'</div>',location=-10000, max_width=600, on_navigate=self.on_navigate)
+                        self.tooltip.show(view, line_errors)
+                    
                 else:
                     status = '%i error%s' % (count, plural)
 
                 view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
-
-    def on_navigate(self, href):
-        params = href.split(':')
-        param = ''
-        for i,s in enumerate(params):
-            if i == 0: pass
-            else: param += s
-        if params[0] == 'open':
-            #sublime.status_message("mess")
-            webbrowser.open('https://www.google.hu/#q=' + self.to_query_string(''+param))
-        
-    def to_query_string(self, str):
-        ret = ''
-        for c in str:
-            ret += self.match(c)
-        sublime.status_message(ret)
-        return ret
-
-    def match(self, ch):
-        if ch == ' ': return '+'
-        if ch == '#': return '%23'
-        if ch == ',': return '%2C'
-        else: return ch
 
     def on_pre_save(self, view):
         """

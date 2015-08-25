@@ -12,6 +12,7 @@
 
 import os
 import re
+import webbrowser
 
 import sublime
 import sublime_plugin
@@ -91,8 +92,10 @@ class SublimeLinter(sublime_plugin.EventListener):
         """
         Lint the view with the given id.
 
-        This method is called asynchronously by queue.Daemon when a lint
-        request is pulled off the queue.
+        This method is called asynchronously by persist.Daemon when a lint
+        request is pulled off the queue, or called synchronously when the
+        Lint command is executed or a file is saved and Show Errors on Save
+        is enabled.
 
         If provided, hit_time is the time at which the lint request was added
         to the queue. It is used to determine if the view has been modified
@@ -399,12 +402,46 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
+                    
+                    if view.show_popup:
+                        style_file = persist.settings.get('tooltip_theme','')
+                        if not style_file:
+                            style = ''
+                        else:
+                            style = '<style>' + re.sub(r'(\n+)|(\r+)|( +)|(\t+)', ' ', sublime.load_resource(style_file) + '</style>'
+                        divcont = ''
+                        for err in line_errors:
+                            divcont += '<p><a href="open:' + persist.get_syntax(view) + ' ' + err + '">' + err + '</a></p>'
+                        view.show_popup(''.join(style) + '<div class="content">' + divcont +'</div>',location=-10000, max_width=600, on_navigate=self.on_navigate)
                 else:
                     status = '%i error%s' % (count, plural)
 
                 view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
+
+    def on_navigate(self, href):
+        params = href.split(':')
+        param = ''
+        for i,s in enumerate(params):
+            if i == 0: pass
+            else: param += s
+        if params[0] == 'open':
+            #sublime.status_message("mess")
+            webbrowser.open('https://www.google.hu/#q=' + self.to_query_string(''+param))
+        
+    def to_query_string(self, str):
+        ret = ''
+        for c in str:
+            ret += self.match(c)
+        sublime.status_message(ret)
+        return ret
+
+    def match(self, ch):
+        if ch == ' ': return '+'
+        if ch == '#': return '%23'
+        if ch == ',': return '%2C'
+        else: return ch
 
     def on_pre_save(self, view):
         """
@@ -453,7 +490,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             if vid in persist.view_linters:
                 if mode != 'manual':
-                    self.hit(view)
+                    self.lint(vid)
                 else:
                     show_errors = False
             else:
@@ -464,7 +501,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 mode in ('load/save', 'save only') or
                 mode == 'background' and self.view_has_file_only_linter(vid)
             ):
-                self.hit(view)
+                self.lint(vid)
             elif mode == 'manual':
                 show_errors = False
 

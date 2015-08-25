@@ -64,10 +64,10 @@ class TestViewUtils:
         sublime.windows.return_value = mock_windows
         mock_callback = MagicMock()
         util.apply_to_all_views(mock_callback)
-        sublime.windows.assert_called_once()
+        assert sublime.windows.call_count == 1
 
         for idx, mock_window in enumerate(mock_windows):
-            mock_window.views.assert_called_once()
+            assert mock_window.views.call_count == 1
 
         expected_calls = [call('view'+str(x)) for x in range(4)]
         mock_callback.assert_has_calls(expected_calls)

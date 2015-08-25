@@ -1443,7 +1443,7 @@ class Linter(metaclass=LinterMeta):
                                             message
                                         )
                                     )
-                                    
+
                                 break
 
                     if demote_to_warning:

@@ -12,7 +12,6 @@
 
 import os
 import re
-import webbrowser
 
 import sublime
 import sublime_plugin
@@ -406,7 +405,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     status += '; '.join(line_errors)
                     if view.show_popup:
                         self.tooltip.show(view, line_errors)
-                    
+
                 else:
                     status = '%i error%s' % (count, plural)
 

@@ -1,7 +1,7 @@
 .DS_Store
 .cache
-.tox
 .coverage
+coverage.xml
 *.pyc
 *.sublime-project
 /Context.sublime-menu

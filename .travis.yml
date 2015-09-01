@@ -1,22 +1,29 @@
 language: python
 
-python: 3.3
-
 sudo: false
 
-env:
-  - TOXENV=py33,coveralls
-  - TOXENV=py34,coveralls
-  - TOXENV=check
+python:
+  - "3.3"
+  - "3.4"
 
 matrix:
   allow_failures:
-    - env: TOXENV=py33,coveralls
-    - env: TOXENV=py34,coveralls
+    - python: "3.4"
   fast_finish: true
 
 install:
-  - pip install tox
+  - "pip install flake8"
+  - "pip install pep257"
+  - "pip install pytest-cov"
+  - "pip install codecov"
+
+before_script:
+  - flake8 . --max-line-length=120 --exclude=__init__.py,linter-plugin-template,docs
+  - pep257 . --ignore=D202
 
 script:
-  - tox
+  - py.test --cov .
+
+after_success:
+  - coverage xml
+  - codecov

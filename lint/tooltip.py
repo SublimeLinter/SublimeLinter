@@ -1,4 +1,4 @@
-"""Manages the tooltips shown when hovering over a line"""
+"""Manages the tooltips shown when hovering over a line."""
 
 import webbrowser
 import re
@@ -16,7 +16,7 @@ class Tooltip:
         self.load_setting()
 
     def load_setting(self):
-        """Loads the settings from the .sublime-settings file."""
+        """Load the settings from the .sublime-settings file."""
         style_file = persist.settings.get('tooltip_theme', '')
         if style_file:
             self.style = '<style>' + re.sub(
@@ -65,7 +65,7 @@ class Tooltip:
         return ret
 
     def match(self, ch):
-        """Matches characters with their equivalent in search querries."""
+        """Match characters with their equivalent in search querries."""
         if ch == ' ':
             return '+'
         if ch == '#':

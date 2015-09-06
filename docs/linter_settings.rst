@@ -120,3 +120,29 @@ In :ref:`debug mode <debug-mode>`, |sl| logs each occurrence of an ignore match.
 .. note::
 
    |regex|
+
+
+chdir
+-----
+This setting specifies the linter working directory.
+
+The value must be a string, corresponding to a valid directory path.
+
+.. code-block:: json
+
+    {
+        "chdir": "${project}",
+    {
+
+With the above example, the linter will get invoked from the ``${project}`` directory (see :ref:`Inline overrides <_settings-tokens>` for more info on using tokens).
+
+.. note::
+
+     If the value of ``chdir`` is unspecified (or inaccessible), then:
+
+     - If linting an unsaved file, the directory is unchanged
+
+     - If linting a saved file, the directory is set to that of the linted file
+
+
+

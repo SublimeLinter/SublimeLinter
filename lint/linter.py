@@ -1373,7 +1373,7 @@ class Linter(metaclass=LinterMeta):
             else:
                 self.chdir = os.path.realpath('.')
 
-            persist.printf('chdir not set or invalid, using %s' % self.chdir)
+            persist.debug('chdir not set or invalid, using %s' % self.chdir)
 
         with util.cd(self.chdir):
             output = self.run(cmd, self.code)

@@ -1385,13 +1385,16 @@ class cd:
     """Context manager for changing the current working directory."""
 
     def __init__(self, newPath):
+        """Save the new wd."""
         self.newPath = os.path.expanduser(newPath)
 
     def __enter__(self):
+        """Save the old wd and change to the new wd."""
         self.savedPath = os.getcwd()
         os.chdir(self.newPath)
 
     def __exit__(self, etype, value, traceback):
+        """Go back to the old wd."""
         os.chdir(self.savedPath)
 
 

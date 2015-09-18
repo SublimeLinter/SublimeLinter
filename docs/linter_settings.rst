@@ -41,6 +41,29 @@ The default value is an empty array.
    If a linter runs python code directly, without calling an external binary, it is up to the linter to decide what to do with this setting.
 
 
+chdir
+-----
+This setting specifies the linter working directory.
+
+The value must be a string, corresponding to a valid directory path.
+
+.. code-block:: json
+
+    {
+        "chdir": "${project}",
+    {
+
+With the above example, the linter will get invoked from the ``${project}`` directory (see :ref:`Setting Tokens <settings-tokens>` for more info on using tokens).
+
+.. note::
+
+     If the value of ``chdir`` is unspecified (or inaccessible), then:
+
+     - If linting an unsaved file, the directory is unchanged
+
+     - If linting a saved file, the directory is set to that of the linted file
+
+
 excludes
 --------
 This setting specifies a list of path patterns to exclude from linting. If there is only a single pattern, the value may be a string. Otherwise it must be an array of patterns.
@@ -120,29 +143,3 @@ In :ref:`debug mode <debug-mode>`, |sl| logs each occurrence of an ignore match.
 .. note::
 
    |regex|
-
-
-chdir
------
-This setting specifies the linter working directory.
-
-The value must be a string, corresponding to a valid directory path.
-
-.. code-block:: json
-
-    {
-        "chdir": "${project}",
-    {
-
-With the above example, the linter will get invoked from the ``${project}`` directory (see :ref:`Inline overrides <_settings-tokens>` for more info on using tokens).
-
-.. note::
-
-     If the value of ``chdir`` is unspecified (or inaccessible), then:
-
-     - If linting an unsaved file, the directory is unchanged
-
-     - If linting a saved file, the directory is set to that of the linted file
-
-
-

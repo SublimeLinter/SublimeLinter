@@ -1364,24 +1364,19 @@ class Linter(metaclass=LinterMeta):
             if cmd is not None and not cmd:
                 return
 
-        cwd = None
+        settings = self.get_view_settings()
+        self.chdir = settings.get('chdir', None)
 
-        if self.filename:
-            try:
-                cwd = os.getcwd()
-            except OSError:
-                pass
+        if not self.chdir or not os.path.isdir(self.chdir):
+            if self.filename:
+                self.chdir = os.path.dirname(self.filename)
+            else:
+                self.chdir = os.path.realpath('.')
 
-            try:
-                os.chdir(os.path.dirname(self.filename))
-            except OSError:
-                # If chdir fails, there's no need to chdir back later on
-                cwd = None
+            persist.debug('chdir not set or invalid, using %s' % self.chdir)
 
-        output = self.run(cmd, self.code)
-
-        if cwd:
-            os.chdir(cwd)
+        with util.cd(self.chdir):
+            output = self.run(cmd, self.code)
 
         if not output:
             return
@@ -1726,7 +1721,6 @@ class Linter(metaclass=LinterMeta):
 
         if self.multiline:
             errors = self.regex.finditer(output)
-
             if errors:
                 for error in errors:
                     yield self.split_match(error)

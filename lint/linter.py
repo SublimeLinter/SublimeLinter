@@ -281,6 +281,11 @@ class Linter(metaclass=LinterMeta):
     #
     config_file = None
 
+    # Either '=' or ':'. if '=', the config file argument is joined with the config file
+    # path found by '=' and passed as a single argument. If ':', config file argument and
+    # the value are passed as separate arguments.
+    config_joiner = ':'
+
     # Tab width
     tab_width = 1
 
@@ -1299,7 +1304,10 @@ class Linter(metaclass=LinterMeta):
                 )
 
                 if config:
-                    args += [self.config_file[0], config]
+                    if self.config_joiner == '=':
+                        args.append('{}={}'.format(self.config_file[0], config))
+                    elif self.config_joiner == ':':
+                        args += [self.config_file[0], config]
 
         return args
 

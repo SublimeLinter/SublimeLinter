@@ -51,7 +51,7 @@ The value must be a string, corresponding to a valid directory path.
 
     {
         "chdir": "${project}",
-    {
+    }
 
 With the above example, the linter will get invoked from the ``${project}`` directory (see :ref:`Setting Tokens <settings-tokens>` for more info on using tokens).
 

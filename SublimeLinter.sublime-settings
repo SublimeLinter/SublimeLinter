@@ -25,6 +25,7 @@
         "show_marks_in_minimap": true,
         "syntax_map": {
             "python django": "python",
+            "magicpython": "python",
             "html 5": "html",
             "html (django)": "html",
             "html (rails)": "html",

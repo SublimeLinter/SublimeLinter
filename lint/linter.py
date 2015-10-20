@@ -38,7 +38,6 @@ HTML_ENTITY_RE = re.compile(r'&(?:(?:#(x)?([0-9a-fA-F]{1,4}))|(\w+));')
 
 
 class LinterMeta(type):
-
     """Metaclass for Linter and its subclasses."""
 
     def __init__(cls, name, bases, attrs):
@@ -175,7 +174,6 @@ class LinterMeta(type):
 
 
 class Linter(metaclass=LinterMeta):
-
     """
     The base class for linters.
 

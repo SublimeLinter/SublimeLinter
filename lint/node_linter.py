@@ -21,7 +21,6 @@ from . import linter, persist, util
 
 
 class NodeLinter(linter.Linter):
-
     """
     This Linter subclass provides NodeJS-specific functionality.
 

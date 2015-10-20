@@ -21,7 +21,6 @@ CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
 
 
 class RubyLinter(linter.Linter):
-
     """
     This Linter subclass provides ruby-specific functionality.
 

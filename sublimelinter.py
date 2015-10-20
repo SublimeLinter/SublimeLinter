@@ -49,7 +49,6 @@ def plugin_loaded():
 
 
 class SublimeLinter(sublime_plugin.EventListener):
-
     """The main ST3 plugin class."""
 
     # We use this to match linter settings filenames.
@@ -494,7 +493,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
 
 class SublimelinterEditCommand(sublime_plugin.TextCommand):
-
     """A plugin command used to generate an edit object for a view."""
 
     def run(self, edit):

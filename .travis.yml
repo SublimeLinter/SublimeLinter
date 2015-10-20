@@ -19,7 +19,7 @@ install:
 
 before_script:
   - flake8 . --max-line-length=120 --exclude=__init__.py,linter-plugin-template,docs
-  - pep257 . --ignore=D202
+  - pep257 . --add-ignore=D202
 
 script:
   - py.test --cov .

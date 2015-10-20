@@ -38,7 +38,6 @@ DEFAULT_GUTTER_THEME_PATH = 'Packages/SublimeLinter/gutter-themes/Default/Defaul
 
 
 class Settings:
-
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):

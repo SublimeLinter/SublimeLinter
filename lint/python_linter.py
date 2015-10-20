@@ -18,7 +18,6 @@ from . import linter, persist, util
 
 
 class PythonLinter(linter.Linter):
-
     """
     This Linter subclass provides python-specific functionality.
 

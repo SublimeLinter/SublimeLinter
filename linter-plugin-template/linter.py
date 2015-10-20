@@ -14,7 +14,6 @@ from SublimeLinter.lint import __superclass__, util
 
 
 class __class__(__superclass__):
-
     """Provides an interface to __linter__."""
 
     syntax = ''

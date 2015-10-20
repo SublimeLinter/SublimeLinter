@@ -1381,7 +1381,6 @@ def center_region_in_view(region, view):
 
 
 class cd:
-
     """Context manager for changing the current working directory."""
 
     def __init__(self, newPath):

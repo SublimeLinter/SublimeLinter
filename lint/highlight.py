@@ -67,7 +67,6 @@ def mark_style_names():
 
 
 class HighlightSet:
-
     """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
     def __init__(self):
@@ -134,7 +133,6 @@ class HighlightSet:
 
 
 class Highlight:
-
     """This class maintains error marks and knows how to draw them."""
 
     def __init__(self, code=''):

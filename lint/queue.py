@@ -19,7 +19,6 @@ from . import persist, util
 
 
 class Daemon:
-
     """
     This class provides a threaded queue that dispatches lints.
 

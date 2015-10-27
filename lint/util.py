@@ -50,6 +50,8 @@ MARK_COLOR_RE = (
     r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
     r'\s*<key>settings</key>\s*\r?\n'
     r'\s*<dict>\s*\r?\n'
+    r'(?:\s*<key>(?:background|fontStyle)</key>\s*\r?\n'
+    r'\s*<string>.*?</string>\r?\n)*'
     r'\s*<key>foreground</key>\s*\r?\n'
     r'\s*<string>)#.+?(</string>\s*\r?\n)'
 )

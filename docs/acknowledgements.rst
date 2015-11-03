@@ -13,6 +13,7 @@ Acknowledgements
 * Aparajita took one look at that code and realized it was a **way** better foundation for a new ST3 version of SublimeLinter than the existing SublimeLinter codebase.
 * Realizing how big the task was, Aparajita solicited donations to fund the development of SublimeLinter 3. The SublimeLinter community responded!
 * Aparajita `forked the sublimelint ST3 branch`_ and spent two months rewriting SublimeLinter to be better, faster, much easier to use, much easier to configure, and much easier to extend than the previous version.
+* `Blake Grotewold`_ took over lead development of |sl| 3 after Aparajita's decided to resign from the project.
 
 Special thanks to the main developers and all those in the community who contributed code or money to make |sl| 3 possible!
 
@@ -23,3 +24,4 @@ Special thanks to the main developers and all those in the community who contrib
 .. _Jake Swartwood: https://github.com/jswartwood
 .. _ST3 version of sublimelint: https://github.com/lunixbochs/sublimelint/tree/st3
 .. _forked the sublimelint ST3 branch: https://github.com/SublimeLinter/SublimeLinter3
+.. _Blake Grotewold: https://github.com/grotewold

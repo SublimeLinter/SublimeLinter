@@ -381,6 +381,7 @@ After the default, user and project settings are merged, SublimeLinter iterates 
 =================== =========================================================================
 Token               Value
 =================== =========================================================================
+${sublime}          The full path to the Sublime Text packages directory
 ${project}          The full path to the project’s parent directory, if available.
 ${directory}        The full path to the parent directory of the current view’s file.
 ${home}             The full path to the current user’s home directory.

@@ -165,6 +165,10 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
             }
         }
     }
+    
+.. note::
+
+    Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document. 
 
 Unlike user settings, project settings are not filled in by |sl|; you are responsible for adding any settings you wish to apply to files in the project.
 

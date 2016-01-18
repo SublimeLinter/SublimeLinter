@@ -11,8 +11,7 @@
 
 """This module tests functions in the lint.util module."""
 
-from pytest import fixture
-from mock import call, MagicMock, patch
+from mock import MagicMock
 
 
 class TestLinter:
@@ -22,13 +21,12 @@ class TestLinter:
     def mock_view_window(self):
         mwindow = MagicMock('window')
         mview = MagicMock('view')
-        mview.window = MagicMock(return_value = mwindow)
-        mview.project_file_name = MagicMock(return_value = 'ppp')
+        mview.window = MagicMock(return_value=mwindow)
+        mview.project_file_name = MagicMock(return_value='ppp')
         return mview, mwindow
 
     def test_replace_settings_tokens__no_replace(self):
         """ Testing if can leave settings without changes if no tokens match """
-        import sublime
         from lint import linter
 
         mview, mwindow = self.mock_view_window()
@@ -40,7 +38,6 @@ class TestLinter:
 
     def test_replace_settings_tokens__replace(self):
         """ Testing if can leave settings without changes if token matches """
-        import sublime
         from lint import linter
         mview, mwindow = self.mock_view_window()
 

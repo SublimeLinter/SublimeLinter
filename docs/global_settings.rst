@@ -91,7 +91,7 @@ This setting provides extra paths to be searched when :ref:`locating system exec
 
    Instead of using this setting, consider :ref:`setting up your PATH correctly <debugging-path-problems>` in your shell.
 
-   This setting works like the |path| environment variable; you provide **directories** that will be searched for executables (e.g. ``"/opt/bin"``), **not** paths to specific executables.
+   This setting works like the |path| environment variable; you provide **directories**, relative or absolute, that will be searched for executables (e.g. ``"/opt/bin"``), **not** paths to specific executables.
 
 You may provide separate paths for each platform on which |st| runs. The default value is empty path lists.
 

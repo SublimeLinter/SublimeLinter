@@ -93,6 +93,8 @@ This setting provides extra paths to be searched when :ref:`locating system exec
 
    This setting works like the |path| environment variable; you provide **directories**, relative or absolute, that will be searched for executables (e.g. ``"/opt/bin"``), **not** paths to specific executables.
 
+   If you give a relative path to a directory, it is considered relative to the |st| executable.
+
 You may provide separate paths for each platform on which |st| runs. The default value is empty path lists.
 
 .. code-block:: json

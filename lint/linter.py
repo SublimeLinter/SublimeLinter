@@ -1166,7 +1166,7 @@ class Linter(metaclass=LinterMeta):
             persist.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
             return ''
 
-        cmd[0:1] = util.convert_type(os.path.abspath(path), [])
+        cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):

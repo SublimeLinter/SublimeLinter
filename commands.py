@@ -47,7 +47,7 @@ def error_command(method):
         if vid in persist.errors and persist.errors[vid]:
             method(self, self.view, persist.errors[vid], persist.highlights[vid], **kwargs)
         else:
-            sublime.message_dialog('No lint errors.')
+            sublime.status_message('No lint errors.')
 
     return run
 

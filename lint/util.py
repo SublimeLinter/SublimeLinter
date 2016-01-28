@@ -915,7 +915,10 @@ def find_windows_python(version):
         # with the <major><minor> version number, so for matching with the version
         # passed in, strip any decimal points.
         stripped_version = version.replace('.', '')
-        prefix = os.path.abspath('\\Python')
+        prefix = os.path.abspath(os.path.join(
+            os.environ.get("SYSTEMROOT", "\\")[:2],
+            'Python'
+        ))
         prefix_len = len(prefix)
         dirs = sorted(glob(prefix + '*'), reverse=True)
         from . import persist

@@ -922,9 +922,16 @@ def find_windows_python(version):
         prefix_len = len(prefix)
         dirs = sorted(glob(prefix + '*'), reverse=True)
         from . import persist
+        user_dirs = persist.settings.get('paths', {}).get('windows', [])
 
         # Try the exact version first, then the major version
         for version in (stripped_version, stripped_version[0]):
+            for python_dir in user_dirs:
+                path = os.path.join(python_dir, 'python.exe')
+                if can_exec(path):
+                    persist.debug('find_windows_python: <=', path)
+                    return path
+
             for python_dir in dirs:
                 path = os.path.join(python_dir, 'python.exe')
                 python_version = python_dir[prefix_len:]

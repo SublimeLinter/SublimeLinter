@@ -520,7 +520,7 @@ class Linter(metaclass=LinterMeta):
 
         Supported tokens, in the order they are expanded:
 
-        ${project}: full path to the project's parent directory, if available.
+        ${project}: full path to the root directory
         ${directory}: full path to the parent directory of the current view's file.
         ${home}: the user's $HOME directory.
         ${sublime}: sublime text settings directory.
@@ -556,13 +556,36 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
-            if window.project_file_name():
-                project = os.path.dirname(window.project_file_name())
+            # REMOVE ----------------------------------------------------------
+            # not really handy as the project settings file
+            # can be stored anywhere ...
+            #
+            # if window.project_file_name():
+            #     project = os.path.dirname(window.project_file_name())
+            #
+            #     expressions.append({
+            #         'token': '${project}',
+            #         'value': project
+            #     })
+            # -----------------------------------------------------------------
 
-                expressions.append({
-                    'token': '${project}',
-                    'value': project
-                })
+            # window.project_data delivers the root folder(s) of the view,
+            # even without any project file! more flexible that way:
+            #
+            # 1) have your folder open with no project settings
+            # 2) have more than one folder opened with no project settings
+            # 3) project settings file inside your folder structure
+            # 4) project settings file outside your folder structure
+
+            folders = window.project_data()['folders']
+            for folder in folders:
+                # extract the root folder of the currently watched file
+                if folder['path'] in view.file_name():
+                    expressions.append({
+                        'token': '${project}',
+                        'value': folder['path']
+                    })
+
 
             expressions.append({
                 'token': '${directory}',

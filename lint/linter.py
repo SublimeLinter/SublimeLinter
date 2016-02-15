@@ -519,15 +519,33 @@ class Linter(metaclass=LinterMeta):
         Replace tokens with values in settings.
 
         Supported tokens, in the order they are expanded:
+        drive
+            sandbox
+                project 1
+                    path to file
+                        file to lint
+                project 2
+                    path to file
+                        file to lint
+                project 3
+                    path to file
+                        file to lint
 
-        ${project}: full path to the root directory
-        ${directory}: full path to the parent directory of the current view's file.
+        ${project}:
+            full path of the project root directory
+            -> "/drive/sandbox/project 1"
+
+        ${directory}:
+            full path the current view's parent directory
+            -> "/drive/sandbox/project 1/path to file"
+
+        ${project} and ${directory} expansion are dependent on
+        having a window. Paths do not contain trailing directory separators.
+
         ${home}: the user's $HOME directory.
         ${sublime}: sublime text settings directory.
         ${env:x}: the environment variable 'x'.
 
-        ${project} and ${directory} expansion are dependent on
-        having a window. Paths do not contain trailing directory separators.
 
         """
         def recursive_replace_value(expressions, value):

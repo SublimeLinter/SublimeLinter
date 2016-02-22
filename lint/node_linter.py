@@ -155,7 +155,9 @@ class NodeLinter(linter.Linter):
         name = 'package.json'
         manifest_path = path.normpath(path.join(cwd, name))
 
-        if path.isfile(manifest_path):
+        bin_path = path.join(cwd, 'node_modules/.bin/')
+
+        if path.isfile(manifest_path) and path.isdir(bin_path):
             return manifest_path
 
         parent = path.normpath(path.join(cwd, '../'))

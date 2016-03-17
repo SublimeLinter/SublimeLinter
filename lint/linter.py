@@ -1372,13 +1372,13 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         self.chdir = settings.get('chdir', None)
 
-        if not self.chdir or not os.path.isdir(self.chdir):
+        if self.chdir and os.path.isdir(self.chdir):
+            persist.debug('chdir has been set to: {0}'.format(self.chdir))
+        else:
             if self.filename:
                 self.chdir = os.path.dirname(self.filename)
             else:
                 self.chdir = os.path.realpath('.')
-
-            persist.debug('chdir not set or invalid, using %s' % self.chdir)
 
         with util.cd(self.chdir):
             output = self.run(cmd, self.code)

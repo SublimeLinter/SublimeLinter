@@ -24,6 +24,7 @@ Hundreds of hours have been spent writing and documenting SublimeLinter to make 
 
 [![Donate Paypal](http://grotewold.me/assets/button-paypal.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU)
 [![Donate Gratipay](http://grotewold.me/assets/button-gratipay.png)](https://gratipay.com/sublimelinter/)
+[![Donate Bitcoin](http://grotewold.me/assets/button-bitcoin.png)](bitcoin:12cnKCsQi55qiKsdNXZuugFkUcMgWhPhfy)
 
 ## Contributing linter plugins
 Please see the documentation on [creating linter plugins](https://sublimelinter.readthedocs.org/en/latest/creating_a_linter.html) for more information.

@@ -1345,6 +1345,7 @@ class Linter(metaclass=LinterMeta):
                     options[name] = value
 
     def get_chdir(self, settings):
+        """Find the chdir to use with the linter."""
         chdir = settings.get('chdir', None)
 
         if chdir and os.path.isdir(chdir):

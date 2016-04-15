@@ -1344,6 +1344,20 @@ class Linter(metaclass=LinterMeta):
 
                     options[name] = value
 
+
+    def get_chdir(self, settings):
+        chdir = settings.get('chdir', None)
+
+        if chdir and os.path.isdir(chdir):
+            return chdir
+            persist.debug('chdir has been set to: {0}'.format(chdir))
+        else:
+            if self.filename:
+                return os.path.dirname(self.filename)
+            else:
+                return os.path.realpath('.')
+
+
     def lint(self, hit_time):
         """
         Perform the lint, retrieve the results, and add marks to the view.
@@ -1370,15 +1384,7 @@ class Linter(metaclass=LinterMeta):
                 return
 
         settings = self.get_view_settings()
-        self.chdir = settings.get('chdir', None)
-
-        if self.chdir and os.path.isdir(self.chdir):
-            persist.debug('chdir has been set to: {0}'.format(self.chdir))
-        else:
-            if self.filename:
-                self.chdir = os.path.dirname(self.filename)
-            else:
-                self.chdir = os.path.realpath('.')
+        self.chdir = self.get_chdir(settings)
 
         with util.cd(self.chdir):
             output = self.run(cmd, self.code)

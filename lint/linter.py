@@ -1344,7 +1344,6 @@ class Linter(metaclass=LinterMeta):
 
                     options[name] = value
 
-
     def get_chdir(self, settings):
         chdir = settings.get('chdir', None)
 
@@ -1356,7 +1355,6 @@ class Linter(metaclass=LinterMeta):
                 return os.path.dirname(self.filename)
             else:
                 return os.path.realpath('.')
-
 
     def lint(self, hit_time):
         """

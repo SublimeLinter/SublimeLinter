@@ -947,7 +947,8 @@ def find_python_script(python_path, script):
     if sublime.platform() in ('osx', 'linux'):
         pyenv = which('pyenv')
         if pyenv:
-            out = run_shell_cmd((pyenv, 'which', script)).strip().decode()
+            out = run_shell_cmd((os.environ['SHELL'], '-l', '-c',
+                                 'echo ""; {} which {}'.format(pyenv, script))).strip().decode().split('\n')[-1]
             if os.path.isfile(out):
                 return out
         return which(script)

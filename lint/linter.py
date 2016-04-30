@@ -557,7 +557,7 @@ class Linter(metaclass=LinterMeta):
             view = window.active_view()
 
             if window.project_file_name():
-                project = os.path.dirname(window.project_file_name())
+                project = os.path.dirname(window.project_file_name()).replace('\\', '/')
 
                 expressions.append({
                     'token': '${project}',
@@ -567,13 +567,13 @@ class Linter(metaclass=LinterMeta):
             expressions.append({
                 'token': '${directory}',
                 'value': (
-                    os.path.dirname(view.file_name()) if
+                    os.path.dirname(view.file_name()).replace('\\', '/') if
                     view and view.file_name() else "FILE NOT ON DISK")
             })
 
         expressions.append({
             'token': '${home}',
-            'value': os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep) or 'HOME NOT SET'
+            'value': os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep).replace('\\', '/') or 'HOME NOT SET'
         })
 
         expressions.append({

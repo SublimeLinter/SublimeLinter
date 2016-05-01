@@ -1804,7 +1804,7 @@ class Linter(metaclass=LinterMeta):
 
     def get_tempfile_suffix(self):
         """Return the mapped tempfile_suffix."""
-        if self.tempfile_suffix:
+        if self.tempfile_suffix and not self.view.file_name():
             if isinstance(self.tempfile_suffix, dict):
                 suffix = self.tempfile_suffix.get(persist.get_syntax(self.view), self.syntax)
             else:

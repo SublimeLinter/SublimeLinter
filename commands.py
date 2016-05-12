@@ -265,7 +265,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         view.window().show_quick_panel(
             options,
             on_select=self.select_error,
-            on_highlight=self.select_error
+            # on_highlight=self.select_error
         )
 
     def select_error(self, index):

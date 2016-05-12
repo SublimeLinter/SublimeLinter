@@ -273,10 +273,10 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         if index != -1:
             point = self.points[index]
             GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
-        else:
-            self.view.set_viewport_position(self.viewport_pos)
-            self.view.sel().clear()
-            self.view.sel().add_all(self.selection)
+        # else:
+        #     self.view.set_viewport_position(self.viewport_pos)
+        #     self.view.sel().clear()
+        #     self.view.sel().add_all(self.selection)
 
 
 class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):

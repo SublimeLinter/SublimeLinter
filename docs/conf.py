@@ -44,7 +44,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SublimeLinter'
-copyright = u'2015, Blake Grotewold'
+copyright = u'2016, The SublimeLinter Community'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -204,7 +204,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'SublimeLinter.tex', u'SublimeLinter Documentation',
-   u'Blake Grotewold', 'manual'),
+   u'The SublimeLinter Community', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -234,7 +234,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'sublimelinter', u'SublimeLinter Documentation',
-     [u'Blake Grotewold'], 1)
+     [u'The SublimeLinter Community'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -248,7 +248,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'SublimeLinter', u'SublimeLinter Documentation',
-   u'Blake Grotewold', 'SublimeLinter', 'Interactive code linting framework for Sublime Text 3.',
+   u'The SublimeLinter Community', 'SublimeLinter', 'Interactive code linting framework for Sublime Text 3.',
    'Miscellaneous'),
 ]
 

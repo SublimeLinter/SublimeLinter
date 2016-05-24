@@ -79,7 +79,7 @@ On Posix systems, python is installed with binaries (or symlinks to binaries) fo
 
 **Windows**
 :raw-html:`<br>`
-On Windows, python is usually installed in the root volume in a directory called “Python”, where ``<major>`` and ``<minor>`` are the major and minor python version. When a specific version is requested, the following happens:
+On Windows, python is usually installed in the root volume in a directory called ``Python<major><minor>``, where ``<major>`` and ``<minor>`` are the major and minor python version, e.g. ``C:\Python27``. When a specific version is requested, the following happens:
 
 - Directories whose names begin with “Python” in the root volume are iterated. The remainder of the directory name is used as the version.
 

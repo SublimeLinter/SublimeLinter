@@ -811,6 +811,7 @@ class Linter(metaclass=LinterMeta):
         cls.apply_to_all_highlights('redraw')
 
     def line_ending_str(line_ending):
+        """Return the line ending char(s) of view.line_endings() string."""
         switcher = {
             'Windows': '\r\n',
             'Unix': '\n',

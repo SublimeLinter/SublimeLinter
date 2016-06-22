@@ -812,9 +812,9 @@ class Linter(metaclass=LinterMeta):
 
     def line_ending_str(line_ending):
         switcher = {
-            'Windows' : '\r\n',
-            'Unix' : '\n',
-            'CR' : '\r'
+            'Windows': '\r\n',
+            'Unix': '\n',
+            'CR': '\r'
         }
 
         return switcher.get(line_ending)

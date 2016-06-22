@@ -161,15 +161,9 @@ class Highlight:
         self.newlines = newlines = [0]
         last = -1
 
-        while True:
-            last = code.find('\n', last + 1)
-
-            if last == -1:
-                break
-
-            newlines.append(last + 1)
-
-        newlines.append(len(code))
+        regex  = re.compile('(\r\n|\n|\r|$)')
+        for match in regex.finditer(code):
+            newlines.append(match.end())
 
     @staticmethod
     def strip_quotes(text):

@@ -13,6 +13,7 @@
 
 from . import (
     highlight,
+    json5,
     linter,
     persist,
     util,

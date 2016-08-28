@@ -1599,7 +1599,7 @@ class Linter(metaclass=LinterMeta):
                     ' (disabled in settings)' if disabled else ''
                 )
             elif status is None:
-                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
+                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 
             if status:
                 persist.printf(status)

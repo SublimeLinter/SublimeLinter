@@ -912,11 +912,10 @@ def find_windows_python(version):
 
         # Try to find python.exe using py.exe
         # Try the exact version first, then the major version
-        code = r'import sys;print(sys.executable)'
-        for version in (version, version.partition('.')[0]):
-            out = communicate(('py.exe', '-%s' % version), code)
-            if out:
-                path = out.splitlines()[0]
+        code = r'import sys;sys.stdout.write(sys.executable)'
+        for testversion in (version, version.partition('.')[0]):
+            path = communicate(('py.exe', '-%s' % testversion), code)
+            if path:
                 if ('python.exe' in path.lower()) and can_exec(path):
                     persist.debug('find_windows_python: <=', path)
                     return path
@@ -927,21 +926,22 @@ def find_windows_python(version):
         # passed in, strip any decimal points.
         stripped_version = version.replace('.', '')
         prefix = os.path.abspath(os.path.join(
-            os.environ.get("SYSTEMDRIVE", "\\"),
+            os.environ.get("SYSTEMDRIVE", ""),
+            os.sep,
             'Python'
         ))
         prefix_len = len(prefix)
         dirs = sorted(glob(prefix + '*'), reverse=True)
 
         # Try the exact version first, then the major version
-        for version in (stripped_version, stripped_version[0]):
+        for testversion in (stripped_version, stripped_version[0]):
             for python_dir in dirs:
                 path = os.path.join(python_dir, 'python.exe')
                 python_version = python_dir[prefix_len:]
                 persist.debug('find_windows_python: matching =>', path)
 
                 # Try the exact version first, then the major version
-                if python_version.startswith(version) and can_exec(path):
+                if python_version.startswith(testversion) and can_exec(path):
                     persist.debug('find_windows_python: <=', path)
                     return path
 

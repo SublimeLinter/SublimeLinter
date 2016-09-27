@@ -192,17 +192,17 @@ When |sl| starts up, it runs your shell as a **login shell** to get the |path|. 
 
 The list of shells supported by |sl| and the startup file that must contain |path| augmentations is shown in this table:
 
-+----------------+----------------------------+
-| Shell          | File                       |
-+================+============================+
-| bash           | ~/.bash_profile            |
-+----------------+----------------------------+
-| zsh (Mac OS X) | ~/.zprofile                |
-+----------------+----------------------------+
-| zsh (Linux)    | ~/.zshenv or ~/.zprofile   |
-+----------------+----------------------------+
-| fish           | ~/.config/fish/config.fish |
-+----------------+----------------------------+
++----------------+-------------------------------------------+
+| Shell          | File                                      |
++================+===========================================+
+| bash           | ~/.bash_profile (or ~/.profile on Ubuntu) |
++----------------+-------------------------------------------+
+| zsh (Mac OS X) | ~/.zprofile                               |
++----------------+-------------------------------------------+
+| zsh (Linux)    | ~/.zshenv or ~/.zprofile                  |
++----------------+-------------------------------------------+
+| fish           | ~/.config/fish/config.fish                |
++----------------+-------------------------------------------+
 
 If you are using ``zsh`` on Linux, you need to determine which file is used in your flavor of Linux. To do so, follow these steps:
 

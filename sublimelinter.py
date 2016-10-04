@@ -401,9 +401,9 @@ class SublimeLinter(sublime_plugin.EventListener):
                 else:
                     status = '%i error%s' % (count, plural)
 
-                view.set_status('sublimelinter', status)
+                view.set_status('aasublimelinter', status)
             else:
-                view.erase_status('sublimelinter')
+                view.erase_status('aasublimelinter')
 
     def on_pre_save(self, view):
         """

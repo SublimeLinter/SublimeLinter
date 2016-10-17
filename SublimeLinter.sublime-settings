@@ -33,6 +33,9 @@
             "javascript (babel)": "javascript",
             "php": "html"
         },
+        "tooltip_fontsize": 16,
+        "tooltip_theme": "Packages/SublimeLinter/tooltip-themes/Default/Default.tooltip-theme",
+        "tooltip_theme_excludes": [],
         "warning_color": "DDB700",
         "wrap_find": true
     }

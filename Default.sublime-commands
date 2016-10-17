@@ -78,6 +78,10 @@
         "command": "sublimelinter_choose_gutter_theme"
     },
     {
+        "caption": "SublimeLinter: Choose Tooltip Theme",
+        "command": "sublimelinter_choose_tooltip_theme"
+    },
+    {
         "caption": "SublimeLinter: Lint This View",
         "command": "sublimelinter_lint"
     },

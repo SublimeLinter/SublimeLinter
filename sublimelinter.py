@@ -20,6 +20,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util
+from string import Template
 
 
 def plugin_loaded():
@@ -398,12 +399,46 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
+                    self.open_tooltip(lineno, line_errors)
                 else:
                     status = '%i error%s' % (count, plural)
+                    self.close_tooltip()
 
                 view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
+
+    def get_active_view(self):
+        return sublime.active_window().active_view()
+
+    def get_template(self):
+        tooltip_theme = persist.settings.get('tooltip_theme')
+
+        if tooltip_theme == 'none':
+            return False
+
+        theme_path = os.path.dirname(tooltip_theme)
+        template_path = os.path.join(theme_path, 'tooltip.html')
+        tooltip_text = sublime.load_resource(template_path)
+
+        return Template(tooltip_text)
+
+    def open_tooltip(self, line, errors):
+        template = self.get_template()
+
+        if not template:
+            return
+
+        active_view = self.get_active_view()
+        tooltip_content = template.substitute(line=line, message='<br />'.join(errors), font_size=persist.settings.get('tooltip_fontsize'))
+        active_view.show_popup(tooltip_content,
+                                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                                location=-1,
+                                max_width=600)
+
+    def close_tooltip(self):
+        active_view = self.get_active_view()
+        active_view.hide_popup()
 
     def on_pre_save(self, view):
         """

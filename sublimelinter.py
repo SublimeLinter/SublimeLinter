@@ -21,6 +21,14 @@ from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util
 
+# show_popup additions:
+import webbrowser
+import string
+pat = r'\b(([\w-]+://?|www[.])[^\s()<>]+(?:\([\w\d]+\)|([^%s\s]|/)))'
+pat = pat % re.escape(string.punctuation)
+HTTP_REGEX = re.compile(pat)
+POPUP_STYLE = '<style>body { padding: 5px } html { background-color: orange }</style>'
+
 
 def plugin_loaded():
     """The ST3 entry point for plugins."""
@@ -354,6 +362,8 @@ class SublimeLinter(sublime_plugin.EventListener):
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
 
+        view.hide_popup()
+
         if self.is_scratch(view):
             return
 
@@ -398,12 +408,29 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
+
+                    # show_popup(self, content, flags = HTML,
+                    #            location = -1, max_width = 320, max_height = 240,
+                    #            on_navigate = None, on_hide = None)
+                    content = '<div class="content">' + '<br>'.join(line_errors) + '</div>'
+                    content = HTTP_REGEX.sub(r'<a href="\1">\1</a>', content)
+                    view.show_popup(POPUP_STYLE + content, location=-2, max_width=1000, max_height=300,
+                                    on_navigate=self.on_navigate, on_hide=None)
+                    sublime.set_timeout_async(view.hide_popup, 5000)
                 else:
                     status = '%i error%s' % (count, plural)
 
                 view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
+
+    def on_navigate(self, link):
+        """
+        Callback for view.show_popup(on_navigate).
+
+        Launches HTTP hyperlinks in a web browser.
+        """
+        webbrowser.open_new_tab(link)
 
     def on_pre_save(self, view):
         """

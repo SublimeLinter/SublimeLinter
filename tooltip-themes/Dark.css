@@ -1,0 +1,12 @@
+html, body, div.content {
+	background-color: #A0A0A0;
+}
+
+p {
+	margin: 0;
+	margin-bottom: 0.5em;
+}
+
+a {
+	color: black;
+}

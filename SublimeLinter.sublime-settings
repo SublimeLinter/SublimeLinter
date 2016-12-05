@@ -34,6 +34,8 @@
             "php": "html"
         },
         "warning_color": "DDB700",
-        "wrap_find": true
+        "wrap_find": true,
+        "tooltip_theme": "Packages/SublimeLinter/tooltip-themes/Dark.css",
+        "search_engine": "http://stackoverflow.com/search?q="
     }
 }

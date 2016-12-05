@@ -19,7 +19,7 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
-from .lint import persist, util
+from .lint import persist, util, tooltip
 
 
 def plugin_loaded():
@@ -76,6 +76,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         self.__class__.shared_instance = self
 
+        self.tooltip = tooltip.Tooltip()
+
     @classmethod
     def lint_all_views(cls):
         """Simulate a modification of all views, which will trigger a relint."""
@@ -90,8 +92,10 @@ class SublimeLinter(sublime_plugin.EventListener):
         """
         Lint the view with the given id.
 
-        This method is called asynchronously by queue.Daemon when a lint
-        request is pulled off the queue.
+        This method is called asynchronously by persist.Daemon when a lint
+        request is pulled off the queue, or called synchronously when the
+        Lint command is executed or a file is saved and Show Errors on Save
+        is enabled.
 
         If provided, hit_time is the time at which the lint request was added
         to the queue. It is used to determine if the view has been modified
@@ -398,6 +402,9 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
+                    if view.show_popup:
+                        self.tooltip.show(view, line_errors)
+
                 else:
                     status = '%i error%s' % (count, plural)
 
@@ -452,7 +459,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             if vid in persist.view_linters:
                 if mode != 'manual':
-                    self.hit(view)
+                    self.lint(vid)
                 else:
                     show_errors = False
             else:
@@ -465,7 +472,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 mode in ('load/save', 'save only') or
                 mode == 'background' and self.view_has_file_only_linter(vid)
             ):
-                self.hit(view)
+                self.lint(vid)
             elif mode == 'manual':
                 show_errors = False
 

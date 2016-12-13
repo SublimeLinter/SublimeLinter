@@ -1498,7 +1498,7 @@ class Linter(metaclass=LinterMeta):
 
                 self.error(line, col, message, error_type)
 
-            self.highlight.errors = self.errors
+        self.highlight.errors = self.errors
 
     def draw(self):
         """Draw the marks from the last lint."""

@@ -386,6 +386,7 @@ class Highlight:
 
     @staticmethod
     def hide_phantoms(view):
+        """Hide Phantoms."""
         view.erase_phantoms('sublimelinter')
 
     def draw(self, view):

@@ -105,7 +105,6 @@ class HighlightSet:
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
-            
         view.erase_phantoms("sublimelinter")
 
     def redraw(self, view):
@@ -139,7 +138,7 @@ class HighlightSet:
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
-    def __init__(self, code='', errors = {}):
+    def __init__(self, code='', errors={}):
         """Initialize a new instance."""
         self.code = code
         self.errors = errors
@@ -393,7 +392,7 @@ class Highlight:
 
         """
         self.set_mark_style()
-        
+
         _stylesheet = '''
             <style>
                 div.error {
@@ -444,7 +443,6 @@ class Highlight:
             _error_msg = _error[0][1]
             _the_error = "%s: %s" % (_error_type.capitalize(), _error_msg)
 
-
             view.add_phantom(
                 "sublimelinter",
                 _region,
@@ -456,7 +454,7 @@ class Highlight:
                 sublime.LAYOUT_BELOW,
                 on_navigate=hide_phantoms
             )
-            
+
         for error_type in (WARNING, ERROR):
             if self.marks[error_type]:
                 view.add_regions(
@@ -485,7 +483,7 @@ class Highlight:
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
-        
+
         view.erase_phantoms("sublimelinter")
 
     def reset(self):

@@ -51,7 +51,7 @@ class LinterMeta(type):
         - Convert strings to tuples where necessary.
         - Add a leading dot to the tempfile_suffix if necessary.
         - Build a map between defaults and linter arguments.
-        - Add '@python' as an inline setting to PythonLinter subclasses.
+        - Add '@python' as an inline setting to PythonLinter subclasses.z
 
         Finally, the class is registered as a linter for its configured syntax.
 

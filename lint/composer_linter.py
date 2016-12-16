@@ -30,8 +30,8 @@ class ComposerLinter(linter.Linter):
       vendor/bin folder. You need to override composer_name
       variable to use this linter.
 
-    - comment_re is defined correctly for JavaScript. If your
-      linter can be found in the node_modules folder, but lints
+    - comment_re is defined correctly for PHP. If your
+      linter can be found in the vendor/bin folder, but lints
       a different language, you should override this with the
       correct regular expression for the comments in the files
       being linted.
@@ -50,51 +50,6 @@ class ComposerLinter(linter.Linter):
 
         if self.manifest_path:
             self.read_manifest(path.getmtime(self.manifest_path))
-
-    def lint(self, hit_time):
-        """Check ComposerLinter options then run lint."""
-        view_settings = self.get_view_settings(inline=True)
-
-        if self.manifest_path:
-            is_dep = self.is_dependency()
-
-            enable_if_dependency = \
-                view_settings.get('enable_if_dependency', False)
-
-            disable_if_not_dependency = \
-                view_settings.get('disable_if_not_dependency', False)
-
-            if enable_if_dependency and is_dep:
-                self.disabled = False
-
-            if disable_if_not_dependency and not is_dep:
-                self.disabled = True
-
-        super(ComposerLinter, self).lint(hit_time)
-
-    def is_dependency(self):
-        """Check composer.json to see if linter is a dependency."""
-        is_dep = False
-
-        pkg = self.get_manifest()
-
-        # also return true if the name is the same so linters can lint their
-        # own code (e.g. phpcs can lint the phpcs project)
-        is_dep = 'name' in pkg and self.composer_name == pkg['name']
-
-        if not is_dep:
-            is_dep = True if (
-                'require' in pkg and
-                self.composer_name in pkg['require']
-            ) else False
-
-        if not is_dep:
-            is_dep = True if (
-                'require-dev' in pkg and
-                self.composer_name in pkg['require-dev']
-            ) else False
-
-        return is_dep
 
     def context_sensitive_executable_path(self, cmd):
         """
@@ -118,9 +73,9 @@ class ComposerLinter(linter.Linter):
             )
             return False, ''
 
-        node_cmd_path = local_cmd if local_cmd else global_cmd
-        self.executable_path = node_cmd_path
-        return False, node_cmd_path
+        composer_cmd_path = local_cmd if local_cmd else global_cmd
+        self.executable_path = composer_cmd_path
+        return False, composer_cmd_path
 
     def get_manifest_path(self):
         """Get the path to the composer.json file for the current file."""
@@ -177,9 +132,9 @@ class ComposerLinter(linter.Linter):
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' vendor/bin directories."""
-        node_modules_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
+        vendor_modules_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
 
-        binary = path.join(node_modules_bin, cmd)
+        binary = path.join(vendor_modules_bin, cmd)
 
         if binary and access(binary, X_OK):
             return binary

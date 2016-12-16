@@ -132,9 +132,9 @@ class ComposerLinter(linter.Linter):
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' vendor/bin directories."""
-        vendor_modules_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
+        vendor_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
 
-        binary = path.join(vendor_modules_bin, cmd)
+        binary = path.join(vendor_bin, cmd)
 
         if binary and access(binary, X_OK):
             return binary
@@ -158,7 +158,13 @@ class ComposerLinter(linter.Linter):
         see if the cmd we're looking for is defined for the current
         project.
         """
-        # Todo: parse bin array checking each for contents of cmd
+        pkg = self.get_manifest()
+
+        if 'bin' in pkg:
+            for executable in pkg['bin']:
+                if cmd in executable:
+                    return executable
+
         return None
 
     def get_manifest(self):

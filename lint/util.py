@@ -212,7 +212,7 @@ def generate_color_scheme(from_reload=True):
         persist.settings.observe_prefs(observer=prefs_reloaded)
 
     # ST crashes unless this is run async
-    sublime.set_timeout_async(generate_color_scheme_async, 0)
+    # sublime.set_timeout_async(generate_color_scheme_async, 0)
 
 
 def generate_color_scheme_async():

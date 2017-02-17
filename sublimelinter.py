@@ -430,11 +430,13 @@ class SublimeLinter(sublime_plugin.EventListener):
             return
 
         active_view = self.get_active_view()
-        tooltip_content = template.substitute(line=line, message='<br />'.join(errors), font_size=persist.settings.get('tooltip_fontsize'))
+        tooltip_content = template.substitute(line=line,
+                                              message='<br />'.join(errors),
+                                              font_size=persist.settings.get('tooltip_fontsize'))
         active_view.show_popup(tooltip_content,
-                                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-                                location=-1,
-                                max_width=600)
+                               flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                               location=-1,
+                               max_width=600)
 
     def close_tooltip(self):
         active_view = self.get_active_view()

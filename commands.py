@@ -627,6 +627,7 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
         else:
             return setting
 
+
 @choose_setting_command('tooltip_theme', preview=True)
 class SublimelinterChooseTooltipThemeCommand(ChooseSettingCommand):
     """A command that selects a tooltip theme from a list."""

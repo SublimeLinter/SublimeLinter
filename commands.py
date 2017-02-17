@@ -628,6 +628,105 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return setting
 
 
+@choose_setting_command('tooltip_theme', preview=True)
+class SublimelinterChooseTooltipThemeCommand(ChooseSettingCommand):
+    """A command that selects a tooltip theme from a list."""
+
+    def get_settings(self):
+        """
+        Return a list of all available Tooltip themes, with 'None' at the end.
+
+        Whether the theme is colorized and is a SublimeLinter or user theme
+        is indicated below the theme name.
+
+        """
+
+        settings = self.find_tooltip_themes()
+        settings.append(['None', 'Do not display tooltip'])
+        self.themes.append('none')
+
+        return settings
+
+    def find_tooltip_themes(self):
+        """
+        Find all SublimeLinter.tooltip-theme resources.
+
+        For each found resource, if it doesn't match one of the patterns
+        from the "tooltip_theme_excludes" setting, return the base name
+        of resource and info on whether the theme is a standard theme
+        or a user theme, as well as whether it is colorized.
+
+        The list of paths to the resources is appended to self.themes.
+
+        """
+
+        self.themes = []
+        settings = []
+        tooltip_themes = sublime.find_resources('*.tooltip-theme')
+        excludes = persist.settings.get('tooltip_theme_excludes', [])
+
+        for theme in tooltip_themes:
+            exclude = False
+            parent = os.path.dirname(theme)
+            htmls = sublime.find_resources('*.html')
+
+            if '{}/tooltip.html'.format(parent) not in htmls:
+                continue
+
+            # Now see if the theme name is in tooltip_theme_excludes
+            name = os.path.splitext(os.path.basename(theme))[0]
+
+            for pattern in excludes:
+                if fnmatch(name, pattern):
+                    exclude = True
+                    break
+
+            if exclude:
+                continue
+
+            self.themes.append(theme)
+
+            std_theme = theme.startswith('Packages/SublimeLinter/tooltip-themes/')
+
+            settings.append([
+                name,
+                'SublimeLinter theme' if std_theme else 'User theme'
+            ])
+
+        # Sort self.themes and settings in parallel using the zip trick
+        settings, self.themes = zip(*sorted(zip(settings, self.themes)))
+
+        # zip returns tuples, convert back to lists
+        settings = list(settings)
+        self.themes = list(self.themes)
+
+        return settings
+
+    def selected_setting(self, index):
+        """Return the theme name with the given index."""
+        return self.themes[index]
+
+    def transform_setting(self, setting, matching=False):
+        """
+        Return a transformed version of setting.
+
+        For Tooltip themes, setting is a Packages-relative path
+        to a .tooltip-theme file.
+
+        If matching == False, return the original setting text,
+        tooltip theme settings are not lowercased.
+
+        If matching == True, return the base name of the filename
+        without the .tooltip-theme extension.
+
+        """
+
+        if matching:
+            return os.path.splitext(os.path.basename(setting))[0]
+        else:
+            return setting
+
+
 class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
     """A command that toggles, enables, or disables linter plugins."""
 

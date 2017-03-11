@@ -143,3 +143,16 @@ In :ref:`debug mode <debug-mode>`, |sl| logs each occurrence of an ignore match.
 .. note::
 
    |regex|
+
+
+use_rvm_auto_ruby
+-----------------
+This is a ruby-specific linter setting and allows to override the default behavior when RVM is installed on the system.
+
+By default, SublimeLinter will try to use ``rvm-auto-ruby`` executable for linting. Although this guarantees that the latest RVM-activated ruby will be used for linting, it has the downside of being too slow (it reinitializes the RVM environment on every invocation, which has a noticeable performance impact.)
+
+If you do not wish to use ``rvm-auto-ruby`` (for example, you have set up your sublime environment with the correct ruby paths), set this value to false.
+
+.. note::
+
+   |customenv|

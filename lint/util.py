@@ -558,14 +558,16 @@ def get_shell_path(env):
 
     return p
 
+
 def merge_lists(a, b):
     """
-    Merge two lists by removing duplicates.
+    Merge two lists `a` and `b` by removing duplicates (from `b`)
 
     This method differs from list(set(a + b)) by preserving the original ordering.
 
     """
-    newlist=[]
+
+    newlist = []
     for i in a:
         newlist.append(i)
     for z in b:
@@ -660,9 +662,9 @@ def create_environment():
     env.update(os.environ)
 
     if os.name == 'posix':
-        default_paths = env['PATH'].split(':')
-        computed_paths = get_shell_path(os.environ).split(':')
-        env['PATH'] = ':'.join(merge_lists(default_paths, computed_paths))
+        default_paths = filter(None, env['PATH'].split(os.pathsep))
+        computed_paths = filter(None, get_shell_path(os.environ).split(os.pathsep))
+        env['PATH'] = os.pathsep.join(merge_lists(computed_paths, default_paths))
 
     paths = persist.settings.get('paths', {})
 

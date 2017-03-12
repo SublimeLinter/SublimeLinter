@@ -561,7 +561,7 @@ def get_shell_path(env):
 
 def merge_lists(a, b):
     """
-    Merge two lists `a` and `b` by removing duplicates (from `b`)
+    Merge two lists `a` and `b` by removing duplicates (from `b`).
 
     This method differs from list(set(a + b)) by preserving the original ordering.
 

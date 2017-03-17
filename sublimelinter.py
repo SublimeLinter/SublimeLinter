@@ -409,7 +409,8 @@ class SublimeLinter(sublime_plugin.EventListener):
                 view.erase_status('sublimelinter')
 
     def get_active_view(self):
-        """Returns the active view in the currently active window."""
+        """Return the active view in the currently active window."""
+
         return sublime.active_window().active_view()
 
     def get_template(self):
@@ -432,8 +433,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def open_tooltip(self, line, errors):
         """
-        Shows a tooltip containing all linting errors on a given line. If no
-        tooltip template can be created, does nothing.
+        Show a tooltip containing all linting errors on a given line.
+
+        If no tooltip template can be created, does nothing.
 
         """
         template = self.get_template()
@@ -451,7 +453,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                                max_width=600)
 
     def close_tooltip(self):
-        """Closes the currently active tooltip, if there is one."""
+        """Close the currently active tooltip, if there is one."""
         active_view = self.get_active_view()
         active_view.hide_popup()
 

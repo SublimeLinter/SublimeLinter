@@ -810,10 +810,22 @@ class Linter(metaclass=LinterMeta):
         """Redraw all highlights in all views."""
         cls.apply_to_all_highlights('redraw')
 
+    def line_ending_str(line_ending):
+        """Return the line ending char(s) of view.line_endings() string."""
+        switcher = {
+            'Windows': '\r\n',
+            'Unix': '\n',
+            'CR': '\r'
+        }
+
+        return switcher.get(line_ending)
+
     @classmethod
     def text(cls, view):
         """Return the entire text of a view."""
-        return view.substr(sublime.Region(0, view.size()))
+        line_ending = Linter.line_ending_str(view.line_endings())
+        text = view.substr(sublime.Region(0, view.size()))
+        return text.replace('\n', line_ending)
 
     @classmethod
     def get_view(cls, vid):

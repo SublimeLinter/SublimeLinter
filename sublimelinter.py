@@ -406,9 +406,9 @@ class SublimeLinter(sublime_plugin.EventListener):
                     if persist.settings.get('tooltips'):
                         self.close_tooltip()
 
-                view.set_status('sublimelinter', status)
+                view.set_status('aasublimelinter', status)
             else:
-                view.erase_status('sublimelinter')
+                view.erase_status('aasublimelinter')
 
     def get_active_view(self):
         """Return the active view in the currently active window."""

@@ -1,0 +1,16 @@
+SublimeLinter 3.8.0
+---------------------
+  🎊 INLINE TOOLTIPS HAVE BEEN ADDED! 🎉
+
+  To use this new feature, go to your SublimeLinter.sublime-settings file and add or change the "tooltips" setting to true, like below.
+  
+  "tooltips": true
+  
+  ----
+  
+  We will now be accepting some themes for tooltips as well, please add them to the SublimeLinter3 repository at https://github.com/SublimeLinter/SublimeLinter3 and make a pull request.
+  
+  ----
+  
+  Thank you for supporting SublimeLinter! We extremely appreciate your usage, support, and contributions.
+  

@@ -399,10 +399,12 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
-                    self.open_tooltip(lineno, line_errors)
+                    if persist.settings.get('tooltips'):
+                        self.open_tooltip(lineno, line_errors)
                 else:
                     status = '%i error%s' % (count, plural)
-                    self.close_tooltip()
+                    if persist.settings.get('tooltips'):
+                        self.close_tooltip()
 
                 view.set_status('sublimelinter', status)
             else:

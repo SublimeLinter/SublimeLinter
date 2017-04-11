@@ -201,6 +201,23 @@
     },
 
     {
+        "caption": "SublimeLinter: Enable Inline Tooltips",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "tooltips",
+            "value": true
+        }
+    },
+    {
+        "caption": "SublimeLinter: Disable Inline Tooltips",
+        "command": "sublimelinter_toggle_setting", "args":
+        {
+            "setting": "tooltips",
+            "value": false
+        }
+    },
+
+    {
         "caption": "SublimeLinter: Create Linter Plugin",
         "command": "sublimelinter_create_linter_plugin"
     },

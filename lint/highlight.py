@@ -28,6 +28,7 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 """
 
+import html
 import re
 import sublime
 from . import persist
@@ -93,6 +94,7 @@ class HighlightSet:
         all = Highlight()
 
         for highlight in self.all:
+            all.errors = highlight.errors
             all.update(highlight)
 
         all.draw(view)
@@ -103,6 +105,8 @@ class HighlightSet:
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+
+        Highlight.hide_phantoms(view)
 
     def redraw(self, view):
         """Redraw all marks in the given view."""
@@ -135,9 +139,10 @@ class HighlightSet:
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
-    def __init__(self, code=''):
+    def __init__(self, code='', errors={}):
         """Initialize a new instance."""
         self.code = code
+        self.errors = errors
         self.marks = {WARNING: [], ERROR: []}
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
@@ -379,6 +384,11 @@ class Highlight:
         if not persist.settings.get('show_marks_in_minimap'):
             self.mark_flags |= sublime.HIDE_ON_MINIMAP
 
+    @staticmethod
+    def hide_phantoms(view):
+        """Hide Phantoms."""
+        view.erase_phantoms('sublimelinter')
+
     def draw(self, view):
         """
         Draw code and gutter marks in the given view.
@@ -388,6 +398,35 @@ class Highlight:
 
         """
         self.set_mark_style()
+
+        stylesheet = '''
+            <style>
+                div.error, div.warning {
+                    padding: 0.4rem 0 0.4rem 0.7rem;
+                    margin: 0.2rem 0;
+                    border-radius: 2px;
+                }
+
+                div.error span.message, div.warning span.message {
+                    padding-right: 0.7rem;
+                }
+
+                div.error a, div.warning a {
+                    text-decoration: inherit;
+                    padding: 0.35rem 0.7rem 0.45rem 0.8rem;
+                    position: relative;
+                    bottom: 0.05rem;
+                    border-radius: 0 2px 2px 0;
+                    font-weight: bold;
+                }
+                html.dark div.error a, html.dark div.warning a {
+                    background-color: #00000018;
+                }
+                html.light div.error a, html.light div.warning a {
+                    background-color: #ffffff18;
+                }
+            </style>
+        '''
 
         gutter_regions = {WARNING: [], ERROR: []}
         draw_gutter_marks = persist.settings.get('gutter_theme') != 'None'
@@ -399,6 +438,28 @@ class Highlight:
             for line, error_type in self.lines.items():
                 region = sublime.Region(self.newlines[line], self.newlines[line])
                 gutter_regions[error_type].append(region)
+
+        # def hide_phantoms(href):
+            # view.erase_phantoms("sublimelinter")
+
+        for line, error in self.errors.items():
+            column = error[0][0]
+            region = sublime.Region(self.newlines[line] + column, self.newlines[line] + column)
+            error_type = self.lines[line]
+            error_msg = error[0][1]
+            the_error = "%s: %s" % (error_type.capitalize(), error_msg)
+
+            view.add_phantom(
+                "sublimelinter",
+                region,
+                ('<body id=inline-error>' + stylesheet +
+                    '<div class="' + error_type + '">' +
+                    '<span class="message">' + html.escape(the_error, quote=False) + '</span>' +
+                    '<a href=hide>' + chr(0x00D7) + '</a></div>' +
+                    '</body>'),
+                sublime.LAYOUT_BELOW,
+                on_navigate=lambda href: Highlight.hide_phantoms(view)
+            )
 
         for error_type in (WARNING, ERROR):
             if self.marks[error_type]:
@@ -428,6 +489,8 @@ class Highlight:
         for error_type in (WARNING, ERROR):
             view.erase_regions(MARK_KEY_FORMAT.format(error_type))
             view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+
+        Highlight.hide_phantoms(view)
 
     def reset(self):
         """

@@ -363,7 +363,7 @@ class Linter(metaclass=LinterMeta):
     errors = None
     highlight = None
     lint_settings = None
-    env = None
+    env = {}
     disabled = False
     executable_version = None
 
@@ -397,6 +397,9 @@ class Linter(metaclass=LinterMeta):
         self.highlight = highlight.Highlight()
         self.ignore_matches = None
         self.demote_to_warning_matches = None
+
+        self.env['SUBLIME_LINTER_FILE'] = self.filename
+        self.env['SUBLIME_LINTER_FOLDERS'] = ';'.join(self.view.window().folders())
 
     @property
     def filename(self):

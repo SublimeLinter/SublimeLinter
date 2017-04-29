@@ -403,8 +403,6 @@ class SublimeLinter(sublime_plugin.EventListener):
                         self.open_tooltip(lineno, line_errors)
                 else:
                     status = '%i error%s' % (count, plural)
-                    if persist.settings.get('tooltips'):
-                        self.close_tooltip()
 
                 view.set_status('sublimelinter', status)
             else:
@@ -437,7 +435,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         """
         Show a tooltip containing all linting errors on a given line.
 
-        If no tooltip template can be created, does nothing.
+        Does nothing if no tooltip template can be created, or if another popup
+        is already displayed.
 
         """
         template = self.get_template()
@@ -446,6 +445,11 @@ class SublimeLinter(sublime_plugin.EventListener):
             return
 
         active_view = self.get_active_view()
+
+        # Leave any existing popup open without replacing it
+        if active_view.is_popup_visible():
+            return
+
         tooltip_content = template.substitute(line=line,
                                               message='<br />'.join(errors),
                                               font_size=persist.settings.get('tooltip_fontsize'))
@@ -453,11 +457,6 @@ class SublimeLinter(sublime_plugin.EventListener):
                                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
                                location=-1,
                                max_width=600)
-
-    def close_tooltip(self):
-        """Close the currently active tooltip, if there is one."""
-        active_view = self.get_active_view()
-        active_view.hide_popup()
 
     def on_pre_save(self, view):
         """

@@ -66,8 +66,9 @@ After the default, user and project settings are merged, SublimeLinter iterates 
 =================== =========================================================================
 Token               Value
 =================== =========================================================================
-${sublime}          The full path to the Sublime Text packages directory
-${project}          The full path to the project’s parent directory, if available.
+${sublime}          The full path to the Sublime Text packages directory.
+${project}          The full path to the project file's parent directory, if available.
+${root}             The full path to the root folder of the current view in project or folder mode. Falls back to `${directory}` in single file mode.
 ${directory}        The full path to the parent directory of the current view’s file.
 ${home}             The full path to the current user’s home directory.
 ${env:x}            The environment variable 'x'.
@@ -77,11 +78,11 @@ Please note:
 
 - Directory paths do **not** include a trailing directory separator.
 
-- ``${project}`` and ``${directory}`` expansion are dependent on a file being open in a window, and thus may not work when running lint reports.
+- ``${project}``, ``${root}`` and ``${directory}`` expansions are dependent on a file being open in a window, and thus may not work when running lint reports.
 
 - The environment variables available to the ``${env:x}`` token are those available within the Sublime Text python context, which is a very limited subset of those available within a command line shell.
 
-Project and parent directory paths are especially useful if you want to load specific configuration files for a linter.
+Project, root and parent directory paths are especially useful if you want to load specific configuration files for a linter.
 For example, you could use the ``${project}`` and ``${home}`` tokens in your project settings:
 
 .. code-block:: json

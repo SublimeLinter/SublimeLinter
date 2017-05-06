@@ -11,7 +11,7 @@ matrix:
 
 install:
   - "pip install flake8"
-  - "pip install pydocstyle"
+  - "pip install pydocstyle==1.1.1"
   - "pip install pytest-cov"
   - "pip install codecov"
 

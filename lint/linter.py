@@ -1540,6 +1540,8 @@ class Linter(metaclass=LinterMeta):
         can = False
         syntax = syntax.lower()
 
+        cls.reinitialize()  # Allow the linter to configure itself.
+
         if cls.syntax:
             if isinstance(cls.syntax, (tuple, list)):
                 can = syntax in cls.syntax

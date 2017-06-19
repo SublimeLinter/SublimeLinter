@@ -1539,6 +1539,7 @@ class Linter(metaclass=LinterMeta):
 
         can = False
         syntax = syntax.lower()
+        executable = ''
 
         if cls.syntax:
             if isinstance(cls.syntax, (tuple, list)):
@@ -1552,8 +1553,6 @@ class Linter(metaclass=LinterMeta):
 
         if can:
             if cls.executable_path is None:
-                executable = ''
-
                 if not callable(cls.cmd):
                     if isinstance(cls.cmd, (tuple, list)):
                         executable = (cls.cmd or [''])[0]

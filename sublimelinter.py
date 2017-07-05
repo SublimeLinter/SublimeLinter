@@ -46,7 +46,7 @@ def plugin_loaded():
     window = sublime.active_window()
 
     if window:
-        plugin.on_activated(window.active_view())
+        plugin.on_activated_async(window.active_view())
 
 
 class SublimeLinter(sublime_plugin.EventListener):
@@ -248,7 +248,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     # sublime_plugin.EventListener event handlers
 
-    def on_modified(self, view):
+    def on_modified_async(self, view):
         """Called when a view is modified."""
 
         if self.is_scratch(view):
@@ -267,7 +267,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         else:
             self.clear(view)
 
-    def on_activated(self, view):
+    def on_activated_async(self, view):
         """Called when a view gains input focus."""
 
         if self.is_scratch(view):
@@ -281,7 +281,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if view_id not in self.linted_views:
             if view_id not in self.loaded_views:
-                self.on_new(view)
+                self.on_new_async(view)
 
             if persist.settings.get('lint_mode', 'background') in ('background', 'load/save'):
                 self.hit(view)
@@ -326,7 +326,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         else:
             Linter.redraw_all()
 
-    def on_new(self, view):
+    def on_new_async(self, view):
         """Called when a new buffer is created."""
         self.on_open_settings(view)
 
@@ -459,7 +459,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         active_view = self.get_active_view()
         active_view.hide_popup()
 
-    def on_pre_save(self, view):
+    def on_pre_save_async(self, view):
         """
         Called before view is saved.
 
@@ -470,7 +470,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if view.window().active_view() == view and self.is_settings_file(view):
             persist.settings.copy()
 
-    def on_post_save(self, view):
+    def on_post_save_async(self, view):
         """Called after view is saved."""
 
         if self.is_scratch(view):
@@ -526,7 +526,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
 
-    def on_close(self, view):
+    def on_close_async(self, view):
         """Called after view is closed."""
 
         if self.is_scratch(view):

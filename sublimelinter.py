@@ -347,6 +347,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
         active_view = view.window().active_view()
+        if active_view is None:
+            return
 
         for view in view.window().views():
             if view == active_view:

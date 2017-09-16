@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 120
+
+ignore = D, E226, E241
+
+exclude = __init__.py,linter-plugin-template,docs

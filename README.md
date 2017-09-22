@@ -17,6 +17,20 @@ A framework for interactive code linting in the [Sublime Text 3](http://sublimet
 
 **Contributing:** If you would like to submit a fix or enhancement for SublimeLinter, please read the [contributing guidelines](https://sublimelinter.readthedocs.org/en/latest/contributing.html) first.
 
+## Key Bindings
+
+SublimeLinter comes with several pre-defined keyboard shortcuts. You can customize these via the Package Settings menu\*. Read more about keybindings in [the unofficial documentation](http://docs.sublimetext.info/en/latest/customization/key_bindings.html)
+
+| Command         | Linux & Windows  | MacOS                  |
+|-----------------|------------------|------------------------|
+| Lint            | CTRL + K, L      | CTRL + CMD + L         |
+| Next Error      | CTRL + K, N      | CTRL + CMD + E         |
+| Prev. Error     | CTRL + K, P      | CTRL + CMD + SHIFT + E |
+| Show All Errors | CTRL + K, A      | CTRL + CMD + A         |
+| Toggle Linter   | CTRL + K, T      | CTRL + CMD + T         |
+
+\*) Other packages might override these key bindings, and they could override those defined by others. Your personal keybindings have the final say over what binding does what, so edit these if something doesn't work as you expect.
+
 ## Share the love!
 Hundreds of hours have been spent writing and documenting SublimeLinter to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you use SublimeLinter and feel it is making your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 

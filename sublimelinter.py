@@ -446,7 +446,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             return
 
         active_view = self.get_active_view()
-        tooltip_content = template.substitute(line=line,
+        tooltip_content = template.substitute(line=line + 1,
                                               message='<br />'.join(errors),
                                               font_size=persist.settings.get('tooltip_fontsize'))
         active_view.show_popup(tooltip_content,

@@ -4,11 +4,9 @@ SublimeLinter
 [![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter3/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
 [![codecov.io](https://img.shields.io/codecov/c/github/SublimeLinter/SublimeLinter3/master.svg)](http://codecov.io/github/SublimeLinter/SublimeLinter3?branch=master)
 
-**To those upgrading from SublimeLinter v1.7:**
+**LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER**
 
-#### LINTERS ARE *NOT* INCLUDED WITH SUBLIMELINTER 3. ####
-
-**Please read the [installation documentation](http://sublimelinter.readthedocs.org/en/latest/installation.html)!**
+Please read the [installation documentation](http://sublimelinter.readthedocs.org/en/latest/installation.html)!
 
 ## About SublimeLinter
 A framework for interactive code linting in the [Sublime Text 3](http://sublimetext.com/3) editor. The Sublime Text 2 version is no longer being supported; you can find it [here](https://github.com/SublimeLinter/SublimeLinter).

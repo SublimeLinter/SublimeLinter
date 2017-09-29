@@ -56,6 +56,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
+    SLinterErrorMessage = None
 
     @classmethod
     def shared_plugin(cls):
@@ -406,7 +407,10 @@ class SublimeLinter(sublime_plugin.EventListener):
                     if persist.settings.get('tooltips'):
                         self.close_tooltip()
 
-                view.set_status('sublimelinter', status)
+                if persist.settings.get('external_status_bar_handler', False):
+                    SublimeLinter.SLinterErrorMessage = status
+                else:
+                    view.set_status('sublimelinter', status)
             else:
                 view.erase_status('sublimelinter')
 

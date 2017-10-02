@@ -22,14 +22,6 @@ Color scheme
 SublimeLinter has to convert color schemes for its use. For more information, see :ref:`Choosing color schemes <choosing-color-schemes>`.
 
 
-Customized syntax definitions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-|sl| supports linting of embedded syntaxes, such as JavaScript and CSS within an HTML file, by specifying a scope to which the linter is limited. Unfortunately the stock syntax definitions that ship with |st| incorrectly classify the scope of embedded languages, which leads to false errors during linting. To solve this problem, at load time |sl| installs fixed versions of the ``HTML`` and ``HTML (Rails)`` syntax packages in the :file:`Packages` directory.
-
-.. note::
-
-   The first time the fixed syntaxes are installed, you may need to restart |st| for them to be applied to source files in those syntaxes.
-
 Assigning linters
 -----------------
 When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views of the same file.

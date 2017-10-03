@@ -38,6 +38,7 @@
         "tooltip_theme_excludes": [],
         "tooltips": false,
         "warning_color": "DDB700",
-        "wrap_find": true
+        "wrap_find": true,
+        "external_status_bar_handler": false
     }
 }

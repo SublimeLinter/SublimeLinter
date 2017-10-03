@@ -956,8 +956,9 @@ def find_python_script(python_path, script):
                 return out
         return which(script)
     else:
-        # On Windows, scripts may be .exe files or .py files in <python directory>/Scripts
-        scripts_path = os.path.join(os.path.dirname(python_path), 'Scripts')
+        python_dir_path = os.path.dirname(python_path)
+        # On plain Windows, scripts may be .exe files or .py files in <python directory>/Scripts
+        scripts_path = os.path.join(python_dir_path, 'Scripts')
         script_path = os.path.join(scripts_path, script + '.exe')
 
         if os.path.exists(script_path):
@@ -967,6 +968,13 @@ def find_python_script(python_path, script):
 
         if os.path.exists(script_path):
             return script_path
+        else:
+            # Under a MinGW64 (MSys2) environment, the scripts are wrapped
+            # in .exe files and placed in the same directory as the 
+            # Python runtime.
+            script_path = os.path.join(python_dir_path, script + '.exe')
+            if os.path.exists(script_path):
+                return script_path
 
         return None
 

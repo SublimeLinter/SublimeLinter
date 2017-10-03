@@ -1496,7 +1496,7 @@ class Linter(metaclass=LinterMeta):
 
                     self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
 
-                self.error(line, col, message, error_type)
+                self.error(line, col, "%s %s" % (error or warning, message), error_type)
 
     def draw(self):
         """Draw the marks from the last lint."""

@@ -90,6 +90,9 @@ class RubyLinter(linter.Linter):
 
         if not ruby:
             ruby = util.which('ruby')
+        
+        if not ruby:
+            ruby = util.which('jruby')
 
         if not rbenv and not ruby:
             persist.printf(

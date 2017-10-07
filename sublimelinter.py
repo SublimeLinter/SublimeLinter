@@ -172,7 +172,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                         window_views[wid] = other_view
 
         for view in window_views.values():
-            self.on_selection_modified_async(view)
+            self.display_errors(view)
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -286,7 +286,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             if persist.settings.get('lint_mode', 'background') in ('background', 'load/save'):
                 self.hit(view)
 
-        self.on_selection_modified_async(view)
+        self.display_errors(view)
 
     def on_open_settings(self, view):
         """
@@ -354,6 +354,15 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         """Called when the selection changes (cursor moves or text selected)."""
+        self.display_errors(view, tooltip=True)
+
+    def display_errors(self, view, tooltip=False):
+        """
+        Display lint errors in the view status.
+
+        If tooltip is set to True, also display lint errors in a tooltip
+        at the caret's position.
+        """
 
         if self.is_scratch(view):
             return
@@ -399,7 +408,8 @@ class SublimeLinter(sublime_plugin.EventListener):
                         status = 'Error: '
 
                     status += '; '.join(line_errors)
-                    if persist.settings.get('tooltips'):
+
+                    if persist.settings.get('tooltips') and tooltip:
                         self.open_tooltip(lineno, line_errors)
                 else:
                     status = '%i error%s' % (count, plural)

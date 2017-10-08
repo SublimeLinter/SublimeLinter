@@ -22,3 +22,4 @@ from .linter import Linter
 from .python_linter import PythonLinter
 from .ruby_linter import RubyLinter
 from .node_linter import NodeLinter
+from .composer_linter import ComposerLinter

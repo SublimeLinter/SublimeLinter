@@ -22,6 +22,12 @@
         "comment_re": "r'\\s*#'"
     },
 
+    "php": {
+        "platform": "[PHP](http://php.net/)",
+        "installer": "[sudo] composer global require {}",
+        "superclass": "ComposerLinter"
+    },
+
     "other": {
         "installer": "<package manager> install {}"
     }

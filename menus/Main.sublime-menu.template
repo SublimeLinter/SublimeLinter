@@ -33,8 +33,9 @@
 								"caption": "Key Bindings",
 								"command": "edit_settings", "args":
 								{
-									"base_file": "${packages}/SublimeLinter/Default ($platform).sublime-keymap",
-									"default": "${packages}/User/Default ($platform).sublime-keymap"								}
+									"base_file": "${packages}/SublimeLinter/keymaps/Default ($platform).sublime-keymap",
+									"default": "${packages}/User/Default ($platform).sublime-keymap"
+								}
 							}
 						]
 					}

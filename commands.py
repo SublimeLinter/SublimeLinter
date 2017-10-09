@@ -32,9 +32,9 @@ from .lint import highlight, linter, persist, util
 
 def error_command(method):
     """
-    A decorator that executes method only if the current view has errors.
+    Execute method only if the current view has errors.
 
-    This decorator is meant to be used only with the run method of
+    This is a decorator and is meant to be used only with the run method of
     sublime_plugin.TextCommand subclasses.
 
     A wrapped version of method is returned.

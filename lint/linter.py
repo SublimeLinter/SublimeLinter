@@ -1729,7 +1729,7 @@ class Linter(metaclass=LinterMeta):
 
     def find_errors(self, output):
         """
-        A generator which matches the linter's regex against the linter output.
+        Match the linter's regex against the linter output with this generator.
 
         If multiline is True, split_match is called for each non-overlapping
         match of self.regex. If False, split_match is called for each line

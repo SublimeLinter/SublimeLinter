@@ -1,0 +1,11 @@
+SublimeLinter 3.10.0
+---------------------
+
+The new ComposerLinter subclass has been created, if you maintain or use a linter that uses Composer to install the dependency. Consider having that linter use ComposerLinter to get added
+benifits!
+
+JRuby <http://jruby.org/> support has been added! Any linter that uses the RubyLinter subclass will have search for jruby if no other ruby executable is found.
+
+You may have also noted SublimeLinter run a little faster lately. That's because in the last update we switched to the new usage of the async eventlisteners. You shouldn't see any negative effects but if you do please reach out to use in our Issue Tracker <https://github.com/SublimeLinter/SublimeLinter3/issues>
+
+Thank you for the continued support of SublimeLinter! We are extremely appreciative of your usage, support, and contributions.

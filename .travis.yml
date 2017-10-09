@@ -17,7 +17,7 @@ install:
 
 before_script:
   - flake8 . --max-line-length=120 --exclude=__init__.py,linter-plugin-template,docs
-  - pydocstyle . --add-ignore=D202
+  - pydocstyle . --add-ignore=D202,D401
 
 script:
   - py.test --cov .

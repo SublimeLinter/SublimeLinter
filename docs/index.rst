@@ -23,14 +23,15 @@ Be Part of the Team
 ===================
 Hundreds of hours have been spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 
-|Donate Paypal|
-|Donate Gratipay|
+Donate via:
 
-.. |Donate PayPal| image:: http://grotewold.me/assets/button-paypal.png
-   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
+`Paypal`_
+`Gratipay`_
+`Bitcoin`_
 
-.. |Donate Gratipay| image:: http://grotewold.me/assets/button-gratipay.png
-   :target: https://gratipay.com/sublimelinter/
+.. _PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
+.. _Gratipay: https://gratipay.com/sublimelinter/
+.. _Bitcoin: https://www.coinbase.com/groteworld/
 
 
 User Documentation

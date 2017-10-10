@@ -55,10 +55,11 @@
                 "caption": "-"
             },
             {
-                "caption": "Open User Settings",
-                "command": "open_file", "args":
-                {
-                    "file": "${packages}/User/SublimeLinter.sublime-settings"
+                "caption": "Open Settings",
+                "command": "edit_settings", "args":
+		        {
+                    "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
+                    "default": "${packages}/User/SublimeLinter.sublime-settings"
                 }
             },
             {

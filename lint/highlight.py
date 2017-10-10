@@ -372,7 +372,7 @@ class Highlight:
         self.newlines = other.newlines
 
     def set_mark_style(self):
-        """Setup the mark style and flags based on settings."""
+        """Configure the mark style and flags based on settings."""
         self.mark_style = persist.settings.get('mark_style', 'outline')
         self.mark_flags = MARK_STYLES[self.mark_style]
 

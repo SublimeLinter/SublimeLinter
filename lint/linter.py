@@ -587,7 +587,8 @@ class Linter(metaclass=LinterMeta):
             # 3) project settings file inside your folder structure
             # 4) project settings file outside your folder structure
 
-            folders = window.project_data()['folders']
+            data = window.project_data() or {}
+            folders = data.get('folders', [])
             for folder in folders:
                 # extract the root folder of the currently watched file
                 if folder['path'] in view.file_name():

@@ -524,15 +524,33 @@ class Linter(metaclass=LinterMeta):
         Replace tokens with values in settings.
 
         Supported tokens, in the order they are expanded:
+        drive
+            sandbox
+                project 1
+                    path to file
+                        file to lint
+                project 2
+                    path to file
+                        file to lint
+                project 3
+                    path to file
+                        file to lint
 
-        ${project}: full path to the project's parent directory, if available.
-        ${directory}: full path to the parent directory of the current view's file.
+        ${project}:
+            full path of the project root directory
+            -> "/drive/sandbox/project 1"
+
+        ${directory}:
+            full path the current view's parent directory
+            -> "/drive/sandbox/project 1/path to file"
+
+        ${project} and ${directory} expansion are dependent on
+        having a window. Paths do not contain trailing directory separators.
+
         ${home}: the user's $HOME directory.
         ${sublime}: sublime text settings directory.
         ${env:x}: the environment variable 'x'.
 
-        ${project} and ${directory} expansion are dependent on
-        having a window. Paths do not contain trailing directory separators.
 
         """
         def recursive_replace_value(expressions, value):
@@ -561,13 +579,22 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
-            if window.project_file_name():
-                project = os.path.dirname(window.project_file_name()).replace('\\', '/')
+            # window.project_data delivers the root folder(s) of the view,
+            # even without any project file! more flexible that way:
+            #
+            # 1) have your folder open with no project settings
+            # 2) have more than one folder opened with no project settings
+            # 3) project settings file inside your folder structure
+            # 4) project settings file outside your folder structure
 
-                expressions.append({
-                    'token': '${project}',
-                    'value': project
-                })
+            folders = window.project_data()['folders']
+            for folder in folders:
+                # extract the root folder of the currently watched file
+                if folder['path'] in view.file_name():
+                    expressions.append({
+                        'token': '${project}',
+                        'value': folder['path']
+                    })
 
             expressions.append({
                 'token': '${directory}',

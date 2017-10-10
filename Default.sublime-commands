@@ -1,67 +1,19 @@
 [
     {
-        "caption": "Preferences: SublimeLinter Settings – Default",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings"
-        }
-    },
-    {
-        "caption": "Preferences: SublimeLinter Settings – User",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/User/SublimeLinter.sublime-settings"
-        }
+        "caption": "Preferences: SublimeLinter Settings",
+        "command": "edit_settings", "args":
+		{
+			"base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
+			"default": "${packages}/User/SublimeLinter.sublime-settings"
+		}
     },
 
     {
-        "caption": "Preferences: SublimeLinter Key Bindings – Default",
-        "command": "open_file", "args":
+        "caption": "Preferences: SublimeLinter Key Bindings",
+        "command": "edit_settings", "args":
         {
-            "file": "${packages}/SublimeLinter/Default (OSX).sublime-keymap",
-            "platform": "OSX"
-        }
-    },
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings – User",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/User/Default (OSX).sublime-keymap",
-            "platform": "OSX"
-        }
-    },
-
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings – Default",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/SublimeLinter/Default (Linux).sublime-keymap",
-            "platform": "Linux"
-        }
-    },
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings – User",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/User/Default (Linux).sublime-keymap",
-            "platform": "Linux"
-        }
-    },
-
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings – Default",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/SublimeLinter/Default (Windows).sublime-keymap",
-            "platform": "Windows"
-        }
-    },
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings – User",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/User/Default (Windows).sublime-keymap",
-            "platform": "Windows"
+            "base_file": "${packages}/SublimeLinter/keymaps/Default ($platform).sublime-keymap",
+            "default": "${packages}/User/Default ($platform).sublime-keymap"
         }
     },
 

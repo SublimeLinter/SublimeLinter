@@ -60,7 +60,7 @@ class LinterMeta(type):
         if bases:
             setattr(cls, 'disabled', False)
 
-            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter'):
+            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
                 return
 
             cls.alt_name = cls.make_alt_name(name)
@@ -1729,7 +1729,7 @@ class Linter(metaclass=LinterMeta):
 
     def find_errors(self, output):
         """
-        A generator which matches the linter's regex against the linter output.
+        Match the linter's regex against the linter output with this generator.
 
         If multiline is True, split_match is called for each non-overlapping
         match of self.regex. If False, split_match is called for each line
@@ -1776,6 +1776,7 @@ class Linter(metaclass=LinterMeta):
 
             return match, line, col, error, warning, message, near
         else:
+            persist.debug('No match for {}'.format(self.regex))
             return match, None, None, None, None, '', None
 
     def run(self, cmd, code):

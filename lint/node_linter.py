@@ -17,7 +17,7 @@ import sublime
 
 from functools import lru_cache
 from os import path, access, X_OK
-from . import linter, persist, util
+from . import json5, linter, persist, util
 
 
 class NodeLinter(linter.Linter):
@@ -77,7 +77,7 @@ class NodeLinter(linter.Linter):
         super(NodeLinter, self).lint(hit_time)
 
     def is_dependency(self):
-        """Check package.json to see if linter is a dependency."""
+        """Check package.json[5] to see if linter is a dependency."""
 
         is_dep = False
 
@@ -129,7 +129,7 @@ class NodeLinter(linter.Linter):
         return False, node_cmd_path
 
     def get_manifest_path(self):
-        """Get the path to the package.json file for the current file."""
+        """Get the path to the package.json[5] file for the current file."""
         curr_file = self.view.file_name()
 
         manifest_path = None
@@ -144,21 +144,25 @@ class NodeLinter(linter.Linter):
 
     def rev_parse_manifest_path(self, cwd):
         """
-        Search parent directories for package.json.
+        Search parent directories for package.json[5].
 
         Starting at the current working directory. Go up one directory
         at a time checking if that directory contains a package.json
-        file. If it does, return that directory.
+        or package.json5 file. If it does, return that directory.
 
         """
 
-        name = 'package.json'
-        manifest_path = path.normpath(path.join(cwd, name))
+        names = ['package.json', 'package.json5']
+        manifest_paths = map(lambda name: path.normpath(path.join(cwd, name)), names)
 
         bin_path = path.join(cwd, 'node_modules/.bin/')
+        final_manifest_path = next(
+            (manifest_path for manifest_path in manifest_paths if path.isfile(manifest_path)),
+            None
+        )
 
-        if path.isfile(manifest_path) and path.isdir(bin_path):
-            return manifest_path
+        if final_manifest_path and path.isdir(bin_path):
+            return final_manifest_path
 
         parent = path.normpath(path.join(cwd, '../'))
 
@@ -171,7 +175,7 @@ class NodeLinter(linter.Linter):
         """
         Find a local binary in node_modules/.bin.
 
-        Given package.json filepath and a local binary to find,
+        Given package.json[5] filepath and a local binary to find,
         look in node_modules/.bin for that binary.
 
         """
@@ -207,13 +211,13 @@ class NodeLinter(linter.Linter):
 
     def get_pkg_bin_cmd(self, cmd):
         """
-        Check is binary path is defined in package.json bin property.
+        Check is binary path is defined in package.json[5] bin property.
 
         Loading a linter to check its own source code is a special case.
         For example, the local eslint binary when linting eslint is
         installed at ./bin/eslint.js and not ./node_modules/.bin/eslint
 
-        This function checks the package.json `bin` property keys to
+        This function checks the package.json[5] `bin` property keys to
         see if the cmd we're looking for is defined for the current
         project.
 
@@ -223,7 +227,7 @@ class NodeLinter(linter.Linter):
         return pkg['bin'][cmd] if 'bin' in pkg and cmd in pkg['bin'] else None
 
     def get_manifest(self):
-        """Load manifest file (package.json)."""
+        """Load manifest file (package.json[5])."""
 
         current_manifest_mtime = path.getmtime(self.manifest_path)
 
@@ -238,7 +242,13 @@ class NodeLinter(linter.Linter):
 
         self.cached_manifest_mtime = current_manifest_mtime
         self.cached_manifest_hash = self.hash_manifest()
-        self.cached_manifest = json.load(codecs.open(self.manifest_path, 'r', 'utf-8'))
+        extension = path.splitext(self.manifest_path)[1]
+        manifest_content = codecs.open(self.manifest_path, 'r', 'utf-8')
+
+        if extension == '.json5':
+            self.cached_manifest = json5.load(manifest_content)
+        else:
+            self.cached_manifest = json.load(manifest_content)
 
     def hash_manifest(self):
         """Calculate the hash of the manifest file."""

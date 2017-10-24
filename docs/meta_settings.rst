@@ -26,7 +26,7 @@ If you want to disable all linters, rather than change this setting manually, yo
 ~~~~~~~
 Because new versions of python are potentially backwards-incompatible with earlier versions, dealing with python-based linters can be tricky:
 
-- The linter itsef may only run on a specific major.minor version of python (or later).
+- The linter itself may only run on a specific major.minor version of python (or later).
 
 - It may be necessary to run it on a version of python compatible with the version in which the code to be linted was written.
 

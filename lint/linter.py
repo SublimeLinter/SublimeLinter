@@ -1735,6 +1735,10 @@ class Linter(metaclass=LinterMeta):
             return version
         else:
             persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            persist.debug('          using cmd: {}, env: {}'.format(
+                cmd,
+                util.create_environment()
+            ))
             return None
 
     @staticmethod

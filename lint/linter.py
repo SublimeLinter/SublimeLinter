@@ -579,6 +579,8 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
+            # if a sublime-project file is in the window we use its location
+            # as the root project directory otherwise simply use the project data.
             # window.project_data delivers the root folder(s) of the view,
             # even without any project file! more flexible that way:
             #
@@ -587,15 +589,24 @@ class Linter(metaclass=LinterMeta):
             # 3) project settings file inside your folder structure
             # 4) project settings file outside your folder structure
 
-            data = window.project_data() or {}
-            folders = data.get('folders', [])
-            for folder in folders:
-                # extract the root folder of the currently watched file
-                if folder['path'] in view.file_name():
-                    expressions.append({
-                        'token': '${project}',
-                        'value': folder['path']
-                    })
+            if window.project_file_name():
+                project = os.path.dirname(window.project_file_name()).replace('\\', '/')
+
+                expressions.append({
+                    'token': '${project}',
+                    'value': project
+                })
+            else:
+                data = window.project_data() or {}
+                folders = data.get('folders', [])
+                for folder in folders:
+                    # extract the root folder of the currently watched file
+                    filename = view.file_name() or 'FILE NOT ON DISK'
+                    if folder['path'] in filename:
+                        expressions.append({
+                            'token': '${project}',
+                            'value': folder['path']
+                        })
 
             expressions.append({
                 'token': '${directory}',

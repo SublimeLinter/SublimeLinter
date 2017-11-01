@@ -282,6 +282,8 @@ class JsonScheme(Scheme):
         original_scheme = self.get_original_theme(self.scheme)
         scheme_text = sublime.load_resource(original_scheme)
 
+        print("type of dict l284 in scheme.py: ", type(scheme_text))
+
         if self.paths["ext"] == ".sublime-color-scheme":
             unfound = self.parse_scheme_json(
                 self.static_nodes, rules=scheme_text.get("rules", {}))
@@ -301,6 +303,7 @@ class JsonScheme(Scheme):
                                        ".sublime-color-scheme"
                                        )
 
+        theme = {"rules": []}
         if os.path.exists(new_scheme_path):
             with open(new_scheme_path, "r") as f:
                 print("new_scheme_path exists")
@@ -374,5 +377,5 @@ def init_scheme(force_xml_scheme=False):
     """Returns either the modern json schme parser or old xml scheme parser. Depending on sublime version."""
     if int(sublime.version()) >= 3149 and not force_xml_scheme:
         return JsonScheme()
-    else:
-        return XmlScheme()
+
+    return XmlScheme()

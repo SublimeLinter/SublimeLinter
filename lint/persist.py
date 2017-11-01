@@ -212,11 +212,8 @@ class Settings:
 
         self.changeset.clear()
 
-        if need_relint:
-            Linter.reload()
+        Linter.reload()
 
-        if self.previous_settings and self.on_update_callback:
-            self.on_update_callback(need_relint)
 
     def save(self, view=None):
         """

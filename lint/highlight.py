@@ -60,13 +60,13 @@ SAVED_REGIONS = sublime.load_settings('sl_regions.sublime-settings')
 SAVED_REGIONS.set("regions", [])
 
 
-def mark_style_names():
-    """Return the keys from MARK_STYLES, sorted and capitalized, with None at the end."""
-    names = list(MARK_STYLES)
-    names.remove('none')
-    names.sort()
-    names.append('none')
-    return [name.capitalize() for name in names]
+# def mark_style_names():
+#     """Return the keys from MARK_STYLES, sorted and capitalized, with None at the end."""
+#     names = list(MARK_STYLES)
+#     names.remove('none')
+#     names.sort()
+#     names.append('none')
+#     return [name.capitalize() for name in names]
 
 
 class HighlightSet:

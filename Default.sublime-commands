@@ -21,10 +21,10 @@
         "caption": "SublimeLinter: Choose Lint Mode",
         "command": "sublimelinter_choose_lint_mode"
     },
-    {
+/*    {
         "caption": "SublimeLinter: Choose Mark Style",
         "command": "sublimelinter_choose_mark_style"
-    },
+    },*/
     {
         "caption": "SublimeLinter: Choose Gutter Theme",
         "command": "sublimelinter_choose_gutter_theme"

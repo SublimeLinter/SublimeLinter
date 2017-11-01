@@ -506,13 +506,13 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
             linter.Linter.clear_all()
 
 
-@choose_setting_command('mark_style', preview=True)
-class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
-    """A command that selects a mark style from a list."""
+# @choose_setting_command('mark_style', preview=True)
+# class SublimelinterChooseMarkStyleCommand(ChooseSettingCommand):
+#     """A command that selects a mark style from a list."""
 
-    def get_settings(self):
-        """Return a list of the mark styles."""
-        return highlight.mark_style_names()
+#     def get_settings(self):
+#         """Return a list of the mark styles."""
+#         return highlight.mark_style_names()
 
 
 @choose_setting_command('gutter_theme', preview=True)

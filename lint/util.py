@@ -282,9 +282,9 @@ def build_submenu(caption):
     if setting == 'lint mode':
         from . import persist
         names = [mode[0].capitalize() for mode in persist.LINT_MODES]
-    elif setting == 'mark style':
-        from . import highlight
-        names = highlight.mark_style_names()
+    # elif setting == 'mark style':
+    #     from . import highlight
+    #     names = highlight.mark_style_names()
 
     commands = []
 
@@ -1265,10 +1265,9 @@ class cd:
 
 # menu command constants
 
-CHOOSERS = (
-    'Lint Mode',
-    'Mark Style'
-)
+CHOOSERS = ['Lint Mode']
+    # ,'Mark Style'
+
 
 CHOOSER_MENU = '''{
     "caption": "$caption",

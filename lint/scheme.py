@@ -167,7 +167,8 @@ class Scheme(metaclass=ABCMeta):
 
     def get_dyn_rules(self):
         """Return sorted list of dicts."""
-        return sorted(self.dynamic_nodes.values(), key=lambda k: k["scope"])
+        s_dict = OrderedDict(sorted(self.dynamic_nodes.items()))
+        return s_dict.values()
 
     def unfound_scopes_dialogue(self, unfound):
         from . import persist

@@ -170,15 +170,24 @@ class Settings:
         """
 
         self.settings = self.get_merged_settings()
+
         self.changeset.extend(self.dict_comparer(self.settings))
 
-        # print("self.changeset: ", self.changeset)
+        print("self.changeset: ", self.changeset)
 
+        # TODO: or force_xml_scheme
         if not self.changeset:
             return
 
+        if "force_xml_scheme" in self.changeset:
+            util.printf("Scheme mode changed regenerating style definitions.")
+
+            from ..sublimelinter import set_scheme
+            set_scheme()
+            scheme.generate()
+
         if "styles" in self.changeset:
-            util.printf("Settings changes related to style definitions.")
+            util.printf("Style definitions changed. Regenerating.")
             scheme.generate()
 
         # Clear the path-related caches if the paths list has changed
@@ -325,9 +334,7 @@ class Settings:
 if 'plugin_is_loaded' not in globals():
     settings = Settings()
 
-    from .scheme import init_scheme
-    print("settings.get(\"force_xml_scheme\") ", settings.get("force_xml_scheme"))
-    scheme = init_scheme(force_xml_scheme=settings.get("force_xml_scheme"))
+    scheme = None
 
     # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = {}

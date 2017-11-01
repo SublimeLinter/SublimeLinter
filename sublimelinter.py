@@ -19,8 +19,13 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
-from .lint import persist, util
+from .lint import persist, util, scheme
 from string import Template
+
+def set_scheme():
+    force_xml_scheme = persist.settings.get("force_xml_scheme")
+    persist.scheme = scheme.init_scheme(force_xml_scheme=force_xml_scheme)
+    persist.scheme.generate(from_reload=False)
 
 
 def plugin_loaded():
@@ -28,7 +33,8 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
-    persist.scheme.generate(from_reload=False)
+
+    set_scheme()
 
     util.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
     util.create_tempdir()

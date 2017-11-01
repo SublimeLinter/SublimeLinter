@@ -24,7 +24,7 @@ class StyleParser:
         from . import persist
 
         # 1 - for default styles
-        styles = self.settings.get("styles")
+        styles = self.settings.get("styles", [])
         self.parse_styles(styles, "default")
 
         # 2 - for linters

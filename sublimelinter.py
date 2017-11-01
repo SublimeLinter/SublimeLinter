@@ -474,14 +474,16 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_pre_save_async(self, view):
         """
+        TODO: deprecated, remove
         Ran before view is saved.
 
         If a settings file is the active view and is saved,
         copy the current settings first so we can compare post-save.
 
         """
-        if view.window().active_view() == view and self.is_settings_file(view):
-            persist.settings.copy()
+        # if view.window().active_view() == view and self.is_settings_file(view):
+        #     persist.settings.copy()
+        pass
 
     def on_post_save_async(self, view):
         """Ran after view is saved."""

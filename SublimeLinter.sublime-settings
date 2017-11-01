@@ -1,6 +1,6 @@
 {
     "debug": false,
-    "delay": 0.25,
+    "delay": 0.3,
     "force_xml_scheme": false,
     "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
     "gutter_theme_excludes": [],

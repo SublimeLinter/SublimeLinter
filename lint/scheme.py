@@ -165,6 +165,10 @@ class Scheme(metaclass=ABCMeta):
             util.printf("Old scheme path detected. Pass.")
             pass
 
+    def get_dyn_rules(self):
+        """Return sorted list of dicts."""
+        return sorted(self.dynamic_nodes.values(), key=lambda k: k["scope"])
+
     def unfound_scopes_dialogue(self, unfound):
         from . import persist
         msg = "The following scopes have not been found in the color scheme:\n{}".format(
@@ -199,7 +203,7 @@ class XmlScheme(Scheme):
         scheme_text = sublime.load_resource(self.paths["scheme_orig"])
         plist = ElementTree.XML(scheme_text)
         styles = plist.find('./dict/array')
-        styles.extend(self.dynamic_nodes.values())
+        styles.extend(self.get_dyn_rules())
 
         from . import persist
 
@@ -320,9 +324,7 @@ class JsonScheme(Scheme):
                 cleaned_rules = self.remove_dyn_rules(old_rules)
                 theme["rules"].extend(cleaned_rules)
 
-        dyn_rules = self.dynamic_nodes.values()
-        dyn_rules = sorted(dyn_rules, key=lambda k: k["scope"])
-        theme["rules"].extend(dyn_rules)
+        theme["rules"].extend(self.get_dyn_rules())
 
         with open(new_scheme_path, "w") as f:
             content = json.dumps(theme, indent=4, sort_keys=True)

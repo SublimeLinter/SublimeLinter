@@ -23,6 +23,9 @@ class StyleParser:
         print("StyleParser.create_styles called")
         from . import persist
 
+        self.scheme.static_nodes.clear()
+        self.scheme.dynamic_nodes.clear()
+
         # 1 - for default styles
         styles = self.settings.get("styles", [])
         self.parse_styles(styles, "default")

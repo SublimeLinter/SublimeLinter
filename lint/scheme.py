@@ -7,6 +7,7 @@ from copy import deepcopy
 import sublime
 import re
 from . import util
+from collections import OrderedDict
 
 
 MARK_COLOR_RE = (
@@ -319,7 +320,9 @@ class JsonScheme(Scheme):
                 cleaned_rules = self.remove_dyn_rules(old_rules)
                 theme["rules"].extend(cleaned_rules)
 
-        theme["rules"].extend(self.dynamic_nodes.values())
+        dyn_rules = self.dynamic_nodes.values()
+        dyn_rules = sorted(dyn_rules, key=lambda k: k["scope"])
+        theme["rules"].extend(dyn_rules)
 
         with open(new_scheme_path, "w") as f:
             content = json.dumps(theme, indent=4, sort_keys=True)
@@ -366,6 +369,7 @@ class JsonScheme(Scheme):
                 if not re.search(DYN_PAT, r["scope"]):
                     result_dict.append(r)
         return result_dict
+
 
 
 def init_scheme(force_xml_scheme=False):

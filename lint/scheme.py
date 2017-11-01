@@ -285,11 +285,13 @@ class JsonScheme(Scheme):
         original_scheme = self.get_original_theme(self.scheme)
         scheme_text = sublime.load_resource(original_scheme)
 
-        print("type of dict l284 in scheme.py: ", type(scheme_text))
+        # print("type of dict l284 in scheme.py: ", type(scheme_text))
+        # print("dec scheme: ", type(sublime.decode_value(scheme_text)))
 
         if self.paths["ext"] == ".sublime-color-scheme":
+            scheme_dict = sublime.decode_value(scheme_text)
             unfound = self.parse_scheme_json(
-                self.static_nodes, rules=scheme_text.get("rules", {}))
+                self.static_nodes, rules=scheme_dict.get("rules", {}))
         elif self.paths["ext"].endswith("tmTheme"):
 
             unfound = self.parse_scheme_xml(

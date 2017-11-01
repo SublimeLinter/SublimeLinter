@@ -35,7 +35,6 @@ class StyleParser:
             self.parse_styles(styles, linter_name)
 
 
-
     def parse_styles(self, custom_styles, linter_name):
         """ """
         from . import util, persist  # TODO: clean imports up
@@ -106,5 +105,4 @@ class StyleParser:
 class CorruptStyleDefintion(Exception):
     """Raise this when node in custom styling is missing necessary definitions or contains unknown keywords
     """
-
     pass

@@ -20,7 +20,9 @@ import sys
 
 from . import util
 
+
 PLUGIN_NAME = 'SublimeLinter'
+SETTINGS_FILE = PLUGIN_NAME + ".sublime-settings"
 
 # Get the name of the plugin directory, which is the parent of this file's directory
 PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
@@ -37,16 +39,58 @@ SYNTAX_RE = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
 DEFAULT_GUTTER_THEME_PATH = 'Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme'
 
 
+DYN_PAT = re.compile("sublimelinter\.\w+?\.style_\d{3,}")
+AUTO_SCOPE = re.compile("region\.[a-z]+?ish")
+
+class DictDelta:
+    '''Returns a list of ḱeys, which are added, deleted or whose values have been altered compared to the dict passed in the previous call.'''
+
+    def __init__(self):
+        self.old_dict = None
+
+    def __call__(self, new_dict):
+        """Returns list of changed keys."""
+
+        # explicitly check for None, prevent all keys being returned on 1st run
+        if self.old_dict is None:
+            self.old_dict = new_dict
+            return []
+
+        changeset = self.diff_keys(new_dict, self.old_dict)
+        self.old_dict = new_dict
+
+        return  changeset
+
+    def diff_keys(self, d1, d2):
+        """Diff dicts via set operations and subsequent traversing value comparison.
+        """
+        changed_keys = []
+        d1_keys = set(d1.keys())
+        d2_keys = set(d2.keys())
+
+        sym_diff = list(d1_keys ^ d2_keys)
+        changed_keys.extend(sym_diff)
+
+        intersec = d1_keys & d2_keys
+        for k in intersec:
+            if type(d1[k]) is dict:
+                changed_keys.extend(self.diff_keys(d1[k], d2[k]))
+            elif d1[k] != d2[k]:
+                changed_keys.append(k)
+
+        return changed_keys
+
+
 class Settings:
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):
         """Initialize a new instance."""
         self.settings = {}
-        self.previous_settings = {}
-        self.changeset = set()
+        self.changeset = []
         self.plugin_settings = None
         self.on_update_callback = None
+        self.dict_comparer = DictDelta()
 
     def load(self, force=False):
         """Load the plugin settings."""
@@ -74,7 +118,6 @@ class Settings:
         they should pass changed=True.
 
         """
-        self.copy()
         self.settings[setting] = value
 
         if changed:
@@ -88,12 +131,7 @@ class Settings:
         instead of doing settings.pop('foo').
 
         """
-        self.copy()
         return self.settings.pop(setting, default)
-
-    def copy(self):
-        """Save a copy of the plugin settings."""
-        self.previous_settings = deepcopy(self.settings)
 
     def observe_prefs(self, observer=None):
         """Observe changes to the ST prefs."""
@@ -103,10 +141,20 @@ class Settings:
 
     def observe(self, observer=None):
         """Observer changes to the plugin settings."""
-        self.plugin_settings = sublime.load_settings('SublimeLinter.sublime-settings')
+        self.plugin_settings = sublime.load_settings(SETTINGS_FILE)
         self.plugin_settings.clear_on_change('sublimelinter-persist-settings')
         self.plugin_settings.add_on_change('sublimelinter-persist-settings',
                                            observer or self.on_update)
+
+    def get_merged_settings(self):
+        """Returns dict of default and user settings merged."""
+        res = sublime.find_resources(SETTINGS_FILE)
+        merged_dict = {}
+        for r in res:
+            s = sublime.load_resource(r)
+            d = sublime.decode_value(s)
+            merged_dict.update(d)
+        return merged_dict
 
     def on_update_call(self, callback):
         """Set a callback to call when user settings are updated."""
@@ -121,38 +169,26 @@ class Settings:
 
         """
 
-        settings = util.merge_user_settings(self.plugin_settings)
-        self.settings.clear()
-        self.settings.update(settings)
+        self.settings = self.get_merged_settings()
+        self.changeset.extend(self.dict_comparer(self.settings))
 
-        if (
-            '@disable' in self.changeset or
-            self.previous_settings.get('@disable', False) != self.settings.get('@disable', False)
-        ):
-            need_relint = True
-            self.changeset.discard('@disable')
-        else:
-            need_relint = False
+        # print("self.changeset: ", self.changeset)
+
+        if not self.changeset:
+            return
+
+        if "styles" in self.changeset:
+            util.printf("Settings changes related to style definitions.")
+            scheme.generate()
 
         # Clear the path-related caches if the paths list has changed
-        if (
-            'paths' in self.changeset or
-            (self.previous_settings and
-             self.previous_settings.get('paths') != self.settings.get('paths'))
-        ):
-            need_relint = True
+        if "paths" in self.changeset:
             util.clear_path_caches()
-            self.changeset.discard('paths')
 
         # Add python paths if they changed
-        if (
-            'python_paths' in self.changeset or
-            (self.previous_settings and
-             self.previous_settings.get('python_paths') != self.settings.get('python_paths'))
-        ):
-            need_relint = True
-            self.changeset.discard('python_paths')
-            python_paths = self.settings.get('python_paths', {}).get(sublime.platform(), [])
+        if "python_paths" in self.changeset:
+            python_paths = self.settings.get('python_paths', {}).get(
+                sublime.platform(), [])
 
             for path in python_paths:
                 if path not in sys.path:
@@ -161,53 +197,18 @@ class Settings:
         # If the syntax map changed, reassign linters to all views
         from .linter import Linter
 
-        if (
-            'syntax_map' in self.changeset or
-            (self.previous_settings and
-             self.previous_settings.get('syntax_map') != self.settings.get('syntax_map'))
-        ):
-            need_relint = True
-            self.changeset.discard('syntax_map')
+        if "syntax_map" in self.changeset:
             Linter.clear_all()
             util.apply_to_all_views(lambda view: Linter.assign(view, reset=True))
 
-        if (
-            'no_column_highlights_line' in self.changeset or
-            self.previous_settings.get('no_column_highlights_line') != self.settings.get('no_column_highlights_line')
-        ):
-            need_relint = True
-            self.changeset.discard('no_column_highlights_line')
-
-        if (
-            'gutter_theme' in self.changeset or
-            self.previous_settings.get('gutter_theme') != self.settings.get('gutter_theme')
-        ):
-            self.changeset.discard('gutter_theme')
+        if "gutter_theme" in self.changeset:
             self.update_gutter_marks()
 
-        error_color = self.settings.get('error_color', '')
-        warning_color = self.settings.get('warning_color', '')
+        Linter.reload()  # always reload
 
-        if (
-            ('error_color' in self.changeset or 'warning_color' in self.changeset) or
-            (self.previous_settings and error_color and warning_color and
-             (self.previous_settings.get('error_color') != error_color or
-              self.previous_settings.get('warning_color') != warning_color))
-        ):
-            self.changeset.discard('error_color')
-            self.changeset.discard('warning_color')
-
-            if (
-                sublime.ok_cancel_dialog(
-                    'You changed the error and/or warning color. '
-                    'Would you like to update the user color schemes '
-                    'with the new colors?')
-            ):
-                util.change_mark_colors(error_color, warning_color)
-
-        # If any other settings changed, relint
-        if (self.previous_settings or len(self.changeset) > 0):
-            need_relint = True
+        # TODO: what does this do?
+        # if self.previous_settings and self.on_update_callback:
+        #     self.on_update_callback(need_relint)
 
         self.changeset.clear()
 
@@ -246,10 +247,11 @@ class Settings:
         settings['linters'] = linters
 
         filename = '{}.sublime-settings'.format(PLUGIN_NAME)
+        # TODO: centralise paths as constants
         user_prefs_path = os.path.join(sublime.packages_path(), 'User', filename)
         settings_views = []
 
-        if view is None:
+        if not view:
             # See if any open views are the user prefs
             for window in sublime.windows():
                 for view in window.views():
@@ -261,7 +263,7 @@ class Settings:
         if settings_views:
             def replace(edit):
                 if not view.is_dirty():
-                    j = json.dumps({'user': settings}, indent=4, sort_keys=True)
+                    j = json.dumps(settings, indent=4, sort_keys=True)
                     j = j.replace(' \n', '\n')
                     view.replace(edit, sublime.Region(0, view.size()), j)
 
@@ -276,7 +278,7 @@ class Settings:
 
     def on_prefs_update(self):
         """Perform maintenance when the ST prefs are updated."""
-        util.generate_color_scheme()
+        scheme.generate()
 
     def update_gutter_marks(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
@@ -297,9 +299,9 @@ class Settings:
             except IOError:
                 pass
 
-        if info is not None:
+        if info:
             if theme != 'Default' and os.path.basename(path) == 'Default.gutter-theme':
-                printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+                util.printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
             path = os.path.dirname(path)
 
@@ -326,6 +328,10 @@ class Settings:
 if 'plugin_is_loaded' not in globals():
     settings = Settings()
 
+    from .scheme import init_scheme
+    print("settings.get(\"force_xml_scheme\") ", settings.get("force_xml_scheme"))
+    scheme = init_scheme(force_xml_scheme=settings.get("force_xml_scheme"))
+
     # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = {}
 
@@ -350,13 +356,17 @@ if 'plugin_is_loaded' not in globals():
     edits = defaultdict(list)
 
     # Info about the gutter mark icons
-    gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
+    gutter_marks = {'warning': 'Default', 'error': 'Default'}
 
     # Whether sys.path has been imported from the system.
     sys_path_imported = False
 
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
+
+    linter_styles = {}
+
+    has_gutter_theme = settings.get('gutter_theme') != 'None'
 
 
 def get_syntax(view):
@@ -410,17 +420,7 @@ def debug_mode():
 def debug(*args):
     """Print args to the console if the "debug" setting is True."""
     if settings.get('debug'):
-        printf(*args)
-
-
-def printf(*args):
-    """Print args to the console, prefixed by the plugin name."""
-    print(PLUGIN_NAME + ': ', end='')
-
-    for arg in args:
-        print(arg, end=' ')
-
-    print()
+        util.printf(*args)
 
 
 def import_sys_path():
@@ -435,7 +435,7 @@ def import_sys_path():
 
 
 def register_linter(linter_class, name, attrs):
-    """Add a linter class to our mapping of class names <--> linter classes."""
+    """Add a linter class to our mapping of class names <-> linter classes."""
     if name:
         name = name.lower()
         linter_classes[name] = linter_class
@@ -460,6 +460,7 @@ def register_linter(linter_class, name, attrs):
             for view in views.values():
                 linter.Linter.assign(view, linter_name=linter_name)
 
-            printf('{} linter reloaded'.format(name))
+            util.printf('{} linter reloaded'.format(name))
+
         else:
-            printf('{} linter loaded'.format(name))
+            util.printf('{} linter loaded'.format(name))

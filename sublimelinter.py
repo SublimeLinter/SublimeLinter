@@ -28,7 +28,9 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
-    persist.debug('debug mode: on')
+    persist.scheme.generate(from_reload=False)
+
+    util.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
     util.create_tempdir()
 
     for linter in persist.linter_classes.values():
@@ -37,9 +39,6 @@ def plugin_loaded():
     plugin = SublimeLinter.shared_plugin()
     queue.start(plugin.lint)
 
-    util.generate_menus()
-    util.generate_color_scheme(from_reload=False)
-
     persist.settings.on_update_call(SublimeLinter.on_settings_updated)
 
     # This ensures we lint the active view on a fresh install
@@ -47,6 +46,9 @@ def plugin_loaded():
 
     if window:
         plugin.on_activated_async(window.active_view())
+
+
+    util.generate_menus()
 
 
 class SublimeLinter(sublime_plugin.EventListener):

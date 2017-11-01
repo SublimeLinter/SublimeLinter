@@ -888,7 +888,7 @@ class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
             try:
                 info = json.load(f)
             except Exception as err:
-                persist.printf(err)
+                util.printf(err)
                 sublime.error_message('A configuration file could not be opened, the linter cannot be created.')
                 return False
 

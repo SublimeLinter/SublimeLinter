@@ -60,7 +60,7 @@ This method should perform linting and return a string with one more lines per e
         self.build_options(options, type_map, transform=lambda s: s.replace('-', '_'))
 
         if persist.settings.get('debug'):
-            persist.printf('{} options: {}'.format(self.name, options))
+            util.printf('{} options: {}'.format(self.name, options))
 
         checker = self.module.get_style_guide(**options)
 

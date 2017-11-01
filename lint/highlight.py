@@ -47,14 +47,17 @@ UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_
 MARK_STYLES = {
     'outline': sublime.DRAW_NO_FILL,
     'fill': sublime.DRAW_NO_OUTLINE,
-    'solid underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
-    'squiggly underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
+    'solid_underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
+    'squiggly_underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
+    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'none': sublime.HIDDEN
 }
 
 WORD_RE = re.compile(r'^([-\w]+)')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
+
+SAVED_REGIONS = sublime.load_settings('sl_regions.sublime-settings')
+SAVED_REGIONS.set("regions", [])
 
 
 def mark_style_names():
@@ -100,9 +103,16 @@ class HighlightSet:
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        for error_type in (WARNING, ERROR):
-            view.erase_regions(MARK_KEY_FORMAT.format(error_type))
-            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+        # for error_type in (WARNING, ERROR):
+        # view.erase_regions(MARK_KEY_FORMAT.format(error_type))
+        # view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+        # print("SAVED_REGIONS: ", SAVED_REGIONS)
+        all_regions = SAVED_REGIONS.get('regions', [])
+        # print("all_regions: ", all_regions)
+        if not all_regions:
+            return  # workaround as get does not seem to return []
+        for region in all_regions:
+            view.erase_regions(region)
 
     def redraw(self, view):
         """Redraw all marks in the given view."""
@@ -134,17 +144,18 @@ class HighlightSet:
 
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
+    styles = {}  # TODO: add comment here
 
     def __init__(self, code=''):
         """Initialize a new instance."""
         self.code = code
-        self.marks = {WARNING: [], ERROR: []}
+        self.marks = {WARNING: {}, ERROR: {}}
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines = {}
+        self.lines = {WARNING: {}, ERROR: {}}
 
         # These are used when highlighting embedded code, for example JavaScript
         # or CSS within an HTML file. The embedded code is linted as if it begins
@@ -197,13 +208,18 @@ class Highlight:
             char_offset = 0
 
         line += self.line_offset
-        start = self.newlines[line] + char_offset
+        try:
+            start = self.newlines[line] + char_offset
+        except IndexError as e:
+            msg = "\n\nline: {} \nself.newlines in highlight full_line: {}\n\n".format(line, self.newlines)
+            e.strerror = msg
+            raise e
 
         end = self.newlines[min(line + 1, len(self.newlines) - 1)]
 
         return start, end
 
-    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None):
+    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text.
 
@@ -251,6 +267,12 @@ class Highlight:
         other_type = ERROR if error_type == WARNING else WARNING
         i_offset = 0
 
+        if not style:
+            style = error_type
+
+        if style not in self.marks[error_type]:  # TODO: None handling
+            self.marks[error_type][style] = []
+
         for i, mark in enumerate(self.marks[other_type].copy()):
             if mark.a == region.a and mark.b == region.b:
                 if error_type == WARNING:
@@ -259,7 +281,7 @@ class Highlight:
                     self.marks[other_type].pop(i - i_offset)
                     i_offset += 1
 
-        self.marks[error_type].append(region)
+        self.marks[error_type][style].append(region)
 
     def regex(self, line, regex, error_type=ERROR,
               line_match=None, word_match=None, word_re=None):
@@ -302,9 +324,10 @@ class Highlight:
         ]
 
         for start, end in results:
-            self.range(line, start + offset, end - start, error_type=error_type)
+            self.range(line, start + offset, end -
+                       start, error_type=error_type)
 
-    def near(self, line, near, error_type=ERROR, word_re=None):
+    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text near a given word.
 
@@ -343,7 +366,8 @@ class Highlight:
             start = -1
 
         if start != -1:
-            self.range(line, start, len(near), error_type=error_type, word_re=word_re)
+            self.range(line, start, len(near), error_type=error_type,
+                       word_re=word_re, style=style)
             return start
         else:
             return 0
@@ -360,14 +384,25 @@ class Highlight:
         """
 
         for error_type in (WARNING, ERROR):
-            self.marks[error_type].extend(other.marks[error_type])
+            self.marks[error_type].update(other.marks[error_type])
 
-        # Errors override warnings on the same line
-        for line, error_type in other.lines.items():
-            current_type = self.lines.get(line)
+            for line, style in other.lines[error_type].items():
 
-            if current_type is None or current_type == WARNING:
-                self.lines[line] = error_type
+                # Errors override warnings on the same line
+                if error_type != ERROR and self.lines[ERROR].get(line):
+                    continue
+
+                # Styles with higher priority override those of lower one
+                # on the sameline
+                existing = self.lines[error_type].get(line)
+
+                if existing:
+                    prio_ex = self.styles[existing].get("gutter_priority", 0)
+                    prio_new = self.styles[style].get("gutter_priority", 0)
+                    if prio_ex > prio_new:
+                        continue
+
+                self.lines[error_type][line] = style
 
         self.newlines = other.newlines
 
@@ -388,46 +423,89 @@ class Highlight:
 
         """
         self.set_mark_style()
+        drawn_regions = []  # to collect drawn regions
 
-        gutter_regions = {WARNING: [], ERROR: []}
+        gutter_regions = {WARNING: {}, ERROR: {}}
         draw_gutter_marks = persist.settings.get('gutter_theme') != 'None'
 
         if draw_gutter_marks:
             # We use separate regions for the gutter marks so we can use
             # a scope that will not colorize the gutter icon, and to ensure
             # that errors will override warnings.
-            for line, error_type in self.lines.items():
-                region = sublime.Region(self.newlines[line], self.newlines[line])
-                gutter_regions[error_type].append(region)
+            for error_type in (WARNING, ERROR):
+                for line, style in self.lines[error_type].items():
+                    pos = self.newlines[line]
+                    region = sublime.Region(pos, pos)
+                    # gutter_regions[error_type][line] = region
+                    gutter_regions[error_type].setdefault(
+                        style, []).append(region)
 
         for error_type in (WARNING, ERROR):
-            if self.marks[error_type]:
-                view.add_regions(
-                    MARK_KEY_FORMAT.format(error_type),
-                    self.marks[error_type],
-                    MARK_SCOPE_FORMAT.format(error_type),
-                    flags=self.mark_flags
-                )
+            if not self.marks[error_type]:
+             # TODO: check whether this makes sense
+                continue
 
-            if draw_gutter_marks and gutter_regions[error_type]:
-                if persist.gutter_marks['colorize']:
-                    scope = MARK_SCOPE_FORMAT.format(error_type)
+            for style, regions in self.marks[error_type].items():
+
+                # TODO: implement default handling
+                # print("style: ", style)
+                # print("self.marks: ", self.marks)
+                # print("self.styles: ", self.styles)
+
+
+
+                styl_def = self.styles.get(style)
+
+                # print("style_def: ", self.styles.get(style))
+                # print("-"*10)
+                if not styl_def:
+                    continue
+
+                mark_style = styl_def.get("mark_style", "squiggly underline")
+
+                if mark_style == "text":
+                    view.add_regions(style, regions, style)
                 else:
-                    scope = 'sublimelinter.gutter-mark'
+                    flags = MARK_STYLES[mark_style]
+                    view.add_regions(style, regions, style, flags=flags)
 
+                drawn_regions.append(style)
+
+            if not draw_gutter_marks:
+                continue
+
+            for line, style in self.lines[error_type].items():
+                this_style = self.styles[style]
+
+                icon = this_style.get("icon", "dot")
+
+                scope = style
+
+                gutter_style = "gutter_" + style
+
+                # GUTTER_MARK_KEY_FORMAT.format(error_type)
                 view.add_regions(
-                    GUTTER_MARK_KEY_FORMAT.format(error_type),
-                    gutter_regions[error_type],
+                    gutter_style,
+                    gutter_regions[error_type][style],
                     scope,
-                    icon=persist.gutter_marks[error_type]
+                    icon=icon
                 )
+                drawn_regions.append(gutter_style)
+
+            # persisting region keys for later clearance
+            SAVED_REGIONS.set("regions", drawn_regions)
 
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        for error_type in (WARNING, ERROR):
-            view.erase_regions(MARK_KEY_FORMAT.format(error_type))
-            view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+        # # TODO: clear all regions
+        # for error_type in (WARNING, ERROR):
+        #     view.erase_regions(MARK_KEY_FORMAT.format(error_type))
+        #     view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
+        regions = SAVED_REGIONS.get("regions", [])
+        if regions:
+            for r in regions:
+                view.erase_regions(r)
 
     def reset(self):
         """
@@ -437,19 +515,23 @@ class Highlight:
         The next time this object is used to draw, the marks will be cleared.
 
         """
-        for error_type in (WARNING, ERROR):
-            del self.marks[error_type][:]
-            self.lines.clear()
+        # TODO: centralize dic creation via deepcopy
+        # TODO: check if it works
+        self.marks = {WARNING: {}, ERROR: {}}
+        self.lines = {WARNING: {}, ERROR: {}}
 
-    def line(self, line, error_type):
+    def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
         line += self.line_offset
 
         # Errors override warnings, if it's already an error leave it
-        if self.lines.get(line) == ERROR:
+        if self.lines.get(ERROR).get(line):
             return
 
-        self.lines[line] = error_type
+        # TODO: implement gutter priority here
+
+        if style:
+            self.lines[error_type][line] = style
 
     def move_to(self, line, char_offset):
         """

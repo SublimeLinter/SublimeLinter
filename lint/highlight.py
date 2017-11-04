@@ -211,8 +211,8 @@ class Highlight:
         try:
             start = self.newlines[line] + char_offset
         except IndexError as e:
-            msg = "\n\nline: {} \nself.newlines in highlight full_line: {}\n\n".format(line, self.newlines)
-            e.strerror = msg
+            print("line: ", line)
+            print("self.newlines: ", self.newlines)
             raise e
 
         end = self.newlines[min(line + 1, len(self.newlines) - 1)]
@@ -265,7 +265,7 @@ class Highlight:
         pos += start
         region = sublime.Region(pos, pos + length)
         other_type = ERROR if error_type == WARNING else WARNING
-        i_offset = 0
+
 
         if not style:
             style = error_type
@@ -273,13 +273,17 @@ class Highlight:
         if style not in self.marks[error_type]:  # TODO: None handling
             self.marks[error_type][style] = []
 
-        for i, mark in enumerate(self.marks[other_type].copy()):
-            if mark.a == region.a and mark.b == region.b:
-                if error_type == WARNING:
-                    return
-                else:
-                    self.marks[other_type].pop(i - i_offset)
-                    i_offset += 1
+        for scope, marks in self.marks[other_type].items():
+            i_offset = 0
+            for i, mark in enumerate(marks):
+                if mark.a == region.a and mark.b == region.b:
+                    if error_type == WARNING:
+                        return
+                    else:
+                        self.marks[other_type][scope].pop(i - i_offset)
+                        # marks.pop(i - i_offset)
+
+                        i_offset += 1
 
         self.marks[error_type][style].append(region)
 
@@ -382,7 +386,6 @@ class Highlight:
         object takes the newlines array from other.
 
         """
-
         for error_type in (WARNING, ERROR):
             self.marks[error_type].update(other.marks[error_type])
 
@@ -395,12 +398,22 @@ class Highlight:
                 # Styles with higher priority override those of lower one
                 # on the sameline
                 existing = self.lines[error_type].get(line)
-
                 if existing:
-                    prio_ex = self.styles[existing].get("gutter_priority", 0)
-                    prio_new = self.styles[style].get("gutter_priority", 0)
-                    if prio_ex > prio_new:
-                        continue
+                    scope_ex = self.styles[existing].get("priority", 0)
+                    scope_new = self.styles[style].get("priority", 0)
+
+                    print(line)
+                    print(style)
+                    print(existing)
+                    print(self.styles)
+
+                    print(scope_ex)
+                    print(scope_new)
+                    print("___ "*4)
+
+
+                    # if prio_ex > prio_new:
+                    #     continue
 
                 self.lines[error_type][line] = style
 
@@ -426,9 +439,8 @@ class Highlight:
         drawn_regions = []  # to collect drawn regions
 
         gutter_regions = {WARNING: {}, ERROR: {}}
-        draw_gutter_marks = persist.settings.get('gutter_theme') != 'None'
 
-        if draw_gutter_marks:
+        if persist.has_gutter_theme:
             # We use separate regions for the gutter marks so we can use
             # a scope that will not colorize the gutter icon, and to ensure
             # that errors will override warnings.
@@ -437,12 +449,12 @@ class Highlight:
                     pos = self.newlines[line]
                     region = sublime.Region(pos, pos)
                     # gutter_regions[error_type][line] = region
-                    gutter_regions[error_type].setdefault(
-                        style, []).append(region)
+                    gutter_regions[error_type].setdefault(style, []).append(region)
 
         for error_type in (WARNING, ERROR):
+            # print("self.marks: ", self.marks)
             if not self.marks[error_type]:
-             # TODO: check whether this makes sense
+                # TODO: check whether this makes sense
                 continue
 
             for style, regions in self.marks[error_type].items():
@@ -451,8 +463,7 @@ class Highlight:
                 # print("style: ", style)
                 # print("self.marks: ", self.marks)
                 # print("self.styles: ", self.styles)
-
-
+                # print("-"*10)
 
                 styl_def = self.styles.get(style)
 
@@ -461,25 +472,29 @@ class Highlight:
                 if not styl_def:
                     continue
 
+                scope_name = styl_def["scope"]
                 mark_style = styl_def.get("mark_style", "squiggly underline")
 
-                if mark_style == "text":
-                    view.add_regions(style, regions, style)
-                else:
-                    flags = MARK_STYLES[mark_style]
-                    view.add_regions(style, regions, style, flags=flags)
+                flags = MARK_STYLES[mark_style]
+                view.add_regions(style, regions, scope=scope_name, flags=flags)
 
                 drawn_regions.append(style)
 
-            if not draw_gutter_marks:
+            if not persist.has_gutter_theme:
                 continue
 
             for line, style in self.lines[error_type].items():
                 this_style = self.styles[style]
+                # print("this_style: ", this_style)
+                # print("style: ", style)
+                # print("#"*8)
 
-                icon = this_style.get("icon", "dot")
+                icon = this_style.get("icon", "dot")  # TOOO: implement def handling
 
-                scope = style
+                if persist.gutter_marks['colorize']:
+                    scope = this_style["scope"]
+                else:
+                    scope = " "  # set scope to non-existent one
 
                 gutter_style = "gutter_" + style
 
@@ -487,7 +502,7 @@ class Highlight:
                 view.add_regions(
                     gutter_style,
                     gutter_regions[error_type][style],
-                    scope,
+                    scope=scope,
                     icon=icon
                 )
                 drawn_regions.append(gutter_style)

@@ -79,16 +79,16 @@ class Daemon:
 
                 elif isinstance(item, str):
                     if item == 'reload':
-                        util.printf('daemon detected a reload')
+                        persist.printf('daemon detected a reload')
                         self.last_runs.clear()
                         last_runs.clear()
                 else:
-                    util.printf('unknown message sent to daemon:', item)
+                    persist.printf('unknown message sent to daemon:', item)
             except Exception:
-                util.printf('error in SublimeLinter daemon:')
-                util.printf('-' * 20)
-                util.printf(traceback.format_exc())
-                util.printf('-' * 20)
+                persist.printf('error in SublimeLinter daemon:')
+                persist.printf('-' * 20)
+                persist.printf(traceback.format_exc())
+                persist.printf('-' * 20)
 
     def hit(self, view):
         """Add a lint request to the queue, return the time at which the request was enqueued."""

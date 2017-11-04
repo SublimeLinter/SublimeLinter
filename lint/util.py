@@ -27,6 +27,8 @@ import subprocess
 import sys
 import tempfile
 
+from .const import PLUGIN_NAME
+
 if sublime.platform() != 'windows':
     import pwd
 
@@ -46,7 +48,6 @@ INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
 
-
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 UNSAVED_FILENAME = 'untitled'
@@ -54,24 +55,13 @@ UNSAVED_FILENAME = 'untitled'
 # Temp directory used to store temp files for linting
 tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
 
-STYLE_KEYS = ("scope", "foreground", "background", "font_style")
-TARGET_KEYS = ("types", "codes")
 
-PLUGIN_NAME = 'SublimeLinter'  # TODO: duplicate existsin persist.py remove
+
 
 def any_key_in(target, source):
     """"""
     return any(key in target for key in source)
 
-
-def printf(*args):
-    """Print args to the console, prefixed by the plugin name."""
-    print(PLUGIN_NAME + ': ', end='')
-
-    for arg in args:
-        print(arg, end=' ')
-
-    print()
 
 # settings utils
 
@@ -173,7 +163,7 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
+            persist.printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -362,7 +352,7 @@ def run_shell_cmd(cmd):
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''
-        printf('shell timed out after {} seconds, executing {}'.format(timeout, cmd))
+        persist.printf('shell timed out after {} seconds, executing {}'.format(timeout, cmd))
 
     return out
 
@@ -379,7 +369,7 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        printf('Could not parse shell PATH output:\n' + (out if out else '<empty>'))
+        persist.printf('Could not parse shell PATH output:\n' + (out if out else '<empty>'))
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
             'It is unlikely that any linters will work. '
@@ -413,7 +403,7 @@ def get_shell_path(env):
             )
         else:
             from . import persist
-            printf('Using an unsupported shell:', shell)
+            persist.printf('Using an unsupported shell:', shell)
 
     # guess PATH if we haven't returned yet
     split = env['PATH'].split(':')
@@ -522,7 +512,7 @@ def create_environment():
             shell = 'from system'
 
         if env['PATH']:
-            printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
+            persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
@@ -599,7 +589,7 @@ def get_python_version(path):
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
         from . import persist
-        printf(
+        persist.printf(
             'ERROR: an error occurred retrieving the version for {}: {}'
             .format(path, str(ex)))
 
@@ -844,7 +834,7 @@ def get_python_paths():
         paths = out.splitlines()
 
         if persist.debug_mode():
-            printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
+            persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
     else:
         persist.debug('no python 3 available to augment sys.path')
         paths = []
@@ -1142,9 +1132,9 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, ex
         )
     except Exception as err:
         from . import persist
-        printf('ERROR: could not launch', repr(cmd))
-        printf('reason:', str(err))
-        printf('PATH:', env.get('PATH', ''))
+        persist.printf('ERROR: could not launch', repr(cmd))
+        persist.printf('reason:', str(err))
+        persist.printf('PATH:', env.get('PATH', ''))
 
 
 # view utils

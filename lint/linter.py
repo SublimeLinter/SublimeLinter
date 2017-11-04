@@ -28,6 +28,7 @@ import sublime
 from xml.sax.saxutils import unescape
 
 from . import highlight, persist, util
+from .const import PLUGIN_NAME
 
 #
 # Private constants
@@ -75,7 +76,7 @@ class LinterMeta(type):
                 if isinstance(syntax, str) and syntax[0] == '^':
                     setattr(cls, 'syntax', re.compile(syntax))
             except re.error as err:
-                util.printf(
+                persist.printf(
                     'ERROR: {} disabled, error compiling syntax: {}'
                     .format(name.lower(), str(err))
                 )
@@ -92,7 +93,7 @@ class LinterMeta(type):
                         try:
                             setattr(cls, regex, re.compile(attr, cls.re_flags))
                         except re.error as err:
-                            util.printf(
+                            persist.printf(
                                 'ERROR: {} disabled, error compiling {}: {}'
                                 .format(name.lower(), regex, str(err))
                             )
@@ -100,7 +101,7 @@ class LinterMeta(type):
 
             if not cls.disabled:
                 if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    util.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
+                    persist.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
                     setattr(cls, 'disabled', True)
 
             for attr in ('inline_settings', 'inline_overrides'):
@@ -481,7 +482,7 @@ class Linter(metaclass=LinterMeta):
 
         if window:
             data = window.project_data() or {}
-            project_settings = data.get(persist.PLUGIN_NAME, {})
+            project_settings = data.get(PLUGIN_NAME, {})
         else:
             project_settings = {}
 
@@ -1009,7 +1010,7 @@ class Linter(metaclass=LinterMeta):
         try:
             return re.compile(pattern)
         except re.error as err:
-            util.printf(
+            persist.printf(
                 'ERROR: {}: invalid ignore_match: "{}" ({})'
                 .format(self.name, pattern, str(err))
             )
@@ -1066,7 +1067,7 @@ class Linter(metaclass=LinterMeta):
         try:
             return re.compile(pattern)
         except re.error as err:
-            util.printf(
+            persist.printf(
                 'ERROR: {}: invalid demote_to_warning_match: "{}" ({})'
                 .format(self.name, pattern, str(err))
             )
@@ -1211,7 +1212,7 @@ class Linter(metaclass=LinterMeta):
             path = self.which(which)
 
         if not path:
-            util.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
+            persist.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
@@ -1448,14 +1449,14 @@ class Linter(metaclass=LinterMeta):
 
         if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
-            util.printf('{} output:\n{}'.format(self.name, stripped_output))
+            persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
 
         ##### My Modification
         # TODO: they may be defined only once, put them in init reload
         lint_styles = self.lint_styles
-        codes = lint_styles.get("codes", [])
-        types = lint_styles.get("types", [])
+        codes = lint_styles.get("codes", {})
+        types = lint_styles.get("types", {})
 
         def get_default_style(error_type, memo={}):
             """Returns default style for error_type of this linter.
@@ -1473,7 +1474,6 @@ class Linter(metaclass=LinterMeta):
 
             default_styles = persist.linter_styles.get("default")
             return traverse_dict(default_styles)
-
 
 
         def get_error_type_and_style(message, error, warning):
@@ -1500,7 +1500,7 @@ class Linter(metaclass=LinterMeta):
             return error_type, get_default_style(error_type)
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
-            if match and message and line is not None:
+            if match and message and line:
                 if self.ignore_matches:
                     ignore = False
 
@@ -1509,7 +1509,7 @@ class Linter(metaclass=LinterMeta):
                             ignore = True
 
                             if persist.debug_mode():
-                                util.printf(
+                                persist.printf(
                                     '{} ({}): ignore_match: "{}" == "{}"'
                                     .format(
                                         self.name,
@@ -1543,7 +1543,7 @@ class Linter(metaclass=LinterMeta):
                                 demote_to_warning = True
 
                                 if persist.debug_mode():
-                                    util.printf(
+                                    persist.printf(
                                         '{} ({}): demote_to_warning_match: "{}" == "{}"'
                                         .format(
                                             self.name,
@@ -1558,7 +1558,7 @@ class Linter(metaclass=LinterMeta):
                     if demote_to_warning:
                         error_type = highlight.WARNING
 
-                if col is not None:
+                if col:
                     start, end = self.highlight.full_line(line)
 
                     # Adjust column numbers to match the linter's tabs if necessary
@@ -1577,14 +1577,14 @@ class Linter(metaclass=LinterMeta):
                     # Pin the column to the start/end line offsets
                     col = max(min(col, (end - start) - 1), 0)
 
-                if col is not None:
+                if col:
                     self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re, style=style)
                 elif near:
                     col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re, style=style)
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
-                        persist.settings.get('gutter_theme') == 'none'
+                        not persist.has_gutter_theme
                     ):
                         pos = -1
                     else:
@@ -1699,7 +1699,7 @@ class Linter(metaclass=LinterMeta):
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, executable)
 
             if status:
-                util.printf(status)
+                persist.printf(status)
 
         return can
 
@@ -1737,7 +1737,7 @@ class Linter(metaclass=LinterMeta):
                 if cls.executable_version:
                     persist.debug('{} version: {}'.format(cls.name, cls.executable_version))
                 else:
-                    util.printf('WARNING: {} unable to determine module version'.format(cls.name))
+                    persist.printf('WARNING: {} unable to determine module version'.format(cls.name))
             else:
                 return True
         elif not(cls.version_args is not None and cls.version_re and cls.version_requirement):
@@ -1758,7 +1758,7 @@ class Linter(metaclass=LinterMeta):
                 )
                 return True
             else:
-                util.printf(
+                persist.printf(
                     'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
                     .format(cls.name, cls.version_requirement, cls.executable_version)
                 )
@@ -1792,7 +1792,7 @@ class Linter(metaclass=LinterMeta):
             persist.debug('{} version: {}'.format(cls.name, version))
             return version
         else:
-            util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
 
     @staticmethod
@@ -1890,7 +1890,7 @@ class Linter(metaclass=LinterMeta):
 
         """
         if persist.debug_mode():
-            util.printf('{}: {} {}'.format(self.name,
+            persist.printf('{}: {} {}'.format(self.name,
                                               os.path.basename(self.filename or '<unsaved>'),
                                               cmd or '<builtin>'))
 

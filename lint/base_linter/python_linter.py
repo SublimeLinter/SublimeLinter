@@ -14,7 +14,7 @@ import importlib
 import os
 import re
 
-from . import linter, persist, util
+from .. import linter, persist, util
 
 
 class PythonLinter(linter.Linter):
@@ -145,11 +145,11 @@ class PythonLinter(linter.Linter):
                     warning = ''
                     message += ', linter will not run using built in python'
 
-                util.printf(message.format(warning, module, cls.name))
+                persist.printf(message.format(warning, module, cls.name))
                 module = None
 
             except Exception as ex:
-                util.printf(
+                persist.printf(
                     'ERROR: unknown exception in {}: {}'
                     .format(cls.name, str(ex))
                 )
@@ -180,7 +180,7 @@ class PythonLinter(linter.Linter):
             if module:
                 cls.cmd = None
         else:
-            util.printf(
+            persist.printf(
                 'WARNING: {} deactivated, no available version of python{} satisfies {}'
                 .format(
                     cls.name,
@@ -274,7 +274,7 @@ class PythonLinter(linter.Linter):
 
             if use_module:
                 if persist.debug_mode():
-                    util.printf(
+                    persist.printf(
                         '{}: {} <builtin>'.format(
                             self.name,
                             os.path.basename(self.filename or '<unsaved>')
@@ -284,7 +284,7 @@ class PythonLinter(linter.Linter):
                 try:
                     errors = self.check(code, os.path.basename(self.filename or '<unsaved>'))
                 except Exception as err:
-                    util.printf(
+                    persist.printf(
                         'ERROR: exception in {}.check: {}'
                         .format(self.name, str(err))
                     )
@@ -316,7 +316,7 @@ class PythonLinter(linter.Linter):
 
         """
 
-        util.printf(
+        persist.printf(
             '{}: subclasses must override the PythonLinter.check method'
             .format(self.name)
         )

@@ -389,31 +389,7 @@ class Highlight:
             self.marks[error_type].update(other.marks[error_type])
 
             for line, style in other.lines[error_type].items():
-
-                # Errors override warnings on the same line
-                if error_type != ERROR and self.lines[ERROR].get(line):
-                    continue
-
-                # Styles with higher priority override those of lower one
-                # on the sameline
-                existing = self.lines[error_type].get(line)
-                if existing:
-                    scope_ex = self.styles[existing].get("priority", 0)
-                    scope_new = self.styles[style].get("priority", 0)
-
-                    # print(line)
-                    # print(style)
-                    # print(existing)
-                    # print(self.styles)
-
-                    # print(scope_ex)
-                    # print(scope_new)
-                    # print("___ "*4)
-
-                    # if prio_ex > prio_new:
-                    #     continue
-
-                self.lines[error_type][line] = style
+                self.overwrite_line(line, error_type, style)
 
         self.newlines = other.newlines
 
@@ -537,14 +513,25 @@ class Highlight:
         """Record the given line as having the given error type."""
         line += self.line_offset
 
-        # Errors override warnings, if it's already an error leave it
-        if self.lines.get(ERROR).get(line):
+        self.overwrite_line(line, error_type, style)
+
+    def overwrite_line(self, line, error_type, style):
+        """"""
+        # Errors override warnings on the same line
+        if error_type != ERROR and self.lines[ERROR].get(line):
             return
 
-        # TODO: implement gutter priority here
+        # Styles with higher priority override those of lower one
+        # on the sameline
+        existing = self.lines[error_type].get(line)
+        if existing:
+            scope_ex = self.styles[existing].get("priority", 0)
+            scope_new = self.styles[style].get("priority", 0)
+            if scope_ex > scope_new:
+                return
 
-        if style:
-            self.lines[error_type][line] = style
+        self.lines[error_type][line] = style
+
 
     def move_to(self, line, char_offset):
         """

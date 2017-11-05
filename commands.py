@@ -500,7 +500,7 @@ class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
     def setting_was_changed(self, setting):
         """Update all views when the lint mode changes."""
         if setting == 'background':
-            from .sublimelinter import SublimeLinter
+            from .sublime_linter import SublimeLinter
             SublimeLinter.lint_all_views()
         else:
             linter.Linter.clear_all()
@@ -1225,7 +1225,7 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
         output.set_name('{} Error Report'.format(persist.PLUGIN_NAME))
         output.set_scratch(True)
 
-        from .sublimelinter import SublimeLinter
+        from .sublime_linter import SublimeLinter
         self.plugin = SublimeLinter.shared_plugin()
 
         if on == 'files' or on == 'both':
@@ -1286,5 +1286,5 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
         kwargs = {'self': self.plugin, 'view_id': view.id(), 'callback': finish_lint}
 
-        from .sublimelinter import SublimeLinter
+        from .sublime_linter import SublimeLinter
         Thread(target=SublimeLinter.lint, kwargs=kwargs).start()

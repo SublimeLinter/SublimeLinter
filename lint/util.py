@@ -168,8 +168,6 @@ def get_rc_settings(start_dir, limit=None):
         return None
 
 
-
-
 def update_syntax_map():
     """Update the user syntax_map setting with any missing entries from the defaults."""
 
@@ -464,9 +462,6 @@ def get_path_components(path):
             break
 
     return components
-
-
-
 
 
 @lru_cache(maxsize=None)
@@ -878,7 +873,6 @@ def touch(path):
 
 def open_directory(path):
     """Open the directory at the given path in a new window."""
-
     cmd = (get_subl_executable_path(), path)
     subprocess.Popen(cmd, cwd=path)
 

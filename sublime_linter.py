@@ -22,6 +22,7 @@ from .lint.queue import queue
 from .lint import persist, util, scheme
 from string import Template
 
+
 def set_scheme():
     force_xml_scheme = persist.settings.get("force_xml_scheme")
     persist.scheme = scheme.init_scheme(force_xml_scheme=force_xml_scheme)
@@ -52,7 +53,6 @@ def plugin_loaded():
 
     if window:
         plugin.on_activated_async(window.active_view())
-
 
     util.generate_menus()
 

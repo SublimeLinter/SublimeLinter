@@ -266,7 +266,6 @@ class Highlight:
         region = sublime.Region(pos, pos + length)
         other_type = ERROR if error_type == WARNING else WARNING
 
-
         if not style:
             style = error_type
 
@@ -402,15 +401,14 @@ class Highlight:
                     scope_ex = self.styles[existing].get("priority", 0)
                     scope_new = self.styles[style].get("priority", 0)
 
-                    print(line)
-                    print(style)
-                    print(existing)
-                    print(self.styles)
+                    # print(line)
+                    # print(style)
+                    # print(existing)
+                    # print(self.styles)
 
-                    print(scope_ex)
-                    print(scope_new)
-                    print("___ "*4)
-
+                    # print(scope_ex)
+                    # print(scope_new)
+                    # print("___ "*4)
 
                     # if prio_ex > prio_new:
                     #     continue

@@ -180,15 +180,20 @@ class Settings:
         if "gutter_theme" in self.changeset:
             self.update_gutter_marks()
 
+        # TODO: change whether this optimal:
         Linter.reload()  # always reload
+        from ..sublime_linter import SublimeLinter
+        SublimeLinter.lint_all_views()
 
         # TODO: what does this do?
         # if self.previous_settings and self.on_update_callback:
         #     self.on_update_callback(need_relint)
 
+
+
         self.changeset.clear()
 
-        Linter.reload()
+
 
 
     def save(self, view=None):

@@ -33,6 +33,7 @@ import sublime
 from copy import deepcopy
 
 from . import persist
+from functools import lru_cache
 
 #
 # Error types
@@ -415,7 +416,9 @@ class Highlight:
 
         """
         self.set_mark_style()
-        drawn_regions = []  # to collect drawn regions
+        drawn_regions = SAVED_REGIONS.get("regions", [])  # to collect drawn regions
+        if not drawn_regions:  # workaround as get does not default to []
+            drawn_regions = []
 
         gutter_regions = {WARNING: {}, ERROR: {}}
 
@@ -437,25 +440,14 @@ class Highlight:
                 continue
 
             for style, regions in self.marks[error_type].items():
-
-                # TODO: implement default handling
-                # print("style: ", style)
-                # print("self.marks: ", self.marks)
-                # print("self.styles: ", self.styles)
-                # print("-"*10)
-
-                styl_def = self.styles.get(style)
-
-                # print("style_def: ", self.styles.get(style))
-                # print("-"*10)
-                if not styl_def:
+                if not self.styles.get(style):
                     continue
 
-                scope_name = styl_def["scope"]
-                mark_style = styl_def.get("mark_style", "squiggly underline")
+                scope = self.get_style("scope", style, error_type)
+                mark_style = self.get_style("mark_style", style, error_type)
 
                 flags = MARK_STYLES[mark_style]
-                view.add_regions(style, regions, scope=scope_name, flags=flags)
+                view.add_regions(style, regions, scope=scope, flags=flags)
 
                 drawn_regions.append(style)
 
@@ -463,19 +455,11 @@ class Highlight:
                 continue
 
             for line, style in self.lines[error_type].items():
-                try:
-                    this_style = self.styles[style]
-                except KeyError as e:
-                    print("self.styles: \n", self.styles)
-                    raise e
-                # print("this_style: ", this_style)
-                # print("style: ", style)
-                # print("#"*8)
 
-                icon = this_style.get("icon", "dot")  # TOOO: implement def handling
+                icon = self.get_style("icon", style, error_type)
 
                 if persist.gutter_marks['colorize']:
-                    scope = this_style["scope"]
+                    scope = self.get_style("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one
 
@@ -558,4 +542,38 @@ class Highlight:
 
         """
         self.line_offset = line
-        self.char_offset = char_offsets
+        self.char_offset = char_offset
+
+    # @lru_cache  # TODO: does it need reset after linter reload?
+    def get_style(self, key, style, error_type):
+        """sublimelinter.default.warning"""
+
+        y = self.styles.get(style)
+        if y and y.get(key):
+            return y.get(key)
+
+        styles = self.styles
+
+        def fetch_style(linter_name):
+            x = [s for s
+                 in styles
+                 if linter_name in s and error_type in s.get("types", [])]
+
+            if x:
+                return x.get(key)
+
+        base, linter, ext = style.split(".")
+
+        if linter != "default":
+            val = fetch_style(linter)
+            if val:
+                return val
+
+        val = fetch_style("default")
+        if val:
+            return val
+
+        if "key" == "icon":
+            return persist.gutter_marks[error_type]
+
+

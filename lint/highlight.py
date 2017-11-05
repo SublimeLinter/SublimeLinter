@@ -30,6 +30,8 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 import re
 import sublime
+from copy import deepcopy
+
 from . import persist
 
 #
@@ -144,18 +146,21 @@ class HighlightSet:
 
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
-    styles = {}  # TODO: add comment here
+
 
     def __init__(self, code=''):
         """Initialize a new instance."""
         self.code = code
-        self.marks = {WARNING: {}, ERROR: {}}
+        self.marks = self.get_new_dict()
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
 
+        from .persist import highlight_styles
+        self.styles = highlight_styles
+
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines = {WARNING: {}, ERROR: {}}
+        self.lines = self.get_new_dict()
 
         # These are used when highlighting embedded code, for example JavaScript
         # or CSS within an HTML file. The embedded code is linted as if it begins
@@ -458,7 +463,11 @@ class Highlight:
                 continue
 
             for line, style in self.lines[error_type].items():
-                this_style = self.styles[style]
+                try:
+                    this_style = self.styles[style]
+                except KeyError as e:
+                    print("self.styles: \n", self.styles)
+                    raise e
                 # print("this_style: ", this_style)
                 # print("style: ", style)
                 # print("#"*8)
@@ -505,9 +514,11 @@ class Highlight:
 
         """
         # TODO: centralize dic creation via deepcopy
-        # TODO: check if it works
-        self.marks = {WARNING: {}, ERROR: {}}
-        self.lines = {WARNING: {}, ERROR: {}}
+        self.marks = self.get_new_dict()
+        self.lines = self.get_new_dict()
+
+    def get_new_dict(self):
+        return deepcopy({WARNING: {}, ERROR: {}})
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
@@ -525,13 +536,17 @@ class Highlight:
         # on the sameline
         existing = self.lines[error_type].get(line)
         if existing:
-            scope_ex = self.styles[existing].get("priority", 0)
+            try:
+                scope_ex = self.styles[existing].get("priority", 0)
+            except KeyError as e:
+                print("self.styles: \n", self.styles)
+                raise e
+
             scope_new = self.styles[style].get("priority", 0)
             if scope_ex > scope_new:
                 return
 
         self.lines[error_type][line] = style
-
 
     def move_to(self, line, char_offset):
         """
@@ -543,4 +558,4 @@ class Highlight:
 
         """
         self.line_offset = line
-        self.char_offset = char_offset
+        self.char_offset = char_offsets

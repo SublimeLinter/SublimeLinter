@@ -56,7 +56,7 @@ class StyleParser:
                 transfer_style_item("icon")
                 transfer_style_item("priority")
 
-            highlight.Highlight().styles[rule_name] = style_dict
+            persist.highlight_styles[rule_name] = style_dict
 
             # 2 - define targets
             for type_name in node.get("types", []):

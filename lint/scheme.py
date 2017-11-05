@@ -1,14 +1,11 @@
 import json
 import os
 from abc import ABCMeta, abstractmethod
-from xml.etree import ElementTree
-from copy import deepcopy
 
 import sublime
 import re
-from . import util, style
+from . import style
 from collections import OrderedDict
-
 
 MARK_COLOR_RE = (
     r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
@@ -19,11 +16,6 @@ MARK_COLOR_RE = (
     r'\s*<key>foreground</key>\s*\r?\n'
     r'\s*<string>)#.+?(</string>\s*\r?\n)'
 )
-
-COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-'''
-
 
 AUTO_SCOPE = re.compile("region\.[a-z]+?ish")
 
@@ -51,17 +43,11 @@ class Scheme(metaclass=ABCMeta):
         # If this was called from a reload of prefs, turn off the prefs observer,
         # otherwise we'll end up back here when ST updates the prefs with the new color.
 
-
-        style.StyleParser()()
-
         self.update_paths()
-
         # First make sure the user prefs are valid. If not, bail.
         self.get_settings()
         if not (self.prefs and self.scheme):
             return
-
-        # self.update_paths()
 
         if from_reload:
             from . import persist
@@ -163,9 +149,9 @@ class Scheme(metaclass=ABCMeta):
             persist.printf("Old scheme path detected. Pass.")
             pass
 
-    def get_dyn_rules(self):
+    def get_nodes(self):
         """Return sorted list of dicts."""
-        s_dict = OrderedDict(sorted(self.dynamic_nodes.items()))
+        s_dict = OrderedDict(sorted(self.nodes.items()))
         return s_dict.values()
 
     def unfound_scopes_dialogue(self, unfound):
@@ -185,99 +171,15 @@ class Scheme(metaclass=ABCMeta):
         pass
 
 
-class XmlScheme(Scheme):
-    """docstring for XmlScheme"""
-
-    def generate_color_scheme_async(self):
-        """
-            Generate a modified copy of the current color scheme that contains SublimeLinter color entries.
-
-            The current color scheme is checked for SublimeLinter color entries. If any are missing,
-            the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User/SublimeLinter.
-
-            """
-        print("XmlScheme.generate_color_scheme called.")
-
-        # Append style dicts with our styles to the style array
-        scheme_text = sublime.load_resource(self.paths["scheme_orig"])
-        plist = ElementTree.XML(scheme_text)
-        styles = plist.find('./dict/array')
-        styles.extend(self.get_dyn_rules())
-
-        from . import persist
-
-        unfound = self.parse_scheme_xml(
-            self.static_nodes.keys(), text=scheme_text)
-        if unfound:
-            self.unfound_scopes_dialogue(unfound)
-
-        print("self.paths['usr_dir_abs']: ", self.paths["usr_dir_abs"])
-
-        mod_name = self.paths["scheme_name"] + ' (SL)'
-        mod_scheme_path = os.path.join(
-            self.paths["usr_dir_abs"], mod_name + '.hidden-tmTheme')
-
-        content = ElementTree.tostring(plist, encoding='unicode')
-
-        with open(mod_scheme_path, 'w', encoding='utf8') as f:
-            f.write(COLOR_SCHEME_PREAMBLE)
-            f.write(content)
-
-        # Set the amended color scheme to the current color scheme
-        scheme_path_rel = self.packages_relative_path(
-            os.path.join(self.paths["usr_dir_rel"], os.path.basename(mod_scheme_path)))
-
-        # TODO: is there another way to prevent entering vicious cycle?
-        self.set_scheme_path(scheme_path_rel)
-
-    def assemble_node(self, scope, input_dict):
-        """Assembles single node as XML ElementTree object."""
-        root = ElementTree.Element('dict')
-
-        def append_kv(first, second, root=root):
-            ElementTree.SubElement(root, 'key').text = first
-            ElementTree.SubElement(root, 'string').text = second
-
-        append_kv("scope", scope)
-        ElementTree.SubElement(root, "key").text = "settings"
-        d = ElementTree.SubElement(root, "dict")
-
-        if input_dict.get("foreground"):
-            append_kv("foreground", input_dict.get("foreground").upper(), d)
-
-        if input_dict.get("background"):
-            append_kv("background", input_dict.get("background").upper(), d)
-
-        if input_dict.get("font_style"):
-            append_kv("fontStyle", input_dict.get("font_style"), d)
-
-        self.nodes[scope] = root
-
-    def packages_relative_path(self, path, prefix_packages=True):
-        """
-        Return a Packages-relative version of path with '/' as the path separator.
-
-        Sublime Text wants Packages-relative paths used in settings and in the plugin API
-        to use '/' as the path separator on all platforms. This method converts platform
-        path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
-        converted path.
-
-        """
-        from . import util
-
-        components = util.get_path_components(path)
-
-        if prefix_packages and components and components[0] != 'Packages':
-            components.insert(0, 'Packages')
-
-        return '/'.join(components)
-
-
 class JsonScheme(Scheme):
 
     def generate_color_scheme_async(self):
         """Generates scheme in format .subilme-color-scheme."""
         print("JsonScheme.generate_color_scheme called.")
+
+        # parse styles
+        style.StyleParser()()
+
         original_scheme = self.get_original_theme(self.scheme)
         scheme_text = sublime.load_resource(original_scheme)
 
@@ -333,9 +235,3 @@ class JsonScheme(Scheme):
             self.nodes[rule] = scope
 
 
-def init_scheme(force_xml_scheme=False):
-    """Returns either the modern json schme parser or old xml scheme parser. Depending on sublime version."""
-    if int(sublime.version()) >= 3149 and not force_xml_scheme:
-        return JsonScheme()
-
-    return XmlScheme()

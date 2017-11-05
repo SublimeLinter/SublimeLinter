@@ -80,6 +80,8 @@ if 'plugin_is_loaded' not in globals():
 
     linter_styles = {}
 
+    highlight_styles = {}
+
     has_gutter_theme = settings.get('gutter_theme') != 'None'
 
 

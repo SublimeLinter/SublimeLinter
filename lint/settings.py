@@ -63,6 +63,7 @@ class Settings:
             self.observe()
             self.on_update()
             self.observe_prefs()
+        self.update_gutter_marks()
 
     def has_setting(self, setting):
         """Return whether the given setting exists."""
@@ -261,11 +262,12 @@ class Settings:
 
         from . import persist
 
-        theme_path = self.settings.get('gutter_theme')
+        theme_path = self.settings.get('gutter_theme', persist.DEFAULT_GUTTER_THEME_PATH)
+
         theme = os.path.splitext(os.path.basename(theme_path))[0]
 
         if theme_path.lower() == 'none':
-            persist.gutter_marks['warning'] = gutter_marks['error'] = ''
+            persist.gutter_marks['warning'] = persist.gutter_marks['error'] = ''
             return
 
         info = None

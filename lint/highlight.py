@@ -457,6 +457,7 @@ class Highlight:
             for line, style in self.lines[error_type].items():
 
                 icon = self.get_style("icon", style, error_type)
+                print("icon: ", icon)
 
                 if persist.gutter_marks['colorize']:
                     scope = self.get_style("scope", style, error_type)
@@ -525,8 +526,11 @@ class Highlight:
             except KeyError as e:
                 print("self.styles: \n", self.styles)
                 raise e
-
-            scope_new = self.styles[style].get("priority", 0)
+            try:
+                scope_new = self.styles[style].get("priority", 0)
+            except KeyError as e:
+                print("self.styles: \n", self.styles)
+                raise e
             if scope_ex > scope_new:
                 return
 
@@ -548,32 +552,40 @@ class Highlight:
     def get_style(self, key, style, error_type):
         """sublimelinter.default.warning"""
 
-        y = self.styles.get(style)
-        if y and y.get(key):
-            return y.get(key)
+        y = self.styles.setdefault(style, {}).get(key)
+        if y:
+            return y
 
         styles = self.styles
 
         def fetch_style(linter_name):
-            x = [s for s
-                 in styles
-                 if linter_name in s and error_type in s.get("types", [])]
+            x = [v.get(key) for k, v
+                 in styles.items()
+                 if linter_name in k and error_type in v.get("types", [])]
 
-            if x:
-                return x.get(key)
+            if x[0]:
+                return x[0]
 
         base, linter, ext = style.split(".")
 
         if linter != "default":
             val = fetch_style(linter)
             if val:
+                print(key)
+                print(val)
                 return val
 
         val = fetch_style("default")
         if val:
+            print(key)
+            print(val)
             return val
 
-        if "key" == "icon":
+        print("reached this point")
+
+        if key == "icon":
+            print("persist.gutter_marks: ", persist.gutter_marks)
+            print(persist.gutter_marks[error_type])
             return persist.gutter_marks[error_type]
 
 

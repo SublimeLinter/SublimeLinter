@@ -39,6 +39,7 @@
        {
          "scope": "region.yellowish",         
          "mark_style": "outline",
+         "priority": 1,
          "types": [
            "warning"
          ]
@@ -46,6 +47,7 @@
        {
          "scope": "region.redish",         
          "mark_style": "outline",
+         "priority": 1,
          "types": [
            "error"
          ]

@@ -1,5 +1,5 @@
 import sublime
-from . import util, scheme, persist
+from . import util, scheme
 from xml.etree import ElementTree
 from .persist import settings
 
@@ -29,7 +29,7 @@ class XmlScheme(scheme.Scheme):
         print("XmlScheme.generate_color_scheme called.")
 
         # build legacy style_parser
-        from . import persist, highlight
+        from . import persist
         persist.linter_styles["default"] = {
             "types": {
                 "warning": "sublimelinter.mark.warning",

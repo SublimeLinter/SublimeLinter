@@ -1476,7 +1476,7 @@ class Linter(metaclass=LinterMeta):
             return traverse_dict(default_styles)
 
 
-        def get_error_type_and_style(message, error, warning):
+        def get_error_type_and_style(error, warning):
             # 1 - determine error type
             if error:
                 key = "error"
@@ -1523,16 +1523,22 @@ class Linter(metaclass=LinterMeta):
                     if ignore:
                         continue
 
-                error_type, style = get_error_type_and_style(message, error, warning)
-
-                # print("-" * 10)
-                # print("error_type: ", error_type)
-                # print("style: ", style)
-                # print("col: ", col)
-                # print("near: ", near)
-                # print("message: ", message)
-                # print("error: ", error)
-                # print("warning: ", warning)
+                error_type, style = get_error_type_and_style(error, warning)
+                if not style:  # for bug hunting
+                    print("style is None in Linter.lint")
+                    print(self.name)
+                    print("code: ", codes)
+                    print("types: ", types)
+                    print("error_type: ", error_type)
+                    print("style: ", style)
+                    print("col: ", col)
+                    print("near: ", near)
+                    print("message: ", message)
+                    print("error: ", error)
+                    print("warning: ", warning)
+                    print("self.default_type: ", self.default_type)
+                    print("persist.linter_styles: ", persist.linter_styles)
+                    raise Exception
 
                 if error_type is highlight.ERROR:
                     demote_to_warning = False

@@ -7,7 +7,7 @@ class StyleParser:
     """"""
 
     def __call__(self):
-        print("StyleParser.create_styles called")
+        print("StyleParser.create_styles called.")
 
         # 1 - for default styles
         styles = persist.settings.get("styles", [])
@@ -56,14 +56,18 @@ class StyleParser:
                 transfer_style_item("icon")
                 transfer_style_item("priority")
 
-            persist.highlight_styles[rule_name] = style_dict
+            types = node.get("types")
+            if types:
+                style_dict["types"] = types
 
             # 2 - define targets
-            for type_name in node.get("types", []):
-                lint_dict["types"][type_name] = rule_name
+                for type_name in node.get("types"):
+                    lint_dict["types"][type_name] = rule_name
 
             for code in node.get("codes", []):
                 lint_dict["codes"][code] = rule_name
+
+            persist.highlight_styles[rule_name] = style_dict
 
         persist.linter_styles[linter_name] = lint_dict
 

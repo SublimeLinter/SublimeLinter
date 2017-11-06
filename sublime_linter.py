@@ -20,10 +20,8 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util, scheme
-from .lint.legacy import legacy_check
+
 from string import Template
-
-
 
 
 def plugin_loaded():
@@ -31,6 +29,9 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
+
+    # TODO: remove the three lines below to unlink legacy.py
+    from .lint.legacy import legacy_check
 
     @legacy_check
     def set_scheme():

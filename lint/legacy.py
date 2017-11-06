@@ -1,6 +1,7 @@
 import sublime
 from . import util, scheme, persist
 from xml.etree import ElementTree
+from .persist import settings
 
 import re
 import os
@@ -90,7 +91,7 @@ class XmlScheme(scheme.Scheme):
         """"""
 
         def get_color(key, default):
-            from .persist import settings
+
             color = settings.get(key, default)
             if not color.startswith('#'):
                 color = '#' + color
@@ -156,28 +157,37 @@ class XmlScheme(scheme.Scheme):
 
         return '/'.join(components)
 
-# class SettingsConverter:
-#     """docstring for SettingsConverter"""
-#     def __init__(self, arg):
-#         self.arg = arg
 
-#     def flatten(self):
-#         """Removes base keys 'default' and 'user'."""
-
-#     def convert_to_styles(self):
-#         pass
-
-#     def change keys
-#     remove
-#     add
+OLD_KEYS = ("warning_color", "error_color", "mark_style", "user")
+NEW_KEYS = ("styles", "user")
 
 
 def legacy_check(func):
     """"""
-    force_xml_scheme = persist.settings.get("force_xml_scheme")
-    if int(sublime.version()) >= 3149 and not force_xml_scheme:
+    force_xml_scheme = settings.get("force_xml_scheme")
+    above_3148 = int(sublime.version()) > 3148
+
+    # transfer mark style into setings
+    mark_style = settings.get("mark_style")
+    if above_3148 and mark_style:
+        styles = settings.setdefault("styles", [])
+        for s in styles:
+            s["mark_style"] = mark_style
+
+    keys = OLD_KEYS if above_3148 else NEW_KEYS
+
+    def clean_settings():
+        for key in keys:
+            settings.pop(key)
+    clean_settings()
+
+    settings.save()
+
+    # finally return
+    if above_3148 and not force_xml_scheme:
         def func_wrapper():
             return func
 
         return func_wrapper()
+
     return XmlScheme

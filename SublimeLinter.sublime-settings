@@ -1,11 +1,9 @@
 {
     "debug": false,
-    "delay": 0.3,
-    "force_xml_scheme": false,
+    "delay": 0.3,  
     "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
     "gutter_theme_excludes": [],
-    "lint_mode": "background",
-    "mark_style": "outline",
+    "lint_mode": "background",   
     "no_column_highlights_line": false,
     "passive_warnings": false,
     "paths": {
@@ -39,16 +37,14 @@
     "wrap_find": true,
     "styles": [
        {
-         "foreground": "#DDB700",
-         "icon": "circle",
+         "scope": "region.yellowish",         
          "mark_style": "outline",
          "types": [
            "warning"
          ]
        },
        {
-         "foreground": "#D02000",
-         "icon": "circle",
+         "scope": "region.redish",         
          "mark_style": "outline",
          "types": [
            "error"

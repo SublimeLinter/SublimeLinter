@@ -150,8 +150,7 @@ class Settings:
         if "force_xml_scheme" in self.changeset:
             persist.printf("Scheme mode changed regenerating style definitions.")
 
-            from ..sublime_linter import set_scheme
-            set_scheme()
+            from . import persist
             persist.scheme.generate()
 
         if "styles" in self.changeset:
@@ -222,9 +221,8 @@ class Settings:
 
         settings['linters'] = linters
 
-        filename = '{}.sublime-settings'.format(PLUGIN_NAME)
         # TODO: centralise paths as constants
-        user_prefs_path = os.path.join(sublime.packages_path(), 'User', filename)
+        user_prefs_path = os.path.join(sublime.packages_path(), 'User', SETTINGS_FILE)
         settings_views = []
 
         if not view:
@@ -248,9 +246,10 @@ class Settings:
                 view.run_command('sublimelinter_edit')
                 view.run_command('save')
         else:
-            user_settings = sublime.load_settings('SublimeLinter.sublime-settings')
-            user_settings.set('user', settings)
-            sublime.save_settings('SublimeLinter.sublime-settings')
+            with open(user_prefs_path, "w") as f:
+                j = json.dumps(settings, indent=4, sort_keys=True)
+                f.write(j)
+
 
     def on_prefs_update(self):
         """Perform maintenance when the ST prefs are updated."""

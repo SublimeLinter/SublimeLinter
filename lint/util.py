@@ -930,19 +930,6 @@ def find_executable(executable):
     return None
 
 
-def touch(path):
-    """Perform the equivalent of touch on Posix systems."""
-    with open(path, 'a'):
-        os.utime(path, None)
-
-
-def open_directory(path):
-    """Open the directory at the given path in a new window."""
-
-    cmd = (get_subl_executable_path(), path)
-    subprocess.Popen(cmd, cwd=path)
-
-
 def get_subl_executable_path():
     """Return the path to the subl command line binary."""
 
@@ -1261,16 +1248,6 @@ def convert_type(value, type_value, sep=None, default=None):
     return default
 
 
-def get_user_fullname():
-    """Return the user's full name (or at least first name)."""
-
-    if sublime.platform() in ('osx', 'linux'):
-        import pwd
-        return pwd.getpwuid(os.getuid()).pw_gecos
-    else:
-        return os.environ.get('USERNAME', 'Me')
-
-
 def center_region_in_view(region, view):
     """
     Center the given region in view.
@@ -1360,40 +1337,4 @@ COLOR_SCHEME_STYLES = {
             </dict>
         </dict>
     '''
-}
-
-
-# menu command constants
-
-CHOOSERS = (
-    'Lint Mode',
-    'Mark Style'
-)
-
-CHOOSER_MENU = '''{
-    "caption": "$caption",
-    "children":
-    [
-        $menus,
-        $toggleItems
-    ]
-}'''
-
-CHOOSER_COMMAND = '''{{
-    "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
-}}'''
-
-TOGGLE_ITEMS = {
-    'Mark Style': '''
-{
-    "caption": "-"
-},
-{
-    "caption": "No Column Highlights Line",
-    "command": "sublimelinter_toggle_setting", "args":
-    {
-        "setting": "no_column_highlights_line",
-        "checked": true
-    }
-}'''
 }

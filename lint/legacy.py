@@ -169,15 +169,20 @@ def legacy_check(func):
 
     # transfer mark style into setings
     mark_style = settings.get("mark_style")
-    if above_3148 and mark_style:
-        styles = settings.setdefault("styles", [])
-        for s in styles:
-            s["mark_style"] = mark_style
+    if above_3148:
+        if mark_style:
+            styles = settings.setdefault("styles", [])
+            for s in styles:
+                s["mark_style"] = mark_style
 
-    keys = OLD_KEYS if above_3148 else NEW_KEYS
+        if settings.get("user"):  # TODO change to . has_key
+            for k, v in settings.get("user").items():
+                settings.set(k, v)
+
+    remove_keys = OLD_KEYS if above_3148 else NEW_KEYS
 
     def clean_settings():
-        for key in keys:
+        for key in remove_keys:
             settings.pop(key)
     clean_settings()
 

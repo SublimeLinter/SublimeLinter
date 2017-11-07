@@ -214,12 +214,7 @@ class Highlight:
             char_offset = 0
 
         line += self.line_offset
-        try:
-            start = self.newlines[line] + char_offset
-        except IndexError as e:
-            print("line: ", line)
-            print("self.newlines: ", self.newlines)
-            raise e
+        start = self.newlines[line] + char_offset
 
         end = self.newlines[min(line + 1, len(self.newlines) - 1)]
 
@@ -457,7 +452,6 @@ class Highlight:
             for line, style in self.lines[error_type].items():
 
                 icon = self.get_style("icon", style, error_type)
-                print("icon: ", icon)
 
                 if persist.gutter_marks['colorize']:
                     scope = self.get_style("scope", style, error_type)
@@ -571,21 +565,15 @@ class Highlight:
         if linter != "default":
             val = fetch_style(linter)
             if val:
-                print(key)
-                print(val)
                 return val
 
         val = fetch_style("default")
         if val:
-            print(key)
-            print(val)
             return val
 
-        print("reached this point")
+
 
         if key == "icon":
-            print("persist.gutter_marks: ", persist.gutter_marks)
-            print(persist.gutter_marks[error_type])
             return persist.gutter_marks[error_type]
 
 

@@ -11,6 +11,7 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
+import html
 import re
 
 import sublime
@@ -463,7 +464,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             return
 
         tooltip_content = template.substitute(line=line + 1,
-                                              message='<br />'.join(errors),
+                                              message='<br />'.join(html.escape(e, quote=False) for e in errors),
                                               font_size=persist.settings.get('tooltip_fontsize'))
         active_view.show_popup(tooltip_content,
                                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,

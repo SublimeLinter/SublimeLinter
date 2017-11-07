@@ -20,7 +20,6 @@ import os
 import getpass
 import re
 import shutil
-from string import Template
 import stat
 import sublime
 import subprocess

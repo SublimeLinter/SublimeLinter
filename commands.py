@@ -11,18 +11,12 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
-import datetime
 from fnmatch import fnmatch
 from glob import glob
 import json
 import os
 import re
-import shutil
-import subprocess
-import tempfile
-from textwrap import TextWrapper
 from threading import Thread
-import time
 
 import sublime
 import sublime_plugin

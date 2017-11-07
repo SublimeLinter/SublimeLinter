@@ -2,10 +2,10 @@
     {
         "caption": "Preferences: SublimeLinter Settings",
         "command": "edit_settings", "args":
-		{
-			"base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
-			"default": "${packages}/User/SublimeLinter.sublime-settings"
-		}
+        {
+            "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
+            "default": "${packages}/User/SublimeLinter.sublime-settings"
+        }
     },
     {
         "caption": "Preferences: SublimeLinter Key Bindings",
@@ -164,14 +164,6 @@
             "setting": "tooltips",
             "value": false
         }
-    },
-    {
-        "caption": "SublimeLinter: Clear Color Scheme Folder",
-        "command": "sublimelinter_clear_color_scheme_folder"
-    },
-    {
-        "caption": "SublimeLinter: Clear Caches",
-        "command": "sublimelinter_clear_caches"
     },
     {
         "caption": "SublimeLinter: Report (Open Files)",

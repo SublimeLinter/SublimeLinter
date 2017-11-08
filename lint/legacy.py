@@ -175,7 +175,7 @@ def legacy_check(func):
             for s in styles:
                 s["mark_style"] = mark_style
 
-        if settings.get("user"):  # TODO change to . has_key
+        if settings.get("user"):
             for k, v in settings.get("user").items():
                 settings.set(k, v)
 

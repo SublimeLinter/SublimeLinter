@@ -34,6 +34,7 @@ from copy import deepcopy
 
 from . import persist
 from functools import lru_cache
+from .const import ST_ICONS
 
 #
 # Error types
@@ -453,7 +454,7 @@ class Highlight:
 
                 icon = self.get_style("icon", style, error_type)
 
-                if persist.gutter_marks['colorize']:
+                if persist.gutter_marks['colorize'] or icon in ST_ICONS:
                     scope = self.get_style("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one

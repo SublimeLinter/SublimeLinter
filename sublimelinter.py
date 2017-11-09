@@ -479,12 +479,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         copy the current settings first so we can compare post-save.
 
         """
-        if view.window().active_view() == view and self.is_settings_file(view):
+        window = view.window()
+        if window and window.active_view() == view and self.is_settings_file(view):
             persist.settings.copy()
 
     def on_post_save_async(self, view):
         """Ran after view is saved."""
-
         if self.is_scratch(view):
             return
 

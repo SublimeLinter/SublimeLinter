@@ -26,11 +26,9 @@ Hundreds of hours have been spent writing and documenting |sl| to make it the be
 Donate via:
 
 `Paypal`_
-`Gratipay`_
 `Bitcoin`_
 
 .. _PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
-.. _Gratipay: https://gratipay.com/sublimelinter/
 .. _Bitcoin: https://www.coinbase.com/groteworld/
 
 

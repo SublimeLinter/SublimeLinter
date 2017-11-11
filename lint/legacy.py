@@ -59,8 +59,6 @@ class XmlScheme(scheme.Scheme):
         plist = ElementTree.XML(scheme_text)
         styles = plist.find('./dict/array')
 
-        print("self.nodes: ", self.nodes)
-
         unfound = self.parse_scheme_xml(
             persist.highlight_styles.keys(), text=scheme_text)
         if not unfound:
@@ -91,26 +89,25 @@ class XmlScheme(scheme.Scheme):
         """"""
 
         def get_color(key, default):
-
             color = settings.get(key, default)
             if not color.startswith('#'):
                 color = '#' + color
             return color
 
         d = [
-            {
-                "scope": "sublimelinter.mark.warning",
-                "foreground": get_color("warning_color", "#DDB700")
-            },
-            {
-                "scope": "sublimelinter.mark.error",
-                "foreground": get_color("error_color", "#D02000")
-            },
-            {
-                "scope": "sublimelinter.gutter-mark",
-                "foreground": "#FFFFFF"
-            }
-        ]
+                {
+                    "scope": "sublimelinter.mark.warning",
+                    "foreground": get_color("warning_color", "#DDB700")
+                },
+                {
+                    "scope": "sublimelinter.mark.error",
+                    "foreground": get_color("error_color", "#D02000")
+                },
+                {
+                    "scope": "sublimelinter.gutter-mark",
+                    "foreground": "#FFFFFF"
+                }
+            ]
 
         filtered = [f for f in d if f["scope"] in unfound]
 

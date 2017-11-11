@@ -60,17 +60,42 @@ MARK_STYLES = {
 WORD_RE = re.compile(r'^([-\w]+)')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
-SAVED_REGIONS = sublime.load_settings('sl_regions.sublime-settings')
-SAVED_REGIONS.set("regions", [])
 
+class RegionStore:
+    def __init__(self):
+        # {"view.id": [region_keys ... ]}
+        self.memory = sublime.load_settings('sl_regions.sublime-settings')
+        views = self.memory.get("views")
+        if not views:
+            self.memory.set("views", {})
 
-# def mark_style_names():
-#     """Return the keys from MARK_STYLES, sorted and capitalized, with None at the end."""
-#     names = list(MARK_STYLES)
-#     names.remove('none')
-#     names.sort()
-#     names.append('none')
-#     return [name.capitalize() for name in names]
+    def add_region_keys(self, view, new_keys):
+        view_id = view.id()
+        saved_keys = self._get_views(view_id)
+        saved_keys.extend(new_keys)
+        self._set_views(view_id, saved_keys)
+
+    def del_regions(self, view):
+        view_id = view.id()
+        saved_keys = self._get_views(view_id)
+        for key in saved_keys:
+            view.erase_regions(key)
+        self._set_views(view_id)
+
+    def _get_views(self, view_id):
+        return self.memory.get("views", {}).get(view_id, [])
+
+    def _set_views(self, view_id, region_keys=None):
+        view_id = str(view_id)
+        views = self.memory.get("views")
+
+        if not region_keys:
+            if view_id in views:
+                del views[view_id]
+        else:
+            views[view_id] = region_keys
+        self.memory.set("views", views)
+
 
 
 class HighlightSet:
@@ -78,7 +103,7 @@ class HighlightSet:
 
     def __init__(self):
         """Initialize a new instance."""
-        self.all = set()
+        self.all=set()
 
     def add(self, highlight):
         """Add a Highlight to the set."""
@@ -97,7 +122,7 @@ class HighlightSet:
         if not self.all:
             return
 
-        all = Highlight()
+        all=Highlight()
 
         for highlight in self.all:
             all.update(highlight)
@@ -111,12 +136,8 @@ class HighlightSet:
         # view.erase_regions(MARK_KEY_FORMAT.format(error_type))
         # view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
         # print("SAVED_REGIONS: ", SAVED_REGIONS)
-        all_regions = SAVED_REGIONS.get('regions', [])
-        # print("all_regions: ", all_regions)
-        if not all_regions:
-            return  # workaround as get does not seem to return []
-        for region in all_regions:
-            view.erase_regions(region)
+
+        persist.region_store.del_regions(view)
 
     def redraw(self, view):
         """Redraw all marks in the given view."""
@@ -135,14 +156,14 @@ class HighlightSet:
         if not self.all:
             return None
 
-        line_type = None
+        line_type=None
         for highlight in self.all:
             if line_type == ERROR:
                 continue
-            _line_type = highlight.lines.get(line)
+            _line_type=highlight.lines.get(line)
             if _line_type != WARNING and line_type == WARNING:
                 continue
-            line_type = _line_type
+            line_type=_line_type
         return line_type
 
 
@@ -150,25 +171,25 @@ class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
 
-    def __init__(self, code=''):
+    def __init__(self, code = ''):
         """Initialize a new instance."""
-        self.code = code
-        self.marks = self.get_new_dict()
-        self.mark_style = 'outline'
-        self.mark_flags = MARK_STYLES[self.mark_style]
+        self.code=code
+        self.marks=self.get_new_dict()
+        self.mark_style='outline'
+        self.mark_flags=MARK_STYLES[self.mark_style]
 
         from .persist import highlight_styles
-        self.styles = highlight_styles
+        self.styles=highlight_styles
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines = self.get_new_dict()
+        self.lines=self.get_new_dict()
 
         # These are used when highlighting embedded code, for example JavaScript
         # or CSS within an HTML file. The embedded code is linted as if it begins
         # at (0, 0), but we need to keep track of where the actual start is within the source.
-        self.line_offset = 0
-        self.char_offset = 0
+        self.line_offset=0
+        self.char_offset=0
 
         # Linting runs asynchronously on a snapshot of the code. Marks are added to the code
         # during that asynchronous linting, and the markup code needs to calculate character
@@ -176,11 +197,11 @@ class Highlight:
         # may have changed, so we can't reliably use the plugin API to calculate character
         # positions. The solution is to calculate and store the character positions for
         # every line when this object is created, then reference that when needed.
-        self.newlines = newlines = [0]
-        last = -1
+        self.newlines=newlines=[0]
+        last=-1
 
         while True:
-            last = code.find('\n', last + 1)
+            last=code.find('\n', last + 1)
 
             if last == -1:
                 break
@@ -189,13 +210,14 @@ class Highlight:
 
         newlines.append(len(code))
 
+
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
-        first = text[0]
+        first=text[0]
 
         if first in ('\'', '"') and text[-1] == first:
-            text = text[1:-1]
+            text=text[1:-1]
 
         return text
 
@@ -210,18 +232,18 @@ class Highlight:
 
         # The first line of the code needs the character offset
         if line == 0:
-            char_offset = self.char_offset
+            char_offset=self.char_offset
         else:
-            char_offset = 0
+            char_offset=0
 
         line += self.line_offset
-        start = self.newlines[line] + char_offset
+        start=self.newlines[line] + char_offset
 
-        end = self.newlines[min(line + 1, len(self.newlines) - 1)]
+        end=self.newlines[min(line + 1, len(self.newlines) - 1)]
 
         return start, end
 
-    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
+    def range(self, line, pos, length = -1, near = None, error_type = ERROR, word_re = None, style = None):
         """
         Mark a range of text.
 
@@ -247,35 +269,35 @@ class Highlight:
 
         """
 
-        start, end = self.full_line(line)
+        start, end=self.full_line(line)
 
         if pos < 0:
-            pos = 0
-            length = (end - start) - 1
+            pos=0
+            length=(end - start) - 1
         elif near is not None:
-            near = self.strip_quotes(near)
-            length = len(near)
+            near=self.strip_quotes(near)
+            length=len(near)
         elif length < 0:
-            code = self.code[start:end][pos:]
-            match = (word_re or WORD_RE).search(code)
+            code=self.code[start:end][pos:]
+            match=(word_re or WORD_RE).search(code)
 
             if match:
-                length = len(match.group())
+                length=len(match.group())
             else:
-                length = 1
+                length=1
 
         pos += start
-        region = sublime.Region(pos, pos + length)
-        other_type = ERROR if error_type == WARNING else WARNING
+        region=sublime.Region(pos, pos + length)
+        other_type=ERROR if error_type == WARNING else WARNING
 
         if not style:
-            style = error_type
+            style=error_type
 
         if style not in self.marks[error_type]:  # TODO: None handling
-            self.marks[error_type][style] = []
+            self.marks[error_type][style]=[]
 
         for scope, marks in self.marks[other_type].items():
-            i_offset = 0
+            i_offset=0
             for i, mark in enumerate(marks):
                 if mark.a == region.a and mark.b == region.b:
                     if error_type == WARNING:
@@ -288,8 +310,8 @@ class Highlight:
 
         self.marks[error_type][style].append(region)
 
-    def regex(self, line, regex, error_type=ERROR,
-              line_match=None, word_match=None, word_re=None):
+    def regex(self, line, regex, error_type = ERROR,
+              line_match = None, word_match = None, word_re = None):
         """
         Mark a range of text that matches a regex.
 
@@ -307,22 +329,22 @@ class Highlight:
 
         """
 
-        offset = 0
+        offset=0
 
-        start, end = self.full_line(line)
-        line_text = self.code[start:end]
+        start, end=self.full_line(line)
+        line_text=self.code[start:end]
 
         if line_match:
-            match = re.match(line_match, line_text)
+            match=re.match(line_match, line_text)
 
             if match:
-                line_text = match.group('match')
-                offset = match.start('match')
+                line_text=match.group('match')
+                offset=match.start('match')
             else:
                 return
 
-        it = re.finditer(regex, line_text)
-        results = [
+        it=re.finditer(regex, line_text)
+        results=[
             result.span('mark')
             for result in it
             if word_match is None or result.group('mark') == word_match
@@ -412,9 +434,8 @@ class Highlight:
 
         """
         self.set_mark_style()
-        drawn_regions = SAVED_REGIONS.get("regions", [])  # to collect drawn regions
-        if not drawn_regions:  # workaround as get does not default to []
-            drawn_regions = []
+
+        drawn_regions = []
 
         gutter_regions = {WARNING: {}, ERROR: {}}
 
@@ -429,6 +450,7 @@ class Highlight:
                     # gutter_regions[error_type][line] = region
                     gutter_regions[error_type].setdefault(style, []).append(region)
 
+
         for error_type in (WARNING, ERROR):
             # print("self.marks: ", self.marks)
             if not self.marks[error_type]:
@@ -439,18 +461,20 @@ class Highlight:
                 if not self.styles.get(style):
                     continue
 
+                # print("self.marks: ", self.marks)
                 scope = self.get_style("scope", style, error_type)
                 mark_style = self.get_style("mark_style", style, error_type)
 
                 flags = MARK_STYLES[mark_style]
                 view.add_regions(style, regions, scope=scope, flags=flags)
-
                 drawn_regions.append(style)
 
             if not persist.has_gutter_theme:
                 continue
 
-            for line, style in self.lines[error_type].items():
+            for style, regions in gutter_regions[error_type].items():
+
+
 
                 icon = self.get_style("icon", style, error_type)
 
@@ -464,14 +488,14 @@ class Highlight:
                 # GUTTER_MARK_KEY_FORMAT.format(error_type)
                 view.add_regions(
                     gutter_style,
-                    gutter_regions[error_type][style],
+                    regions,
                     scope=scope,
                     icon=icon
                 )
                 drawn_regions.append(gutter_style)
 
             # persisting region keys for later clearance
-            SAVED_REGIONS.set("regions", drawn_regions)
+            persist.region_store.add_region_keys(view, drawn_regions)
 
     @staticmethod
     def clear(view):
@@ -480,10 +504,7 @@ class Highlight:
         # for error_type in (WARNING, ERROR):
         #     view.erase_regions(MARK_KEY_FORMAT.format(error_type))
         #     view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
-        regions = SAVED_REGIONS.get("regions", [])
-        if regions:
-            for r in regions:
-                view.erase_regions(r)
+        persist.region_store.del_regions(view)
 
     def reset(self):
         """
@@ -493,7 +514,7 @@ class Highlight:
         The next time this object is used to draw, the marks will be cleared.
 
         """
-        # TODO: centralize dic creation via deepcopy
+
         self.marks = self.get_new_dict()
         self.lines = self.get_new_dict()
 
@@ -509,23 +530,15 @@ class Highlight:
     def overwrite_line(self, line, error_type, style):
         """"""
         # Errors override warnings on the same line
-        if error_type != ERROR and self.lines[ERROR].get(line):
+        if error_type != ERROR and line in self.lines[ERROR]:
             return
 
         # Styles with higher priority override those of lower one
         # on the sameline
         existing = self.lines[error_type].get(line)
         if existing:
-            try:
-                scope_ex = self.styles[existing].get("priority", 0)
-            except KeyError as e:
-                print("self.styles: \n", self.styles)
-                raise e
-            try:
-                scope_new = self.styles[style].get("priority", 0)
-            except KeyError as e:
-                print("self.styles: \n", self.styles)
-                raise e
+            scope_ex = self.styles[existing].get("priority", 0)
+            scope_new = self.styles[style].get("priority", 0)
             if scope_ex > scope_new:
                 return
 
@@ -571,8 +584,6 @@ class Highlight:
         val = fetch_style("default")
         if val:
             return val
-
-
 
         if key == "icon":
             return persist.gutter_marks[error_type]

@@ -6,6 +6,7 @@ import sublime
 import re
 from . import style
 from collections import OrderedDict
+from .const import UNFOUND_SCOPES_MSG, CHECK_CONSOLE_MSG
 
 MARK_COLOR_RE = (
     r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
@@ -17,7 +18,7 @@ MARK_COLOR_RE = (
     r'\s*<string>)#.+?(</string>\s*\r?\n)'
 )
 
-AUTO_SCOPE = re.compile("region\.[a-z]+?ish")
+AUTO_SCOPE = re.compile(r"region\.[a-z]+?ish")
 
 
 class Scheme(metaclass=ABCMeta):
@@ -25,7 +26,7 @@ class Scheme(metaclass=ABCMeta):
 
     def __init__(self):
         """ """
-        self.nodes = {}
+        self.scopes = []
 
         self.prefs = {}
         self.scheme = ""  # later include into self.paths
@@ -115,18 +116,17 @@ class Scheme(metaclass=ABCMeta):
                           "usr_dir": os.path.join(pck_dir, "User")
                           })
 
-    def parse_scheme_xml(self, nodes, *, text):
+    def parse_scheme_xml(self, scopes, *, text):
         """ included in base class as used by both derived classes, despite 'XML'"""
-        unfound_nodes = []
+        unfound_scopes = []
 
-        for scope in nodes:
-            match = re.search(MARK_COLOR_RE.format(
-                re.escape(scope)),
-                text)
+        for scope in scopes:
+            pat = MARK_COLOR_RE.format(re.escape(scope))
+            match = re.search(pat, text)
             if not match:
-                unfound_nodes.append(scope)
+                unfound_scopes.append(scope)
 
-        return unfound_nodes
+        return unfound_scopes
 
     @staticmethod
     def touch_dir(dir):
@@ -138,8 +138,6 @@ class Scheme(metaclass=ABCMeta):
     def set_scheme_path(self, path):
         """Set 'color_scheme' to provided path if it is currently is not."""
         from . import persist
-        print("path: ", path)
-        print("self.scheme: ", self.scheme)
 
         if path != self.scheme:
             persist.printf("New scheme path detected. Updating.")
@@ -156,18 +154,17 @@ class Scheme(metaclass=ABCMeta):
 
     def unfound_scopes_dialogue(self, unfound):
         from . import persist
-        msg = "The following scopes have not been found in the color scheme:\n{}".format(
-            "\n".join(unfound))
+        msg = UNFOUND_SCOPES_MSG + "\n" + "\n".join(unfound)
         persist.printf(msg)
+        sublime.error_message(UNFOUND_SCOPES_MSG + CHECK_CONSOLE_MSG)
+
+    def add_scope(self, scope):
+        if not AUTO_SCOPE.match(scope):
+            self.scopes.append(scope)
 
     @abstractmethod
     def generate_color_scheme_async(self):
         """       """
-        pass
-
-    @abstractmethod
-    def assemble_node(self, scope, input_dict, name=None):
-        """"""
         pass
 
 
@@ -181,16 +178,17 @@ class JsonScheme(Scheme):
         style.StyleParser()()
 
         original_scheme = self.get_original_theme(self.scheme)
-        scheme_text = sublime.load_resource(original_scheme)
+        text = sublime.load_resource(original_scheme)
 
-        if self.paths["ext"] == ".sublime-color-scheme":
-            scheme_dict = sublime.decode_value(scheme_text)
-            unfound = self.parse_scheme_json(
-                self.static_nodes, rules=scheme_dict.get("rules", {}))
+        if self.paths["ext"].endswith("-color-scheme"):
+            scheme_dict = sublime.decode_value(text)
+            rules = scheme_dict.get("rules", {})
+            unfound = self.parse_scheme_json(self.scopes, rules=rules)
         elif self.paths["ext"].endswith("tmTheme"):
-            unfound = self.parse_scheme_xml(self.nodes, text=scheme_text)
+            unfound = self.parse_scheme_xml(self.scopes, text=text)
         else:  # file extension not defined
-            raise Exception
+            msg = "Unknown scheme file type: '{}' .".format(self.paths["ext"])
+            raise Exception(msg)
 
         # To ensure update when theme set to 'xxx (SL).tmTheme'
         self.set_scheme_path(self.paths["scheme_orig"])
@@ -229,9 +227,3 @@ class JsonScheme(Scheme):
                 return []
 
         return unfound_scopes
-
-    def assemble_node(self, rule, scope):
-        if not AUTO_SCOPE.match(scope):
-            self.nodes[rule] = scope
-
-

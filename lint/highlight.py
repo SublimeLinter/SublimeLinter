@@ -467,7 +467,6 @@ class Highlight:
             # draw gutter marks for
             for style, regions in gutter_regions.items():
                 icon = self.get_style("icon", style, error_type)
-
                 if icon == "none":  # do not draw icon
                     continue
 

@@ -1,6 +1,8 @@
+import sublime
 import re
 from . import persist, highlight, util
-from .const import STYLE_KEYS, TARGET_KEYS
+from .const import STYLE_KEYS, TARGET_KEYS, INVALID_RULE_MSG, CHECK_CONSOLE_MSG
+import json
 
 
 class StyleParser:
@@ -8,21 +10,29 @@ class StyleParser:
 
     def __call__(self):
         print("StyleParser.create_styles called.")
+        rule_validities = []
 
         # 1 - for default styles
         styles = persist.settings.get("styles", [])
-        self.parse_styles(styles, "default")
+        validity = self.parse_styles(styles, "default")
+        rule_validities.append(validity)
 
         # 2 - for linters
         for linter_name, d in persist.settings.get("linters", {}).items():
             styles = d.get("styles")
             if not styles:
                 continue
-            self.parse_styles(styles, linter_name)
+            validity = self.parse_styles(styles, linter_name)
+            rule_validities.append(validity)
+
+        # 3 - inform user about invalid rules
+        if False in rule_validities:
+            sublime.error_message(INVALID_RULE_MSG + CHECK_CONSOLE_MSG)
 
     def parse_styles(self, custom_styles, linter_name):
         """ """
 
+        all_rules_valid = True
         lint_dict = {}
         lint_dict["types"] = {}
         lint_dict["codes"] = {}
@@ -33,16 +43,14 @@ class StyleParser:
             style_dict = {}
 
             # 0 - check node
-            # TODO: find better corrupt style handling here
-            try:
-                self.is_node_valid(node)
-            except CorruptStyleDefintion:
+            if not self.is_node_valid(node, linter_name):
+                all_rules_valid = False
                 continue
 
             # 1 - define style
             # scopes => scheme.py
             rule_name = rule_name_tmpl.format(i + 1)
-            persist.scheme.assemble_node(rule_name, node["scope"])
+            persist.scheme.add_scope(node["scope"])
 
             def transfer_style_item(key):
                 if key in node:
@@ -71,21 +79,23 @@ class StyleParser:
 
         persist.linter_styles[linter_name] = lint_dict
 
-    def is_node_valid(self, node):
-        msg = None
+        return all_rules_valid
+
+    def is_node_valid(self, node, linter_name):
+        errors = []
 
         if "scope" not in node:
-            msg = "No 'scope' declared. node:\n{}".format(node)
-        elif not util.any_key_in(node, STYLE_KEYS):
-            msg = "No 'mark_style' nor 'icon' declared. node:\n{}".format(node)
-        elif not util.any_key_in(node, TARGET_KEYS):
-            msg = "No target definition found: Neither 'types' nor 'codes' declared:\n{}".format(node)
+            errors.append("No 'scope' declared.")
+        if not util.any_key_in(node, STYLE_KEYS):
+            errors.append("Neither 'mark_style' nor 'icon' declared.")
+        if not util.any_key_in(node, TARGET_KEYS):
+            errors.append("Neither 'types' nor 'codes' declared.")
 
-        if msg:
-            raise CorruptStyleDefintion(msg)
+        if errors:
+            msg = "Style rule is corrupt for: {}\n".format(linter_name)
+            msg += "\n".join(errors)
+            msg += json.dumps(node, indent=4, sort_keys=True)
+            persist.printf(msg)
+            return False
 
-
-class CorruptStyleDefintion(Exception):
-    """Raise this when node in custom styling is missing necessary definitions or contains unknown keywords
-    """
-    pass
+        return True

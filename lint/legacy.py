@@ -59,14 +59,13 @@ class XmlScheme(scheme.Scheme):
         plist = ElementTree.XML(scheme_text)
         styles = plist.find('./dict/array')
 
-        unfound = self.parse_scheme_xml(
-            persist.highlight_styles.keys(), text=scheme_text)
+        unfound = self.parse_scheme_xml(persist.highlight_styles, text=scheme_text)
         if not unfound:
             return
 
         # create unfound styles
-        self.gen_xml_nodes(unfound)
-        styles.extend(self.get_nodes())
+        xml_nodes = self.gen_xml_nodes(unfound)
+        styles.extend(xml_nodes)
 
         mod_name = self.paths["scheme_name"] + ' (SL)'
         mod_scheme_path = os.path.join(
@@ -87,6 +86,7 @@ class XmlScheme(scheme.Scheme):
 
     def gen_xml_nodes(self, unfound):
         """"""
+        nodes = []
 
         def get_color(key, default):
             color = settings.get(key, default)
@@ -112,7 +112,9 @@ class XmlScheme(scheme.Scheme):
         filtered = [f for f in d if f["scope"] in unfound]
 
         for item in filtered:
-            self.assemble_node(item["scope"], item)
+            nodes.append(self.assemble_node(item["scope"], item))
+
+        return nodes
 
     def assemble_node(self, scope, input_dict):
         """Assembles single node as XML ElementTree object."""
@@ -135,7 +137,7 @@ class XmlScheme(scheme.Scheme):
         # if input_dict.get("font_style"):
         #     append_kv("fontStyle", input_dict.get("font_style"), d)
 
-        self.nodes[scope] = root
+        return root
 
     def packages_relative_path(self, path, prefix_packages=True):
         """

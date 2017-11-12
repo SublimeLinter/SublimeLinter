@@ -87,7 +87,7 @@ class Settings:
         self.settings[setting] = value
 
         if changed:
-            self.changeset.add(setting)
+            self.changeset.append(setting)
 
     def pop(self, setting, default=None):
         """

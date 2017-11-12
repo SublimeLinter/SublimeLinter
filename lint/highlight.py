@@ -97,7 +97,6 @@ class RegionStore:
         self.memory.set("views", views)
 
 
-
 class HighlightSet:
     """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
@@ -156,38 +155,38 @@ class HighlightSet:
         if not self.all:
             return None
 
-        line_type=None
+        line_type = None
         for highlight in self.all:
             if line_type == ERROR:
                 continue
-            _line_type=highlight.lines.get(line)
+            _line_type = highlight.lines.get(line)
             if _line_type != WARNING and line_type == WARNING:
                 continue
-            line_type=_line_type
+            line_type = _line_type
         return line_type
 
 
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
-    def __init__(self, code = ''):
+    def __init__(self, code=''):
         """Initialize a new instance."""
-        self.code=code
-        self.marks=self.get_new_dict()
-        self.mark_style='outline'
-        self.mark_flags=MARK_STYLES[self.mark_style]
+        self.code = code
+        self.marks = self.get_new_dict()
+        self.mark_style = 'outline'
+        self.mark_flags = MARK_STYLES[self.mark_style]
 
         from .persist import highlight_styles
-        self.styles=highlight_styles
+        self.styles = highlight_styles
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines=self.get_new_dict()
+        self.lines = self.get_new_dict()
 
         # These are used when highlighting embedded code, for example JavaScript
         # or CSS within an HTML file. The embedded code is linted as if it begins
         # at (0, 0), but we need to keep track of where the actual start is within the source.
-        self.line_offset=0
-        self.char_offset=0
+        self.line_offset = 0
+        self.char_offset = 0
 
         # Linting runs asynchronously on a snapshot of the code. Marks are added to the code
         # during that asynchronous linting, and the markup code needs to calculate character
@@ -195,11 +194,11 @@ class Highlight:
         # may have changed, so we can't reliably use the plugin API to calculate character
         # positions. The solution is to calculate and store the character positions for
         # every line when this object is created, then reference that when needed.
-        self.newlines=newlines=[0]
-        last=-1
+        self.newlines = newlines = [0]
+        last = -1
 
         while True:
-            last=code.find('\n', last + 1)
+            last = code.find('\n', last + 1)
 
             if last == -1:
                 break
@@ -212,10 +211,10 @@ class Highlight:
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
-        first=text[0]
+        first = text[0]
 
         if first in ('\'', '"') and text[-1] == first:
-            text=text[1:-1]
+            text = text[1:-1]
 
         return text
 
@@ -230,14 +229,14 @@ class Highlight:
 
         # The first line of the code needs the character offset
         if line == 0:
-            char_offset=self.char_offset
+            char_offset = self.char_offset
         else:
-            char_offset=0
+            char_offset = 0
 
         line += self.line_offset
-        start=self.newlines[line] + char_offset
+        start = self.newlines[line] + char_offset
 
-        end=self.newlines[min(line + 1, len(self.newlines) - 1)]
+        end = self.newlines[min(line + 1, len(self.newlines) - 1)]
 
         return start, end
 
@@ -267,35 +266,35 @@ class Highlight:
 
         """
 
-        start, end=self.full_line(line)
+        start, end = self.full_line(line)
 
         if pos < 0:
-            pos=0
-            length=(end - start) - 1
+            pos = 0
+            length = (end - start) - 1
         elif near is not None:
-            near=self.strip_quotes(near)
-            length=len(near)
+            near = self.strip_quotes(near)
+            length = len(near)
         elif length < 0:
-            code=self.code[start:end][pos:]
-            match=(word_re or WORD_RE).search(code)
+            code = self.code[start:end][pos:]
+            match = (word_re or WORD_RE).search(code)
 
             if match:
-                length=len(match.group())
+                length = len(match.group())
             else:
-                length=1
+                length = 1
 
         pos += start
-        region=sublime.Region(pos, pos + length)
-        other_type=ERROR if error_type == WARNING else WARNING
+        region = sublime.Region(pos, pos + length)
+        other_type = ERROR if error_type == WARNING else WARNING
 
         if not style:
-            style=error_type
+            style = error_type
 
         if style not in self.marks[error_type]:  # TODO: None handling
-            self.marks[error_type][style]=[]
+            self.marks[error_type][style] = []
 
         for scope, marks in self.marks[other_type].items():
-            i_offset=0
+            i_offset = 0
             for i, mark in enumerate(marks):
                 if mark.a == region.a and mark.b == region.b:
                     if error_type == WARNING:
@@ -435,7 +434,7 @@ class Highlight:
 
         drawn_regions = []
 
-        gutter_regions = {WARNING: {}, ERROR: {}}
+        gutter_regions = self.get_new_dict()
 
         if persist.has_gutter_theme:
             # We use separate regions for the gutter marks so we can use
@@ -447,7 +446,6 @@ class Highlight:
                     region = sublime.Region(pos, pos)
                     # gutter_regions[error_type][line] = region
                     gutter_regions[error_type].setdefault(style, []).append(region)
-
 
         for error_type in (WARNING, ERROR):
             # print("self.marks: ", self.marks)
@@ -528,7 +526,6 @@ class Highlight:
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
         line += self.line_offset
-
         self.overwrite_line(line, error_type, style)
 
     def overwrite_line(self, line, error_type, style):
@@ -538,7 +535,7 @@ class Highlight:
             return
 
         # Styles with higher priority override those of lower one
-        # on the sameline
+        # on the same line
         existing = self.lines[error_type].get(line)
         if existing:
             scope_ex = self.styles[existing].get("priority", 0)

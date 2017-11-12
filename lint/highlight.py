@@ -468,7 +468,11 @@ class Highlight:
             for style, regions in gutter_regions.items():
                 icon = self.get_style("icon", style, error_type)
 
-                if persist.gutter_marks['colorize'] or icon in ST_ICONS:
+                if icon == "none":  # do not draw icon
+                    continue
+
+                # colorize icon
+                if (persist.gutter_marks['colorize'] or icon in ST_ICONS):
                     scope = self.get_style("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one

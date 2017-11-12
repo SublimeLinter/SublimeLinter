@@ -430,22 +430,10 @@ class Highlight:
         since each one potentially needs a different color.
 
         """
-        self.set_mark_style()
+        self.set_mark_style()  # TODO: does this still make sense?
 
         drawn_regions = []
-
-        gutter_regions = self.get_new_dict()
-
-        if persist.has_gutter_theme:
-            # We use separate regions for the gutter marks so we can use
-            # a scope that will not colorize the gutter icon, and to ensure
-            # that errors will override warnings.
-            for error_type in (WARNING, ERROR):
-                for line, style in self.lines[error_type].items():
-                    pos = self.newlines[line]
-                    region = sublime.Region(pos, pos)
-                    # gutter_regions[error_type][line] = region
-                    gutter_regions[error_type].setdefault(style, []).append(region)
+        protected_regions = []
 
         for error_type in (WARNING, ERROR):
             # print("self.marks: ", self.marks)
@@ -465,11 +453,19 @@ class Highlight:
                 view.add_regions(style, regions, scope=scope, flags=flags)
                 drawn_regions.append(style)
 
+            # gutter marks
             if not persist.has_gutter_theme:
                 continue
 
-            protected_regions = []
-            for style, regions in gutter_regions[error_type].items():
+            gutter_regions = {}
+            # collect regions for gutter marks
+            for line, style in self.lines[error_type].items():
+                pos = self.newlines[line]
+                region = sublime.Region(pos, pos)
+                gutter_regions.setdefault(style, []).append(region)
+
+            # draw gutter marks for
+            for style, regions in gutter_regions.items():
                 icon = self.get_style("icon", style, error_type)
 
                 if persist.gutter_marks['colorize'] or icon in ST_ICONS:

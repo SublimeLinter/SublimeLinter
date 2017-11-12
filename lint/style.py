@@ -27,7 +27,7 @@ class StyleParser:
         lint_dict["types"] = {}
         lint_dict["codes"] = {}
 
-        rule_name_tmpl = "sublimelinter." + linter_name + ".style_{0:03d}"
+        rule_name_tmpl = "sublime_linter." + linter_name + ".style_{0:03d}"
 
         for i, node in enumerate(custom_styles):
             style_dict = {}

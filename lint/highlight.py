@@ -34,7 +34,7 @@ from copy import deepcopy
 
 from . import persist
 from functools import lru_cache
-from .const import ST_ICONS
+from .const import ST_ICONS, PROTECTED_REGIONS_KEY
 
 #
 # Error types
@@ -169,8 +169,6 @@ class HighlightSet:
 
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
-
-
     def __init__(self, code = ''):
         """Initialize a new instance."""
         self.code=code
@@ -472,10 +470,8 @@ class Highlight:
             if not persist.has_gutter_theme:
                 continue
 
+            protected_regions = []
             for style, regions in gutter_regions[error_type].items():
-
-
-
                 icon = self.get_style("icon", style, error_type)
 
                 if persist.gutter_marks['colorize'] or icon in ST_ICONS:
@@ -483,16 +479,24 @@ class Highlight:
                 else:
                     scope = " "  # set scope to non-existent one
 
-                gutter_style = "gutter_" + style
+                k = style.rfind(".")
+                gutter_key = style[:k] + ".gutter." + style[k+1:]
 
                 # GUTTER_MARK_KEY_FORMAT.format(error_type)
                 view.add_regions(
-                    gutter_style,
+                    gutter_key,
                     regions,
                     scope=scope,
                     icon=icon
                 )
-                drawn_regions.append(gutter_style)
+                drawn_regions.append(gutter_key)
+                protected_regions.extend(regions)
+
+            # overlaying all gutter regions with common invisible one,
+            # to create unified handle for GitGutter and other plugins
+            # flag might not be neccessary
+            view.add_regions(PROTECTED_REGIONS_KEY, protected_regions, flags=sublime.HIDDEN)
+            drawn_regions.append(PROTECTED_REGIONS_KEY)
 
             # persisting region keys for later clearance
             persist.region_store.add_region_keys(view, drawn_regions)

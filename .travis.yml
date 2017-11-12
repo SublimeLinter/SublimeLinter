@@ -14,5 +14,5 @@ install:
   - "pip install pydocstyle"
 
 script:
-  - flake8 . --max-line-length=120 --exclude=__init__.py,linter-plugin-template,docs
+  - flake8 . --max-line-length=120 --exclude=__init__.py,docs
   - pydocstyle . --add-ignore=D202

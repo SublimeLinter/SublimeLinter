@@ -2,12 +2,11 @@
     {
         "caption": "Preferences: SublimeLinter Settings",
         "command": "edit_settings", "args":
-		{
-			"base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
-			"default": "${packages}/User/SublimeLinter.sublime-settings"
-		}
+        {
+            "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
+            "default": "${packages}/User/SublimeLinter.sublime-settings"
+        }
     },
-
     {
         "caption": "Preferences: SublimeLinter Key Bindings",
         "command": "edit_settings", "args":
@@ -16,7 +15,6 @@
             "default": "${packages}/User/Default ($platform).sublime-keymap"
         }
     },
-
     {
         "caption": "SublimeLinter: Choose Lint Mode",
         "command": "sublimelinter_choose_lint_mode"
@@ -151,7 +149,6 @@
             "which": "enabled"
         }
     },
-
     {
         "caption": "SublimeLinter: Enable Inline Tooltips",
         "command": "sublimelinter_toggle_setting", "args":
@@ -168,22 +165,6 @@
             "value": false
         }
     },
-
-    {
-        "caption": "SublimeLinter: Create Linter Plugin",
-        "command": "sublimelinter_create_linter_plugin"
-    },
-
-    {
-        "caption": "SublimeLinter: Clear Color Scheme Folder",
-        "command": "sublimelinter_clear_color_scheme_folder"
-    },
-
-    {
-        "caption": "SublimeLinter: Clear Caches",
-        "command": "sublimelinter_clear_caches"
-    },
-
     {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",

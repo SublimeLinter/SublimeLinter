@@ -1475,29 +1475,22 @@ class Linter(metaclass=LinterMeta):
             default_styles = persist.linter_styles.get("default")
             return traverse_dict(default_styles)
 
-
         def get_error_type_and_style(error, warning):
             # 1 - determine error type
             if error:
-                key = "error"
                 error_type = highlight.ERROR
                 style = codes.get(error)
             elif warning:
-                key = "warning"
                 error_type = highlight.WARNING
                 style = codes.get(warning)
             else:
-                # TODO: dynamise default error set, e.g. using highlight.type
-                # as key itselfpy
-                key = "error"
                 error_type = self.default_type
                 style = None
 
-            # 2 - determine style
-            if style:
-                return error_type, style
+            if not style:
+                style = get_default_style(error_type)
 
-            return error_type, get_default_style(error_type)
+            return error_type, style
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
             if match and message and line:
@@ -1522,6 +1515,12 @@ class Linter(metaclass=LinterMeta):
 
                     if ignore:
                         continue
+
+                if False:  # TODO remove, just for debugging
+                    print(self.name)
+                    print(line)
+                    print("message: ", message)
+                    print("-"*10)
 
                 error_type, style = get_error_type_and_style(error, warning)
                 if not style:  # for bug hunting
@@ -1599,7 +1598,6 @@ class Linter(metaclass=LinterMeta):
                     self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
 
                 self.error(line, col, message, error_type, style=style)
-
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1831,6 +1829,7 @@ class Linter(metaclass=LinterMeta):
             self.errors[line].append(message)  # likely duplication happens here
         else:
             self.errors[line] = [message]
+
 
     def find_errors(self, output):
         """

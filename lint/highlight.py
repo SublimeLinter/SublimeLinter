@@ -458,7 +458,7 @@ class Highlight:
                 continue
 
             gutter_regions = {}
-            # collect regions for gutter marks
+            # collect regions of error type
             for line, style in self.lines[error_type].items():
                 pos = self.newlines[line]
                 region = sublime.Region(pos, pos)
@@ -527,8 +527,11 @@ class Highlight:
     def overwrite_line(self, line, error_type, style):
         """"""
         # Errors override warnings on the same line
-        if error_type != ERROR and line in self.lines[ERROR]:
-            return
+        if error_type == WARNING:
+            if line in self.lines[ERROR]:
+                return
+        else:  # ensure no warning icons on same line as error
+            self.lines[WARNING].pop(line, None)
 
         # Styles with higher priority override those of lower one
         # on the same line

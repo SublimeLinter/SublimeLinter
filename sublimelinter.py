@@ -21,7 +21,6 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util
-from string import Template
 
 
 def plugin_loaded():

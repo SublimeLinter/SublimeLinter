@@ -38,7 +38,6 @@ def plugin_loaded():
     plugin = SublimeLinter.shared_plugin()
     queue.start(plugin.lint)
 
-    util.generate_menus()
     util.generate_color_scheme(from_reload=False)
 
     persist.settings.on_update_call(SublimeLinter.on_settings_updated)

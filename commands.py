@@ -204,7 +204,6 @@ class SublimelinterGotoErrorCommand(GotoErrorCommand):
 
     @error_command
     def run(self, view, errors, highlights, **kwargs):
-        """Run the command."""
         self.goto_error(view, errors, **kwargs)
 
 
@@ -213,7 +212,6 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
     @error_command
     def run(self, view, errors, highlights):
-        """Run the command."""
         self.errors = errors
         self.highlights = highlights
         self.points = []
@@ -472,7 +470,6 @@ def choose_setting_command(setting, preview):
             super(cls, self).__init__(window, setting, preview)
 
         def run(self, **kwargs):
-            """Run the command."""
             self.choose(**kwargs)
 
         cls.setting = setting
@@ -759,7 +756,6 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
         return len(self.linters[which]) > 0
 
     def run(self, **args):
-        """Run the command."""
         self.which = args['which']
 
         if self.linters[self.which]:
@@ -786,7 +782,6 @@ class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter made color schemes."""
 
     def run(self):
-        """Run the command."""
         base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
         sublime_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
         themes = glob(base_path) + glob(sublime_path)
@@ -804,7 +799,6 @@ class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter's internal caches."""
 
     def run(self):
-        """Run the command."""
         util.clear_path_caches()
         util.get_rc_settings.cache_clear()
         util.find_file.cache_clear()

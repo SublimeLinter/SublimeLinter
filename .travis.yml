@@ -11,8 +11,6 @@ matrix:
 
 install:
   - "pip install flake8"
-  - "pip install pydocstyle"
 
 script:
   - flake8 . --max-line-length=120 --exclude=__init__.py,docs
-  - pydocstyle . --add-ignore=D202

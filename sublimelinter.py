@@ -561,5 +561,4 @@ class SublimelinterEditCommand(sublime_plugin.TextCommand):
     """A plugin command used to generate an edit object for a view."""
 
     def run(self, edit):
-        """Run the command."""
         persist.edit(self.view.id(), edit)

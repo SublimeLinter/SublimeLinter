@@ -21,6 +21,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util
+from string import Template
 
 
 def plugin_loaded():
@@ -29,7 +30,7 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
     persist.debug('debug mode: on')
-    util.create_pdir()
+    util.create_tempdir()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
@@ -149,7 +150,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 highlights.add(linter.highlight)
 
             if linter.errors:
-                for line, errs in linter.errors.is():
+                for line, errs in linter.errors.items():
                     errors.setdefault(line, []).extend(errs)
 
         # Keep track of one view in each window that shares view's buffer
@@ -240,7 +241,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""
         for lint in persist.view_linters.get(vid, []):
-            if lint.pfile_suffix == '-':
+            if lint.tempfile_suffix == '-':
                 return True
 
         return False

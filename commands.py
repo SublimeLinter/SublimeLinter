@@ -781,6 +781,7 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
 
         self.linters = {}
 
+
 class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter made color schemes."""
 

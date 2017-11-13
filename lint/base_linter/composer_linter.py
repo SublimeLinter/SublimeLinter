@@ -16,7 +16,7 @@ import codecs
 
 from functools import lru_cache
 from os import path, access, X_OK
-from . import linter, persist, util
+from .. import linter, persist, util
 
 
 class ComposerLinter(linter.Linter):

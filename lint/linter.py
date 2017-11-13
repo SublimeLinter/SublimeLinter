@@ -28,6 +28,7 @@ import sublime
 from xml.sax.saxutils import unescape
 
 from . import highlight, persist, util
+from .const import PLUGIN_NAME
 
 #
 # Private constants
@@ -367,6 +368,8 @@ class Linter(metaclass=LinterMeta):
     disabled = False
     executable_version = None
 
+    lint_styles = None  # gets populated by StyleParser
+
     @classmethod
     def initialize(cls):
         """
@@ -397,6 +400,7 @@ class Linter(metaclass=LinterMeta):
         self.highlight = highlight.Highlight()
         self.ignore_matches = None
         self.demote_to_warning_matches = None
+        self.lint_styles = persist.linter_styles.get(self.name, {})
 
     @property
     def filename(self):
@@ -478,7 +482,7 @@ class Linter(metaclass=LinterMeta):
 
         if window:
             data = window.project_data() or {}
-            project_settings = data.get(persist.PLUGIN_NAME, {})
+            project_settings = data.get(PLUGIN_NAME, {})
         else:
             project_settings = {}
 
@@ -579,8 +583,9 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
-            # if a sublime-project file is in the window we use its location
-            # as the root project directory otherwise simply use the project data.
+            if not view.file_name():  # None handling for unsaved files
+                return
+
             # window.project_data delivers the root folder(s) of the view,
             # even without any project file! more flexible that way:
             #
@@ -1446,8 +1451,49 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
+
+        ##### My Modification
+        # TODO: they may be defined only once, put them in init reload
+        lint_styles = self.lint_styles
+        codes = lint_styles.get("codes", {})
+        types = lint_styles.get("types", {})
+
+        def get_default_style(error_type, memo={}):
+            """Returns default style for error_type of this linter.
+            If not found returns style of SublimeLinter error_type."""
+
+            if error_type in memo:
+                return memo[error_type]
+
+            def traverse_dict(styled_dict):
+                return styled_dict.setdefault("types", {}).get(error_type)
+
+            lint_def = traverse_dict(lint_styles)
+            if lint_def:
+                return lint_def
+
+            default_styles = persist.linter_styles.get("default")
+            return traverse_dict(default_styles)
+
+        def get_error_type_and_style(error, warning):
+            # 1 - determine error type
+            if error:
+                error_type = highlight.ERROR
+                style = codes.get(error)
+            elif warning:
+                error_type = highlight.WARNING
+                style = codes.get(warning)
+            else:
+                error_type = self.default_type
+                style = None
+
+            if not style:
+                style = get_default_style(error_type)
+
+            return error_type, style
+
         for match, line, col, error, warning, message, near in self.find_errors(output):
-            if match and message and line is not None:
+            if match and message and line:
                 if self.ignore_matches:
                     ignore = False
 
@@ -1470,12 +1516,28 @@ class Linter(metaclass=LinterMeta):
                     if ignore:
                         continue
 
-                if error:
-                    error_type = highlight.ERROR
-                elif warning:
-                    error_type = highlight.WARNING
-                else:
-                    error_type = self.default_type
+                if False:  # TODO remove, just for debugging
+                    print(self.name)
+                    print(line)
+                    print("message: ", message)
+                    print("-"*10)
+
+                error_type, style = get_error_type_and_style(error, warning)
+                if not style:  # for bug hunting
+                    print("style is None in Linter.lint")
+                    print(self.name)
+                    print("code: ", codes)
+                    print("types: ", types)
+                    print("error_type: ", error_type)
+                    print("style: ", style)
+                    print("col: ", col)
+                    print("near: ", near)
+                    print("message: ", message)
+                    print("error: ", error)
+                    print("warning: ", warning)
+                    print("self.default_type: ", self.default_type)
+                    print("persist.linter_styles: ", persist.linter_styles)
+                    raise Exception
 
                 if error_type is highlight.ERROR:
                     demote_to_warning = False
@@ -1501,7 +1563,7 @@ class Linter(metaclass=LinterMeta):
                     if demote_to_warning:
                         error_type = highlight.WARNING
 
-                if col is not None:
+                if col:
                     start, end = self.highlight.full_line(line)
 
                     # Adjust column numbers to match the linter's tabs if necessary
@@ -1520,22 +1582,22 @@ class Linter(metaclass=LinterMeta):
                     # Pin the column to the start/end line offsets
                     col = max(min(col, (end - start) - 1), 0)
 
-                if col is not None:
-                    self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re)
+                if col:
+                    self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re, style=style)
                 elif near:
-                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
+                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re, style=style)
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
-                        persist.settings.get('gutter_theme') == 'none'
+                        not persist.has_gutter_theme
                     ):
                         pos = -1
                     else:
                         pos = 0
 
-                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
+                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
 
-                self.error(line, col, message, error_type)
+                self.error(line, col, message, error_type, style=style)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1735,10 +1797,6 @@ class Linter(metaclass=LinterMeta):
             return version
         else:
             persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
-            persist.debug('          using cmd: {}, env: {}'.format(
-                cmd,
-                util.create_environment()
-            ))
             return None
 
     @staticmethod
@@ -1755,9 +1813,10 @@ class Linter(metaclass=LinterMeta):
 
         return result
 
-    def error(self, line, col, message, error_type):
+    def error(self, line, col, message, error_type, style=None):
         """Add a reference to an error/warning on the given line and column."""
-        self.highlight.line(line, error_type)
+        # print("error_type in linter error( :", error_type)
+        self.highlight.line(line, error_type, style=style)
 
         # Some linters use html entities in error messages, decode them
         message = HTML_ENTITY_RE.sub(self.replace_entity, message)
@@ -1766,9 +1825,11 @@ class Linter(metaclass=LinterMeta):
         message = ((col or 0), str(message).rstrip('\r .'))
 
         if line in self.errors:
-            self.errors[line].append(message)
+            # print(self.errors[line])
+            self.errors[line].append(message)  # likely duplication happens here
         else:
             self.errors[line] = [message]
+
 
     def find_errors(self, output):
         """

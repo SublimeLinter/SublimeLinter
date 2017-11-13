@@ -15,7 +15,7 @@ import re
 import shlex
 import sublime
 
-from . import linter, persist, util
+from .. import linter, persist, util
 
 CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
 

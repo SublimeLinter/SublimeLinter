@@ -19,7 +19,7 @@ from . import (
 )
 
 from .linter import Linter
-from .python_linter import PythonLinter
-from .ruby_linter import RubyLinter
-from .node_linter import NodeLinter
-from .composer_linter import ComposerLinter
+from .base_linter.python_linter import PythonLinter
+from .base_linter.ruby_linter import RubyLinter
+from .base_linter.node_linter import NodeLinter
+from .base_linter.composer_linter import ComposerLinter

@@ -18,8 +18,9 @@ import sublime
 import sublime_plugin
 
 from .lint.linter import Linter
-from .lint.highlight import HighlightSet
+from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
+from .lint import persist, util, scheme
 from .lint import persist, util
 
 
@@ -28,16 +29,27 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
-    persist.debug('debug mode: on')
+
+    # TODO: remove the three lines below to unlink legacy.py
+    from .lint.legacy import legacy_check
+
+    @legacy_check
+    def set_scheme():
+        return scheme.JsonScheme()
+
+    persist.scheme = set_scheme()
+    persist.scheme.generate(from_reload=False)
+
+    persist.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
     util.create_tempdir()
+
+    persist.region_store = RegionStore()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
 
     plugin = SublimeLinter.shared_plugin()
     queue.start(plugin.lint)
-
-    util.generate_color_scheme(from_reload=False)
 
     persist.settings.on_update_call(SublimeLinter.on_settings_updated)
 
@@ -392,7 +404,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
                 if lineno in errors:
                     # Sort the errors by column
-                    line_errors = sorted(errors[lineno], key=lambda error: error[0])
+                    line_errors = sorted(
+                        errors[lineno], key=lambda error: error[0])
                     line_errors = [error[1] for error in line_errors]
 
                     if plural:
@@ -402,7 +415,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
                         if len(line_errors) > 1:
                             last = first + len(line_errors) - 1
-                            status = '{}-{} of {} errors: '.format(first, last, count)
+                            status = '{}-{} of {} errors: '.format(
+                                first, last, count)
                         else:
                             status = '{} of {} errors: '.format(first, count)
                     else:
@@ -460,14 +474,16 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def on_pre_save_async(self, view):
         """
+        TODO: deprecated, remove
         Ran before view is saved.
 
         If a settings file is the active view and is saved,
         copy the current settings first so we can compare post-save.
 
         """
-        if view.window().active_view() == view and self.is_settings_file(view):
-            persist.settings.copy()
+        # if view.window().active_view() == view and self.is_settings_file(view):
+        #     persist.settings.copy()
+        pass
 
     def on_post_save_async(self, view):
         """Ran after view is saved."""

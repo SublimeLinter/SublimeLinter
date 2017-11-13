@@ -14,7 +14,7 @@ import importlib
 import os
 import re
 
-from . import linter, persist, util
+from .. import linter, persist, util
 
 
 class PythonLinter(linter.Linter):

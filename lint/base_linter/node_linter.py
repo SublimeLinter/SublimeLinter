@@ -17,7 +17,7 @@ import sublime
 
 from functools import lru_cache
 from os import path, access, X_OK
-from . import linter, persist, util
+from .. import linter, persist, util
 
 
 class NodeLinter(linter.Linter):

@@ -1,40 +1,53 @@
 {
-    "default": {
-        "debug": false,
-        "delay": 0.25,
-        "error_color": "D02000",
-        "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
-        "gutter_theme_excludes": [],
-        "lint_mode": "background",
-        "mark_style": "outline",
-        "no_column_highlights_line": false,
-        "passive_warnings": false,
-        "paths": {
-            "linux": [],
-            "osx": [],
-            "windows": []
-        },
-        "python_paths": {
-            "linux": [],
-            "osx": [],
-            "windows": []
-        },
-        "rc_search_limit": 3,
-        "shell_timeout": 10,
-        "show_errors_on_save": false,
-        "show_marks_in_minimap": true,
-        "syntax_map": {
-            "python django": "python",
-            "pythonimproved": "python",
-            "magicpython": "python",
-            "html 5": "html",
-            "html (django)": "html",
-            "html (rails)": "html",
-            "javascript (babel)": "javascript",
-            "php": "html"
-        },
-        "tooltips": false,
-        "warning_color": "DDB700",
-        "wrap_find": true
-    }
+    "debug": false,
+    "delay": 0.3,
+    "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
+    "gutter_theme_excludes": [],
+    "lint_mode": "background",
+    "no_column_highlights_line": false,
+    "passive_warnings": false,
+    "paths": {
+        "linux": [],
+        "osx": [],
+        "windows": []
+    },
+    "python_paths": {
+        "linux": [],
+        "osx": [],
+        "windows": []
+    },
+    "rc_search_limit": 3,
+    "shell_timeout": 10,
+    "show_errors_on_save": false,
+    "show_marks_in_minimap": true,
+    "syntax_map": {
+        "python django": "python",
+        "pythonimproved": "python",
+        "magicpython": "python",
+        "html 5": "html",
+        "html (django)": "html",
+        "html (rails)": "html",
+        "javascript (babel)": "javascript",
+        "php": "html"
+    },
+    "tooltips": false,
+    "wrap_find": true,
+    "styles": [
+       {
+         "scope": "region.yellowish",
+         "mark_style": "outline",
+         "priority": 1,
+         "types": [
+           "warning"
+         ]
+       },
+       {
+         "scope": "region.redish",
+         "mark_style": "outline",
+         "priority": 1,
+         "types": [
+           "error"
+         ]
+       }
+     ]
 }

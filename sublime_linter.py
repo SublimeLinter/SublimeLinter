@@ -424,7 +424,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         def count_msgs(key):
             return len(line_dict.get(key, []))
 
-        status = "SublimeLinter: E: {} W: {}".format(
+        status = "SublimeLinter: W: {} E: {}".format(
             count_msgs("warning"), count_msgs("error"))
 
         if msgs:

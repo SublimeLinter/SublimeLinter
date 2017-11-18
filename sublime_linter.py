@@ -371,15 +371,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             if view == active_view:
                 return view
 
-    def on_selection_modified_async(self, view):
-        """Ran when the selection changes (cursor moves or text selected)."""
-        self.display_errors(view, tooltip=True)
-
-    def display_errors(self, view, tooltip=False):
-        """
-        Display lint errors in the view status.
-
-        """
+    def get_line_messages(self, view, lineno):
         view.erase_status(STATUS_KEY)
         if self.is_scratch(view):
             return
@@ -393,13 +385,27 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not msg_dict:
             return
 
+        return msg_dict.get(lineno)
+
+
+    def on_selection_modified_async(self, view):
+        """Ran when the selection changes (cursor moves or text selected)."""
+        self.display_errors(view, tooltip=True)
+
+    def display_errors(self, view, tooltip=False):
+        """
+        Display lint errors in the view status.
+
+        """
         # Get the line number of the first line of the first selection.
+
+
         try:
             lineno, colno = view.rowcol(view.sel()[0].begin())
         except IndexError:
             lineno, colno = -1, -1
 
-        line_dict = msg_dict.get(lineno)
+        line_dict = self.get_line_messages(view, lineno)
         if not line_dict:
             return
 
@@ -414,7 +420,6 @@ class SublimeLinter(sublime_plugin.EventListener):
                         msgs.append(d["msg"])
                 elif colno == 0:
                     msgs.append(d["msg"])
-
 
         def count_msgs(key):
             return len(line_dict.get(key, []))

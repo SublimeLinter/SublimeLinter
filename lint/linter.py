@@ -1582,8 +1582,9 @@ class Linter(metaclass=LinterMeta):
                     # Pin the column to the start/end line offsets
                     col = max(min(col, (end - start) - 1), 0)
 
+                region = None
                 if col:
-                    self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re, style=style)
+                    region = self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re, style=style)
                 elif near:
                     col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re, style=style)
                 else:
@@ -1595,9 +1596,10 @@ class Linter(metaclass=LinterMeta):
                     else:
                         pos = 0
 
-                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
+                    region = self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
 
-                self.error(line, col, message, error_type, style=style)
+                # TODO: stop passing col just use region?
+                self.error(line, col, message, error_type, style=style, code=warning or error, region=region)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1813,22 +1815,26 @@ class Linter(metaclass=LinterMeta):
 
         return result
 
-    def error(self, line, col, message, error_type, style=None):
+    def error(self, line, col, message, error_type, style=None, code=None, region=None):
         """Add a reference to an error/warning on the given line and column."""
-        # print("error_type in linter error( :", error_type)
+
         self.highlight.line(line, error_type, style=style)
 
         # Some linters use html entities in error messages, decode them
-        message = HTML_ENTITY_RE.sub(self.replace_entity, message)
+        cleaned_msg = HTML_ENTITY_RE.sub(self.replace_entity, message)
+        cleaned_msg = str(cleaned_msg).rstrip('\r .')
 
         # Strip trailing CR, space and period
-        message = ((col or 0), str(message).rstrip('\r .'))
+        payload = {"col": (col or 0), "linter": self.name, "msg": cleaned_msg}
+        if code:
+            payload["code"] = code
 
-        if line in self.errors:
-            # print(self.errors[line])
-            self.errors[line].append(message)  # likely duplication happens here
-        else:
-            self.errors[line] = [message]
+        if region:
+            payload["region"] = region
+
+        l1 = self.errors.setdefault(line, {})
+        l2 = l1.setdefault(error_type, [])
+        l2.append(payload)
 
 
     def find_errors(self, output):

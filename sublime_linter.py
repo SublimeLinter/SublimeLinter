@@ -24,6 +24,7 @@ from .lint import persist, util, scheme
 
 from string import Template
 
+STATUS_KEY = "sublime_linter_status"
 
 def plugin_loaded():
     """Entry point for SL plugins."""
@@ -67,6 +68,7 @@ class SublimeLinter(sublime_plugin.EventListener):
     """The main ST3 plugin class."""
 
     # We use this to match linter settings filenames.
+    # TODO: make raw string, test...
     LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
@@ -165,7 +167,11 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             if linter.errors:
                 for line, errs in linter.errors.items():
-                    errors.setdefault(line, []).extend(errs)
+                    # print("errs: ", errs)
+                    l = errors.setdefault(line, {})
+                    for t in ("warning", "error"):   # TODO: centralize?
+                        l.setdefault(t,[]).extend(errs.get(t, []))
+
 
         # Keep track of one view in each window that shares view's buffer
         window_views = {}
@@ -376,65 +382,55 @@ class SublimeLinter(sublime_plugin.EventListener):
         """
         Display lint errors in the view status.
 
-        If tooltip is set to True, also display lint errors in a tooltip
-        at the caret's position.
         """
-
+        view.erase_status(STATUS_KEY)
         if self.is_scratch(view):
             return
 
         view = self.get_focused_view_id(view)
 
-        if view is None:
+        if not view:
             return
 
-        vid = view.id()
+        msg_dict = persist.errors.get(view.id())
+        if not msg_dict:
+            return
 
         # Get the line number of the first line of the first selection.
         try:
-            lineno = view.rowcol(view.sel()[0].begin())[0]
+            lineno, colno = view.rowcol(view.sel()[0].begin())
         except IndexError:
-            lineno = -1
+            lineno, colno = -1, -1
 
-        if vid in persist.errors:
-            errors = persist.errors[vid]
+        line_dict = msg_dict.get(lineno)
+        if not line_dict:
+            return
 
-            if errors:
-                lines = sorted(list(errors))
-                counts = [len(errors[line]) for line in lines]
-                count = sum(counts)
-                plural = 's' if count > 1 else ''
+        msgs = []
+        point = view.text_point(lineno, colno)
 
-                if lineno in errors:
-                    # Sort the errors by column
-                    line_errors = sorted(
-                        errors[lineno], key=lambda error: error[0])
-                    line_errors = [error[1] for error in line_errors]
+        for error_type, dc in line_dict.items():
+            for d in dc:
+                region = d.get("region")
+                if region and not region.contains(point):
+                    continue
+                elif colno != 0:
+                    continue
 
-                    if plural:
-                        # Sum the errors before the first error on this line
-                        index = lines.index(lineno)
-                        first = sum(counts[0:index]) + 1
+                msgs.append(d["msg"])
 
-                        if len(line_errors) > 1:
-                            last = first + len(line_errors) - 1
-                            status = '{}-{} of {} errors: '.format(
-                                first, last, count)
-                        else:
-                            status = '{} of {} errors: '.format(first, count)
-                    else:
-                        status = 'Error: '
+        def count_msgs(key):
+            return len(line_dict.get(key, []))
 
-                    status += '; '.join(line_errors)
+        msg_tmpl = "SublimeLinter: ⚠: {} ⮾: {} - {}"
+        status = msg_tmpl.format(
+                    count_msgs("warning"),
+                    count_msgs("error"),
+                    "; ".join(msgs)
+                )
 
-                    if persist.settings.get('tooltips') and tooltip:
-                        self.open_tooltip(lineno, line_errors)
-                else:
-                    status = '%i error%s' % (count, plural)
+        view.set_status(STATUS_KEY, status)
 
-                view.set_status('sublimelinter', status)
-            else:
-                view.erase_status('sublimelinter')
 
     def get_active_view(self):
         """Return the active view in the currently active window."""

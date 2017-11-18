@@ -287,25 +287,29 @@ class Highlight:
         region = sublime.Region(pos, pos + length)
         other_type = ERROR if error_type == WARNING else WARNING
 
-        if not style:
-            style = error_type
-
-        if style not in self.marks[error_type]:  # TODO: None handling
-            self.marks[error_type][style] = []
+        # TODO: remove later for debugging
+        assert style  #
+        if style not in self.styles:
+            print("style not in self.styles")
+            print(style)
+            print(self.styles)
+            print(error_type)
+            print(self.marks)
+            print("-"*10)
+            raise Exception
 
         for scope, marks in self.marks[other_type].items():
             i_offset = 0
             for i, mark in enumerate(marks):
-                if mark.a == region.a and mark.b == region.b:
+                if (mark.a, mark.b) == (region.a, region.b):
                     if error_type == WARNING:
                         return
                     else:
                         self.marks[other_type][scope].pop(i - i_offset)
-                        # marks.pop(i - i_offset)
-
                         i_offset += 1
 
-        self.marks[error_type][style].append(region)
+        self.marks[error_type].setdefault(style, []).append(region)
+        return region
 
     def regex(self, line, regex, error_type = ERROR,
               line_match = None, word_match = None, word_re = None):

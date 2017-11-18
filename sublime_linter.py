@@ -371,7 +371,15 @@ class SublimeLinter(sublime_plugin.EventListener):
             if view == active_view:
                 return view
 
-    def get_line_messages(self, view, lineno):
+    def get_line_and_col(self, view):
+        try:
+            lineno, colno = view.rowcol(view.sel()[0].begin())
+        except IndexError:
+            lineno, colno = -1, -1
+
+        return lineno, colno
+
+    def get_line_dict(self, view, lineno):
         view.erase_status(STATUS_KEY)
         if self.is_scratch(view):
             return
@@ -400,12 +408,9 @@ class SublimeLinter(sublime_plugin.EventListener):
         # Get the line number of the first line of the first selection.
 
 
-        try:
-            lineno, colno = view.rowcol(view.sel()[0].begin())
-        except IndexError:
-            lineno, colno = -1, -1
+        lineno, colno = self.get_line_and_col(view)
 
-        line_dict = self.get_line_messages(view, lineno)
+        line_dict = self.get_line_dict(view, lineno)
         if not line_dict:
             return
 
@@ -438,7 +443,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return sublime.active_window().active_view()
 
-    def open_tooltip(self, line, errors):
+    def open_tooltip(self):
         """ Show a tooltip containing all linting errors on a given line. """
 
         stylesheet = '''
@@ -455,16 +460,30 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         active_view = self.get_active_view()
 
+        msgs = []
+
         # Leave any existing popup open without replacing it
         if active_view.is_popup_visible():
             return
 
-        tooltip_message = '<br />'.join(html.escape(e, quote=False) for e in errors)
+        lineno, colno = self.get_line_and_col(active_view)
+
+        line_dict = self.get_line_dict(active_view, lineno)
+
+        if not line_dict:
+            tooltip_message = "- No errors to display. -"
+
+        else:
+            for error_type, v in line_dict.items():
+                for item in v:
+                    msgs.append(item["msg"])
+
+            tooltip_message = '<br />'.join(html.escape(e, quote=False) for e in msgs)
 
         active_view.show_popup(
             template.format(
                 stylesheet=stylesheet,
-                line=line + 1,
+                line=lineno + 1,
                 message=tooltip_message
             ),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,

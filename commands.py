@@ -85,7 +85,7 @@ class SublimelinterLintCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Lint the current view."""
-        from .sublimelinter import SublimeLinter
+        from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().hit(self.view)
 
 
@@ -776,3 +776,11 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
         from .sublime_linter import SublimeLinter
         Thread(target=SublimeLinter.lint, kwargs=kwargs).start()
+
+
+class SublimelinterLineReportCommand(sublime_plugin.WindowCommand):
+    """Trigger a popup for all lint messages of the current line.
+    If the line is clean the popup will inform about that, too."""
+    def run(self):
+        from .sublime_linter import SublimeLinter
+        SublimeLinter.shared_plugin().open_tooltip()

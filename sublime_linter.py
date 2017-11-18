@@ -409,22 +409,21 @@ class SublimeLinter(sublime_plugin.EventListener):
         for error_type, dc in line_dict.items():
             for d in dc:
                 region = d.get("region")
-                if region and not region.contains(point):
-                    continue
-                elif colno != 0:
-                    continue
+                if region:
+                    if region.contains(point):
+                        msgs.append(d["msg"])
+                elif colno == 0:
+                    msgs.append(d["msg"])
 
-                msgs.append(d["msg"])
 
         def count_msgs(key):
             return len(line_dict.get(key, []))
 
-        msg_tmpl = "SublimeLinter: ⚠: {} ⮾: {} - {}"
-        status = msg_tmpl.format(
-                    count_msgs("warning"),
-                    count_msgs("error"),
-                    "; ".join(msgs)
-                )
+        status = "SublimeLinter: ⚠: {} ⮾: {}".format(
+            count_msgs("warning"), count_msgs("error"))
+
+        if msgs:
+            status += " - {}".format("; ".join(msgs))
 
         view.set_status(STATUS_KEY, status)
 

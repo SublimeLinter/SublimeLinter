@@ -415,7 +415,6 @@ class Highlight:
 
     def set_mark_style(self):
         """Configure the mark style and flags based on settings."""
-        self.mark_style = persist.settings.get('mark_style', 'outline')
         self.mark_flags = MARK_STYLES[self.mark_style]
 
         if not persist.settings.get('show_marks_in_minimap'):
@@ -429,7 +428,7 @@ class Highlight:
         since each one potentially needs a different color.
 
         """
-        self.set_mark_style()  # TODO: does this still make sense?
+        self.set_mark_style()
 
         drawn_regions = []
         protected_regions = []

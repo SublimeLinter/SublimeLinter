@@ -14,6 +14,12 @@ COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 '''
 
+def touch_dir(dir):
+    """Create dir if it does not exist."""
+    # TODO: need to make it recursive???
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
 
 class XmlScheme(scheme.Scheme):
     """docstring for XmlScheme"""
@@ -73,6 +79,7 @@ class XmlScheme(scheme.Scheme):
 
         content = ElementTree.tostring(plist, encoding='unicode')
 
+        touch_dir(self.paths["usr_dir_abs"])  # ensure dir exists
         with open(mod_scheme_path, 'w', encoding='utf8') as f:
             f.write(COLOR_SCHEME_PREAMBLE)
             f.write(content)
@@ -85,7 +92,6 @@ class XmlScheme(scheme.Scheme):
         self.set_scheme_path(scheme_path_rel)
 
     def gen_xml_nodes(self, unfound):
-        """"""
         nodes = []
 
         def get_color(key, default):

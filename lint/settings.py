@@ -185,10 +185,6 @@ class Settings:
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
 
-        # TODO: what does this do?
-        # if self.previous_settings and self.on_update_callback:
-        #     self.on_update_callback(need_relint)
-
         self.changeset.clear()
 
     def save(self, view=None):

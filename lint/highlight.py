@@ -131,11 +131,6 @@ class HighlightSet:
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        # for error_type in (WARNING, ERROR):
-        # view.erase_regions(MARK_KEY_FORMAT.format(error_type))
-        # view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
-        # print("SAVED_REGIONS: ", SAVED_REGIONS)
-
         persist.region_store.del_regions(view)
 
     def redraw(self, view):
@@ -505,10 +500,6 @@ class Highlight:
     @staticmethod
     def clear(view):
         """Clear all marks in the given view."""
-        # # TODO: clear all regions
-        # for error_type in (WARNING, ERROR):
-        #     view.erase_regions(MARK_KEY_FORMAT.format(error_type))
-        #     view.erase_regions(GUTTER_MARK_KEY_FORMAT.format(error_type))
         persist.region_store.del_regions(view)
 
     def reset(self):

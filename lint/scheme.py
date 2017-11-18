@@ -128,13 +128,6 @@ class Scheme(metaclass=ABCMeta):
 
         return unfound_scopes
 
-    @staticmethod
-    def touch_dir(dir):
-        """Create dir if it does not exist."""
-        # TODO: need to make it recursive???
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
     def set_scheme_path(self, path):
         """Set 'color_scheme' to provided path if it is currently is not."""
         from . import persist
@@ -193,8 +186,8 @@ class JsonScheme(Scheme):
         # To ensure update when theme set to 'xxx (SL).tmTheme'
         self.set_scheme_path(self.paths["scheme_orig"])
 
-        if not unfound and not self.nodes:
-            print("No nodes to include")
+        if not unfound and not self.scopes:
+            print("No scopes to include")
             return
 
         new_scheme_path = os.path.join(self.paths["usr_dir"],

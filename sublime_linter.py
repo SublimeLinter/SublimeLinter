@@ -7,7 +7,7 @@
 # Project: https://github.com/SublimeLinter/SublimeLinter3
 # License: MIT
 #
-3
+
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
@@ -21,8 +21,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
-
-from string import Template
+from .lint import persist, util
 
 STATUS_KEY = "sublime_linter_status"
 
@@ -60,8 +59,6 @@ def plugin_loaded():
 
     if window:
         plugin.on_activated_async(window.active_view())
-
-    util.generate_menus()
 
 
 class SublimeLinter(sublime_plugin.EventListener):
@@ -437,36 +434,20 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return sublime.active_window().active_view()
 
-    def get_template(self):
-        """
-        If no tooltip theme has been configured, returns False.
-
-        Otherwise, returns a Template object with the template text.
-
-        """
-        tooltip_theme = persist.settings.get('tooltip_theme')
-
-        if tooltip_theme == 'none':
-            return False
-
-        theme_path = os.path.dirname(tooltip_theme)
-        template_path = os.path.join(theme_path, 'tooltip.html')
-        tooltip_text = sublime.load_resource(template_path)
-
-        return Template(tooltip_text)
-
     def open_tooltip(self, line, errors):
-        """
-        Show a tooltip containing all linting errors on a given line.
+        """ Show a tooltip containing all linting errors on a given line. """
 
-        Does nothing if no tooltip template can be created, or if another popup
-        is already displayed.
+        stylesheet = '''
+            body { word-wrap: break-word; }
+        '''
 
-        """
-        template = self.get_template()
-
-        if not template:
-            return
+        template = '''
+            <body id="sublimelinter-tooltip">
+                <style>{stylesheet}</style>
+                <div><b>Line {line}</b></div>
+                <div>{message}</div>
+            </body>
+        '''
 
         active_view = self.get_active_view()
 
@@ -474,13 +455,18 @@ class SublimeLinter(sublime_plugin.EventListener):
         if active_view.is_popup_visible():
             return
 
-        tooltip_content = template.substitute(line=line + 1,
-                                              message='<br />'.join(html.escape(e, quote=False) for e in errors),
-                                              font_size=persist.settings.get('tooltip_fontsize'))
-        active_view.show_popup(tooltip_content,
-                               flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-                               location=-1,
-                               max_width=600)
+        tooltip_message = '<br />'.join(html.escape(e, quote=False) for e in errors)
+
+        active_view.show_popup(
+            template.format(
+                stylesheet=stylesheet,
+                line=line + 1,
+                message=tooltip_message
+            ),
+            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+            location=-1,
+            max_width=600
+        )
 
     def on_pre_save_async(self, view):
         """
@@ -575,5 +561,4 @@ class SublimelinterEditCommand(sublime_plugin.TextCommand):
     """A plugin command used to generate an edit object for a view."""
 
     def run(self, edit):
-        """Run the command."""
         persist.edit(self.view.id(), edit)

@@ -20,7 +20,6 @@ import os
 import getpass
 import re
 import shutil
-from string import Template
 import stat
 import sublime
 import subprocess
@@ -44,8 +43,6 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 
 INLINE_SETTINGS_RE = re.compile(r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
 INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
-
-MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
 
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
@@ -187,99 +184,6 @@ def update_syntax_map():
     if modified:
         persist.settings.set('syntax_map', syntax_map)
         persist.settings.save()
-
-
-# menu utils
-
-def indent_lines(text, indent):
-    """Return all of the lines in text indented by prefixing with indent."""
-    return re.sub(r'^', indent, text, flags=re.MULTILINE)[len(indent):]
-
-
-def generate_menus(**kwargs):
-    """Asynchronously call generate_menus_async."""
-    sublime.set_timeout_async(generate_menus_async, 0)
-
-
-def generate_menus_async():
-    """
-    Generate context and Tools SublimeLinter menus.
-
-    This is done dynamically so that we can have a submenu with all
-    of the available gutter themes.
-
-    """
-
-    commands = []
-
-    for chooser in CHOOSERS:
-        commands.append({
-            'caption': chooser,
-            'menus': build_submenu(chooser),
-            'toggleItems': ''
-        })
-
-    menus = []
-    indent = MENU_INDENT_RE.search(CHOOSER_MENU).group(1)
-
-    for cmd in commands:
-        # Indent the commands to where they want to be in the template.
-        # The first line doesn't need to be indented, remove the extra indent.
-        cmd['menus'] = indent_lines(cmd['menus'], indent)
-
-        if cmd['caption'] in TOGGLE_ITEMS:
-            cmd['toggleItems'] = TOGGLE_ITEMS[cmd['caption']]
-            cmd['toggleItems'] = indent_lines(cmd['toggleItems'], indent)
-
-        menus.append(Template(CHOOSER_MENU).safe_substitute(cmd))
-
-    menus = ',\n'.join(menus)
-    text = generate_menu('Context', menus)
-    generate_menu('Main', text)
-
-
-def generate_menu(name, menu_text):
-    """Generate and return a sublime-menu from a template."""
-
-    from . import persist
-    plugin_dir = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY, 'menus')
-    path = os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name))
-
-    with open(path, encoding='utf8') as f:
-        template = f.read()
-
-    # Get the indent for the menus within the template,
-    # indent the chooser menus except for the first line.
-    indent = MENU_INDENT_RE.search(template).group(1)
-    menu_text = indent_lines(menu_text, indent)
-
-    text = Template(template).safe_substitute({'menus': menu_text})
-    path = os.path.join(plugin_dir, '{}.sublime-menu'.format(name))
-
-    with open(path, mode='w', encoding='utf8') as f:
-        f.write(text)
-
-    return text
-
-
-def build_submenu(caption):
-    """Generate and return a submenu with commands to select a lint mode, mark style, or gutter theme."""
-
-    setting = caption.lower()
-
-    if setting == 'lint mode':
-        from . import persist
-        names = [mode[0].capitalize() for mode in persist.LINT_MODES]
-    # elif setting == 'mark style':
-    #     from . import highlight
-    #     names = highlight.mark_style_names()
-
-    commands = []
-
-    for name in names:
-        commands.append(CHOOSER_COMMAND.format(setting.replace(' ', '_'), name))
-
-    return ',\n'.join(commands)
 
 
 # file/directory/environment utils
@@ -865,18 +769,6 @@ def find_executable(executable):
     return None
 
 
-def touch(path):
-    """Perform the equivalent of touch on Posix systems."""
-    with open(path, 'a'):
-        os.utime(path, None)
-
-
-def open_directory(path):
-    """Open the directory at the given path in a new window."""
-    cmd = (get_subl_executable_path(), path)
-    subprocess.Popen(cmd, cwd=path)
-
-
 def get_subl_executable_path():
     """Return the path to the subl command line binary."""
 
@@ -1195,16 +1087,6 @@ def convert_type(value, type_value, sep=None, default=None):
     return default
 
 
-def get_user_fullname():
-    """Return the user's full name (or at least first name)."""
-
-    if sublime.platform() in ('osx', 'linux'):
-        import pwd
-        return pwd.getpwuid(os.getuid()).pw_gecos
-    else:
-        return os.environ.get('USERNAME', 'Me')
-
-
 def center_region_in_view(region, view):
     """
     Center the given region in view.
@@ -1243,40 +1125,3 @@ class cd:
         """Go back to the old wd."""
         os.chdir(self.savedPath)
 
-
-
-
-
-# menu command constants
-
-CHOOSERS = ['Lint Mode']
-    # ,'Mark Style'
-
-
-CHOOSER_MENU = '''{
-    "caption": "$caption",
-    "children":
-    [
-        $menus,
-        $toggleItems
-    ]
-}'''
-
-CHOOSER_COMMAND = '''{{
-    "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
-}}'''
-
-TOGGLE_ITEMS = {
-    'Mark Style': '''
-{
-    "caption": "-"
-},
-{
-    "caption": "No Column Highlights Line",
-    "command": "sublimelinter_toggle_setting", "args":
-    {
-        "setting": "no_column_highlights_line",
-        "checked": true
-    }
-}'''
-}

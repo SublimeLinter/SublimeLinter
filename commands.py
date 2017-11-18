@@ -11,18 +11,12 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
-import datetime
 from fnmatch import fnmatch
 from glob import glob
 import json
 import os
 import re
-import shutil
-import subprocess
-import tempfile
-from textwrap import TextWrapper
 from threading import Thread
-import time
 
 import sublime
 import sublime_plugin
@@ -210,7 +204,6 @@ class SublimelinterGotoErrorCommand(GotoErrorCommand):
 
     @error_command
     def run(self, view, errors, highlights, **kwargs):
-        """Run the command."""
         self.goto_error(view, errors, **kwargs)
 
 
@@ -219,7 +212,6 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
     @error_command
     def run(self, view, errors, highlights):
-        """Run the command."""
         self.errors = errors
         self.highlights = highlights
         self.points = []
@@ -478,7 +470,6 @@ def choose_setting_command(setting, preview):
             super(cls, self).__init__(window, setting, preview)
 
         def run(self, **kwargs):
-            """Run the command."""
             self.choose(**kwargs)
 
         cls.setting = setting
@@ -628,105 +619,6 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             return setting
 
 
-@choose_setting_command('tooltip_theme', preview=True)
-class SublimelinterChooseTooltipThemeCommand(ChooseSettingCommand):
-    """A command that selects a tooltip theme from a list."""
-
-    def get_settings(self):
-        """
-        Return a list of all available Tooltip themes, with 'None' at the end.
-
-        Whether the theme is colorized and is a SublimeLinter or user theme
-        is indicated below the theme name.
-
-        """
-
-        settings = self.find_tooltip_themes()
-        settings.append(['None', 'Do not display tooltip'])
-        self.themes.append('none')
-
-        return settings
-
-    def find_tooltip_themes(self):
-        """
-        Find all SublimeLinter.tooltip-theme resources.
-
-        For each found resource, if it doesn't match one of the patterns
-        from the "tooltip_theme_excludes" setting, return the base name
-        of resource and info on whether the theme is a standard theme
-        or a user theme, as well as whether it is colorized.
-
-        The list of paths to the resources is appended to self.themes.
-
-        """
-
-        self.themes = []
-        settings = []
-        tooltip_themes = sublime.find_resources('*.tooltip-theme')
-        excludes = persist.settings.get('tooltip_theme_excludes', [])
-
-        for theme in tooltip_themes:
-            exclude = False
-            parent = os.path.dirname(theme)
-            htmls = sublime.find_resources('*.html')
-
-            if '{}/tooltip.html'.format(parent) not in htmls:
-                continue
-
-            # Now see if the theme name is in tooltip_theme_excludes
-            name = os.path.splitext(os.path.basename(theme))[0]
-
-            for pattern in excludes:
-                if fnmatch(name, pattern):
-                    exclude = True
-                    break
-
-            if exclude:
-                continue
-
-            self.themes.append(theme)
-
-            std_theme = theme.startswith('Packages/SublimeLinter/tooltip-themes/')
-
-            settings.append([
-                name,
-                'SublimeLinter theme' if std_theme else 'User theme'
-            ])
-
-        # Sort self.themes and settings in parallel using the zip trick
-        settings, self.themes = zip(*sorted(zip(settings, self.themes)))
-
-        # zip returns tuples, convert back to lists
-        settings = list(settings)
-        self.themes = list(self.themes)
-
-        return settings
-
-    def selected_setting(self, index):
-        """Return the theme name with the given index."""
-        return self.themes[index]
-
-    def transform_setting(self, setting, matching=False):
-        """
-        Return a transformed version of setting.
-
-        For Tooltip themes, setting is a Packages-relative path
-        to a .tooltip-theme file.
-
-        If matching == False, return the original setting text,
-        tooltip theme settings are not lowercased.
-
-        If matching == True, return the base name of the filename
-        without the .tooltip-theme extension.
-
-        """
-
-        if matching:
-            return os.path.splitext(os.path.basename(setting))[0]
-        else:
-            return setting
-
-
 class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
     """A command that toggles, enables, or disables linter plugins."""
 
@@ -765,7 +657,6 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
         return len(self.linters[which]) > 0
 
     def run(self, **args):
-        """Run the command."""
         self.which = args['which']
 
         if self.linters[self.which]:
@@ -788,403 +679,10 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
         self.linters = {}
 
 
-class SublimelinterCreateLinterPluginCommand(sublime_plugin.WindowCommand):
-    """A command that creates a new linter plugin."""
-
-    def run(self):
-        """Run the command."""
-        if not sublime.ok_cancel_dialog(
-            'You will be asked for the linter name. Please enter the name '
-            'of the linter binary (including dashes), NOT the name of the language being linted. '
-            'For example, to lint CSS with csslint, the linter name is '
-            '“csslint”, NOT “css”.',
-            'I understand'
-        ):
-            return
-
-        self.window.show_input_panel(
-            'Linter name:',
-            '',
-            on_done=self.copy_linter,
-            on_change=None,
-            on_cancel=None)
-
-    def copy_linter(self, name):
-        """Copy the template linter to a new linter with the given name."""
-
-        self.name = name
-        self.fullname = 'SublimeLinter-contrib-{}'.format(name)
-        self.dest = os.path.join(sublime.packages_path(), self.fullname)
-
-        if os.path.exists(self.dest):
-            sublime.error_message('The plugin “{}” already exists.'.format(self.fullname))
-            return
-
-        src = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY, 'linter-plugin-template')
-        self.temp_dir = None
-
-        try:
-            self.temp_dir = tempfile.mkdtemp()
-            self.temp_dest = os.path.join(self.temp_dir, self.fullname)
-            shutil.copytree(src, self.temp_dest)
-
-            self.get_linter_language(name, self.configure_linter)
-
-        except Exception as ex:
-            if self.temp_dir and os.path.exists(self.temp_dir):
-                shutil.rmtree(self.temp_dir)
-
-            sublime.error_message('An error occurred while copying the template plugin: {}'.format(str(ex)))
-
-    def configure_linter(self, language):
-        """Fill out the template and move the linter into Packages."""
-
-        try:
-            if language is None:
-                return
-
-            if not self.fill_template(self.temp_dir, self.name, self.fullname, language):
-                return
-
-            git = util.which('git')
-
-            if git:
-                subprocess.call((git, 'init', self.temp_dest))
-
-            shutil.move(self.temp_dest, self.dest)
-
-            util.open_directory(self.dest)
-            self.wait_for_open(self.dest)
-
-        except Exception as ex:
-            sublime.error_message('An error occurred while configuring the plugin: {}'.format(str(ex)))
-
-        finally:
-            if self.temp_dir and os.path.exists(self.temp_dir):
-                shutil.rmtree(self.temp_dir)
-
-    def get_linter_language(self, name, callback):
-        """Get the language (python, node, etc.) on which the linter is based."""
-
-        languages = ['javascript', 'python', 'ruby', 'other']
-        items = ['Select the language on which the linter is based:']
-
-        for language in languages:
-            items.append('    ' + language.capitalize())
-
-        def on_done(index):
-            language = languages[index - 1] if index > 0 else None
-            callback(language)
-
-        self.window.show_quick_panel(items, on_done)
-
-    def fill_template(self, template_dir, name, fullname, language):
-        """Replace placeholders and fill template files in template_dir, return success."""
-
-        # Read per-language info
-        path = os.path.join(os.path.dirname(__file__), 'create_linter_info.json')
-
-        with open(path, mode='r', encoding='utf-8') as f:
-            try:
-                info = json.load(f)
-            except Exception as err:
-                util.printf(err)
-                sublime.error_message('A configuration file could not be opened, the linter cannot be created.')
-                return False
-
-        info = info.get(language, {})
-        extra_attributes = []
-        comment_re = info.get('comment_re', 'None')
-        extra_attributes.append('comment_re = ' + comment_re)
-
-        attributes = info.get('attributes', [])
-
-        for attr in attributes:
-            extra_attributes.append(attr.format(name))
-
-        extra_attributes = '\n    '.join(extra_attributes)
-
-        if extra_attributes:
-            extra_attributes += '\n'
-
-        extra_steps = info.get('extra_steps', '')
-
-        if isinstance(extra_steps, list):
-            extra_steps = '\n\n'.join(extra_steps)
-
-        if extra_steps:
-            extra_steps = '\n' + extra_steps + '\n'
-
-        platform = info.get('platform', language.capitalize())
-
-        # Replace placeholders
-        placeholders = {
-            '__linter__': name,
-            '__user__': util.get_user_fullname(),
-            '__year__': str(datetime.date.today().year),
-            '__class__': self.camel_case(name),
-            '__superclass__': info.get('superclass', 'Linter'),
-            '__cmd__': '{}@python'.format(name) if language == 'python' else name,
-            '# __extra_attributes__': extra_attributes,
-            '__platform__': platform,
-            '__install__': info['installer'].format(name),
-            '__extra_install_steps__': extra_steps
-        }
-
-        for root, dirs, files in os.walk(template_dir):
-            for filename in files:
-                extension = os.path.splitext(filename)[1]
-
-                if extension in ('.py', '.md', '.txt'):
-                    path = os.path.join(root, filename)
-
-                    with open(path, encoding='utf-8') as f:
-                        text = f.read()
-
-                    for placeholder, value in placeholders.items():
-                        text = text.replace(placeholder, value)
-
-                    with open(path, mode='w', encoding='utf-8') as f:
-                        f.write(text)
-
-        return True
-
-    def camel_case(self, name):
-        """Convert and return a name in the form foo-bar to FooBar."""
-        camel_name = name[0].capitalize()
-        i = 1
-
-        while i < len(name):
-            if name[i] == '-' and i < len(name) - 1:
-                camel_name += name[i + 1].capitalize()
-                i += 1
-            else:
-                camel_name += name[i]
-
-            i += 1
-
-        return camel_name
-
-    def wait_for_open(self, dest):
-        """Wait for new linter window to open in another thread."""
-
-        def open_linter_py():
-            """Wait until the new linter window has opened and open linter.py."""
-
-            start = datetime.datetime.now()
-
-            while True:
-                time.sleep(0.25)
-                delta = datetime.datetime.now() - start
-
-                # Wait a maximum of 5 seconds
-                if delta.seconds > 5:
-                    break
-
-                window = sublime.active_window()
-                folders = window.folders()
-
-                if folders and folders[0] == dest:
-                    window.open_file(os.path.join(dest, 'linter.py'))
-                    break
-
-        sublime.set_timeout_async(open_linter_py, 0)
-
-
-class SublimelinterPackageControlCommand(sublime_plugin.WindowCommand):
-    """
-    Abstract superclass for Package Control utility commands.
-
-    Only works if git is installed.
-
-    """
-
-    TAG_RE = re.compile(r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<release>\d+)(?:\+\d+)?')
-
-    def __init__(self, window):
-        """Initialize a new instance."""
-        super().__init__(window)
-        self.git = ''
-
-    def is_visible(self, paths=[]):
-        """Return True if any eligible plugin directories are selected."""
-
-        if self.git == '':
-            self.git = util.which('git')
-
-        if self.git:
-            for path in paths:
-                if self.is_eligible_path(path):
-                    return True
-
-        return False
-
-    def is_eligible_path(self, path):
-        """
-        Return True if path is an eligible directory.
-
-        A directory is eligible if it has a messages subdirectory
-        and has messages.json.
-
-        """
-        return (
-            os.path.isdir(path) and
-            os.path.isdir(os.path.join(path, 'messages')) and
-            os.path.isfile(os.path.join(path, 'messages.json'))
-        )
-
-    def get_current_tag(self):
-        """
-        Return the most recent tag components.
-
-        A tuple of (major, minor, release) is returned, or (1, 0, 0) if there are no tags.
-        If the most recent tag does not conform to semver, return (None, None, None).
-
-        """
-
-        tag = util.communicate(['git', 'describe', '--tags', '--abbrev=0']).strip()
-
-        if not tag:
-            return (1, 0, 0)
-
-        match = self.TAG_RE.match(tag)
-
-        if match:
-            return (int(match.group('major')), int(match.group('minor')), int(match.group('release')))
-        else:
-            return None
-
-
-class SublimelinterNewPackageControlMessageCommand(SublimelinterPackageControlCommand):
-    """
-    This command automates the process of creating new Package Control release messages.
-
-    It creates a new entry in messages.json for the next version
-    and creates a new file named messages/<version>.txt.
-
-    """
-
-    COMMIT_MSG_RE = re.compile(r'{{{{(.+?)}}}}')
-
-    def __init__(self, window):
-        """Initialize a new instance."""
-        super().__init__(window)
-
-    def run(self, paths=[]):
-        """Run the command."""
-
-        for path in paths:
-            if self.is_eligible_path(path):
-                self.make_new_version_message(path)
-
-    def make_new_version_message(self, path):
-        """Make a new version message for the repo at the given path."""
-
-        try:
-            cwd = os.getcwd()
-            os.chdir(path)
-
-            version = self.get_current_tag()
-
-            if version[0] is None:
-                return
-
-            messages_path = os.path.join(path, 'messages.json')
-            message_path = self.rewrite_messages_json(messages_path, version)
-
-            if os.path.exists(message_path):
-                os.remove(message_path)
-
-            with open(message_path, mode='w', encoding='utf-8') as f:
-                header = '{} {}'.format(
-                    os.path.basename(path),
-                    os.path.splitext(os.path.basename(message_path))[0])
-                f.write('{}\n{}\n'.format(header, '-' * (len(header) + 1)))
-                f.write(self.get_commit_messages_since(version))
-
-            self.window.run_command('open_file', args={'file': message_path})
-
-        except Exception:
-            import traceback
-            traceback.print_exc()
-        finally:
-            os.chdir(cwd)
-
-    def rewrite_messages_json(self, messages_path, tag):
-        """Add an entry in messages.json for tag, return relative path to the file."""
-
-        with open(messages_path, encoding='utf-8') as f:
-            messages = json.load(f)
-
-        major, minor, release = tag
-        release += 1
-        tag = '{}.{}.{}'.format(major, minor, release)
-        message_path = os.path.join('messages', '{}.txt'.format(tag))
-        messages[tag] = message_path
-        message_path = os.path.join(os.path.dirname(messages_path), message_path)
-
-        with open(messages_path, mode='w', encoding='utf-8') as f:
-            messages_json = '{\n'
-            sorted_messages = []
-
-            if 'install' in messages:
-                install_message = messages.pop('install')
-                sorted_messages.append('    "install": "{}"'.format(install_message))
-
-            keys = sorted(map(self.sortable_tag, messages.keys()))
-
-            for _, key in keys:
-                sorted_messages.append('    "{}": "{}"'.format(key, messages[key]))
-
-            messages_json += ',\n'.join(sorted_messages)
-            messages_json += '\n}\n'
-            f.write(messages_json)
-
-        return message_path
-
-    def sortable_tag(self, tag):
-        """Return a version tag in a sortable form."""
-
-        if tag == 'install':
-            return (tag, tag)
-
-        major, minor, release = tag.split('.')
-
-        if '+' in release:
-            release, update = release.split('+')
-            update = '+{:04}'.format(int(update))
-        else:
-            update = ''
-
-        return ('{:04}.{:04}.{:04}{}'.format(int(major), int(minor), int(release), update), tag)
-
-    def get_commit_messages_since(self, version):
-        """Return a formatted list of commit messages since the given tagged version."""
-
-        tag = '{}.{}.{}'.format(*version)
-        output = util.communicate([
-            'git', 'log',
-            '--pretty=format:{{{{%w(0,0,0)%s %b}}}}',
-            '--reverse', tag + '..'
-        ])
-
-        # Split the messages, they are bounded by {{{{ }}}}
-        messages = []
-
-        for match in self.COMMIT_MSG_RE.finditer(output):
-            messages.append(match.group(1).strip())
-
-        # Wrap the messages
-        wrapper = TextWrapper(initial_indent='- ', subsequent_indent='  ')
-        messages = list(map(lambda msg: '\n'.join(wrapper.wrap(msg)), messages))
-        return '\n\n'.join(messages) + '\n'
-
-
 class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter made color schemes."""
 
     def run(self):
-        """Run the command."""
         base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
         sublime_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
         themes = glob(base_path) + glob(sublime_path)
@@ -1202,7 +700,6 @@ class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter's internal caches."""
 
     def run(self):
-        """Run the command."""
         util.clear_path_caches()
         util.get_rc_settings.cache_clear()
         util.find_file.cache_clear()

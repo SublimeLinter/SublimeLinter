@@ -1,9 +1,9 @@
 {
     "debug": false,
-    "delay": 0.3,  
+    "delay": 0.3,
     "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
     "gutter_theme_excludes": [],
-    "lint_mode": "background",   
+    "lint_mode": "background",
     "no_column_highlights_line": false,
     "passive_warnings": false,
     "paths": {
@@ -30,14 +30,11 @@
         "javascript (babel)": "javascript",
         "php": "html"
     },
-    "tooltip_fontsize": "1rem",
-    "tooltip_theme": "Packages/SublimeLinter/tooltip-themes/Default/Default.tooltip-theme",
-    "tooltip_theme_excludes": [],
     "tooltips": false,
     "wrap_find": true,
     "styles": [
        {
-         "scope": "region.yellowish",         
+         "scope": "region.yellowish",
          "mark_style": "outline",
          "priority": 1,
          "types": [
@@ -45,7 +42,7 @@
          ]
        },
        {
-         "scope": "region.redish",         
+         "scope": "region.redish",
          "mark_style": "outline",
          "priority": 1,
          "types": [

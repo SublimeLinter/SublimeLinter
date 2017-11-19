@@ -1454,9 +1454,6 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-
-        ##### My Modification
-        # TODO: they may be defined only once, put them in init reload
         lint_styles = self.lint_styles
         codes = lint_styles.get("codes", {})
         types = lint_styles.get("types", {})
@@ -1519,28 +1516,9 @@ class Linter(metaclass=LinterMeta):
                     if ignore:
                         continue
 
-                if False:  # TODO remove, just for debugging
-                    print(self.name)
-                    print(line)
-                    print("message: ", message)
-                    print("-"*10)
-
                 error_type, style = get_error_type_and_style(error, warning)
-                if not style:  # for bug hunting
-                    print("style is None in Linter.lint")
-                    print(self.name)
-                    print("code: ", codes)
-                    print("types: ", types)
-                    print("error_type: ", error_type)
-                    print("style: ", style)
-                    print("col: ", col)
-                    print("near: ", near)
-                    print("message: ", message)
-                    print("error: ", error)
-                    print("warning: ", warning)
-                    print("self.default_type: ", self.default_type)
-                    print("persist.linter_styles: ", persist.linter_styles)
-                    raise Exception
+
+                assert style  # style should never be None
 
                 if error_type is highlight.ERROR:
                     demote_to_warning = False
@@ -1601,7 +1579,6 @@ class Linter(metaclass=LinterMeta):
 
                     region = self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
 
-                # TODO: stop passing col just use region?
                 self.error(line, col, message, error_type, style=style, code=warning or error, region=region)
 
     def draw(self):

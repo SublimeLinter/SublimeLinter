@@ -143,7 +143,6 @@ class Settings:
 
         from . import persist
 
-        # TODO: or force_xml_scheme
         if not self.changeset:
             return
 
@@ -180,7 +179,6 @@ class Settings:
         if "gutter_theme" in self.changeset:
             self.update_gutter_marks()
 
-        # TODO: change whether this optimal:
         Linter.reload()  # always reload
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
@@ -217,7 +215,6 @@ class Settings:
 
         settings['linters'] = linters
 
-        # TODO: centralise paths as constants
         user_prefs_path = os.path.join(sublime.packages_path(), 'User', SETTINGS_FILE)
         settings_views = []
 
@@ -257,7 +254,7 @@ class Settings:
 
         from . import persist
 
-        theme_path = self.settings.get('gutter_theme', persist.DEFAULT_GUTTER_THEME_PATH)
+        theme_path = self.settings.get('gutter_theme')
 
         theme = os.path.splitext(os.path.basename(theme_path))[0]
 
@@ -267,18 +264,16 @@ class Settings:
 
         info = None
 
-        for path in (theme_path, persist.DEFAULT_GUTTER_THEME_PATH):
-            try:
-                info = sublime.load_resource(path)
-                break
-            except IOError:
-                pass
+        try:
+            info = sublime.load_resource(theme_path)
+        except IOError:
+            return
 
         if info:
-            if theme != 'Default' and os.path.basename(path) == 'Default.gutter-theme':
+            if theme != 'Default' and os.path.basename(theme_path) == 'Default.gutter-theme':
                 persist.printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
 
-            path = os.path.dirname(path)
+            path = os.path.dirname(theme_path)
 
             for error_type in ('warning', 'error'):
                 icon_path = '{}/{}.png'.format(path, error_type)

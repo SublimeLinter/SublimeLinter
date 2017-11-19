@@ -6,17 +6,14 @@ from .persist import settings
 import re
 import os
 
-OLD_SETTINGS_ITEMS = {"warning_color": "", "error_color": "", "mark_style": ""}
-NEW_SETTINGS_ITEMS = {"force_xml_scheme": "", "styles": []}
-
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 '''
 
+
 def touch_dir(dir):
     """Create dir if it does not exist."""
-    # TODO: need to make it recursive???
     if not os.path.exists(dir):
         os.makedirs(dir)
 
@@ -65,7 +62,8 @@ class XmlScheme(scheme.Scheme):
         plist = ElementTree.XML(scheme_text)
         styles = plist.find('./dict/array')
 
-        unfound = self.parse_scheme_xml(persist.highlight_styles, text=scheme_text)
+        unfound = self.parse_scheme_xml(
+            persist.highlight_styles, text=scheme_text)
         if not unfound:
             return
 
@@ -81,14 +79,12 @@ class XmlScheme(scheme.Scheme):
 
         touch_dir(self.paths["usr_dir_abs"])  # ensure dir exists
         with open(mod_scheme_path, 'w', encoding='utf8') as f:
-            f.write(COLOR_SCHEME_PREAMBLE)
-            f.write(content)
+            f.write(COLOR_SCHEME_PREAMBLE + content)
 
         # Set the amended color scheme to the current color scheme
         scheme_path_rel = self.packages_relative_path(
             os.path.join(self.paths["usr_dir_rel"], os.path.basename(mod_scheme_path)))
 
-        # TODO: is there another way to prevent entering vicious cycle?
         self.set_scheme_path(scheme_path_rel)
 
     def gen_xml_nodes(self, unfound):
@@ -101,19 +97,19 @@ class XmlScheme(scheme.Scheme):
             return color
 
         d = [
-                {
-                    "scope": "sublimelinter.mark.warning",
-                    "foreground": get_color("warning_color", "#DDB700")
-                },
-                {
-                    "scope": "sublimelinter.mark.error",
-                    "foreground": get_color("error_color", "#D02000")
-                },
-                {
-                    "scope": "sublimelinter.gutter-mark",
-                    "foreground": "#FFFFFF"
-                }
-            ]
+            {
+                "scope": "sublimelinter.mark.warning",
+                "foreground": get_color("warning_color", "#DDB700")
+            },
+            {
+                "scope": "sublimelinter.mark.error",
+                "foreground": get_color("error_color", "#D02000")
+            },
+            {
+                "scope": "sublimelinter.gutter-mark",
+                "foreground": "#FFFFFF"
+            }
+        ]
 
         filtered = [f for f in d if f["scope"] in unfound]
 

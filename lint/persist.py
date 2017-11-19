@@ -33,13 +33,6 @@ LINT_MODES = (
 
 SYNTAX_RE = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
 
-# TODO: move this to default settings
-DEFAULT_GUTTER_THEME_PATH = 'Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme'
-
-
-# DYN_PAT = re.compile("sublimelinter\.\w+?\.style_\d{3,}")
-
-
 
 if 'plugin_is_loaded' not in globals():
     settings = Settings()
@@ -98,7 +91,8 @@ def get_syntax(view):
 
         if match:
             view_syntax = match.group(1).lower()
-            mapped_syntax = settings.get('syntax_map', {}).get(view_syntax, '').lower()
+            mapped_syntax = settings.get(
+                'syntax_map', {}).get(view_syntax, '').lower()
         else:
             view_syntax = ''
 
@@ -183,6 +177,7 @@ def register_linter(linter_class, name, attrs):
 
         else:
             printf('{} linter loaded'.format(name))
+
 
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""

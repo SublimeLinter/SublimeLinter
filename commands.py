@@ -311,7 +311,6 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
 
         persist.settings.save()
 
-# TODO: mark abstract
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
     """An abstract base class for commands that choose a setting from a list."""
 
@@ -733,7 +732,6 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
                 # Ignore files over 256K to speed things up a bit
                 if os.stat(path).st_size < 256 * 1024:
-                    # TODO: not implemented
                     pass
 
     def report(self, output, view):

@@ -34,13 +34,8 @@ from copy import deepcopy
 
 from . import persist
 from functools import lru_cache
-from .const import ST_ICONS, PROTECTED_REGIONS_KEY
+from .const import ST_ICONS, PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
 
-#
-# Error types
-#
-WARNING = 'warning'
-ERROR = 'error'
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
@@ -282,17 +277,6 @@ class Highlight:
         region = sublime.Region(pos, pos + length)
         other_type = ERROR if error_type == WARNING else WARNING
 
-        # TODO: remove later for debugging
-        assert style  #
-        if style not in self.styles:
-            print("style not in self.styles")
-            print(style)
-            print(self.styles)
-            print(error_type)
-            print(self.marks)
-            print("-"*10)
-            raise Exception
-
         for scope, marks in self.marks[other_type].items():
             i_offset = 0
             for i, mark in enumerate(marks):
@@ -405,7 +389,7 @@ class Highlight:
         object takes the newlines array from other.
 
         """
-        for error_type in (WARNING, ERROR):
+        for error_type in WARN_ERR:
             self.marks[error_type].update(other.marks[error_type])
 
             for line, style in other.lines[error_type].items():
@@ -433,17 +417,14 @@ class Highlight:
         drawn_regions = []
         protected_regions = []
 
-        for error_type in (WARNING, ERROR):
-            # print("self.marks: ", self.marks)
+        for error_type in WARN_ERR:
             if not self.marks[error_type]:
-                # TODO: check whether this makes sense
                 continue
 
             for style, regions in self.marks[error_type].items():
                 if not self.styles.get(style):
                     continue
 
-                # print("self.marks: ", self.marks)
                 scope = self.get_style("scope", style, error_type)
                 mark_style = self.get_style("mark_style", style, error_type)
 
@@ -553,7 +534,6 @@ class Highlight:
         self.line_offset = line
         self.char_offset = char_offset
 
-    # @lru_cache  # TODO: does it need reset after linter reload?
     def get_style(self, key, style, error_type):
         """sublimelinter.default.warning"""
 

@@ -46,7 +46,7 @@ class Scheme(metaclass=ABCMeta):
 
         self.update_paths()
         # First make sure the user prefs are valid. If not, bail.
-        self.get_settings()
+        self.get_prefs()
         if not (self.prefs and self.scheme):
             return
 
@@ -61,25 +61,8 @@ class Scheme(metaclass=ABCMeta):
         # ST crashes unless this is run async
         sublime.set_timeout_async(self.generate_color_scheme_async, 0)
 
-    def get_settings(self):
+    def get_prefs(self):
         """Return preference object and color scheme """
-        settings_path = os.path.join(
-            self.paths["usr_dir"], 'Preferences.sublime-settings')
-
-        # TODO: couldn't better use sublime.load_resource ??
-        if (os.path.isfile(settings_path)):
-            try:
-                with open(settings_path, mode='r', encoding='utf-8') as f:
-                    json = f.read()
-                sublime.decode_value(json)
-            except:
-                from . import persist
-                persist.printf(
-                    'generate_color_scheme: Preferences.sublime-settings invalid, aborting'
-                )
-                return
-
-        # TODO: or take prefs from persist?
         self.prefs = sublime.load_settings('Preferences.sublime-settings')
         self.scheme = self.prefs.get('color_scheme')
         self.paths["scheme_orig"] = self.get_original_theme(self.scheme)

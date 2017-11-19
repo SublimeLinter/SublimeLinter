@@ -22,7 +22,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint import persist, util
-from .lint.const import SETTINGS_FILE
+from .lint.const import SETTINGS_FILE, WARN_ERR
 
 STATUS_KEY = "sublime_linter_status"
 
@@ -33,7 +33,7 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
 
-    # TODO: remove the three lines below to unlink legacy.py
+    # remove the two lines below to unlink legacy.py
     from .lint.legacy import legacy_check
 
     @legacy_check
@@ -67,7 +67,6 @@ class SublimeLinter(sublime_plugin.EventListener):
     """The main ST3 plugin class."""
 
     # We use this to match linter settings filenames.
-    # TODO: make raw string, test...
     LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
@@ -167,9 +166,9 @@ class SublimeLinter(sublime_plugin.EventListener):
             if linter.errors:
                 for line, errs in linter.errors.items():
                     # print("errs: ", errs)
-                    l = errors.setdefault(line, {})
-                    for t in ("warning", "error"):   # TODO: centralize?
-                        l.setdefault(t, []).extend(errs.get(t, []))
+                    l_err = errors.setdefault(line, {})
+                    for err_t in WARN_ERR:
+                        l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
 
         # Keep track of one view in each window that shares view's buffer
         window_views = {}

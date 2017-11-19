@@ -23,5 +23,5 @@ class EventListener(sublime_plugin.EventListener):
 
         lineno, colno = view.rowcol(point)
         from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().open_tooltip(view, lineno)
+        SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
 

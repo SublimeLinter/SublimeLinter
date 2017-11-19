@@ -21,11 +21,14 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
 from numbers import Number
+import html
+
 import os
 import re
 import shlex
 import sublime
 from xml.sax.saxutils import unescape
+
 
 from . import highlight, persist, util
 from .const import PLUGIN_NAME
@@ -1822,12 +1825,13 @@ class Linter(metaclass=LinterMeta):
 
         # Some linters use html entities in error messages, decode them
         cleaned_msg = HTML_ENTITY_RE.sub(self.replace_entity, message)
-        cleaned_msg = str(cleaned_msg).rstrip('\r .')
+        cleaned_msg = html.escape(str(cleaned_msg).rstrip('\r .'), quote=False)
+
+        if not code:
+            code = "n/a"
 
         # Strip trailing CR, space and period
-        payload = {"col": (col or 0), "linter": self.name, "msg": cleaned_msg}
-        if code:
-            payload["code"] = code
+        payload = {"col": (col or 0), "linter": self.name, "code": code, "msg":cleaned_msg}
 
         if region:
             payload["region"] = region

@@ -395,6 +395,11 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return msg_dict.get(lineno)
 
+    def msg_count(self, l_dict):
+        w_count = len(l_dict.get("warning", []))
+        e_count = len(l_dict.get("error", []))
+        return w_count, e_count
+
     def on_selection_modified_async(self, view):
         """Ran when the selection changes (cursor moves or text selected)."""
         self.display_errors(view, tooltip=True)
@@ -424,11 +429,8 @@ class SublimeLinter(sublime_plugin.EventListener):
                 elif colno == 0:
                     msgs.append(d["msg"])
 
-        def count_msgs(key):
-            return len(line_dict.get(key, []))
-
-        status = "SublimeLinter: W: {} E: {}".format(
-            count_msgs("warning"), count_msgs("error"))
+        we_count = self.msg_count(line_dict)
+        status = "SublimeLinter: W: {} E: {}".format(we_count[0], we_count[1])
 
         if msgs:
             status += " - {}".format("; ".join(msgs))
@@ -442,25 +444,35 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return sublime.active_window().active_view()
 
-    def open_tooltip(self, active_view=None, lineno=None):
+    def open_tooltip(self, active_view=None, lineno=None, show_clean=True):
         """ Show a tooltip containing all linting errors on a given line. """
 
         stylesheet = '''
             body { word-wrap: break-word; }
+            h3 {margin: 0px; padding: 0px;}
+            .we_icon { margin: 0px; padding: 0px; heigth: 10px; width: auto;}
+            .we_heading {position: relative; top: -7px; font-weight: bold;  }
+            .we_heading_text {text-decoration: underline;}
         '''
 
         template = '''
             <body id="sublimelinter-tooltip">
                 <style>{stylesheet}</style>
-                <div><b>SublimeLinter - Line {line}</b></div>
+                <h3><b>SublimeLinter - Line {line}</b></h3>
                 <div>{message}</div>
             </body>
         '''
 
+        we_tmpl = '''<div><img class="we_icon" src="file:///{icon}" alt="Img not found"> <span class="we_heading we_heading_text">{heading}:</span><span class="we_heading"> {count}</span></div>
+               <div>{messages}</div>'''
+
         if not active_view:
             active_view = self.get_active_view()
 
-        msgs = []
+        icon_dir = os.path.join(sublime.packages_path(),
+                                "SublimeLinter/gutter-themes/ProjectIcons/")
+        w_icon = os.path.join(icon_dir, "warning.png")
+        e_icon = os.path.join(icon_dir, "error.png")
 
         # Leave any existing popup open without replacing it
         if active_view.is_popup_visible():
@@ -472,15 +484,27 @@ class SublimeLinter(sublime_plugin.EventListener):
         line_dict = self.get_line_dict(active_view, lineno)
 
         if not line_dict:
+            if not show_clean:  # do not show tooltip on hovering empty gutter
+                return
             tooltip_message = "- No errors to display. -"
 
         else:
-            for error_type, v in line_dict.items():
-                for item in v:
-                    msgs.append(item["msg"])
+            w_count, e_count = self.msg_count(line_dict)
 
-            tooltip_message = '<br />'.join(html.escape(e, quote=False)
-                                            for e in msgs)
+            def join_msgs(error_type, count, icon, heading):
+                combined_msg_tmpl = "{linter}: {code} - {msg}"
+                msgs = []
+                msg_list = line_dict.get(error_type)
+
+                if not msg_list:
+                    return ""
+                for item in msg_list:
+                    msgs.append(combined_msg_tmpl.format(**item))
+
+                return we_tmpl.format(count=count, messages='<br />'.join(msgs), icon=icon, heading=heading)
+
+            tooltip_message = join_msgs("warning", w_count, w_icon, "Warnings")
+            tooltip_message += join_msgs("error", e_count, e_icon, "Errors")
 
         # place at beginning of line
         location = active_view.text_point(lineno, 0)
@@ -489,7 +513,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 stylesheet=stylesheet, line=lineno + 1, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
             location=location,
-            max_width=800)
+            max_width=1000)
 
     def on_post_save_async(self, view):
         """Ran after view is saved."""

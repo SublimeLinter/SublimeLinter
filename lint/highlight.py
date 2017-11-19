@@ -33,9 +33,7 @@ import sublime
 from copy import deepcopy
 
 from . import persist
-from functools import lru_cache
 from .const import ST_ICONS, PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
-
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
@@ -58,7 +56,8 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 class RegionStore:
     def __init__(self):
-        # {"view.id": [region_keys ... ]}
+        """structure: {"view.id": [region_keys ... ]}"""
+        print("RegionStore init called")
         self.memory = sublime.load_settings('sl_regions.sublime-settings')
         views = self.memory.get("views")
         if not views:
@@ -68,7 +67,9 @@ class RegionStore:
         view_id = view.id()
         saved_keys = self._get_views(view_id)
         saved_keys.extend(new_keys)
+        # print("add - saved_keys: ", saved_keys)
         self._set_views(view_id, saved_keys)
+        x = self.memory.get("views")
 
     def del_regions(self, view):
         view_id = view.id()
@@ -77,8 +78,25 @@ class RegionStore:
             view.erase_regions(key)
         self._set_views(view_id)
 
+
+    def get_mark_regions(self, view):
+        """Returns set of points"""
+        saved_keys = self._get_views(view.id())
+        regions = [
+            view.get_regions(key)
+            for key in saved_keys
+            if "gutter" not in key
+        ]
+        regions = [y for x in regions for y in x]  # flatten
+        # # regions = set(regions)  # ensure uniqueness
+        # points = [view.text_point(r)  for r in regions]
+        print(regions)
+        return regions
+
+
     def _get_views(self, view_id):
-        return self.memory.get("views", {}).get(view_id, [])
+        return self.memory.get("views").get(str(view_id), [])
+
 
     def _set_views(self, view_id, region_keys=None):
         view_id = str(view_id)
@@ -474,8 +492,8 @@ class Highlight:
             view.add_regions(PROTECTED_REGIONS_KEY, protected_regions, flags=sublime.HIDDEN)
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
-            # persisting region keys for later clearance
-            persist.region_store.add_region_keys(view, drawn_regions)
+        # persisting region keys for later clearance
+        persist.region_store.add_region_keys(view, drawn_regions)
 
     @staticmethod
     def clear(view):

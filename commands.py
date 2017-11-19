@@ -22,6 +22,7 @@ import sublime
 import sublime_plugin
 
 from .lint import highlight, linter, persist, util
+from .lint.const import WARN_ERR
 
 
 def error_command(method):
@@ -122,8 +123,8 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         regions = sublime.Selection(view.id())
         regions.clear()
 
-        for error_type in (highlight.WARNING, highlight.ERROR):
-            regions.add_all(view.get_regions(highlight.MARK_KEY_FORMAT.format(error_type)))
+        from .lint.persist import region_store
+        regions.add_all(region_store.get_mark_regions(view))
 
         region_to_select = None
 
@@ -149,11 +150,11 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
         # If there is only one error line and the cursor is in that line, we cannot move.
         # Otherwise wrap to the first/last error line unless settings disallow that.
-        if region_to_select is None and ((len(regions) > 1 or not regions[0].contains(point))):
+        if not region_to_select and ((len(regions) > 1 or not regions[0].contains(point))):
             if persist.settings.get('wrap_find', True):
                 region_to_select = regions[0] if direction == 'next' else regions[-1]
 
-        if region_to_select is not None:
+        if region_to_select:
             self.select_lint_region(self.view, region_to_select)
         else:
             sel.clear()

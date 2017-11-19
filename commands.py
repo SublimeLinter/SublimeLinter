@@ -311,7 +311,7 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
 
         persist.settings.save()
 
-
+# TODO: mark abstract
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
     """An abstract base class for commands that choose a setting from a list."""
 

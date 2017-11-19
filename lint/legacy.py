@@ -164,37 +164,37 @@ class XmlScheme(scheme.Scheme):
 
 
 OLD_KEYS = ("warning_color", "error_color", "mark_style", "user")
-NEW_KEYS = ("styles", "user")
+NEW_KEYS = ("styles", "user", "show_hover_line_report")
 
 
 def legacy_check(func):
     """"""
-    force_xml_scheme = settings.get("force_xml_scheme")
-    above_3148 = int(sublime.version()) > 3148
-
-    # transfer mark style into setings
+    min_version = int(sublime.version()) >= 3149  # version check
     mark_style = settings.get("mark_style")
-    if above_3148:
+
+    if not min_version:
+        remove_keys = NEW_KEYS
+    else:
+        remove_keys = OLD_KEYS
         if mark_style:
             styles = settings.setdefault("styles", [])
             for s in styles:
                 s["mark_style"] = mark_style
 
+        if settings.get("lint_mode") == "load/save":
+            settings.set("lint_mode", "load_save")
+
         if settings.get("user"):
             for k, v in settings.get("user").items():
                 settings.set(k, v)
 
-    remove_keys = OLD_KEYS if above_3148 else NEW_KEYS
-
-    def clean_settings():
-        for key in remove_keys:
-            settings.pop(key)
-    clean_settings()
-
+    # clean settings
+    for key in remove_keys:
+        settings.pop(key)
     settings.save()
 
     # finally return
-    if above_3148 and not force_xml_scheme:
+    if min_version and not settings.get("force_xml_scheme"):
         def func_wrapper():
             return func
 

@@ -32,6 +32,7 @@
     },
     "tooltips": false,
     "wrap_find": true,
+    "show_hover_line_report": true,
     "styles": [
        {
          "scope": "region.yellowish",

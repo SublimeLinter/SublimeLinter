@@ -7,7 +7,7 @@ Which events trigger linting depends on the **lint mode**. The lint mode is a :r
 
 The modes
 ----------
-There are four lint modes in |sl|: :ref:`background <background-lint-mode>`, :ref:`load/save <load-save-lint-mode>`, :ref:`save only <save-only-lint-mode>`, and :ref:`manual <manual-lint-mode>`.
+There are four lint modes in |sl|: :ref:`background <background-lint-mode>`, :ref:`load_save <load-save-lint-mode>`, :ref:`save only <save-only-lint-mode>`, and :ref:`manual <manual-lint-mode>`.
 
 .. _background-lint-mode:
 
@@ -29,9 +29,9 @@ In **background** mode, lint requests are generated for every modification of a 
 
 .. _load-save-lint-mode:
 
-Load/Save
+load_save
 ~~~~~~~~~~~
-In **load/save** mode, a file is linted and errors are marked whenever it is loaded and saved. After loading or saving, any modifications to the file clear all marks.
+In **load_save** mode, a file is linted and errors are marked whenever it is loaded and saved. After loading or saving, any modifications to the file clear all marks.
 
 **Pros**
 
@@ -49,11 +49,11 @@ In **load/save** mode, a file is linted and errors are marked whenever it is loa
 
 Save only
 ~~~~~~~~~~~
-**save only** mode is the same as **load/save** mode, but linting only occurs when a file is saved, not when it is loaded.
+**save only** mode is the same as **load_save** mode, but linting only occurs when a file is saved, not when it is loaded.
 
 **Pros**
 
-- If you have very large files that are relatively slow to lint, and you tend to leave many files open when quitting |st|, in **background** or **load/save** mode, those files will be linted when |st| starts up, which potentially could take several seconds. **save only** mode avoids this problem by linting only when saving a file.
+- If you have very large files that are relatively slow to lint, and you tend to leave many files open when quitting |st|, in **background** or **load_save** mode, those files will be linted when |st| starts up, which potentially could take several seconds. **save only** mode avoids this problem by linting only when saving a file.
 
 **Cons**
 

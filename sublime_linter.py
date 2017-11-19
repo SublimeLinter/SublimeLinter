@@ -22,8 +22,10 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint import persist, util
+from .lint.const import SETTINGS_FILE
 
 STATUS_KEY = "sublime_linter_status"
+
 
 def plugin_loaded():
     """Entry point for SL plugins."""
@@ -66,7 +68,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     # We use this to match linter settings filenames.
     # TODO: make raw string, test...
-    LINTER_SETTINGS_RE = re.compile('^SublimeLinter(-.+?)?\.sublime-settings')
+    LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
 
@@ -119,12 +121,12 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         # If the view has been modified since the lint was triggered,
         # don't lint again.
-        if hit_time is not None and persist.last_hit_times.get(view_id, 0) > hit_time:
+        if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
             return
 
         view = Linter.get_view(view_id)
 
-        if view is None:
+        if not view:
             return
 
         filename = view.file_name()
@@ -152,7 +154,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         # If the view has been modified since the lint was triggered,
         # don't draw marks.
-        if hit_time is not None and persist.last_hit_times.get(vid, 0) > hit_time:
+        if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
         errors = {}
@@ -167,8 +169,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     # print("errs: ", errs)
                     l = errors.setdefault(line, {})
                     for t in ("warning", "error"):   # TODO: centralize?
-                        l.setdefault(t,[]).extend(errs.get(t, []))
-
+                        l.setdefault(t, []).extend(errs.get(t, []))
 
         # Keep track of one view in each window that shares view's buffer
         window_views = {}
@@ -185,7 +186,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     highlights.draw(other_view)
                     persist.errors[vid] = errors
 
-                    if window_views.get(wid) is None:
+                    if not window_views.get(wid):
                         window_views[wid] = other_view
 
         for view in window_views.values():
@@ -201,7 +202,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         if view.size() == 0:
             for linter in Linter.get_linters(vid):
                 linter.clear()
-
             return
 
         persist.last_hit_times[vid] = queue.hit(view)
@@ -244,7 +244,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
 
-        if view.is_scratch() or view.is_read_only() or view.window() is None or view.settings().get("repl") is not None:
+        if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
             return True
         elif (
             view.file_name() and
@@ -279,7 +279,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         else:
             syntax_changed = False
 
-        if syntax_changed or persist.settings.get('lint_mode', 'background') == 'background':
+        if syntax_changed or persist.settings.get('lint_mode') == 'background':
             self.hit(view)
         else:
             self.clear(view)
@@ -300,7 +300,7 @@ class SublimeLinter(sublime_plugin.EventListener):
             if view_id not in self.loaded_views:
                 self.on_new_async(view)
 
-            if persist.settings.get('lint_mode', 'background') in ('background', 'load/save'):
+            if persist.settings.get('lint_mode') in ('background', 'load_save'):
                 self.hit(view)
 
         self.display_errors(view)
@@ -363,8 +363,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         into the same buffer may be open.
 
         """
-        active_view = view.window().active_view()
-        if active_view is None:
+        active_view = self.get_active_view(view)
+        if not active_view:
             return
 
         for view in view.window().views():
@@ -395,7 +395,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return msg_dict.get(lineno)
 
-
     def on_selection_modified_async(self, view):
         """Ran when the selection changes (cursor moves or text selected)."""
         self.display_errors(view, tooltip=True)
@@ -406,7 +405,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
         # Get the line number of the first line of the first selection.
-
 
         lineno, colno = self.get_line_and_col(view)
 
@@ -437,13 +435,14 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         view.set_status(STATUS_KEY, status)
 
-
-    def get_active_view(self):
+    def get_active_view(self, view=None):
         """Return the active view in the currently active window."""
+        if view:
+            return view.window().active_view()
 
         return sublime.active_window().active_view()
 
-    def open_tooltip(self):
+    def open_tooltip(self, active_view=None, lineno=None):
         """ Show a tooltip containing all linting errors on a given line. """
 
         stylesheet = '''
@@ -453,12 +452,13 @@ class SublimeLinter(sublime_plugin.EventListener):
         template = '''
             <body id="sublimelinter-tooltip">
                 <style>{stylesheet}</style>
-                <div><b>Line {line}</b></div>
+                <div><b>SublimeLinter - Line {line}</b></div>
                 <div>{message}</div>
             </body>
         '''
 
-        active_view = self.get_active_view()
+        if not active_view:
+            active_view = self.get_active_view()
 
         msgs = []
 
@@ -466,7 +466,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         if active_view.is_popup_visible():
             return
 
-        lineno, colno = self.get_line_and_col(active_view)
+        if not lineno:
+            lineno, colno = self.get_line_and_col(active_view)
 
         line_dict = self.get_line_dict(active_view, lineno)
 
@@ -478,31 +479,17 @@ class SublimeLinter(sublime_plugin.EventListener):
                 for item in v:
                     msgs.append(item["msg"])
 
-            tooltip_message = '<br />'.join(html.escape(e, quote=False) for e in msgs)
+            tooltip_message = '<br />'.join(html.escape(e, quote=False)
+                                            for e in msgs)
 
+        # place at beginning of line
+        location = active_view.text_point(lineno, 0)
         active_view.show_popup(
             template.format(
-                stylesheet=stylesheet,
-                line=lineno + 1,
-                message=tooltip_message
-            ),
+                stylesheet=stylesheet, line=lineno + 1, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-            location=-1,
-            max_width=600
-        )
-
-    def on_pre_save_async(self, view):
-        """
-        TODO: deprecated, remove
-        Ran before view is saved.
-
-        If a settings file is the active view and is saved,
-        copy the current settings first so we can compare post-save.
-
-        """
-        # if view.window().active_view() == view and self.is_settings_file(view):
-        #     persist.settings.copy()
-        pass
+            location=location,
+            max_width=800)
 
     def on_post_save_async(self, view):
         """Ran after view is saved."""
@@ -525,7 +512,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             # If a file other than one of our settings files changed,
             # check if the syntax changed or if we need to show errors.
-            elif filename != 'SublimeLinter.sublime-settings':
+            elif filename != SETTINGS_FILE:
                 self.file_was_saved(view)
 
     def file_was_saved(self, view):
@@ -550,7 +537,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 # if showing errors on save, linting must be synchronized.
                 self.lint(vid)
             elif (
-                mode in ('load/save', 'save only') or
+                mode == 'load_save' or
                 mode == 'background' and self.view_has_file_only_linter(vid)
             ):
                 self.hit(view)

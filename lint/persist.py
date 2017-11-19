@@ -26,7 +26,7 @@ PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 LINT_MODES = (
     ('background', 'Lint whenever the text is modified'),
-    ('load/save', 'Lint only when a file is loaded or saved'),
+    ('load_save', 'Lint only when a file is loaded or saved'),
     ('save only', 'Lint only when a file is saved'),
     ('manual', 'Lint only when requested')
 )

@@ -22,13 +22,7 @@
                                     {
                                         "command": "sublimelinter_choose_lint_mode",
                                         "args": {
-                                            "value": "Load/save"
-                                        }
-                                    },
-                                    {
-                                        "command": "sublimelinter_choose_lint_mode",
-                                        "args": {
-                                            "value": "Save only"
+                                            "value": "load_save"
                                         }
                                     },
                                     {
@@ -36,7 +30,7 @@
                                         "args": {
                                             "value": "Manual"
                                         }
-                                    },
+                                    }
                                 ]
                             },
                             {

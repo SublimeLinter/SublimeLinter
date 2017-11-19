@@ -52,7 +52,7 @@ For example, if you wanted to exclude the “Blueberry” gutter themes that com
 
 lint_mode
 ---------
-This setting determines the current :doc:`lint mode <lint_modes>`. Possible values are ``"background"``, ``"load/save"``, ``"save only"``, and ``"manual"``. The default value is ``"background"``.
+This setting determines the current :doc:`lint mode <lint_modes>`. Possible values are ``"background"``, ``"load_save"``, ``"save only"``, and ``"manual"``. The default value is ``"background"``.
 
 Rather than change this setting manually, you are better off using the user interface to :ref:`choose a lint mode <choosing-a-lint-mode>`.
 

@@ -80,7 +80,7 @@ class RegionStore:
 
 
     def get_mark_regions(self, view):
-        """Returns set of points"""
+        """Returns sorted list of points."""
         saved_keys = self._get_views(view.id())
         regions = [
             view.get_regions(key)
@@ -88,11 +88,9 @@ class RegionStore:
             if "gutter" not in key
         ]
         regions = [y for x in regions for y in x]  # flatten
-        # # regions = set(regions)  # ensure uniqueness
-        # points = [view.text_point(r)  for r in regions]
-        print(regions)
-        return regions
-
+        points = [r.a for r in regions]
+        points = sorted(list(set(points)))
+        return points
 
     def _get_views(self, view_id):
         return self.memory.get("views").get(str(view_id), [])

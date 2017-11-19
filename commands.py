@@ -124,42 +124,42 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         regions.clear()
 
         from .lint.persist import region_store
-        regions.add_all(region_store.get_mark_regions(view))
+        mark_points = region_store.get_mark_regions(view)
 
-        region_to_select = None
+        if not mark_points:
+            return
 
-        # If going forward, find the first region beginning after the point.
-        # If going backward, find the first region ending before the point.
-        # If nothing is found in the given direction, wrap to the first/last region.
+        if point in mark_points:
+            index = mark_points.index(point)
+            if index == mark_points[0]:
+                prev_mark = mark_points[-1]
+                next_mark = mark_points[1]
+            elif index == len(mark_points) -1:
+                prev_mark = mark_points[-2]
+                next_mark = mark_points[0]
+            else:
+                prev_mark = mark_points[index-1]
+                next_mark = mark_points[index+1]
+
+        elif point < mark_points[0] or point > mark_points[-1]:
+            prev_mark = mark_points[-1]
+            next_mark = mark_points[0]
+
+        else:
+            for i, val in enumerate(mark_points):
+                if val < point < mark_points[i + 1]:
+                    prev_mark = val
+                    next_mark = mark_points[i + 1]
+                    break
+
         if direction == 'next':
-            for region in regions:
-                if (
-                    (point == region.begin() and empty_selection and not region.empty()) or
-                    (point < region.begin())
-                ):
-                    region_to_select = region
-                    break
+            region_to_select = sublime.Region(next_mark, next_mark)
         else:
-            for region in reversed(regions):
-                if (
-                    (point == region.end() and empty_selection and not region.empty()) or
-                    (point > region.end())
-                ):
-                    region_to_select = region
-                    break
+            region_to_select = sublime.Region(prev_mark, prev_mark)
 
-        # If there is only one error line and the cursor is in that line, we cannot move.
-        # Otherwise wrap to the first/last error line unless settings disallow that.
-        if not region_to_select and ((len(regions) > 1 or not regions[0].contains(point))):
-            if persist.settings.get('wrap_find', True):
-                region_to_select = regions[0] if direction == 'next' else regions[-1]
+        self.select_lint_region(view, region_to_select)
 
-        if region_to_select:
-            self.select_lint_region(self.view, region_to_select)
-        else:
-            sel.clear()
-            sel.add_all(saved_sel)
-            sublime.message_dialog('No {0} lint error.'.format(direction))
+
 
     @classmethod
     def select_lint_region(cls, view, region):

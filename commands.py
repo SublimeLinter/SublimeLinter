@@ -405,10 +405,14 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                             highest_line /= 10
                             width += 1
 
+                        # print(items)
                         for line, messages in items:
-                            for col, message in messages:
-                                out += '    {:>{width}}: {}\n'.format(
-                                    line + 1, message, width=width)
+                            print(messages)
+                            for e_t, ds in messages.items():
+                                for d in ds:
+                                    msg = e_t + " - {code}: {msg}".format(**d)
+                                    out += '    {:>{width}}: {}\n'.format(
+                                        line + 1, msg, width=width)
 
                 output.insert(edit, output.size(), out)
 

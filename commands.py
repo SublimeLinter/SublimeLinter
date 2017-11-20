@@ -17,6 +17,7 @@ import json
 import os
 import re
 from threading import Thread
+from itertools import cycle
 
 import sublime
 import sublime_plugin
@@ -40,7 +41,8 @@ def error_command(method):
         vid = self.view.id()
 
         if vid in persist.errors and persist.errors[vid]:
-            method(self, self.view, persist.errors[vid], persist.highlights[vid], **kwargs)
+            method(self, self.view,
+                   persist.errors[vid], persist.highlights[vid], **kwargs)
         else:
             sublime.status_message('No lint errors.')
 
@@ -103,6 +105,20 @@ class HasErrorsCommand:
         vid = self.view.id()
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
+def get_neighbours(num, l):
+    cyc = cycle(l)
+    prev_num = next(cyc)
+    next_num = None
+    while True:
+        next_num = next(cyc)
+        if next_num == num:
+            next_num = next(cyc)
+            break
+        elif prev_num < num < next_num:
+            break
+        prev_num = next_num
+    return prev_num, next_num
+
 
 class GotoErrorCommand(sublime_plugin.TextCommand):
     """A superclass for commands that go to the next/previous error."""
@@ -129,28 +145,7 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         if not mark_points:
             return
 
-        if point in mark_points:
-            index = mark_points.index(point)
-            if index == mark_points[0]:
-                prev_mark = mark_points[-1]
-                next_mark = mark_points[1]
-            elif index == len(mark_points) -1:
-                prev_mark = mark_points[-2]
-                next_mark = mark_points[0]
-            else:
-                prev_mark = mark_points[index-1]
-                next_mark = mark_points[index+1]
-
-        elif point < mark_points[0] or point > mark_points[-1]:
-            prev_mark = mark_points[-1]
-            next_mark = mark_points[0]
-
-        else:
-            for i, val in enumerate(mark_points):
-                if val < point < mark_points[i + 1]:
-                    prev_mark = val
-                    next_mark = mark_points[i + 1]
-                    break
+        prev_mark, next_mark = get_neighbours(point,  mark_points)
 
         if direction == 'next':
             region_to_select = sublime.Region(next_mark, next_mark)
@@ -158,8 +153,6 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
             region_to_select = sublime.Region(prev_mark, prev_mark)
 
         self.select_lint_region(view, region_to_select)
-
-
 
     @classmethod
     def select_lint_region(cls, view, region):
@@ -189,8 +182,10 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
     def find_mark_within(cls, view, region):
         """Return the nearest marked region that contains region, or None if none found."""
 
-        marks = view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
-        marks.extend(view.get_regions(highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
+        marks = view.get_regions(
+            highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
+        marks.extend(view.get_regions(
+            highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
         marks.sort(key=sublime.Region.begin)
 
         for mark in marks:
@@ -223,7 +218,8 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
                 if self.highlights.line_type(lineno) != highlight.ERROR:
                     continue
 
-            line = view.substr(view.full_line(view.text_point(lineno, 0))).rstrip('\n\r')
+            line = view.substr(view.full_line(
+                view.text_point(lineno, 0))).rstrip('\n\r')
 
             # Strip whitespace from the front of the line, but keep track of how much was
             # stripped so we can adjust the column.
@@ -265,7 +261,8 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         """Completion handler for the quick panel. Selects the indexed error."""
         if index != -1:
             point = self.points[index]
-            GotoErrorCommand.select_lint_region(self.view, sublime.Region(point, point))
+            GotoErrorCommand.select_lint_region(
+                self.view, sublime.Region(point, point))
         else:
             self.view.set_viewport_position(self.viewport_pos)
             self.view.sel().clear()
@@ -305,12 +302,14 @@ class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
             if args['value'] is None:
                 persist.settings.pop(args['setting'])
             else:
-                persist.settings.set(args['setting'], args['value'], changed=True)
+                persist.settings.set(
+                    args['setting'], args['value'], changed=True)
         else:
             setting = persist.settings.get(args['setting'], False)
             persist.settings.set(args['setting'], not setting, changed=True)
 
         persist.settings.save()
+
 
 class ChooseSettingCommand(sublime_plugin.WindowCommand):
     """An abstract base class for commands that choose a setting from a list."""
@@ -566,7 +565,8 @@ class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
             except ValueError:
                 colorize = False
 
-            std_theme = theme.startswith('Packages/SublimeLinter/gutter-themes/')
+            std_theme = theme.startswith(
+                'Packages/SublimeLinter/gutter-themes/')
 
             settings.append([
                 name,
@@ -632,7 +632,8 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
 
                 if which == 'all':
                     include = True
-                    instance = [instance, 'disabled' if disabled else 'enabled']
+                    instance = [
+                        instance, 'disabled' if disabled else 'enabled']
                 else:
                     include = (
                         which == 'enabled' and not disabled or
@@ -651,7 +652,8 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
         self.which = args['which']
 
         if self.linters[self.which]:
-            self.window.show_quick_panel(self.linters[self.which], self.on_done)
+            self.window.show_quick_panel(
+                self.linters[self.which], self.on_done)
 
     def on_done(self, index):
         """Completion handler for quick panel, toggle the enabled state of the chosen linter."""
@@ -663,7 +665,8 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
 
             settings = persist.settings.get('linters', {})
             linter_settings = settings.get(linter, {})
-            linter_settings['@disable'] = not linter_settings.get('@disable', False)
+            linter_settings['@disable'] = not linter_settings.get(
+                '@disable', False)
             persist.settings.set('linters', settings, changed=True)
             persist.settings.save()
 
@@ -675,7 +678,8 @@ class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
 
     def run(self):
         base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
-        sublime_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
+        sublime_path = os.path.join(
+            sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
         themes = glob(base_path) + glob(sublime_path)
         prefs = sublime.load_settings('Preferences.sublime-settings')
         scheme = prefs.get('color_scheme')
@@ -764,14 +768,16 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
                         for line, messages in items:
                             for col, message in messages:
-                                out += '    {:>{width}}: {}\n'.format(line + 1, message, width=width)
+                                out += '    {:>{width}}: {}\n'.format(
+                                    line + 1, message, width=width)
 
                 output.insert(edit, output.size(), out)
 
             persist.edits[output.id()].append(insert)
             output.run_command('sublimelinter_edit')
 
-        kwargs = {'self': self.plugin, 'view_id': view.id(), 'callback': finish_lint}
+        kwargs = {'self': self.plugin,
+                  'view_id': view.id(), 'callback': finish_lint}
 
         from .sublime_linter import SublimeLinter
         Thread(target=SublimeLinter.lint, kwargs=kwargs).start()
@@ -780,6 +786,7 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 class SublimelinterLineReportCommand(sublime_plugin.WindowCommand):
     """Trigger a popup for all lint messages of the current line.
     If the line is clean the popup will inform about that, too."""
+
     def run(self):
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().open_tooltip()

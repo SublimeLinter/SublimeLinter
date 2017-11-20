@@ -11,11 +11,7 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
-from fnmatch import fnmatch
-from glob import glob
-import json
 import os
-import re
 from threading import Thread
 from itertools import cycle
 
@@ -23,7 +19,6 @@ import sublime
 import sublime_plugin
 
 from .lint import highlight, linter, persist, util
-from .lint.const import WARN_ERR
 
 
 def error_command(method):
@@ -105,6 +100,7 @@ class HasErrorsCommand:
         vid = self.view.id()
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
+
 def get_neighbours(num, l):
     cyc = cycle(l)
     prev_num = next(cyc)
@@ -130,9 +126,6 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         if len(sel) == 0:
             sel.add(sublime.Region(0, 0))
 
-        saved_sel = tuple(sel)
-        empty_selection = len(sel) == 1 and sel[0].empty()
-
         # sublime.Selection() changes the view's selection, get the point first
         point = sel[0].begin() if direction == 'next' else sel[-1].end()
 
@@ -145,7 +138,7 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         if not mark_points:
             return
 
-        prev_mark, next_mark = get_neighbours(point,  mark_points)
+        prev_mark, next_mark = get_neighbours(point, mark_points)
 
         if direction == 'next':
             region_to_select = sublime.Region(next_mark, next_mark)
@@ -269,347 +262,6 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
             self.view.sel().add_all(self.selection)
 
 
-class SublimelinterToggleSettingCommand(sublime_plugin.WindowCommand):
-    """Command that toggles a setting."""
-
-    def __init__(self, window):
-        """Initialize a new instance."""
-        super().__init__(window)
-
-    def is_visible(self, **args):
-        """Return True if the opposite of the setting is True."""
-        if args.get('checked', False):
-            return True
-
-        if persist.settings.has_setting(args['setting']):
-            setting = persist.settings.get(args['setting'], None)
-            return setting is not None and setting is not args['value']
-        else:
-            return args['value'] is not None
-
-    def is_checked(self, **args):
-        """Return True if the setting should be checked."""
-        if args.get('checked', False):
-            setting = persist.settings.get(args['setting'], False)
-            return setting is True
-        else:
-            return False
-
-    def run(self, **args):
-        """Toggle the setting if value is boolean, or remove it if None."""
-
-        if 'value' in args:
-            if args['value'] is None:
-                persist.settings.pop(args['setting'])
-            else:
-                persist.settings.set(
-                    args['setting'], args['value'], changed=True)
-        else:
-            setting = persist.settings.get(args['setting'], False)
-            persist.settings.set(args['setting'], not setting, changed=True)
-
-        persist.settings.save()
-
-
-class ChooseSettingCommand(sublime_plugin.WindowCommand):
-    """An abstract base class for commands that choose a setting from a list."""
-
-    def __init__(self, window, setting=None, preview=False):
-        """Initialize a new instance."""
-        super().__init__(window)
-        self.setting = setting
-        self._settings = None
-        self.preview = preview
-
-    def description(self, **args):
-        """Return the visible description of the command, used in menus."""
-        return args.get('value', None)
-
-    def is_checked(self, **args):
-        """Return whether this command should be checked in a menu."""
-        if 'value' not in args:
-            return False
-
-        item = self.transform_setting(args['value'], matching=True)
-        setting = self.setting_value(matching=True)
-        return item == setting
-
-    def _get_settings(self):
-        """Return the list of settings."""
-        if self._settings is None:
-            self._settings = self.get_settings()
-
-        return self._settings
-
-    settings = property(_get_settings)
-
-    def get_settings(self):
-        """Return the list of settings. Subclasses must override this."""
-        raise NotImplementedError
-
-    def transform_setting(self, setting, matching=False):
-        """
-        Transform the display text for setting to the form it is stored in.
-
-        By default, returns a lowercased copy of setting.
-
-        """
-        return setting.lower()
-
-    def setting_value(self, matching=False):
-        """Return the current value of the setting."""
-        return self.transform_setting(persist.settings.get(self.setting, ''), matching=matching)
-
-    def on_highlight(self, index):
-        """If preview is on, set the selected setting."""
-        if self.preview:
-            self.set(index)
-
-    def choose(self, **kwargs):
-        """
-        Choose or set the setting.
-
-        If 'value' is in kwargs, the setting is set to the corresponding value.
-        Otherwise the list of available settings is built via get_settings
-        and is displayed in a quick panel. The current value of the setting
-        is initially selected in the quick panel.
-
-        """
-
-        if 'value' in kwargs:
-            setting = self.transform_setting(kwargs['value'])
-        else:
-            setting = self.setting_value(matching=True)
-
-        index = 0
-
-        for i, s in enumerate(self.settings):
-            if isinstance(s, (tuple, list)):
-                s = self.transform_setting(s[0])
-            else:
-                s = self.transform_setting(s)
-
-            if s == setting:
-                index = i
-                break
-
-        if 'value' in kwargs:
-            self.set(index)
-        else:
-            self.previous_setting = self.setting_value()
-
-            self.window.show_quick_panel(
-                self.settings,
-                on_select=self.set,
-                selected_index=index,
-                on_highlight=self.on_highlight)
-
-    def set(self, index):
-        """Set the value of the setting."""
-
-        if index == -1:
-            if self.settings_differ(self.previous_setting, self.setting_value()):
-                self.update_setting(self.previous_setting)
-
-            return
-
-        setting = self.selected_setting(index)
-
-        if isinstance(setting, (tuple, list)):
-            setting = setting[0]
-
-        setting = self.transform_setting(setting)
-
-        if not self.settings_differ(persist.settings.get(self.setting, ''), setting):
-            return
-
-        self.update_setting(setting)
-
-    def update_setting(self, value):
-        """Update the setting with the given value."""
-        persist.settings.set(self.setting, value, changed=True)
-        self.setting_was_changed(value)
-        persist.settings.save()
-
-    def settings_differ(self, old_setting, new_setting):
-        """Return whether two setting values differ."""
-        if isinstance(new_setting, (tuple, list)):
-            new_setting = new_setting[0]
-
-        new_setting = self.transform_setting(new_setting)
-        return new_setting != old_setting
-
-    def selected_setting(self, index):
-        """
-        Return the selected setting by index.
-
-        Subclasses may override this if they want to return something other
-        than the indexed value from self.settings.
-
-        """
-
-        return self.settings[index]
-
-    def setting_was_changed(self, setting):
-        """
-        Do something after the setting value is changed but before settings are saved.
-
-        Subclasses may override this if further action is necessary after
-        the setting's value is changed.
-
-        """
-        pass
-
-
-def choose_setting_command(setting, preview):
-    """Return a decorator that provides common methods for concrete subclasses of ChooseSettingCommand."""
-
-    def decorator(cls):
-        def init(self, window):
-            super(cls, self).__init__(window, setting, preview)
-
-        def run(self, **kwargs):
-            self.choose(**kwargs)
-
-        cls.setting = setting
-        cls.__init__ = init
-        cls.run = run
-        return cls
-
-    return decorator
-
-
-@choose_setting_command('lint_mode', preview=False)
-class SublimelinterChooseLintModeCommand(ChooseSettingCommand):
-    """A command that selects a lint mode from a list."""
-
-    def get_settings(self):
-        """Return a list of the lint modes."""
-        return [[name.capitalize(), description] for name, description in persist.LINT_MODES]
-
-    def setting_was_changed(self, setting):
-        """Update all views when the lint mode changes."""
-        if setting == 'background':
-            from .sublime_linter import SublimeLinter
-            SublimeLinter.lint_all_views()
-        else:
-            linter.Linter.clear_all()
-
-
-@choose_setting_command('gutter_theme', preview=True)
-class SublimelinterChooseGutterThemeCommand(ChooseSettingCommand):
-    """A command that selects a gutter theme from a list."""
-
-    def get_settings(self):
-        """
-        Return a list of all available gutter themes, with 'None' at the end.
-
-        Whether the theme is colorized and is a SublimeLinter or user theme
-        is indicated below the theme name.
-
-        """
-
-        settings = self.find_gutter_themes()
-        settings.append(['None', 'Do not display gutter marks'])
-        self.themes.append('none')
-
-        return settings
-
-    def find_gutter_themes(self):
-        """
-        Find all SublimeLinter.gutter-theme resources.
-
-        For each found resource, if it doesn't match one of the patterns
-        from the "gutter_theme_excludes" setting, return the base name
-        of resource and info on whether the theme is a standard theme
-        or a user theme, as well as whether it is colorized.
-
-        The list of paths to the resources is appended to self.themes.
-
-        """
-
-        self.themes = []
-        settings = []
-        gutter_themes = sublime.find_resources('*.gutter-theme')
-        excludes = persist.settings.get('gutter_theme_excludes', [])
-        pngs = sublime.find_resources('*.png')
-
-        for theme in gutter_themes:
-            # Make sure the theme has error.png and warning.png
-            exclude = False
-            parent = os.path.dirname(theme)
-
-            for name in ('error', 'warning'):
-                if '{}/{}.png'.format(parent, name) not in pngs:
-                    exclude = True
-
-            if exclude:
-                continue
-
-            # Now see if the theme name is in gutter_theme_excludes
-            name = os.path.splitext(os.path.basename(theme))[0]
-
-            for pattern in excludes:
-                if fnmatch(name, pattern):
-                    exclude = True
-                    break
-
-            if exclude:
-                continue
-
-            self.themes.append(theme)
-
-            try:
-                info = json.loads(sublime.load_resource(theme))
-                colorize = info.get('colorize', False)
-            except ValueError:
-                colorize = False
-
-            std_theme = theme.startswith(
-                'Packages/SublimeLinter/gutter-themes/')
-
-            settings.append([
-                name,
-                '{}{}'.format(
-                    'SublimeLinter theme' if std_theme else 'User theme',
-                    ' (colorized)' if colorize else ''
-                )
-            ])
-
-        # Sort self.themes and settings in parallel using the zip trick
-        settings, self.themes = zip(*sorted(zip(settings, self.themes)))
-
-        # zip returns tuples, convert back to lists
-        settings = list(settings)
-        self.themes = list(self.themes)
-
-        return settings
-
-    def selected_setting(self, index):
-        """Return the theme name with the given index."""
-        return self.themes[index]
-
-    def transform_setting(self, setting, matching=False):
-        """
-        Return a transformed version of setting.
-
-        For gutter themes, setting is a Packages-relative path
-        to a .gutter-theme file.
-
-        If matching == False, return the original setting text,
-        gutter theme settings are not lowercased.
-
-        If matching == True, return the base name of the filename
-        without the .gutter-theme extension.
-
-        """
-
-        if matching:
-            return os.path.splitext(os.path.basename(setting))[0]
-        else:
-            return setting
-
-
 class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
     """A command that toggles, enables, or disables linter plugins."""
 
@@ -671,24 +323,6 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
             persist.settings.save()
 
         self.linters = {}
-
-
-class SublimelinterClearColorSchemeFolderCommand(sublime_plugin.WindowCommand):
-    """A command that clears all of SublimeLinter made color schemes."""
-
-    def run(self):
-        base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
-        sublime_path = os.path.join(
-            sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
-        themes = glob(base_path) + glob(sublime_path)
-        prefs = sublime.load_settings('Preferences.sublime-settings')
-        scheme = prefs.get('color_scheme')
-
-        for theme in themes:
-            # Ensure it is a (SL) theme and it is not current current scheme
-            if re.search(r'\(SL\)', theme) and os.path.normpath(scheme) not in theme:
-                persist.debug('deleting {}'.format(os.path.split(theme)[1]))
-                os.remove(theme)
 
 
 class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):

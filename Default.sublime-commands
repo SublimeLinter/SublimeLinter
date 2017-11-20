@@ -1,29 +1,5 @@
 [
     {
-        "caption": "Preferences: SublimeLinter Settings",
-        "command": "edit_settings", "args":
-        {
-            "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
-            "default": "${packages}/User/SublimeLinter.sublime-settings"
-        }
-    },
-    {
-        "caption": "Preferences: SublimeLinter Key Bindings",
-        "command": "edit_settings", "args":
-        {
-            "base_file": "${packages}/SublimeLinter/keymaps/Default ($platform).sublime-keymap",
-            "default": "${packages}/User/Default ($platform).sublime-keymap"
-        }
-    },
-    {
-        "caption": "SublimeLinter: Choose Lint Mode",
-        "command": "sublimelinter_choose_lint_mode"
-    },
-    {
-        "caption": "SublimeLinter: Choose Gutter Theme",
-        "command": "sublimelinter_choose_gutter_theme"
-    },
-    {
         "caption": "SublimeLinter: Lint This View",
         "command": "sublimelinter_lint"
     },
@@ -39,54 +15,7 @@
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublimelinter_show_all_errors"
     },
-    {
-        "caption": "SublimeLinter: Make Warnings Passive",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "passive_warnings",
-            "value": true
-        }
-    },
-    {
-        "caption": "SublimeLinter: Don't Make Warnings Passive",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "passive_warnings",
-            "value": false
-        }
-    },
-    {
-        "caption": "SublimeLinter: Show Errors on Save",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "show_errors_on_save",
-            "value": true
-        }
-    },
-    {
-        "caption": "SublimeLinter: Don’t Show Errors on Save",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "show_errors_on_save",
-            "value": false
-        }
-    },
-    {
-        "caption": "SublimeLinter: No Column Highlights Entire Line",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "no_column_highlights_line",
-            "value": true
-        }
-    },
-    {
-        "caption": "SublimeLinter: No Column Only Marks Gutter",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "no_column_highlights_line",
-            "value": false
-        }
-    },
+
     {
         "caption": "SublimeLinter: Enable Linting",
         "command": "sublimelinter_toggle_setting", "args":
@@ -103,23 +32,6 @@
             "value": true
         }
     },
-    {
-        "caption": "SublimeLinter: Enable Debug Mode",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "debug",
-            "value": true
-        }
-    },
-    {
-        "caption": "SublimeLinter: Disable Debug Mode",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "debug",
-            "value": false
-        }
-    },
-
     {
         "caption": "SublimeLinter: Toggle Linter",
         "command": "sublimelinter_toggle_linter", "args":
@@ -139,22 +51,6 @@
         "command": "sublimelinter_toggle_linter", "args":
         {
             "which": "enabled"
-        }
-    },
-    {
-        "caption": "SublimeLinter: Enable Inline Tooltips",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "tooltips",
-            "value": true
-        }
-    },
-    {
-        "caption": "SublimeLinter: Disable Inline Tooltips",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "tooltips",
-            "value": false
         }
     },
     {

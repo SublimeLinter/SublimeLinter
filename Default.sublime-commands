@@ -15,7 +15,11 @@
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublimelinter_show_all_errors"
     },
-
+    {
+        "caption": "SublimeLinter: Report (Open Files)",
+        "command": "sublimelinter_report",
+        "args": {"on": "files"}
+    },
     {
         "caption": "SublimeLinter: Enable Linting",
         "command": "sublimelinter_toggle_setting", "args":
@@ -40,22 +44,19 @@
         }
     },
     {
-        "caption": "SublimeLinter: Enable Linter",
-        "command": "sublimelinter_toggle_linter", "args":
+        "caption": "Preferences: SublimeLinter Settings",
+        "command": "edit_settings", "args":
         {
-            "which": "disabled"
+            "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
+            "default": "${packages}/User/SublimeLinter.sublime-settings"
         }
     },
     {
-        "caption": "SublimeLinter: Disable Linter",
-        "command": "sublimelinter_toggle_linter", "args":
+        "caption": "Preferences: SublimeLinter Key Bindings",
+        "command": "edit_settings", "args":
         {
-            "which": "enabled"
+            "base_file": "${packages}/SublimeLinter/keymaps/Default ($platform).sublime-keymap",
+            "default": "${packages}/User/Default ($platform).sublime-keymap"
         }
-    },
-    {
-        "caption": "SublimeLinter: Report (Open Files)",
-        "command": "sublimelinter_report",
-        "args": {"on": "files"}
     }
 ]

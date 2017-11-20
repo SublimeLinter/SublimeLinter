@@ -19,6 +19,7 @@ import sublime
 import sublime_plugin
 
 from .lint import highlight, linter, persist, util
+from .lint.const import WARNING, ERROR, WARN_ERR
 
 
 def error_command(method):
@@ -176,9 +177,9 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         """Return the nearest marked region that contains region, or None if none found."""
 
         marks = view.get_regions(
-            highlight.MARK_KEY_FORMAT.format(highlight.WARNING))
+            highlight.MARK_KEY_FORMAT.format(WARNING))
         marks.extend(view.get_regions(
-            highlight.MARK_KEY_FORMAT.format(highlight.ERROR)))
+            highlight.MARK_KEY_FORMAT.format(ERROR)))
         marks.sort(key=sublime.Region.begin)
 
         for mark in marks:
@@ -208,7 +209,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
         for lineno, line_errors in sorted(errors.items()):
             if persist.settings.get("passive_warnings", False):
-                if self.highlights.line_type(lineno) != highlight.ERROR:
+                if self.highlights.line_type(lineno) != ERROR:
                     continue
 
             line = view.substr(view.full_line(
@@ -216,30 +217,34 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
 
             # Strip whitespace from the front of the line, but keep track of how much was
             # stripped so we can adjust the column.
+            column = 0
             diff = len(line)
             line = line.lstrip()
             diff -= len(line)
 
             max_prefix_len = 40
 
-            for column, message in sorted(line_errors):
-                # Keep track of the line and column
-                point = view.text_point(lineno, column)
-                self.points.append(point)
+            we_count = util.msg_count(line_errors)
+            msg = "W: {} E: {}".format(we_count[0], we_count[1])
 
-                # If there are more than max_prefix_len characters before the adjusted column,
-                # lop off the excess and insert an ellipsis.
-                column = max(column - diff, 0)
+            # Keep track of the line and column
+            point = view.text_point(lineno, column)
+            self.points.append(point)
 
-                if column > max_prefix_len:
-                    visible_line = '...' + line[column - max_prefix_len:]
-                    column = max_prefix_len + 3  # 3 for ...
-                else:
-                    visible_line = line
+            # If there are more than max_prefix_len characters before the adjusted column,
+            # lop off the excess and insert an ellipsis.
+            column = max(column - diff, 0)
 
-                # Insert an arrow at the column in the stripped line
-                code = visible_line[:column] + '➜' + visible_line[column:]
-                options.append(['{}  {}'.format(lineno + 1, message), code])
+            if column > max_prefix_len:
+                visible_line = '...' + line[column - max_prefix_len:]
+                column = max_prefix_len + 3  # 3 for ...
+            else:
+                visible_line = line
+
+            # Insert an arrow at the column in the stripped line
+            code = visible_line[:column] + '➜ ' + visible_line[column:]
+
+            options.append(['{}  {}'.format(lineno + 1, msg), code])
 
         self.viewport_pos = view.viewport_position()
         self.selection = list(view.sel())

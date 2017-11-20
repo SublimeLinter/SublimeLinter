@@ -428,7 +428,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 elif colno == 0:
                     msgs.append(d["msg"])
 
-        we_count = self.msg_count(line_dict)
+        we_count = util.msg_count(line_dict)
         status = "SublimeLinter: W: {} E: {}".format(we_count[0], we_count[1])
 
         if msgs:

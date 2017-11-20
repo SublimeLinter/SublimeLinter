@@ -53,7 +53,10 @@ UNSAVED_FILENAME = 'untitled'
 tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
 
 
-
+def msg_count(l_dict):
+    w_count = len(l_dict.get("warning", []))
+    e_count = len(l_dict.get("error", []))
+    return w_count, e_count
 
 def any_key_in(target, source):
     """"""

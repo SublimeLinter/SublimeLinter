@@ -1447,7 +1447,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         # If the view has been modified since the lint was triggered, no point in continuing.
-        if hit_time is not None and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
+        if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
             return
 
         if persist.debug_mode():

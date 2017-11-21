@@ -429,7 +429,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     msgs.append(d["msg"])
 
         we_count = util.msg_count(line_dict)
-        status = "SublimeLinter: W: {} E: {}".format(we_count[0], we_count[1])
+        status = "W: {} E: {}".format(we_count[0], we_count[1])
 
         if msgs:
             status += " - {}".format("; ".join(msgs))
@@ -447,31 +447,33 @@ class SublimeLinter(sublime_plugin.EventListener):
         """ Show a tooltip containing all linting errors on a given line. """
 
         stylesheet = '''
-            body { word-wrap: break-word; }
-            h3 {margin: 0px; padding: 0px;}
-            .we_icon { margin: 0px; padding: 0px; heigth: 10px; width: auto;}
-            .we_heading {position: relative; top: -7px; font-weight: bold;  }
-            .we_heading_text {text-decoration: underline;}
+            body {
+                word-wrap: break-word;
+            }
+            .error {
+                color: var(--redish);
+                font-weight: bold;
+            }
+            .warning {
+                color: var(--orangish);
+                font-weight: bold;
+            }
         '''
 
         template = '''
             <body id="sublimelinter-tooltip">
                 <style>{stylesheet}</style>
-                <h3><b>SublimeLinter - Line {line}</b></h3>
                 <div>{message}</div>
             </body>
         '''
 
-        we_tmpl = '''<div><img class="we_icon" src="file:///{icon}" alt="Img not found"> <span class="we_heading we_heading_text">{heading}:</span><span class="we_heading"> {count}</span></div>
-               <div>{messages}</div>'''
+        part = '''
+            <div class="{classname}">{count} {heading}</div>
+            <div>{messages}</div>
+        '''
 
         if not active_view:
             active_view = self.get_active_view()
-
-        icon_dir = os.path.join(sublime.packages_path(),
-                                "SublimeLinter/gutter-themes/ProjectIcons/")
-        w_icon = os.path.join(icon_dir, "warning.png")
-        e_icon = os.path.join(icon_dir, "error.png")
 
         # Leave any existing popup open without replacing it
         if active_view.is_popup_visible():
@@ -485,12 +487,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not line_dict:
             if not show_clean:  # do not show tooltip on hovering empty gutter
                 return
-            tooltip_message = "- No errors to display. -"
+            tooltip_message = "No errors"
 
         else:
             w_count, e_count = self.msg_count(line_dict)
 
-            def join_msgs(error_type, count, icon, heading):
+            def join_msgs(error_type, count, heading):
                 combined_msg_tmpl = "{linter}: {code} - {msg}"
                 msgs = []
                 msg_list = line_dict.get(error_type)
@@ -500,16 +502,20 @@ class SublimeLinter(sublime_plugin.EventListener):
                 for item in msg_list:
                     msgs.append(combined_msg_tmpl.format(**item))
 
-                return we_tmpl.format(count=count, messages='<br />'.join(msgs), icon=icon, heading=heading)
+                return part.format(
+                    classname=error_type,
+                    count=count,
+                    messages='<br />'.join(msgs),
+                    heading=heading
+                )
 
-            tooltip_message = join_msgs("warning", w_count, w_icon, "Warnings")
-            tooltip_message += join_msgs("error", e_count, e_icon, "Errors")
+            tooltip_message = join_msgs("warning", w_count, "Warnings")
+            tooltip_message += join_msgs("error", e_count, "Errors")
 
         # place at beginning of line
         location = active_view.text_point(lineno, 0)
         active_view.show_popup(
-            template.format(
-                stylesheet=stylesheet, line=lineno + 1, message=tooltip_message),
+            template.format(stylesheet=stylesheet, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
             location=location,
             max_width=1000)

@@ -163,7 +163,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
             if linter.errors:
                 for line, errs in linter.errors.items():
-                    # print("errs: ", errs)
                     l_err = errors.setdefault(line, {})
                     for err_t in WARN_ERR:
                         l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
@@ -377,7 +376,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         return lineno, colno
 
     def get_line_dict(self, view, lineno):
-        view.erase_status(STATUS_KEY)
         if self.is_scratch(view):
             return
 
@@ -412,6 +410,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         line_dict = self.get_line_dict(view, lineno)
         if not line_dict:
+            view.erase_status(STATUS_KEY)
             return
 
         msgs = []
@@ -432,7 +431,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         if msgs:
             status += " - {}".format("; ".join(msgs))
 
-        view.set_status(STATUS_KEY, status)
+        if status != view.get_status(STATUS_KEY):
+            view.set_status(STATUS_KEY, status)
 
     def get_active_view(self, view=None):
         """Return the active view in the currently active window."""

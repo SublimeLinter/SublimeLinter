@@ -21,7 +21,6 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
-from .lint import persist, util
 from .lint.const import SETTINGS_FILE, WARN_ERR
 
 STATUS_KEY = "sublime_linter_status"
@@ -77,7 +76,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         return cls.shared_instance
 
     def __init__(self, *args, **kwargs):
-        """Initialize a new instance."""
         super().__init__(*args, **kwargs)
 
         # Keeps track of which views we have assigned linters to

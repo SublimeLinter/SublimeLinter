@@ -3,12 +3,15 @@ import json
 import sys
 
 import sublime
-from .const import SETTINGS_FILE, PLUGIN_NAME
+from .const import SETTINGS_FILE
 from . import util
 
 
 class DictDelta:
-    '''Returns a list of ḱeys, which are added, deleted or whose values have been altered compared to the dict passed in the previous call.'''
+    """
+        Returns a list of ḱeys, which are added, deleted or whose values have
+        been altered compared to the dict passed in the previous call.
+    """
 
     def __init__(self):
         self.old_dict = None
@@ -24,10 +27,11 @@ class DictDelta:
         changeset = self.diff_keys(new_dict, self.old_dict)
         self.old_dict = new_dict
 
-        return  changeset
+        return changeset
 
     def diff_keys(self, d1, d2):
-        """Diff dicts via set operations and subsequent traversing value comparison.
+        """
+            Diff dicts via set operations and subsequent traversing value comparison.
         """
         changed_keys = []
         d1_keys = set(d1.keys())
@@ -50,7 +54,6 @@ class Settings:
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):
-        """Initialize a new instance."""
         self.settings = {}
         self.changeset = []
         self.plugin_settings = None
@@ -242,7 +245,6 @@ class Settings:
             with open(user_prefs_path, "w") as f:
                 j = json.dumps(settings, indent=4, sort_keys=True)
                 f.write(j)
-
 
     def on_prefs_update(self):
         """Perform maintenance when the ST prefs are updated."""

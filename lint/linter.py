@@ -396,7 +396,6 @@ class Linter(metaclass=LinterMeta):
         cls.initialize()
 
     def __init__(self, view, syntax):
-        """Initialize a new instance."""
         self.view = view
         self.syntax = syntax
         self.code = ''
@@ -1456,7 +1455,6 @@ class Linter(metaclass=LinterMeta):
 
         lint_styles = self.lint_styles
         codes = lint_styles.get("codes", {})
-        types = lint_styles.get("types", {})
 
         def get_default_style(error_type, memo={}):
             """Returns default style for error_type of this linter.
@@ -1565,9 +1563,22 @@ class Linter(metaclass=LinterMeta):
 
                 region = None
                 if col:
-                    region = self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re, style=style)
+                    region = self.highlight.range(
+                        line,
+                        col,
+                        near=near,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
                 elif near:
-                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re, style=style)
+                    col = self.highlight.near(
+                            line,
+                            near,
+                            error_type=error_type,
+                            word_re=self.word_re,
+                            style=style
+                        )
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
@@ -1577,7 +1588,14 @@ class Linter(metaclass=LinterMeta):
                     else:
                         pos = 0
 
-                    region = self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re, style=style)
+                    region = self.highlight.range(
+                        line,
+                        pos,
+                        length=0,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
 
                 self.error(line, col, message, error_type, style=style, code=warning or error, region=region)
 
@@ -1808,7 +1826,7 @@ class Linter(metaclass=LinterMeta):
             code = "n/a"
 
         # Strip trailing CR, space and period
-        payload = {"col": (col or 0), "linter": self.name, "code": code, "msg":cleaned_msg}
+        payload = {"col": (col or 0), "linter": self.name, "code": code, "msg": cleaned_msg}
 
         if region:
             payload["region"] = region
@@ -1816,7 +1834,6 @@ class Linter(metaclass=LinterMeta):
         l1 = self.errors.setdefault(line, {})
         l2 = l1.setdefault(error_type, [])
         l2.append(payload)
-
 
     def find_errors(self, output):
         """

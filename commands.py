@@ -271,7 +271,6 @@ class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
     """A command that toggles, enables, or disables linter plugins."""
 
     def __init__(self, window):
-        """Initialize a new instance."""
         super().__init__(window)
         self.linters = {}
 

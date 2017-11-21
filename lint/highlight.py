@@ -67,9 +67,7 @@ class RegionStore:
         view_id = view.id()
         saved_keys = self._get_views(view_id)
         saved_keys.extend(new_keys)
-        # print("add - saved_keys: ", saved_keys)
         self._set_views(view_id, saved_keys)
-        x = self.memory.get("views")
 
     def del_regions(self, view):
         view_id = view.id()
@@ -78,9 +76,7 @@ class RegionStore:
             view.erase_regions(key)
         self._set_views(view_id)
 
-
     def get_mark_regions(self, view):
-        """Returns sorted list of points."""
         saved_keys = self._get_views(view.id())
         regions = [
             view.get_regions(key)
@@ -94,7 +90,6 @@ class RegionStore:
 
     def _get_views(self, view_id):
         return self.memory.get("views").get(str(view_id), [])
-
 
     def _set_views(self, view_id, region_keys=None):
         view_id = str(view_id)
@@ -112,8 +107,7 @@ class HighlightSet:
     """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
     def __init__(self):
-        """Initialize a new instance."""
-        self.all=set()
+        self.all = set()
 
     def add(self, highlight):
         """Add a Highlight to the set."""
@@ -132,7 +126,7 @@ class HighlightSet:
         if not self.all:
             return
 
-        all=Highlight()
+        all = Highlight()
 
         for highlight in self.all:
             all.update(highlight)
@@ -175,7 +169,6 @@ class HighlightSet:
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
     def __init__(self, code=''):
-        """Initialize a new instance."""
         self.code = code
         self.marks = self.get_new_dict()
         self.mark_style = 'outline'
@@ -213,7 +206,6 @@ class Highlight:
 
         newlines.append(len(code))
 
-
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
@@ -246,7 +238,7 @@ class Highlight:
 
         return start, end
 
-    def range(self, line, pos, length = -1, near = None, error_type = ERROR, word_re = None, style = None):
+    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text.
 
@@ -306,8 +298,8 @@ class Highlight:
         self.marks[error_type].setdefault(style, []).append(region)
         return region
 
-    def regex(self, line, regex, error_type = ERROR,
-              line_match = None, word_match = None, word_re = None):
+    def regex(self, line, regex, error_type=ERROR,
+              line_match=None, word_match=None, word_re=None):
         """
         Mark a range of text that matches a regex.
 
@@ -325,22 +317,22 @@ class Highlight:
 
         """
 
-        offset=0
+        offset = 0
 
-        start, end=self.full_line(line)
-        line_text=self.code[start:end]
+        start, end = self.full_line(line)
+        line_text = self.code[start:end]
 
         if line_match:
-            match=re.match(line_match, line_text)
+            match = re.match(line_match, line_text)
 
             if match:
-                line_text=match.group('match')
-                offset=match.start('match')
+                line_text = match.group('match')
+                offset = match.start('match')
             else:
                 return
 
-        it=re.finditer(regex, line_text)
-        results=[
+        it = re.finditer(regex, line_text)
+        results = [
             result.span('mark')
             for result in it
             if word_match is None or result.group('mark') == word_match
@@ -580,5 +572,3 @@ class Highlight:
 
         if key == "icon":
             return persist.gutter_marks[error_type]
-
-

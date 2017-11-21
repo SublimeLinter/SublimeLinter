@@ -1,6 +1,5 @@
 import sublime
-import re
-from . import persist, highlight, util
+from . import persist, util
 from .const import STYLE_KEYS, TARGET_KEYS, INVALID_RULE_MSG, CHECK_CONSOLE_MSG
 import json
 

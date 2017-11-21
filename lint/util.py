@@ -26,8 +26,6 @@ import subprocess
 import sys
 import tempfile
 
-from .const import PLUGIN_NAME
-
 if sublime.platform() != 'windows':
     import pwd
 
@@ -57,6 +55,7 @@ def msg_count(l_dict):
     w_count = len(l_dict.get("warning", []))
     e_count = len(l_dict.get("error", []))
     return w_count, e_count
+
 
 def any_key_in(target, source):
     """"""
@@ -1127,4 +1126,3 @@ class cd:
     def __exit__(self, etype, value, traceback):
         """Go back to the old wd."""
         os.chdir(self.savedPath)
-

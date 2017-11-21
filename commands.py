@@ -19,7 +19,7 @@ import sublime
 import sublime_plugin
 
 from .lint import highlight, linter, persist, util
-from .lint.const import WARNING, ERROR, WARN_ERR
+from .lint.const import WARNING, ERROR
 
 
 def error_command(method):

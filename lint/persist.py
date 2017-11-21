@@ -11,7 +11,6 @@
 """This module provides persistent global storage for other modules."""
 
 from collections import defaultdict
-from copy import deepcopy
 import os
 import re
 import sys

@@ -13,22 +13,21 @@ COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 
 
 def touch_dir(dir):
-    """Create dir if it does not exist."""
     if not os.path.exists(dir):
         os.makedirs(dir)
 
 
 class XmlScheme(scheme.Scheme):
-    """docstring for XmlScheme"""
 
     def generate_color_scheme_async(self):
         """
-            Generate a modified copy of the current color scheme that contains SublimeLinter color entries.
+            Generate a modified copy of the current color scheme that contains
+            SublimeLinter color entries.
 
-            The current color scheme is checked for SublimeLinter color entries. If any are missing,
-            the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User/SublimeLinter.
-
-            """
+            The current color scheme is checked for SublimeLinter color entries.
+            If any are missing, the scheme is copied, the entries are added,
+            and the color scheme is rewritten to Packages/User/SublimeLinter.
+        """
         print("XmlScheme.generate_color_scheme called.")
 
         # build legacy style_parser
@@ -133,22 +132,16 @@ class XmlScheme(scheme.Scheme):
         if input_dict.get("foreground"):
             append_kv("foreground", input_dict.get("foreground").upper(), d)
 
-        # if input_dict.get("background"):
-        #     append_kv("background", input_dict.get("background").upper(), d)
-
-        # if input_dict.get("font_style"):
-        #     append_kv("fontStyle", input_dict.get("font_style"), d)
-
         return root
 
     def packages_relative_path(self, path, prefix_packages=True):
         """
-        Return a Packages-relative version of path with '/' as the path separator.
+            Return a Packages-relative version of path with '/' as the path separator.
 
-        Sublime Text wants Packages-relative paths used in settings and in the plugin API
-        to use '/' as the path separator on all platforms. This method converts platform
-        path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
-        converted path.
+            Sublime Text wants Packages-relative paths used in settings and in the plugin API
+            to use '/' as the path separator on all platforms. This method converts platform
+            path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
+            converted path.
 
         """
         components = util.get_path_components(path)
@@ -189,7 +182,6 @@ def legacy_check(func):
         settings.pop(key)
     settings.save()
 
-    # finally return
     if min_version and not settings.get("force_xml_scheme"):
         def func_wrapper():
             return func

@@ -28,8 +28,6 @@ class XmlScheme(scheme.Scheme):
             If any are missing, the scheme is copied, the entries are added,
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
-        print("XmlScheme.generate_color_scheme called.")
-
         # build legacy style_parser
         from . import persist
         persist.linter_styles["default"] = {

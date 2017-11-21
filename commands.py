@@ -380,7 +380,6 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                             width += 1
 
                         for line, messages in items:
-                            print(messages)
                             for e_t, ds in messages.items():
                                 for d in ds:
                                     msg = e_t + " - {code}: {msg}".format(**d)

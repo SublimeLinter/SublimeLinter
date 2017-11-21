@@ -8,7 +8,6 @@ class StyleParser:
     """"""
 
     def __call__(self):
-        print("StyleParser.create_styles called.")
         rule_validities = []
 
         # 1 - for default styles

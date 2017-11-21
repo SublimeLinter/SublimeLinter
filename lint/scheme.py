@@ -148,7 +148,6 @@ class JsonScheme(Scheme):
 
     def generate_color_scheme_async(self):
         """Generates scheme in format .subilme-color-scheme."""
-        print("JsonScheme.generate_color_scheme called.")
 
         # parse styles
         style.StyleParser()()
@@ -169,8 +168,7 @@ class JsonScheme(Scheme):
         # To ensure update when theme set to 'xxx (SL).tmTheme'
         self.set_scheme_path(self.paths["scheme_orig"])
 
-        if not unfound and not self.scopes:
-            print("No scopes to include")
+        if not unfound and not self.scopes:  # No scopes to include
             return
 
         new_scheme_path = os.path.join(self.paths["usr_dir"],
@@ -180,7 +178,6 @@ class JsonScheme(Scheme):
 
         if os.path.exists(new_scheme_path):
             with open(new_scheme_path, "r") as f:
-                print("new_scheme_path exists")
                 theme = json.load(f)
 
             old_rules = theme.get("rules")

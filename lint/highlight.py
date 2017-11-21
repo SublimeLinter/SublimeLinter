@@ -57,7 +57,6 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 class RegionStore:
     def __init__(self):
         """structure: {"view.id": [region_keys ... ]}"""
-        print("RegionStore init called")
         self.memory = sublime.load_settings('sl_regions.sublime-settings')
         views = self.memory.get("views")
         if not views:

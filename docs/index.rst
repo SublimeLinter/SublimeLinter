@@ -11,14 +11,6 @@ The documentation for |sl| is divided into two sections: one for users, and one 
 The |sl| source is available `on github`_.
 
 
-Support
-=======
-Please use the |_group| for support and bug reporting but before opening a new ticket, verify there isn't already a ticket in the |_group| or the now deprecated `SublimeLinter google group`_.
-
-.. _SublimeLinter google group: https://groups.google.com/forum/#!forum/sublimelinter
-.. _on github: https://github.com/SublimeLinter/SublimeLinter3
-
-
 Be Part of the Team
 ===================
 Hundreds of hours have been spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!

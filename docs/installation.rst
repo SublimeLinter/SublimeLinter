@@ -7,25 +7,6 @@ Installation
 |sl| (and the linter plugins) can be installed via a plugin called |_pc| or from source. I **strongly** recommend that you use |pc|! Not only does it ease installation, but more importantly it automatically updates the plugins it installs, which ensures you will get the latest features and bug fixes.
 
 
-Upgrading from previous versions
----------------------------------
-If you are upgrading to |sl| 3 from a previous version (including an ST3 branch), please be aware that |sl| 3 is a complete rewrite and is **not** a drop-in replacement. The basic functionality is the same, but there are key differences:
-
-- Linters are not included, you must install them — and the linter binaries they depend on — separately. Linters can be found in |_pc| with the name “|sl|-<linter>”, for example “|sl|-jshint”.
-
-- :doc:`Settings <settings>` do not work in the same way.
-
-- You no longer need to use path settings voodoo to find linter executables. Anything in your system |path| is :ref:`found automatically <how-linter-executables-are-located>`.
-
-- Most settings can be configured :doc:`via menus and the Command Palette <usage>`, which you are encouraged to do.
-
-- There are dozens of new features.
-
-.. warning::
-
-   SublimeLinter 3 is **not** a drop-in replacement for earlier versions. If you are coming from an earlier version of |sl| and don’t read the documentation, you will get confused and frustrated. **Read the docs.**
-
-
 Installing via |pc|
 ------------------------------
 To install |sl| via |_pc|, follow these steps:
@@ -97,9 +78,7 @@ Again, I **strongly** recommend that you use |pc| to locate and install linter p
 
    Most linter plugins require you to install a linter binary or library and :ref:`configure your PATH <how-linter-executables-are-located>` so that |sl| can find it. You **must** follow the linter plugin’s installation instructions to successfully use it.
 
-If you have problems installing or configuring |sl|. First read the :doc:`Troubleshooting guide <troubleshooting>`. Then if necessary, report your problem on the |_group|.
-
 
 Read the docs!
 --------------------------
-An enormous amount of time and effort went into creating |sl| and this documentation. **Before** you launch |st| with |sl| installed, please take the time to read the :doc:`Usage <usage>` documentation to understand what happens when |sl| loads and how it works. Otherwise you won’t get the most out of it!
+**Before** you launch |st| with |sl| installed, please take the time to read the :doc:`Usage <usage>` documentation to understand what happens when |sl| loads and how it works. Otherwise you won’t get the most out of it!

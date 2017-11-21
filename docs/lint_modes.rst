@@ -77,26 +77,6 @@ In **manual** mode, linting only occurs when you manually initiate a lint. After
 
 ----
 
-.. _choosing-a-lint-mode:
-
-Choosing a lint mode
----------------------
-There are three ways to select a lint mode:
-
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`mode`. Among the commands you should see ``SublimeLinter: Choose Lint Mode``. If that command is not highlighted, use the keyboard or mouse to select it. A list of the available lint modes appears with the current mode highlighted. Type or click to select the lint mode you would like to use.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the |st| ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Lint Modes`` and then select a mode from the submenu.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Lint Modes`` and then select a mode from the submenu.
-
-Once you have selected a new lint mode, all of the open views are redrawn: if the mode is **background**, all views are linted, otherwise all errors marks are cleared. The lint mode you select is saved in your user settings, so it will still be active after restarting Sublime Text.
-
 
 .. _manually-linting:
 
@@ -107,10 +87,6 @@ If you select **manual** lint mode, you must manually lint your files. To do so,
 **Command Palette**
 :raw-html:`<br>`
 Bring up the |_cmd| and type :kbd:`lint`. Among the commands you should see ``SublimeLinter: Lint This View``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Lint This View``.
 
 **Context menu**
 :raw-html:`<br>`
@@ -125,24 +101,7 @@ On Mac OS X, press :kbd:`Command+Control+L`. On Linux/Windows, press :kbd:`Contr
 
 Showing errors on save
 ----------------------
-When the lint mode is not **background**, you may wish to automatically lint a file and display any errors whenever it is saved. |sl| makes it easy to do this with the :ref:`"show_errors_on_save" <show_errors_on_save>` setting. By default, this setting is off. To turn this setting on, do one of the following:
-
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`show`. Among the commands you should see ``SublimeLinter: Show Errors on Save``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. If that item is not checked, select ``SublimeLinter > Show Errors on Save``.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. If that item is not checked, select ``SublimeLinter > Show Errors on Save``.
-
-.. note::
-
-   As of this writing, the Linux version of |st| does not check menu items, so you cannot tell by examining the menu item whether this option is on or off.
+When the lint mode is not **background**, you may wish to automatically lint a file and display any errors whenever it is saved. |sl| makes it easy to do this with the :ref:`"show_errors_on_save" <show_errors_on_save>` setting. By default, this setting is off.
 
 Once you have turned ``"show_errors_on_save"`` on, every time a file is saved, it is linted and any errors are displayed in the :ref:`Show All Errors <showing-all-errors>` Quick Panel.
 
-To turn ``"show_errors_on_save"`` off, follow the instructions above for turning it on, but you will see “Don’t Show Errors on Save” instead of “Show Errors on Save”.

@@ -375,7 +375,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return lineno, colno
 
-    def get_line_dict(self, view, lineno):
+    def get_view_dict(self, view):
         if self.is_scratch(view):
             return
 
@@ -384,16 +384,16 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not view:
             return
 
-        msg_dict = persist.errors.get(view.id())
-        if not msg_dict:
-            return
-
-        return msg_dict.get(lineno)
+        return persist.errors.get(view.id())
 
     def msg_count(self, l_dict):
         w_count = len(l_dict.get("warning", []))
         e_count = len(l_dict.get("error", []))
         return w_count, e_count
+
+    def count_we(self, v_dict):
+        l = [self.msg_count(v) for v in v_dict.values()]
+        return [sum(x) for x in zip(*l)]
 
     def on_selection_modified_async(self, view):
         """Ran when the selection changes (cursor moves or text selected)."""
@@ -408,9 +408,17 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         lineno, colno = self.get_line_and_col(view)
 
-        line_dict = self.get_line_dict(view, lineno)
-        if not line_dict:
+        view_dict = self.get_view_dict(view)
+        if not view_dict:
             view.erase_status(STATUS_KEY)
+            return
+
+        we_count = self.count_we(view_dict)
+        status = "W: {} E: {}".format(we_count[0], we_count[1])
+
+        line_dict = view_dict.get(lineno)
+        if not line_dict:
+            view.set_status(STATUS_KEY, status)
             return
 
         msgs = []
@@ -424,9 +432,6 @@ class SublimeLinter(sublime_plugin.EventListener):
                         msgs.append(d["msg"])
                 elif colno == 0:
                     msgs.append(d["msg"])
-
-        we_count = util.msg_count(line_dict)
-        status = "W: {} E: {}".format(we_count[0], we_count[1])
 
         if msgs:
             status += " - {}".format("; ".join(msgs))
@@ -453,7 +458,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 font-weight: bold;
             }
             .warning {
-                color: var(--orangish);
+                color: var(--yellowish);
                 font-weight: bold;
             }
         '''
@@ -480,7 +485,11 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not lineno:
             lineno, colno = self.get_line_and_col(active_view)
 
-        line_dict = self.get_line_dict(active_view, lineno)
+        view_dict = self.get_view_dict(active_view)
+        if not view_dict:
+            return
+
+        line_dict = view_dict.get(lineno)
 
         if not line_dict:
             if not show_clean:  # do not show tooltip on hovering empty gutter

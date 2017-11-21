@@ -500,7 +500,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 if not msg_list:
                     return ""
                 for item in msg_list:
-                    msgs.append(combined_msg_tmpl.format(**item))
+                    msgs.append(html.escape(combined_msg_tmpl.format(**item)))
 
                 return part.format(
                     classname=error_type,

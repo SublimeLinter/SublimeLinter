@@ -5,7 +5,7 @@ from .persist import settings
 
 import re
 import os
-
+import shutil
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -18,7 +18,6 @@ def touch_dir(dir):
 
 
 class XmlScheme(scheme.Scheme):
-
     def generate_color_scheme_async(self):
         """
             Generate a modified copy of the current color scheme that contains
@@ -69,8 +68,8 @@ class XmlScheme(scheme.Scheme):
         styles.extend(xml_nodes)
 
         mod_name = self.paths["scheme_name"] + ' (SL)'
-        mod_scheme_path = os.path.join(
-            self.paths["usr_dir_abs"], mod_name + '.hidden-tmTheme')
+        mod_scheme_path = os.path.join(self.paths["usr_dir_abs"],
+                                       mod_name + '.hidden-tmTheme')
 
         content = ElementTree.tostring(plist, encoding='unicode')
 
@@ -80,7 +79,8 @@ class XmlScheme(scheme.Scheme):
 
         # Set the amended color scheme to the current color scheme
         scheme_path_rel = self.packages_relative_path(
-            os.path.join(self.paths["usr_dir_rel"], os.path.basename(mod_scheme_path)))
+            os.path.join(self.paths["usr_dir_rel"],
+                         os.path.basename(mod_scheme_path)))
 
         self.set_scheme_path(scheme_path_rel)
 
@@ -93,20 +93,16 @@ class XmlScheme(scheme.Scheme):
                 color = '#' + color
             return color
 
-        d = [
-            {
-                "scope": "sublimelinter.mark.warning",
-                "foreground": get_color("warning_color", "#DDB700")
-            },
-            {
-                "scope": "sublimelinter.mark.error",
-                "foreground": get_color("error_color", "#D02000")
-            },
-            {
-                "scope": "sublimelinter.gutter-mark",
-                "foreground": "#FFFFFF"
-            }
-        ]
+        d = [{
+            "scope": "sublimelinter.mark.warning",
+            "foreground": get_color("warning_color", "#DDB700")
+        }, {
+            "scope": "sublimelinter.mark.error",
+            "foreground": get_color("error_color", "#D02000")
+        }, {
+            "scope": "sublimelinter.gutter-mark",
+            "foreground": "#FFFFFF"
+        }]
 
         filtered = [f for f in d if f["scope"] in unfound]
 
@@ -181,6 +177,13 @@ def legacy_check(func):
     settings.save()
 
     if min_version and not settings.get("force_xml_scheme"):
+        # remove old User/SublimeLinter dir
+
+        usr_dir_abs = os.path.join(sublime.packages_path(), "User",
+                                   "SublimeLinter")
+
+        shutil.rmtree(usr_dir_abs, ignore_errors=True)
+
         def func_wrapper():
             return func
 

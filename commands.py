@@ -198,7 +198,6 @@ class SublimelinterGotoErrorCommand(GotoErrorCommand):
 
 
 class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
-    """A command that shows a quick panel with all of the errors in the current view."""
 
     @error_command
     def run(self, view, errors, highlights):
@@ -208,43 +207,19 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
         options = []
 
         for lineno, line_errors in sorted(errors.items()):
-            if persist.settings.get("passive_warnings", False):
-                if self.highlights.line_type(lineno) != ERROR:
-                    continue
+            line = view.substr(
+                view.full_line(view.text_point(lineno, 0))
+            ).rstrip('\n\r')
 
-            line = view.substr(view.full_line(
-                view.text_point(lineno, 0))).rstrip('\n\r')
-
-            # Strip whitespace from the front of the line, but keep track of how much was
-            # stripped so we can adjust the column.
-            column = 0
-            diff = len(line)
             line = line.lstrip()
-            diff -= len(line)
-
-            max_prefix_len = 40
 
             we_count = util.msg_count(line_errors)
             msg = "W: {} E: {}".format(we_count[0], we_count[1])
 
-            # Keep track of the line and column
-            point = view.text_point(lineno, column)
+            point = view.text_point(lineno, 0)
             self.points.append(point)
 
-            # If there are more than max_prefix_len characters before the adjusted column,
-            # lop off the excess and insert an ellipsis.
-            column = max(column - diff, 0)
-
-            if column > max_prefix_len:
-                visible_line = '...' + line[column - max_prefix_len:]
-                column = max_prefix_len + 3  # 3 for ...
-            else:
-                visible_line = line
-
-            # Insert an arrow at the column in the stripped line
-            code = visible_line[:column] + '➜ ' + visible_line[column:]
-
-            options.append(['{}  {}'.format(lineno + 1, msg), code])
+            options.append(['{}  {}'.format(lineno + 1, msg), line])
 
         self.viewport_pos = view.viewport_position()
         self.selection = list(view.sel())
@@ -404,7 +379,6 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
                             highest_line /= 10
                             width += 1
 
-                        # print(items)
                         for line, messages in items:
                             print(messages)
                             for e_t, ds in messages.items():
@@ -426,9 +400,6 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimelinterLineReportCommand(sublime_plugin.WindowCommand):
-    """Trigger a popup for all lint messages of the current line.
-    If the line is clean the popup will inform about that, too."""
-
     def run(self):
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().open_tooltip()

@@ -16,6 +16,10 @@
         "command": "sublimelinter_show_all_errors"
     },
     {
+        "caption": "SublimeLinter: Show Line Errors",
+        "command": "sublimelinter_line_report"
+    },
+    {
         "caption": "SublimeLinter: Report (Open Files)",
         "command": "sublimelinter_report",
         "args": {"on": "files"}

@@ -2,7 +2,6 @@
     "debug": false,
     "delay": 0.3,
     "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
-    "gutter_theme_excludes": [],
     "lint_mode": "background",
     "no_column_highlights_line": false,
     "passive_warnings": false,

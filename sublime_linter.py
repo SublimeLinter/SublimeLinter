@@ -147,6 +147,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
 
+        if not view:
+            return
+
         vid = view.id()
 
         # If the view has been modified since the lint was triggered,
@@ -191,6 +194,9 @@ class SublimeLinter(sublime_plugin.EventListener):
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
 
+        if not view:
+            return
+
         vid = view.id()
         self.check_syntax(view)
         self.linted_views.add(vid)
@@ -210,6 +216,9 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         """
 
+        if not view:
+            return
+
         vid = view.id()
         syntax = persist.get_syntax(view)
 
@@ -223,7 +232,9 @@ class SublimeLinter(sublime_plugin.EventListener):
             return False
 
     def clear(self, view):
-        """Clear all marks, errors and status from the given view."""
+        if not view:
+            return
+
         Linter.clear_view(view)
 
     def is_scratch(self, view):

@@ -159,6 +159,7 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         errors = {}
         highlights = persist.highlights[vid] = HighlightSet()
+        persist.warn_err_count = {}
 
         for linter in linters:
             if linter.highlight:

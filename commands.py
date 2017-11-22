@@ -242,68 +242,6 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
             self.view.sel().add_all(self.selection)
 
 
-class SublimelinterToggleLinterCommand(sublime_plugin.WindowCommand):
-    """A command that toggles, enables, or disables linter plugins."""
-
-    def __init__(self, window):
-        super().__init__(window)
-        self.linters = {}
-
-    def is_visible(self, **args):
-        """Return True if the command would show any linters."""
-        which = args['which']
-
-        if self.linters.get(which) is None:
-            linters = []
-            settings = persist.settings.get('linters', {})
-
-            for instance in persist.linter_classes:
-                linter_settings = settings.get(instance, {})
-                disabled = linter_settings.get('@disable')
-
-                if which == 'all':
-                    include = True
-                    instance = [
-                        instance, 'disabled' if disabled else 'enabled']
-                else:
-                    include = (
-                        which == 'enabled' and not disabled or
-                        which == 'disabled' and disabled
-                    )
-
-                if include:
-                    linters.append(instance)
-
-            linters.sort()
-            self.linters[which] = linters
-
-        return len(self.linters[which]) > 0
-
-    def run(self, **args):
-        self.which = args['which']
-
-        if self.linters[self.which]:
-            self.window.show_quick_panel(
-                self.linters[self.which], self.on_done)
-
-    def on_done(self, index):
-        """Completion handler for quick panel, toggle the enabled state of the chosen linter."""
-        if index != -1:
-            linter = self.linters[self.which][index]
-
-            if isinstance(linter, list):
-                linter = linter[0]
-
-            settings = persist.settings.get('linters', {})
-            linter_settings = settings.get(linter, {})
-            linter_settings['@disable'] = not linter_settings.get(
-                '@disable', False)
-            persist.settings.set('linters', settings, changed=True)
-            persist.settings.save()
-
-        self.linters = {}
-
-
 class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter's internal caches."""
 

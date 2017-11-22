@@ -41,13 +41,6 @@
         }
     },
     {
-        "caption": "SublimeLinter: Toggle Linter",
-        "command": "sublimelinter_toggle_linter", "args":
-        {
-            "which": "all"
-        }
-    },
-    {
         "caption": "Preferences: SublimeLinter Settings",
         "command": "edit_settings", "args":
         {

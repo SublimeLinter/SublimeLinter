@@ -407,15 +407,12 @@ class SublimeLinter(sublime_plugin.EventListener):
         return [sum(x) for x in zip(*tups)]
 
     def on_selection_modified_async(self, view):
-        """Ran when the selection changes (cursor moves or text selected)."""
         self.display_errors(view, tooltip=True)
 
     def display_errors(self, view, tooltip=False):
         """
-        Display lint errors in the view status.
-
+        Display lint errors in the statusbar of the current view
         """
-        # Get the line number of the first line of the first selection.
 
         lineno, colno = self.get_line_and_col(view)
 
@@ -451,7 +448,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             view.set_status(STATUS_KEY, status)
 
     def get_active_view(self, view=None):
-        """Return the active view in the currently active window."""
         if view:
             return view.window().active_view()
 
@@ -539,8 +535,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             max_width=1000)
 
     def on_post_save_async(self, view):
-        """Ran after view is saved."""
-
         if self.is_scratch(view):
             return
 
@@ -595,8 +589,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             view.run_command('sublimelinter_show_all_errors')
 
     def on_close_async(self, view):
-        """Ran after view is closed."""
-
         if self.is_scratch(view):
             return
 

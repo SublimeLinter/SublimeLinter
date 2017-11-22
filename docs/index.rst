@@ -32,7 +32,6 @@ User Documentation
     about
     installation
     usage
-    lint_modes
     mark_styles
     gutter_themes
     navigating

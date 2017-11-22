@@ -1,9 +1,35 @@
 {
     "debug": false,
+
+    // When in the "background" lint mode, this value determines
+    // a delay before a request is send to the linter
     "delay": 0.3,
+
+    // Available gutter themes:
+    // Blueberry/Blueberry - cross.gutter-theme
+    // Blueberry/Blueberry - round.gutter-theme
+    // Circle/Circle.gutter-theme
+    // Danish Royalty/Danish Royalty.gutter-theme
+    // Default/Default.gutter-theme
+    // Hands/Hands.gutter-theme
+    // Knob/Knob - simple.gutter-theme
+    // Knob/Knob - symbol.gutter-theme
+    // Koloria/Koloria.gutter-theme
+    // ProjectIcons/ProjectIcons.gutter-theme
     "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
+
+    // Lint Modes determine when the linter is run
+    // background: asynchronously on every change
+    // load_save: when a file is opened and every time it's saved
+    // manual: only when calling the Lint This View command
     "lint_mode": "background",
+
+    // Determines what happens when a linter reports an error without column.
+    // By default, a mark is put in the gutter but no text is highlighted.
+    // If this setting is ``true``, the entire line is also highlighted.
     "no_column_highlights_line": false,
+
+    // Provide extra paths to be searched when locating system executables.
     "paths": {
         "linux": [],
         "osx": [],
@@ -14,39 +40,60 @@
         "osx": [],
         "windows": []
     },
+
+    // The maximum number of parent directories that are searched to find
+    // a .sublimelinterrc file.
     "rc_search_limit": 3,
+
+    // How much time we should be available for reading $PATH from the shell.
     "shell_timeout": 10,
+
+    // Show a quick panel with all errors on each save.
     "show_errors_on_save": false,
+
+    // Show a report for errors on a line by hovering over the gutter.
+    "show_hover_line_report": true,
+
+    // Highlight errors in the minimap.
     "show_marks_in_minimap": true,
+
+    // Global styles for all linters.
+    // - mark_style options: "fill", "outline", "solid_underline", "squiggly_underline", "stippled_underline", "none".
+    // - priority determines which mark is show in the gutter.
+    // - the scope is used to determine the color, region.<colorish> are automatically generated scopes in ST > 3148
+    // - types can be "warning" and/or "error".
+    // You can also set styles per linter, e.g. to give them differen colors.
+    "styles": [
+        {
+            "mark_style": "outline",
+            "priority": 1,
+            "scope": "region.yellowish",
+            "types": [
+                "warning"
+            ]
+        },
+        {
+            "mark_style": "outline",
+            "priority": 1,
+            "scope": "region.redish",
+            "types": [
+                "error"
+            ]
+        }
+    ],
+
+    // Maps variant syntaxes to the syntax that you have a linter for.
     "syntax_map": {
-        "python django": "python",
-        "pythonimproved": "python",
-        "magicpython": "python",
-        "html 5": "html",
         "html (django)": "html",
         "html (rails)": "html",
+        "html 5": "html",
         "javascript (babel)": "javascript",
-        "php": "html"
+        "magicpython": "python",
+        "php": "html",
+        "python django": "python",
+        "pythonimproved": "python"
     },
-    "tooltips": false,
-    "wrap_find": true,
-    "show_hover_line_report": true,
-    "styles": [
-       {
-         "scope": "region.yellowish",
-         "mark_style": "outline",
-         "priority": 1,
-         "types": [
-           "warning"
-         ]
-       },
-       {
-         "scope": "region.redish",
-         "mark_style": "outline",
-         "priority": 1,
-         "types": [
-           "error"
-         ]
-       }
-     ]
+
+    // Should "next/previous error" wrap around at the end of a file.
+    "wrap_find": true
 }

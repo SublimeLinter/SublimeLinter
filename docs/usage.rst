@@ -33,8 +33,6 @@ When you activate or make any modifications to a file, the following sequence of
 
 - If the **lint mode** is ``background``, a lint request is added to a threaded queue with a delay. The delay is there to prevent lints from occurring instantly on every keystroke — you don’t want the linter complaining too much while you are typing, it quickly becomes annoying. The delay is there to allow a little idle time before a lint occurs.
 
-  For more information on lint modes, see :doc:`Lint Modes <lint_modes>`. The delay can be configured, for more information see :ref:`Global Settings <delay>`.
-
 - The lint request is eventually pulled off the queue after the given delay. If the view it belongs to has been modified since the lint request was made, the request is discarded, since another lint request was generated when the view was modified.
 
 - Each of the linters assigned to the base syntax of the view is run with the current text of the view. The linter calls an external linter binary (such as `jshint`_), or if the linter is python-based (such as `flake8`_), it may directly call a python linting library.

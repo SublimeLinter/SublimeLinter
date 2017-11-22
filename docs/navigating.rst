@@ -35,10 +35,6 @@ Show All Errors Command+Control+A       Control+K, a
 
 If there are any errors in the current view, the next/previous error will be selected, or all errors will be displayed in a Quick Panel. If there are no errors, an alert will appear which indicates there are no errors.
 
-.. note::
-
-   If the :ref:`"wrap_find" <wrap_find>` setting is ``false``, the search for the next/previous error will stop at the bottom/top of the view.
-
 
 .. _showing-all-errors:
 

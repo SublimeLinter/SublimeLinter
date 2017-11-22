@@ -36,7 +36,6 @@ Hundreds of hours have been spent writing and documenting SublimeLinter to make 
 
 Donate via: 
 * [**Paypal**](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU)
-* [**Gratipay**](https://gratipay.com/sublimelinter/)
 * [**Bitcoin (Coinbase)**](https://www.coinbase.com/groteworld)
 
 ## Contributing linter plugins

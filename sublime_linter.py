@@ -392,8 +392,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         return w_count, e_count
 
     def count_we(self, v_dict):
-        l = [self.msg_count(v) for v in v_dict.values()]
-        return [sum(x) for x in zip(*l)]
+        tups = [self.msg_count(v) for v in v_dict.values()]
+        return [sum(x) for x in zip(*tups)]
 
     def on_selection_modified_async(self, view):
         """Ran when the selection changes (cursor moves or text selected)."""

@@ -26,6 +26,10 @@ import subprocess
 import sys
 import tempfile
 
+from copy import deepcopy
+
+from .const import WARNING, ERROR
+
 if sublime.platform() != 'windows':
     import pwd
 
@@ -36,11 +40,14 @@ STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
-PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?')
+PYTHON_CMD_RE = re.compile(
+    r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?')
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 
-INLINE_SETTINGS_RE = re.compile(r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
-INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
+INLINE_SETTINGS_RE = re.compile(
+    r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
+INLINE_SETTING_RE = re.compile(
+    r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
@@ -48,7 +55,12 @@ ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 UNSAVED_FILENAME = 'untitled'
 
 # Temp directory used to store temp files for linting
-tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
+tempdir = os.path.join(tempfile.gettempdir(),
+                       'SublimeLinter3-' + getpass.getuser())
+
+
+def get_new_dict():
+    return deepcopy({WARNING: {}, ERROR: {}})
 
 
 def msg_count(l_dict):
@@ -162,7 +174,8 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            persist.printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
+            persist.printf(
+                'ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -174,14 +187,16 @@ def update_syntax_map():
 
     syntax_map = {}
     syntax_map.update(persist.settings.get('syntax_map', {}))
-    default_syntax_map = persist.settings.plugin_settings.get('default', {}).get('syntax_map', {})
+    default_syntax_map = persist.settings.plugin_settings.get(
+        'default', {}).get('syntax_map', {})
     modified = False
 
     for key, value in default_syntax_map.items():
         if key not in syntax_map:
             syntax_map[key] = value
             modified = True
-            persist.debug('added syntax mapping: \'{}\' => \'{}\''.format(key, value))
+            persist.debug(
+                'added syntax mapping: \'{}\' => \'{}\''.format(key, value))
 
     if modified:
         persist.settings.set('syntax_map', syntax_map)
@@ -256,7 +271,8 @@ def run_shell_cmd(cmd):
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''
-        persist.printf('shell timed out after {} seconds, executing {}'.format(timeout, cmd))
+        persist.printf(
+            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
 
     return out
 
@@ -273,7 +289,8 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        persist.printf('Could not parse shell PATH output:\n' + (out if out else '<empty>'))
+        persist.printf('Could not parse shell PATH output:\n' +
+                       (out if out else '<empty>'))
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
             'It is unlikely that any linters will work. '
@@ -298,11 +315,13 @@ def get_shell_path(env):
         # text might be output during shell startup.
         if shell in ('bash', 'zsh'):
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
+                (shell_path, '-l', '-c',
+                 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
             )
         elif shell == 'fish':
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
+                (shell_path, '-l', '-c',
+                 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
                 '\n'
             )
         else:
@@ -335,10 +354,12 @@ def get_environment_variable(name):
 
             # We have to delimit the output with markers because
             # text might be output during shell startup.
-            out = run_shell_cmd((shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
+            out = run_shell_cmd(
+                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
 
             if out:
-                value = out.decode().split('__SUBL_VAR__', 2)[1].strip() or None
+                value = out.decode().split('__SUBL_VAR__', 2)[
+                    1].strip() or None
     else:
         value = os.environ.get(name, None)
 
@@ -394,7 +415,8 @@ def create_environment():
     paths = persist.settings.get('paths', {})
 
     if sublime.platform() in paths:
-        paths = [os.path.abspath(os.path.expanduser(path)) for path in convert_type(paths[sublime.platform()], [])]
+        paths = [os.path.abspath(os.path.expanduser(path))
+                 for path in convert_type(paths[sublime.platform()], [])]
     else:
         paths = []
 
@@ -413,7 +435,8 @@ def create_environment():
             shell = 'from system'
 
         if env['PATH']:
-            persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
+            persist.printf('computed PATH {}:\n{}\n'.format(
+                shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
@@ -541,7 +564,8 @@ def find_python(version=None, script=None, module=None):
         # If no specific version is requested and we have a module,
         # assume the linter will run using ST's python.
         if module is not None:
-            result = ('<builtin>', script, available_version['major'], available_version['minor'])
+            result = ('<builtin>', script,
+                      available_version['major'], available_version['minor'])
             persist.debug('find_python: <=', repr(result))
             return result
 
@@ -554,7 +578,8 @@ def find_python(version=None, script=None, module=None):
     else:
         version = str(version)
         requested_version = extract_major_minor_version(version)
-        persist.debug('find_python: requested version =', repr(requested_version))
+        persist.debug('find_python: requested version =',
+                      repr(requested_version))
 
         # If there is no module, we will use a system python.
         # If there is a module, a specific version was requested,
@@ -563,8 +588,10 @@ def find_python(version=None, script=None, module=None):
         if module is None:
             need_system_python = True
         else:
-            persist.debug('find_python: available version =', repr(available_version))
-            need_system_python = not version_fulfills_request(available_version, requested_version)
+            persist.debug('find_python: available version =',
+                          repr(available_version))
+            need_system_python = not version_fulfills_request(
+                available_version, requested_version)
             path = '<builtin>'
 
         if need_system_python:
@@ -577,12 +604,14 @@ def find_python(version=None, script=None, module=None):
 
     if path and path != '<builtin>':
         available_version = get_python_version(path)
-        persist.debug('find_python: available version =', repr(available_version))
+        persist.debug('find_python: available version =',
+                      repr(available_version))
 
         if version_fulfills_request(available_version, requested_version):
             if script:
                 script_path = find_python_script(path, script)
-                persist.debug('find_python: {!r} path = {}'.format(script, script_path))
+                persist.debug('find_python: {!r} path = {}'.format(
+                    script, script_path))
 
                 if script_path is None:
                     path = None
@@ -592,7 +621,8 @@ def find_python(version=None, script=None, module=None):
         else:
             path = script_path = None
 
-    result = (path, script_path, available_version['major'], available_version['minor'])
+    result = (path, script_path,
+              available_version['major'], available_version['minor'])
     persist.debug('find_python: <=', repr(result))
     return result
 
@@ -633,12 +663,14 @@ def find_posix_python(version):
     if version:
         # Try the exact requested version first
         path = find_executable('python' + version)
-        persist.debug('find_posix_python: python{} => {}'.format(version, path))
+        persist.debug(
+            'find_posix_python: python{} => {}'.format(version, path))
 
         # If that fails, try the major version
         if not path:
             path = find_executable('python' + version[0])
-            persist.debug('find_posix_python: python{} => {}'.format(version[0], path))
+            persist.debug(
+                'find_posix_python: python{} => {}'.format(version[0], path))
 
             # If the major version failed, see if the default is available
             if not path:
@@ -735,7 +767,8 @@ def get_python_paths():
         paths = out.splitlines()
 
         if persist.debug_mode():
-            persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
+            persist.printf('sys.path for {}:\n{}\n'.format(
+                python_path, '\n'.join(paths)))
     else:
         persist.debug('no python 3 available to augment sys.path')
         paths = []
@@ -778,7 +811,8 @@ def get_subl_executable_path():
 
     if sublime.platform() == 'osx':
         suffix = '.app/'
-        app_path = executable_path[:executable_path.rfind(suffix) + len(suffix)]
+        app_path = executable_path[:executable_path.rfind(
+            suffix) + len(suffix)]
         executable_path = app_path + 'Contents/SharedSupport/bin/subl'
 
     return executable_path
@@ -836,7 +870,8 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None):
     else:
         stdout = stderr = None
 
-    out = popen(cmd, stdout=stdout, stderr=stderr, output_stream=output_stream, extra_env=env)
+    out = popen(cmd, stdout=stdout, stderr=stderr,
+                output_stream=output_stream, extra_env=env)
 
     if out is not None:
         if code is not None:

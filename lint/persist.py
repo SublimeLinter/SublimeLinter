@@ -41,6 +41,8 @@ if 'plugin_is_loaded' not in globals():
     # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = {}
 
+    warn_err_count = {}
+
     # A mapping between view ids and HighlightSets
     highlights = {}
 

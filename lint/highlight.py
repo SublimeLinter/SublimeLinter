@@ -30,9 +30,8 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 import re
 import sublime
-from copy import deepcopy
 
-from . import persist
+from . import persist, util
 from .const import ST_ICONS, PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
@@ -169,7 +168,7 @@ class Highlight:
     """This class maintains error marks and knows how to draw them."""
     def __init__(self, code=''):
         self.code = code
-        self.marks = self.get_new_dict()
+        self.marks = util.get_new_dict()
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
 
@@ -178,7 +177,7 @@ class Highlight:
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines = self.get_new_dict()
+        self.lines = util.get_new_dict()
 
         # These are used when highlighting embedded code, for example JavaScript
         # or CSS within an HTML file. The embedded code is linted as if it begins
@@ -498,11 +497,8 @@ class Highlight:
 
         """
 
-        self.marks = self.get_new_dict()
-        self.lines = self.get_new_dict()
-
-    def get_new_dict(self):
-        return deepcopy({WARNING: {}, ERROR: {}})
+        self.marks = util.get_new_dict()
+        self.lines = util.get_new_dict()
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""

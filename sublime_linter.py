@@ -21,7 +21,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
-from .lint.const import SETTINGS_FILE, WARN_ERR
+from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR
 
 STATUS_KEY = "sublime_linter_status"
 
@@ -184,6 +184,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                     highlights.clear(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors
+                    persist.warn_err_count[vid] = self.count_we(errors)
 
                     if not window_views.get(wid):
                         window_views[wid] = other_view
@@ -404,7 +405,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
     def count_we(self, v_dict):
         tups = [self.msg_count(v) for v in v_dict.values()]
-        return [sum(x) for x in zip(*tups)]
+        we = [sum(x) for x in zip(*tups)]
+        return {WARNING: we[0], ERROR: we[1]}
 
     def on_selection_modified_async(self, view):
         self.display_errors(view, tooltip=True)
@@ -421,8 +423,8 @@ class SublimeLinter(sublime_plugin.EventListener):
             view.erase_status(STATUS_KEY)
             return
 
-        we_count = self.count_we(view_dict)
-        status = "W: {} E: {}".format(we_count[0], we_count[1])
+        we_count = persist.warn_err_count[view.id()]
+        status = "W: {warning} E: {error}".format(**we_count)
 
         line_dict = view_dict.get(lineno)
         if not line_dict:

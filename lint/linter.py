@@ -1817,7 +1817,6 @@ class Linter(metaclass=LinterMeta):
         cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
         return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
 
-
     def error(self, line, col, message, error_type, style=None, code=None, region=None):
         """Add a reference to an error/warning on the given line and column."""
 

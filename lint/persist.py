@@ -108,24 +108,6 @@ def edit(vid, edit):
         c(edit)
 
 
-def view_did_close(vid):
-    """Remove all references to the given view id in persistent storage."""
-    if vid in errors:
-        del errors[vid]
-
-    if vid in highlights:
-        del highlights[vid]
-
-    if vid in view_linters:
-        del view_linters[vid]
-
-    if vid in views:
-        del views[vid]
-
-    if vid in last_hit_times:
-        del last_hit_times[vid]
-
-
 def debug_mode():
     """Return whether the "debug" setting is True."""
     return settings.get('debug')

@@ -563,8 +563,8 @@ class SublimeLinter(sublime_plugin.EventListener):
         """Check if the syntax changed or if we need to show errors."""
         syntax_changed = self.check_syntax(view)
         vid = view.id()
-        mode = persist.settings.get('lint_mode', 'background')
-        show_errors = persist.settings.get('show_errors_on_save', False)
+        mode = persist.settings.get('lint_mode')
+        show_errors = persist.settings.get('show_errors_on_save')
 
         if syntax_changed:
             self.clear(view)
@@ -607,6 +607,25 @@ class SublimeLinter(sublime_plugin.EventListener):
             del self.view_syntax[vid]
 
         persist.view_did_close(vid)
+
+    def on_hover(self, view, point, hover_zone):
+        """Arguments:
+            view (View): The view which received the event.
+            point (Point): The text position where the mouse hovered
+            hover_zone (int): The context the event was triggered in
+        """
+        if hover_zone != sublime.HOVER_GUTTER:
+            return
+
+        # don't let the popup flicker / fight with other packages
+        if view.is_popup_visible():
+            return
+
+        if not persist.settings.get('show_hover_line_report'):
+            return
+
+        lineno, colno = view.rowcol(point)
+        SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
 
 
 class SublimelinterEditCommand(sublime_plugin.TextCommand):

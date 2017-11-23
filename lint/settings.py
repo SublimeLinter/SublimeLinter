@@ -144,6 +144,8 @@ class Settings:
 
         from . import persist
 
+        print(self.changeset)
+
         if not self.changeset:
             return
 

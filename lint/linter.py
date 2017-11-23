@@ -1813,20 +1813,31 @@ class Linter(metaclass=LinterMeta):
 
         return result
 
+    def escape_html(self, text):
+        cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
+        return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
+
+
     def error(self, line, col, message, error_type, style=None, code=None, region=None):
         """Add a reference to an error/warning on the given line and column."""
 
         self.highlight.line(line, error_type, style=style)
 
         # Some linters use html entities in error messages, decode them
-        cleaned_msg = HTML_ENTITY_RE.sub(self.replace_entity, message)
-        cleaned_msg = html.escape(str(cleaned_msg).rstrip('\r .'), quote=False)
+        message = self.escape_html(message)
 
         if not code:
             code = "n/a"
+        else:
+            code = self.escape_html(code)
 
         # Strip trailing CR, space and period
-        payload = {"col": (col or 0), "linter": self.name, "code": code, "msg": cleaned_msg}
+        payload = {
+            "col": (col or 0),
+            "linter": self.name,
+            "code": code,
+            "msg": message
+        }
 
         if region:
             payload["region"] = region

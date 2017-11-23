@@ -142,8 +142,7 @@ class SublimeLinter(sublime_plugin.EventListener):
         made, this method aborts drawing marks.
 
         If the view has not been modified since hit_time, all of the marks and
-        errors from the list of linters are aggregated and drawn, and the status
-        is updated.
+        errors from the list of linters are aggregated and drawn, and the status is updated.
 
         """
 
@@ -407,6 +406,8 @@ class SublimeLinter(sublime_plugin.EventListener):
     def count_we(self, v_dict):
         tups = [self.msg_count(v) for v in v_dict.values()]
         we = [sum(x) for x in zip(*tups)]
+        if not we:
+            return
         return {WARNING: we[0], ERROR: we[1]}
 
     def on_selection_modified_async(self, view):
@@ -424,7 +425,11 @@ class SublimeLinter(sublime_plugin.EventListener):
             view.erase_status(STATUS_KEY)
             return
 
-        we_count = persist.warn_err_count[view.id()]
+        we_count = persist.warn_err_count.get(view.id())
+        if not we_count:
+            view.erase_status(STATUS_KEY)
+            return
+
         status = "W: {warning} E: {error}".format(**we_count)
 
         line_dict = view_dict.get(lineno)
@@ -591,22 +596,20 @@ class SublimeLinter(sublime_plugin.EventListener):
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
 
-    def on_close_async(self, view):
+    def on_pre_close_async(self, view):
         if self.is_scratch(view):
             return
 
         vid = view.id()
 
-        if vid in self.loaded_views:
-            self.loaded_views.remove(vid)
+        dicts = [
+            self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
+            persist.warn_err_count, persist.highlights, persist.view_linters,
+            persist.views, persist.last_hit_times
+        ]
 
-        if vid in self.linted_views:
-            self.linted_views.remove(vid)
-
-        if vid in self.view_syntax:
-            del self.view_syntax[vid]
-
-        persist.view_did_close(vid)
+        for d in dicts:
+            d.pop(vid, None)
 
     def on_hover(self, view, point, hover_zone):
         """Arguments:

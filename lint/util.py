@@ -526,6 +526,11 @@ def get_shell_path(env):
 
     """
 
+    from . import persist
+
+    if persist.settings.get('use_current_shell_path') is True:
+        return env['PATH']
+
     if 'SHELL' in env:
         shell_path = env['SHELL']
         shell = os.path.basename(shell_path)

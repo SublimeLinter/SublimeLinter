@@ -11,7 +11,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
-import html
 import re
 
 import sublime
@@ -522,7 +521,7 @@ class SublimeLinter(sublime_plugin.EventListener):
                 if not msg_list:
                     return ""
                 for item in msg_list:
-                    msgs.append(html.escape(combined_msg_tmpl.format(**item)))
+                    msgs.append(combined_msg_tmpl.format(**item))
 
                 return part.format(
                     classname=error_type,

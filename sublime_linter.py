@@ -59,15 +59,8 @@ def plugin_loaded():
         plugin.on_activated_async(window.active_view())
 
 
-class SublimeLinter(sublime_plugin.EventListener):
-    """The main ST3 plugin class."""
-
-    # We use this to match linter settings filenames.
-    LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
-
-    shared_instance = None
-
-    # sublime_plugin.EventListener event handlers
+class Listener:
+    """Collection of event handler methods."""
 
     def on_modified_async(self, view):
         """Ran when view is motified."""
@@ -108,36 +101,6 @@ class SublimeLinter(sublime_plugin.EventListener):
                 self.hit(view)
 
         self.display_errors(view)
-
-    def on_open_settings(self, view):
-        """
-        Ran when any settings file is opened.
-
-        view is the view that contains the text of the settings file.
-
-        """
-        if self.is_settings_file(view, user_only=True):
-            persist.settings.save(view=view)
-
-    def is_settings_file(self, view, user_only=False):
-        """Return True if view is a SublimeLinter settings file."""
-
-        filename = view.file_name()
-
-        if not filename:
-            return False
-
-        if not filename.startswith(sublime.packages_path()):
-            return False
-
-        dirname, filename = os.path.split(filename)
-        dirname = os.path.basename(dirname)
-
-        if self.LINTER_SETTINGS_RE.match(filename):
-            if user_only:
-                return dirname == 'User'
-            else:
-                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
 
     @classmethod
     def on_settings_updated(cls, relint=False):
@@ -216,6 +179,45 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         lineno, colno = view.rowcol(point)
         SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
+
+
+class SublimeLinter(sublime_plugin.EventListener, Listener):
+    """The main ST3 plugin class."""
+
+    # We use this to match linter settings filenames.
+    LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
+
+    shared_instance = None
+
+    def on_open_settings(self, view):
+        """
+        Ran when any settings file is opened.
+
+        view is the view that contains the text of the settings file.
+
+        """
+        if self.is_settings_file(view, user_only=True):
+            persist.settings.save(view=view)
+
+    def is_settings_file(self, view, user_only=False):
+        """Return True if view is a SublimeLinter settings file."""
+
+        filename = view.file_name()
+
+        if not filename:
+            return False
+
+        if not filename.startswith(sublime.packages_path()):
+            return False
+
+        dirname, filename = os.path.split(filename)
+        dirname = os.path.basename(dirname)
+
+        if self.LINTER_SETTINGS_RE.match(filename):
+            if user_only:
+                return dirname == 'User'
+            else:
+                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
 
     @classmethod
     def shared_plugin(cls):
@@ -577,20 +579,20 @@ class SublimeLinter(sublime_plugin.EventListener):
                 for item in msg_list:
                     msgs.append(combined_msg_tmpl.format(**item))
 
+                if count > 1:  # pluralize
+                    heading += "s"
+
                 return part.format(
                     classname=error_type,
                     count=count,
-                    messages='<br />'.join(msgs),
-                    heading=heading
+                    heading=heading,
+                    messages='<br />'.join(msgs)
                 )
 
-            if w_count > 1:
-                tooltip_message = join_msgs("warning", w_count, "Warnings")
-            else:
+            if w_count > 0:
                 tooltip_message = join_msgs("warning", w_count, "Warning")
-            if e_count > 1:
-                tooltip_message += join_msgs("error", e_count, "Errors")
-            else:
+
+            if e_count > 0:
                 tooltip_message += join_msgs("error", e_count, "Error")
 
         # place at beginning of line

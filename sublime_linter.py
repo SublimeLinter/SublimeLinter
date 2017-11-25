@@ -530,8 +530,14 @@ class SublimeLinter(sublime_plugin.EventListener):
                     heading=heading
                 )
 
-            tooltip_message = join_msgs("warning", w_count, "Warnings")
-            tooltip_message += join_msgs("error", e_count, "Errors")
+            if w_count > 1:
+                tooltip_message = join_msgs("warning", w_count, "Warnings")
+            else:
+                tooltip_message = join_msgs("warning", w_count, "Warning")
+            if e_count > 1:
+                tooltip_message += join_msgs("error", e_count, "Errors")
+            else:
+                tooltip_message += join_msgs("error", e_count, "Error")
 
         # place at beginning of line
         location = active_view.text_point(lineno, 0)

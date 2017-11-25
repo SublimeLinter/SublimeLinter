@@ -68,7 +68,6 @@ class RegionStore:
         self._set_views(view_id, saved_keys)
 
     def del_regions(self, view):
-        print("del_regions in region_Store called")
         view_id = view.id()
         saved_keys = self._get_views(view_id)
         for key in saved_keys:
@@ -167,6 +166,7 @@ class HighlightSet:
 
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
+
     def __init__(self, code=''):
         self.code = code
         self.marks = util.get_new_dict()
@@ -463,7 +463,7 @@ class Highlight:
                     scope = " "  # set scope to non-existent one
 
                 k = style.rfind(".")
-                gutter_key = style[:k] + ".gutter." + style[k+1:]
+                gutter_key = style[:k] + ".gutter." + style[k + 1:]
 
                 # GUTTER_MARK_KEY_FORMAT.format(error_type)
                 view.add_regions(
@@ -478,7 +478,8 @@ class Highlight:
             # overlaying all gutter regions with common invisible one,
             # to create unified handle for GitGutter and other plugins
             # flag might not be neccessary
-            view.add_regions(PROTECTED_REGIONS_KEY, protected_regions, flags=sublime.HIDDEN)
+            view.add_regions(PROTECTED_REGIONS_KEY,
+                             protected_regions, flags=sublime.HIDDEN)
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
         # persisting region keys for later clearance

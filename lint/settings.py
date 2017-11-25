@@ -106,7 +106,8 @@ class Settings:
         """Observe changes to the ST prefs."""
         prefs = sublime.load_settings('Preferences.sublime-settings')
         prefs.clear_on_change('sublimelinter-pref-settings')
-        prefs.add_on_change('sublimelinter-pref-settings', observer or self.on_prefs_update)
+        prefs.add_on_change('sublimelinter-pref-settings',
+                            observer or self.on_prefs_update)
 
     def observe(self, observer=None):
         """Observer changes to the plugin settings."""
@@ -144,13 +145,12 @@ class Settings:
 
         from . import persist
 
-        print(self.changeset)
-
         if not self.changeset:
             return
 
         if "force_xml_scheme" in self.changeset:
-            persist.printf("Scheme mode changed regenerating style definitions.")
+            persist.printf(
+                "Scheme mode changed regenerating style definitions.")
 
             from . import persist
             persist.scheme.generate()
@@ -177,7 +177,8 @@ class Settings:
 
         if "syntax_map" in self.changeset:
             Linter.clear_all()
-            util.apply_to_all_views(lambda view: Linter.assign(view, reset=True))
+            util.apply_to_all_views(
+                lambda view: Linter.assign(view, reset=True))
 
         if "gutter_theme" in self.changeset:
             self.update_gutter_marks()
@@ -218,7 +219,8 @@ class Settings:
 
         settings['linters'] = linters
 
-        user_prefs_path = os.path.join(sublime.packages_path(), 'User', SETTINGS_FILE)
+        user_prefs_path = os.path.join(
+            sublime.packages_path(), 'User', SETTINGS_FILE)
         settings_views = []
 
         if not view:
@@ -273,7 +275,8 @@ class Settings:
 
         if info:
             if theme != 'Default' and os.path.basename(theme_path) == 'Default.gutter-theme':
-                persist.printf('cannot find the gutter theme \'{}\', using the default'.format(theme))
+                persist.printf(
+                    'cannot find the gutter theme \'{}\', using the default'.format(theme))
 
             path = os.path.dirname(theme_path)
 

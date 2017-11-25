@@ -20,9 +20,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
-from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR
-
-STATUS_KEY = "sublime_linter_status"
+from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
 
 
 def plugin_loaded():
@@ -68,6 +66,156 @@ class SublimeLinter(sublime_plugin.EventListener):
     LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
+
+    # sublime_plugin.EventListener event handlers
+
+    def on_modified_async(self, view):
+        """Ran when view is motified."""
+
+        if self.is_scratch(view):
+            return
+
+        if view.id() not in persist.view_linters:
+            syntax_changed = self.check_syntax(view)
+
+            if not syntax_changed:
+                return
+        else:
+            syntax_changed = False
+
+        if syntax_changed or persist.settings.get('lint_mode') == 'background':
+            self.hit(view)
+        # else:
+        #     self.clear(view)
+
+    def on_activated_async(self, view):
+        """Ran when a view gains input focus."""
+
+        if self.is_scratch(view):
+            return
+
+        # Reload the plugin settings.
+        persist.settings.load()
+
+        self.check_syntax(view)
+        view_id = view.id()
+
+        if view_id not in self.linted_views:
+            if view_id not in self.loaded_views:
+                self.on_new_async(view)
+
+            if persist.settings.get('lint_mode') in ('background', 'load_save'):
+                self.hit(view)
+
+        self.display_errors(view)
+
+    def on_open_settings(self, view):
+        """
+        Ran when any settings file is opened.
+
+        view is the view that contains the text of the settings file.
+
+        """
+        if self.is_settings_file(view, user_only=True):
+            persist.settings.save(view=view)
+
+    def is_settings_file(self, view, user_only=False):
+        """Return True if view is a SublimeLinter settings file."""
+
+        filename = view.file_name()
+
+        if not filename:
+            return False
+
+        if not filename.startswith(sublime.packages_path()):
+            return False
+
+        dirname, filename = os.path.split(filename)
+        dirname = os.path.basename(dirname)
+
+        if self.LINTER_SETTINGS_RE.match(filename):
+            if user_only:
+                return dirname == 'User'
+            else:
+                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
+
+    @classmethod
+    def on_settings_updated(cls, relint=False):
+        """Ran when the settings are updated."""
+        if relint:
+            cls.lint_all_views()
+        else:
+            Linter.redraw_all()
+
+    def on_new_async(self, view):
+        """Ran when a new buffer is created."""
+        self.on_open_settings(view)
+
+        if self.is_scratch(view):
+            return
+
+        vid = view.id()
+        self.loaded_views.add(vid)
+        self.view_syntax[vid] = persist.get_syntax(view)
+
+    def on_selection_modified_async(self, view):
+        self.display_errors(view)
+
+    def on_post_save_async(self, view):
+        if self.is_scratch(view):
+            return
+
+        # First check to see if the project settings changed
+        if view.window().project_file_name() == view.file_name():
+            self.lint_all_views()
+        else:
+            # Now see if a .sublimelinterrc has changed
+            filename = os.path.basename(view.file_name())
+
+            if filename == '.sublimelinterrc':
+                # If a .sublimelinterrc has changed, to be safe
+                # clear the rc cache and relint.
+                util.get_rc_settings.cache_clear()
+                self.lint_all_views()
+
+            # If a file other than one of our settings files changed,
+            # check if the syntax changed or if we need to show errors.
+            elif filename != SETTINGS_FILE:
+                self.file_was_saved(view)
+
+    def on_pre_close_async(self, view):
+        if self.is_scratch(view):
+            return
+
+        vid = view.id()
+
+        dicts = [
+            self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
+            persist.warn_err_count, persist.highlights, persist.view_linters,
+            persist.views, persist.last_hit_times
+        ]
+
+        for d in dicts:
+            d.pop(vid, None)
+
+    def on_hover(self, view, point, hover_zone):
+        """Arguments:
+            view (View): The view which received the event.
+            point (Point): The text position where the mouse hovered
+            hover_zone (int): The context the event was triggered in
+        """
+        if hover_zone != sublime.HOVER_GUTTER:
+            return
+
+        # don't let the popup flicker / fight with other packages
+        if view.is_popup_visible():
+            return
+
+        if not persist.settings.get('show_hover_line_report'):
+            return
+
+        lineno, colno = view.rowcol(point)
+        SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
 
     @classmethod
     def shared_plugin(cls):
@@ -270,97 +418,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         return False
 
-    # sublime_plugin.EventListener event handlers
-
-    def on_modified_async(self, view):
-        """Ran when view is motified."""
-
-        if self.is_scratch(view):
-            return
-
-        if view.id() not in persist.view_linters:
-            syntax_changed = self.check_syntax(view)
-
-            if not syntax_changed:
-                return
-        else:
-            syntax_changed = False
-
-        if syntax_changed or persist.settings.get('lint_mode') == 'background':
-            self.hit(view)
-        # else:
-        #     self.clear(view)
-
-    def on_activated_async(self, view):
-        """Ran when a view gains input focus."""
-
-        if self.is_scratch(view):
-            return
-
-        # Reload the plugin settings.
-        persist.settings.load()
-
-        self.check_syntax(view)
-        view_id = view.id()
-
-        if view_id not in self.linted_views:
-            if view_id not in self.loaded_views:
-                self.on_new_async(view)
-
-            if persist.settings.get('lint_mode') in ('background', 'load_save'):
-                self.hit(view)
-
-        self.display_errors(view)
-
-    def on_open_settings(self, view):
-        """
-        Ran when any settings file is opened.
-
-        view is the view that contains the text of the settings file.
-
-        """
-        if self.is_settings_file(view, user_only=True):
-            persist.settings.save(view=view)
-
-    def is_settings_file(self, view, user_only=False):
-        """Return True if view is a SublimeLinter settings file."""
-
-        filename = view.file_name()
-
-        if not filename:
-            return False
-
-        if not filename.startswith(sublime.packages_path()):
-            return False
-
-        dirname, filename = os.path.split(filename)
-        dirname = os.path.basename(dirname)
-
-        if self.LINTER_SETTINGS_RE.match(filename):
-            if user_only:
-                return dirname == 'User'
-            else:
-                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
-
-    @classmethod
-    def on_settings_updated(cls, relint=False):
-        """Ran when the settings are updated."""
-        if relint:
-            cls.lint_all_views()
-        else:
-            Linter.redraw_all()
-
-    def on_new_async(self, view):
-        """Ran when a new buffer is created."""
-        self.on_open_settings(view)
-
-        if self.is_scratch(view):
-            return
-
-        vid = view.id()
-        self.loaded_views.add(vid)
-        self.view_syntax[vid] = persist.get_syntax(view)
-
     def get_focused_view_id(self, view):
         """
         Return the focused view which shares view's buffer.
@@ -408,9 +465,6 @@ class SublimeLinter(sublime_plugin.EventListener):
         if not we:
             return
         return {WARNING: we[0], ERROR: we[1]}
-
-    def on_selection_modified_async(self, view):
-        self.display_errors(view)
 
     def display_errors(self, view):
         """
@@ -547,28 +601,6 @@ class SublimeLinter(sublime_plugin.EventListener):
             location=location,
             max_width=1000)
 
-    def on_post_save_async(self, view):
-        if self.is_scratch(view):
-            return
-
-        # First check to see if the project settings changed
-        if view.window().project_file_name() == view.file_name():
-            self.lint_all_views()
-        else:
-            # Now see if a .sublimelinterrc has changed
-            filename = os.path.basename(view.file_name())
-
-            if filename == '.sublimelinterrc':
-                # If a .sublimelinterrc has changed, to be safe
-                # clear the rc cache and relint.
-                util.get_rc_settings.cache_clear()
-                self.lint_all_views()
-
-            # If a file other than one of our settings files changed,
-            # check if the syntax changed or if we need to show errors.
-            elif filename != SETTINGS_FILE:
-                self.file_was_saved(view)
-
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""
         syntax_changed = self.check_syntax(view)
@@ -600,40 +632,6 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
-
-    def on_pre_close_async(self, view):
-        if self.is_scratch(view):
-            return
-
-        vid = view.id()
-
-        dicts = [
-            self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
-            persist.warn_err_count, persist.highlights, persist.view_linters,
-            persist.views, persist.last_hit_times
-        ]
-
-        for d in dicts:
-            d.pop(vid, None)
-
-    def on_hover(self, view, point, hover_zone):
-        """Arguments:
-            view (View): The view which received the event.
-            point (Point): The text position where the mouse hovered
-            hover_zone (int): The context the event was triggered in
-        """
-        if hover_zone != sublime.HOVER_GUTTER:
-            return
-
-        # don't let the popup flicker / fight with other packages
-        if view.is_popup_visible():
-            return
-
-        if not persist.settings.get('show_hover_line_report'):
-            return
-
-        lineno, colno = view.rowcol(point)
-        SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
 
 
 class SublimelinterEditCommand(sublime_plugin.TextCommand):

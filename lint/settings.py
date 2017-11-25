@@ -149,11 +149,9 @@ class Settings:
             return
 
         if "force_xml_scheme" in self.changeset:
-            persist.printf(
-                "Scheme mode changed regenerating style definitions.")
-
-            from . import persist
-            persist.scheme.generate()
+            msg = "Scheme mode changed. You need to restart Sublime Text in order for the changes to take effect."
+            sublime.message_dialog(msg)
+            persist.printf(msg)
 
         if "styles" in self.changeset:
             persist.printf("Style definitions changed. Regenerating.")

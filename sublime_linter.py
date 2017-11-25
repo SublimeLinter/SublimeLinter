@@ -288,8 +288,8 @@ class SublimeLinter(sublime_plugin.EventListener):
 
         if syntax_changed or persist.settings.get('lint_mode') == 'background':
             self.hit(view)
-        else:
-            self.clear(view)
+        # else:
+        #     self.clear(view)
 
     def on_activated_async(self, view):
         """Ran when a view gains input focus."""
@@ -410,9 +410,9 @@ class SublimeLinter(sublime_plugin.EventListener):
         return {WARNING: we[0], ERROR: we[1]}
 
     def on_selection_modified_async(self, view):
-        self.display_errors(view, tooltip=True)
+        self.display_errors(view)
 
-    def display_errors(self, view, tooltip=False):
+    def display_errors(self, view):
         """
         Display lint errors in the statusbar of the current view
         """

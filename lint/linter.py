@@ -31,7 +31,7 @@ from xml.sax.saxutils import unescape
 
 
 from . import highlight, persist, util
-from .const import PLUGIN_NAME
+from .const import PLUGIN_NAME, STATUS_KEY
 
 #
 # Private constants
@@ -1607,11 +1607,9 @@ class Linter(metaclass=LinterMeta):
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""
 
-        view.erase_status('sublimelinter')
+        view.erase_status(STATUS_KEY)
         highlight.Highlight.clear(view)
-
-        if view.id() in persist.errors:
-            del persist.errors[view.id()]
+        persist.errors.pop(view.id(), None)
 
     def clear(self):
         """Clear marks, status and all other cached error info for the given view."""

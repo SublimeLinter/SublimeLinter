@@ -17,3 +17,5 @@ CHECK_CONSOLE_MSG = "\nCheck console for details."
 WARNING = 'warning'
 ERROR = 'error'
 WARN_ERR = (WARNING, ERROR)
+
+STATUS_KEY = "sublime_linter_status"

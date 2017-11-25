@@ -68,6 +68,7 @@ class RegionStore:
         self._set_views(view_id, saved_keys)
 
     def del_regions(self, view):
+        print("del_regions in region_Store called")
         view_id = view.id()
         saved_keys = self._get_views(view_id)
         for key in saved_keys:

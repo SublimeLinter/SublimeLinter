@@ -78,8 +78,6 @@ class Listener:
 
         if syntax_changed or persist.settings.get('lint_mode') == 'background':
             self.hit(view)
-        # else:
-        #     self.clear(view)
 
     def on_activated_async(self, view):
         """Ran when a view gains input focus."""
@@ -167,18 +165,14 @@ class Listener:
             point (Point): The text position where the mouse hovered
             hover_zone (int): The context the event was triggered in
         """
-        if hover_zone != sublime.HOVER_GUTTER:
-            return
-
-        # don't let the popup flicker / fight with other packages
-        if view.is_popup_visible():
-            return
-
         if not persist.settings.get('show_hover_line_report'):
             return
 
-        lineno, colno = view.rowcol(point)
-        SublimeLinter.shared_plugin().open_tooltip(view, lineno, show_clean=False)
+        if hover_zone == sublime.HOVER_GUTTER:
+            SublimeLinter.shared_plugin().open_tooltip(view, point)
+
+        elif hover_zone == sublime.HOVER_TEXT:
+            SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
@@ -382,9 +376,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return False
 
     def clear(self, view):
-        if not view:
-            return
-
         Linter.clear_view(view)
 
     def is_scratch(self, view):
@@ -516,7 +507,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         return sublime.active_window().active_view()
 
-    def open_tooltip(self, active_view=None, lineno=None, show_clean=True):
+    def open_tooltip(self, active_view=None, point=None, is_inline=False):
         """ Show a tooltip containing all linting errors on a given line. """
 
         stylesheet = '''
@@ -549,10 +540,14 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             active_view = self.get_active_view()
 
         # Leave any existing popup open without replacing it
+        # don't let the popup flicker / fight with other packages
         if active_view.is_popup_visible():
             return
 
-        if not lineno:
+        if point:  # provided from hover
+            lineno, colno = active_view.rowcol(point)
+
+        elif not lineno:
             lineno, colno = self.get_line_and_col(active_view)
 
         view_dict = self.get_view_dict(active_view)
@@ -562,38 +557,50 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         line_dict = view_dict.get(lineno)
 
         if not line_dict:
-            if not show_clean:  # do not show tooltip on hovering empty gutter
-                return
-            tooltip_message = "No errors"
+            return
 
-        else:
-            w_count, e_count = self.msg_count(line_dict)
+        if is_inline:  # do not show tooltip on hovering empty gutter
+            def get_region_errors():
+                filtered_dict = {}
+                for error_type, dc in line_dict.items():
+                    filtered_dict[error_type] = []
+                    for d in dc:
+                        region = d.get("region")
+                        if region:
+                            if region.contains(point):
+                                filtered_dict[error_type].append(d)
+                return filtered_dict
 
-            def join_msgs(error_type, count, heading):
-                combined_msg_tmpl = "{linter}: {code} - {msg}"
-                msgs = []
-                msg_list = line_dict.get(error_type)
+            line_dict = get_region_errors()
 
-                if not msg_list:
-                    return ""
-                for item in msg_list:
-                    msgs.append(combined_msg_tmpl.format(**item))
+        w_count, e_count = self.msg_count(line_dict)
 
-                if count > 1:  # pluralize
-                    heading += "s"
+        def join_msgs(error_type, count, heading):
+            combined_msg_tmpl = "{linter}: {code} - {msg}"
+            msgs = []
+            msg_list = line_dict.get(error_type)
 
-                return part.format(
-                    classname=error_type,
-                    count=count,
-                    heading=heading,
-                    messages='<br />'.join(msgs)
-                )
+            if not msg_list:
+                return ""
+            for item in msg_list:
+                msgs.append(combined_msg_tmpl.format(**item))
 
-            if w_count > 0:
-                tooltip_message = join_msgs("warning", w_count, "Warning")
+            if count > 1:  # pluralize
+                heading += "s"
 
-            if e_count > 0:
-                tooltip_message += join_msgs("error", e_count, "Error")
+            return part.format(
+                classname=error_type,
+                count=count,
+                heading=heading,
+                messages='<br />'.join(msgs)
+            )
+
+        tooltip_message = ""
+        if w_count > 0:
+            tooltip_message += join_msgs("warning", w_count, "Warning")
+
+        if e_count > 0:
+            tooltip_message += join_msgs("error", e_count, "Error")
 
         # place at beginning of line
         location = active_view.text_point(lineno, 0)

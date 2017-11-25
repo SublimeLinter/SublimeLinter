@@ -1606,6 +1606,8 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""
+        if not view:
+            return
 
         view.erase_status(STATUS_KEY)
         highlight.Highlight.clear(view)

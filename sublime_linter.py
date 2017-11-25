@@ -546,8 +546,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if point:  # provided from hover
             lineno, colno = active_view.rowcol(point)
-
-        elif not lineno:
+        else:
             lineno, colno = self.get_line_and_col(active_view)
 
         view_dict = self.get_view_dict(active_view)

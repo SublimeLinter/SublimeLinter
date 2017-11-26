@@ -167,7 +167,6 @@ class HighlightSet:
 
 def get_icon(f):
     def wrapper(*args):
-        print(args)
         res = f(*args)
         key = args[1]
         error_type = args[3]

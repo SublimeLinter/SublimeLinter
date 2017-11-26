@@ -1,5 +1,3 @@
-import os
-
 PLUGIN_NAME = 'SublimeLinter'
 SETTINGS_FILE = PLUGIN_NAME + ".sublime-settings"
 

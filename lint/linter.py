@@ -400,8 +400,6 @@ class Linter(metaclass=LinterMeta):
         self.syntax = syntax
         self.code = ''
         self.highlight = highlight.Highlight()
-        self.ignore_matches = None
-        self.demote_to_warning_matches = None
         self.lint_styles = persist.linter_styles.get(self.name, {})
 
     @property
@@ -941,11 +939,6 @@ class Linter(metaclass=LinterMeta):
             linter.clear_settings_caches()
             view_settings = linter.get_view_settings(inline=False)
 
-            # We compile the ignore matches for a linter on each run,
-            # clear the cache first.
-            linter.ignore_matches = None
-            linter.demote_to_warning_matches = None
-
             if view_settings.get('@disable'):
                 disabled.add(linter)
                 continue
@@ -1007,141 +1000,11 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def compile_ignore_match(self, pattern):
-        """Return the compiled pattern, log the error if compilation fails."""
-        try:
-            return re.compile(pattern)
-        except re.error as err:
-            persist.printf(
-                'ERROR: {}: invalid ignore_match: "{}" ({})'
-                .format(self.name, pattern, str(err))
-            )
-            return None
-
-    def compiled_ignore_matches(self, ignore_match):
-        """
-        Compile the "ignore_match" linter setting as an optimization.
-
-        If it's a string, return a list with a single compiled regex.
-        If it's a list, return a list of the compiled regexes.
-        If it's a dict, return a list only of the regexes whose key
-        matches the file's extension.
-
-        """
-
-        if isinstance(ignore_match, str):
-            regex = self.compile_ignore_match(ignore_match)
-            return [regex] if regex else []
-
-        elif isinstance(ignore_match, list):
-            matches = []
-
-            for match in ignore_match:
-                regex = self.compile_ignore_match(match)
-
-                if regex:
-                    matches.append(regex)
-
-            return matches
-
-        elif isinstance(ignore_match, dict):
-            if not self.filename:
-                return []
-
-            ext = os.path.splitext(self.filename)[1].lower()
-
-            if not ext:
-                return []
-
-            # Try to match the extension, then the extension without the dot
-            ignore_match = ignore_match.get(ext, ignore_match.get(ext[1:]))
-
-            if ignore_match:
-                return self.compiled_ignore_matches(ignore_match)
-            else:
-                return []
-
-        else:
-            return []
-
-    def compile_demote_to_warning_match(self, pattern):
-        """Return the compiled pattern, log the error if compilation fails."""
-        try:
-            return re.compile(pattern)
-        except re.error as err:
-            persist.printf(
-                'ERROR: {}: invalid demote_to_warning_match: "{}" ({})'
-                .format(self.name, pattern, str(err))
-            )
-            return None
-
-    def compiled_demote_to_warning_matches(self, demote_to_warning_match):
-        """
-        Compile the "demote_to_warning_match" linter setting as an optimization.
-
-        If it's a string, return a list with a single compiled regex.
-        If it's a list, return a list of the compiled regexes.
-        If it's a dict, return a list only of the regexes whose key
-        matches the file's extension.
-
-        """
-
-        if isinstance(demote_to_warning_match, str):
-            regex = self.compile_demote_to_warning_match(demote_to_warning_match)
-            return [regex] if regex else []
-
-        elif isinstance(demote_to_warning_match, list):
-            matches = []
-
-            for match in demote_to_warning_match:
-                regex = self.compile_demote_to_warning_match(match)
-
-                if regex:
-                    matches.append(regex)
-
-            return matches
-
-        elif isinstance(demote_to_warning_match, dict):
-            if not self.filename:
-                return []
-
-            ext = os.path.splitext(self.filename)[1].lower()
-
-            if not ext:
-                return []
-
-            # Try to match the extension, then the extension without the dot
-            demote_to_warning_match = demote_to_warning_match.get(ext, demote_to_warning_match.get(ext[1:]))
-
-            if demote_to_warning_match:
-                return self.compiled_demote_to_warning_matches(demote_to_warning_match)
-            else:
-                return []
-
-        else:
-            return []
-
     def reset(self, code, settings):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
         self.highlight = highlight.Highlight(self.code)
-
-        if self.ignore_matches is None:
-            ignore_match = settings.get('ignore_match')
-
-            if ignore_match:
-                self.ignore_matches = self.compiled_ignore_matches(ignore_match)
-            else:
-                self.ignore_matches = []
-
-        if self.demote_to_warning_matches is None:
-            demote_to_warning_match = settings.get('demote_to_warning_match')
-
-            if demote_to_warning_match:
-                self.demote_to_warning_matches = self.compiled_demote_to_warning_matches(demote_to_warning_match)
-            else:
-                self.demote_to_warning_matches = []
 
     @classmethod
     def which(cls, cmd):
@@ -1492,55 +1355,9 @@ class Linter(metaclass=LinterMeta):
 
         for match, line, col, error, warning, message, near in self.find_errors(output):
             if match and message and line:
-                if self.ignore_matches:
-                    ignore = False
-
-                    for ignore_match in self.ignore_matches:
-                        if ignore_match.match(message):
-                            ignore = True
-
-                            if persist.debug_mode():
-                                persist.printf(
-                                    '{} ({}): ignore_match: "{}" == "{}"'
-                                    .format(
-                                        self.name,
-                                        os.path.basename(self.filename) or '<unsaved>',
-                                        ignore_match.pattern,
-                                        message
-                                    )
-                                )
-                            break
-
-                    if ignore:
-                        continue
-
                 error_type, style = get_error_type_and_style(error, warning)
 
                 assert style  # style should never be None
-
-                if error_type is highlight.ERROR:
-                    demote_to_warning = False
-
-                    if self.demote_to_warning_matches:
-                        for demote_to_warning_match in self.demote_to_warning_matches:
-                            if demote_to_warning_match.match(message):
-                                demote_to_warning = True
-
-                                if persist.debug_mode():
-                                    persist.printf(
-                                        '{} ({}): demote_to_warning_match: "{}" == "{}"'
-                                        .format(
-                                            self.name,
-                                            os.path.basename(self.filename) or '<unsaved>',
-                                            demote_to_warning_match.pattern,
-                                            message
-                                        )
-                                    )
-
-                                break
-
-                    if demote_to_warning:
-                        error_type = highlight.WARNING
 
                 if col:
                     start, end = self.highlight.full_line(line)

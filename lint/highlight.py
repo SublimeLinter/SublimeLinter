@@ -33,7 +33,7 @@ import re
 import sublime
 
 from . import persist, util
-from .const import ST_ICONS, PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
+from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
@@ -57,7 +57,7 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 class RegionStore:
     def __init__(self):
         """structure: {"view.id": [region_keys ... ]}"""
-        self.memory = sublime.load_settings('sl_regions.sublime-settings')
+        self.memory = sublime.load_settings("sl_regions.sublime-settings")
         views = self.memory.get("views")
         if not views:
             self.memory.set("views", {})
@@ -479,7 +479,7 @@ class Highlight:
                     continue
 
                 # colorize icon
-                if (persist.gutter_marks['colorize'] or icon in ST_ICONS):
+                if (persist.gutter_marks['colorize'] or icon in ("circle", "dot", "bookmark")):
                     scope = self.get_style("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one

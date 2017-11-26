@@ -31,7 +31,7 @@ from xml.sax.saxutils import unescape
 
 
 from . import highlight, persist, util
-from .const import PLUGIN_NAME, STATUS_KEY
+from .const import STATUS_KEY
 
 #
 # Private constants
@@ -482,7 +482,7 @@ class Linter(metaclass=LinterMeta):
 
         if window:
             data = window.project_data() or {}
-            project_settings = data.get(PLUGIN_NAME, {})
+            project_settings = data.get('SublimeLinter', {})
         else:
             project_settings = {}
 

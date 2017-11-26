@@ -1,7 +1,0 @@
-SublimeLinter 3.0.16
----------------------
-
-- Fixed crashes related to missing settings.
-
-- If the PATH output from your shell cannot be parsed,
-  an error message is printed to the console.

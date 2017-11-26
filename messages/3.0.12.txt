@@ -1,6 +1,0 @@
-SublimeLinter 3.0.12
----------------------
-
-- A new Linter method was added, get_user_args, to make it easy
-  for linter plugins to get the "args" setting and be sure
-  it's a list.

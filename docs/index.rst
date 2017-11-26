@@ -51,5 +51,4 @@ Developer Documentation
     linter_methods
     python_linter
     ruby_linter
-    contributing
     acknowledgements

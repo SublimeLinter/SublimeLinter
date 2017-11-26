@@ -59,6 +59,31 @@ tempdir = os.path.join(tempfile.gettempdir(),
                        'SublimeLinter3-' + getpass.getuser())
 
 
+# panel utils
+
+def get_project_path(window: sublime.Window) -> 'Optional[str]':
+    """
+    Returns the common root of all open folders in the window
+    """
+    from . import persist
+    if len(window.folders()):
+        folder_paths = window.folders()
+        return folder_paths[0]
+    else:
+        filename = window.active_view().file_name()
+        if filename:
+            project_path = os.path.dirname(filename)
+            persist.debug("Couldn't determine project directory since no folders are open!",
+                          "Using", project_path, "as a fallback.")
+            return project_path
+        else:
+            persist.debug("Couldn't determine project directory since no folders are open",
+                          "and the current file isn't saved on the disk.")
+            return None
+
+
+# ###
+
 def get_new_dict():
     return deepcopy({WARNING: {}, ERROR: {}})
 

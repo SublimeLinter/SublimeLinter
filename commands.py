@@ -327,7 +327,7 @@ class SublimeLinterReportCommand(sublime_plugin.WindowCommand):
                 output.insert(edit, output.size(), out)
 
             persist.edits[output.id()].append(insert)
-            output.run_command('sublimelinter_edit')
+            output.run_command('sublime_linter_edit')
 
         kwargs = {'self': self.plugin,
                   'view_id': view.id(), 'callback': finish_lint}
@@ -340,3 +340,9 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().open_tooltip()
+
+
+class SublimeLinterShowPanelCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        from .sublime_linter import SublimeLinter
+        SublimeLinter.shared_plugin().open_panel_report()

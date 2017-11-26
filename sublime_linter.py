@@ -21,7 +21,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
-
+from .panel import diagnostics
 
 def plugin_loaded():
     """Entry point for SL plugins."""
@@ -630,9 +630,32 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
 
+    def open_panel_report(self):
+        print("open_panel_report called")
+        window = sublime.active_window()
+        diagnostics.ensure_diagnostics_panel(window)
+        window.run_command("show_panel", {"panel": "output.diagnostics"})
 
-class SublimelinterEditCommand(sublime_plugin.TextCommand):
+        # TODO: remove this line, it's just a test
+        diagnostics.update_diagnostics_panel(window)
+
+
+class SublimeLinterEditCommand(sublime_plugin.TextCommand):
     """A plugin command used to generate an edit object for a view."""
 
     def run(self, edit):
         persist.edit(self.view.id(), edit)
+
+
+class LspUpdatePanelCommand(sublime_plugin.TextCommand):
+    """
+    A update_panel command to update the error panel with new text.
+    """
+
+    def run(self, edit, characters):
+        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
+
+        # Move cursor to the end
+        selection = self.view.sel()
+        selection.clear()
+        selection.add(sublime.Region(self.view.size(), self.view.size()))

@@ -54,6 +54,9 @@
     // Show a report for errors on a line by hovering over the gutter.
     "show_hover_line_report": true,
 
+    // Show a report for errors on a region by hovering over it.
+    "show_hover_region_report": true,
+
     // Highlight errors in the minimap.
     "show_marks_in_minimap": true,
 

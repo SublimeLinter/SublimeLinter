@@ -1,9 +1,10 @@
 import os
 import json
 import sys
+from glob import glob
 
 import sublime
-from .const import SETTINGS_FILE
+from .const import SETTINGS_FILE, WARN_ERR
 from . import util
 
 
@@ -256,43 +257,39 @@ class Settings:
 
         from . import persist
 
+        new_gutter_dict = {"icons": {}}
+
         theme_path = self.settings.get('gutter_theme')
 
-        theme = os.path.splitext(os.path.basename(theme_path))[0]
+        theme_file = os.path.basename(theme_path)
 
-        if theme_path.lower() == 'none':
-            persist.gutter_marks['warning'] = persist.gutter_marks['error'] = ''
-            return
+        if not theme_file.endswith(".gutter-theme"):
+            theme_file += ".gutter-theme"
 
-        info = None
+        theme_files = sublime.find_resources(theme_file)
 
-        try:
-            info = sublime.load_resource(theme_path)
-        except IOError:
-            return
-
-        if info:
-            if theme != 'Default' and os.path.basename(theme_path) == 'Default.gutter-theme':
-                persist.printf(
-                    'cannot find the gutter theme \'{}\', using the default'.format(theme))
-
-            path = os.path.dirname(theme_path)
-
-            for error_type in ('warning', 'error'):
-                icon_path = '{}/{}.png'.format(path, error_type)
-                persist.gutter_marks[error_type] = icon_path
-
-            try:
-                info = json.loads(info)
-                colorize = info.get('colorize', False)
-            except ValueError:
+        if theme_files:
+            theme_file = theme_files[0]
+            opts = sublime.decode_value(sublime.load_resource(theme_file))
+            if not opts:
                 colorize = False
-
-            persist.gutter_marks['colorize'] = colorize
+            else:
+                colorize = opts.get("colorize", False)
         else:
-            sublime.error_message(
-                'SublimeLinter: cannot find the gutter theme "{}",'
-                ' and the default is also not available. '
-                'No gutter marks will display.'.format(theme)
-            )
-            persist.gutter_marks['warning'] = persist.gutter_marks['error'] = ''
+            colorize = False
+
+        new_gutter_dict["colorize"] = colorize
+
+        dir_path, _ = os.path.split(theme_file)
+
+        pck_path = sublime.packages_path().split("/Packages")[0]
+        abs_dir = os.path.join(pck_path, dir_path)
+
+        png_files = glob(os.path.join(abs_dir, "*.png"))
+
+        for png in png_files:
+            png_file = os.path.basename(png)
+            name, ext = os.path.splitext(png_file)
+            new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
+
+        persist.gutter_marks = new_gutter_dict

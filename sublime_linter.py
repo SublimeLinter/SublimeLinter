@@ -165,14 +165,13 @@ class Listener:
             point (Point): The text position where the mouse hovered
             hover_zone (int): The context the event was triggered in
         """
-        if not persist.settings.get('show_hover_line_report'):
-            return
-
         if hover_zone == sublime.HOVER_GUTTER:
-            SublimeLinter.shared_plugin().open_tooltip(view, point)
+            if persist.settings.get('show_hover_line_report'):
+                SublimeLinter.shared_plugin().open_tooltip(view, point)
 
         elif hover_zone == sublime.HOVER_TEXT:
-            SublimeLinter.shared_plugin().open_tooltip(view, point, True)
+            if persist.settings.get('show_hover_region_report'):
+                SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
@@ -602,7 +601,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             tooltip_message += join_msgs("error", e_count, "Error")
 
         # place at beginning of line
-        location = active_view.text_point(lineno, 0)
+        colno = 0 if not is_inline else colno
+        location = active_view.text_point(lineno, colno)
         active_view.show_popup(
             template.format(stylesheet=stylesheet, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,

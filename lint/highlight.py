@@ -28,6 +28,7 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 """
 
+import os
 import re
 import sublime
 
@@ -539,8 +540,25 @@ class Highlight:
         self.line_offset = line
         self.char_offset = char_offset
 
+    def get_icon(self, error_type, icon_val=None):
+        # returning paths
+        if icon_val:
+            if icon_val != os.path.basename(icon_val):
+                return icon_val
+            else:
+                icon_path = persist.gutter_marks["icons"].get(icon_val)
+                if icon_path:
+                    return icon_path
+
+        return persist.gutter_marks["icons"][error_type]
+
     def get_style(self, key, style, error_type):
-        """sublimelinter.default.warning"""
+        """Looks up style definition in that order or precedence:
+            1. Individual style definition.
+            2. Linter error type
+            3. Default error type
+
+        """
 
         y = self.styles.setdefault(style, {}).get(key)
         if y:
@@ -568,4 +586,4 @@ class Highlight:
             return val
 
         if key == "icon":
-            return persist.gutter_marks[error_type]
+            return self.get_icon(error_type)

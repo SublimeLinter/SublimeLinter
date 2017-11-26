@@ -81,10 +81,7 @@ class Scheme(metaclass=ABCMeta):
         theme_list = sublime.find_resources(pattern)
 
         if theme_list:
-            theme_list = [t for t
-                          in theme_list
-                          if "Packages/User/" not in t
-                          ]
+            theme_list = [t for t in theme_list if "Packages/User/" not in t]
 
         if not theme_list:
             return current_scheme_path

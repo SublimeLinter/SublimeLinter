@@ -190,65 +190,6 @@ class Settings:
 
         self.changeset.clear()
 
-    def save(self, view=None):
-        """
-        Regenerate and save the user settings.
-
-        User settings are updated with the default settings and the defaults
-        from every linter, and if the user settings are currently being edited,
-        the view is updated.
-
-        """
-
-        self.load()
-
-        # Fill in default linter settings
-        settings = self.settings
-        linters = settings.pop('linters', {})
-
-        from .persist import linter_classes, edits
-
-        for name, linter in linter_classes.items():
-            default = linter.settings().copy()
-            default.update(linters.pop(name, {}))
-
-            for key, value in (('@disable', False), ('args', []), ('excludes', [])):
-                if key not in default:
-                    default[key] = value
-
-            linters[name] = default
-
-        settings['linters'] = linters
-
-        user_prefs_path = os.path.join(
-            sublime.packages_path(), 'User', SETTINGS_FILE)
-        settings_views = []
-
-        if not view:
-            # See if any open views are the user prefs
-            for window in sublime.windows():
-                for view in window.views():
-                    if view.file_name() == user_prefs_path:
-                        settings_views.append(view)
-        else:
-            settings_views = [view]
-
-        if settings_views:
-            def replace(edit):
-                if not view.is_dirty():
-                    j = json.dumps(settings, indent=4, sort_keys=True)
-                    j = j.replace(' \n', '\n')
-                    view.replace(edit, sublime.Region(0, view.size()), j)
-
-            for view in settings_views:
-                edits[view.id()].append(replace)
-                view.run_command('sublimelinter_edit')
-                view.run_command('save')
-        else:
-            with open(user_prefs_path, "w") as f:
-                j = json.dumps(settings, indent=4, sort_keys=True)
-                f.write(j)
-
     def on_prefs_update(self):
         """Perform maintenance when the ST prefs are updated."""
         from .persist import scheme
@@ -281,17 +222,15 @@ class Settings:
             colorize = False
 
         new_gutter_dict["colorize"] = colorize
-
         dir_path, _ = os.path.split(theme_file)
-
         pck_path = sublime.packages_path().split("/Packages")[0]
         abs_dir = os.path.join(pck_path, dir_path)
 
         png_files = glob(os.path.join(abs_dir, "*.png"))
-
         for png in png_files:
             png_file = os.path.basename(png)
             name, ext = os.path.splitext(png_file)
+
             new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
 
         persist.gutter_marks = new_gutter_dict

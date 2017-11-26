@@ -53,7 +53,7 @@ def select_line(view, line):
     sel.add(view.line(point))
 
 
-class SublimelinterLintCommand(sublime_plugin.TextCommand):
+class SublimeLinterLintCommand(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):
@@ -189,7 +189,7 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         return None
 
 
-class SublimelinterGotoErrorCommand(GotoErrorCommand):
+class SublimeLinterGotoErrorCommand(GotoErrorCommand):
     """A command that selects the next/previous error."""
 
     @error_command
@@ -197,7 +197,7 @@ class SublimelinterGotoErrorCommand(GotoErrorCommand):
         self.goto_error(view, errors, **kwargs)
 
 
-class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
+class SublimeLinterShowAllErrors(sublime_plugin.TextCommand):
 
     @error_command
     def run(self, view, errors, highlights):
@@ -242,7 +242,7 @@ class SublimelinterShowAllErrors(sublime_plugin.TextCommand):
             self.view.sel().add_all(self.selection)
 
 
-class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
+class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter's internal caches."""
 
     def run(self):
@@ -252,7 +252,7 @@ class SublimelinterClearCachesCommand(sublime_plugin.WindowCommand):
         linter.Linter.clear_settings_caches()
 
 
-class SublimelinterReportCommand(sublime_plugin.WindowCommand):
+class SublimeLinterReportCommand(sublime_plugin.WindowCommand):
     """
     A command that displays a report of all errors.
 
@@ -336,7 +336,7 @@ class SublimelinterReportCommand(sublime_plugin.WindowCommand):
         Thread(target=SublimeLinter.lint, kwargs=kwargs).start()
 
 
-class SublimelinterLineReportCommand(sublime_plugin.WindowCommand):
+class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().open_tooltip()

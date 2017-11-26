@@ -165,6 +165,28 @@ class HighlightSet:
         return line_type
 
 
+def get_icon(f):
+    def wrapper(*args):
+        print(args)
+        res = f(*args)
+        key = args[1]
+        error_type = args[3]
+
+        if key != "icon":
+            return res
+        else:
+            # returning paths
+            if res != os.path.basename(res):
+                return res
+            else:
+                icon_path = persist.gutter_marks["icons"].get(res)
+                if icon_path:
+                    return icon_path
+            return persist.gutter_marks["icons"][error_type]
+
+    return wrapper
+
+
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
@@ -457,6 +479,8 @@ class Highlight:
                 if icon == "none":  # do not draw icon
                     continue
 
+                print("icon: ", icon)
+
                 # colorize icon
                 if (persist.gutter_marks['colorize'] or icon in ST_ICONS):
                     scope = self.get_style("scope", style, error_type)
@@ -540,26 +564,38 @@ class Highlight:
         self.line_offset = line
         self.char_offset = char_offset
 
-    def get_icon(self, error_type, icon_val=None):
-        # returning paths
-        if icon_val:
-            if icon_val != os.path.basename(icon_val):
-                return icon_val
-            else:
-                icon_path = persist.gutter_marks["icons"].get(icon_val)
-                if icon_path:
-                    return icon_path
+    # def get_icon(self, error_type, icon_val=None):
+    #     # returning paths
+    #     if icon_val:
+    #         if icon_val != os.path.basename(icon_val):
+    #             return icon_val
+    #         else:
+    #             icon_path = persist.gutter_marks["icons"].get(icon_val)
+    #             if icon_path:
+    #                 return icon_path
 
-        return persist.gutter_marks["icons"][error_type]
+    #     return persist.gutter_marks["icons"][error_type]
 
+    # def get_icon(key, style, error_type):
+    #     """"""
+    #     def func_wrapper(self, key, style, error_type):
+    #         result = func(self, key, style, error_type)
+    #         te = time()   # things to do after
+    #         # do something with the result here
+
+    #         return result
+    #     return func_wrapper
+
+    @get_icon
     def get_style(self, key, style, error_type):
-        """Looks up style definition in that order or precedence:
-            1. Individual style definition.
-            2. Linter error type
-            3. Default error type
+        """Looks up style definition in that order of precedence:
+        1. Individual style definition.
+        2. Linter error type
+        3. Default error type
 
         """
 
+        # 1. Individual style definition.
         y = self.styles.setdefault(style, {}).get(key)
         if y:
             return y
@@ -576,14 +612,13 @@ class Highlight:
 
         base, linter, ext = style.split(".")
 
+        # 2. Linter error type
         if linter != "default":
             val = fetch_style(linter)
             if val:
                 return val
 
+        # 3. Default error type
         val = fetch_style("default")
         if val:
             return val
-
-        if key == "icon":
-            return self.get_icon(error_type)

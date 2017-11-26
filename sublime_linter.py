@@ -110,7 +110,6 @@ class Listener:
 
     def on_new_async(self, view):
         """Ran when a new buffer is created."""
-        self.on_open_settings(view)
 
         if self.is_scratch(view):
             return
@@ -181,16 +180,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
 
     shared_instance = None
-
-    def on_open_settings(self, view):
-        """
-        Ran when any settings file is opened.
-
-        view is the view that contains the text of the settings file.
-
-        """
-        if self.is_settings_file(view, user_only=True):
-            persist.settings.save(view=view)
 
     def is_settings_file(self, view, user_only=False):
         """Return True if view is a SublimeLinter settings file."""

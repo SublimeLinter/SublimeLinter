@@ -1,44 +1,28 @@
 [
     {
         "caption": "SublimeLinter: Lint This View",
-        "command": "sublimelinter_lint"
+        "command": "sublime_linter_lint"
     },
     {
         "caption": "SublimeLinter: Next Error",
-        "command": "sublimelinter_goto_error", "args": {"direction": "next"}
+        "command": "sublime_linter_goto_error", "args": {"direction": "next"}
     },
     {
         "caption": "SublimeLinter: Previous Error",
-        "command": "sublimelinter_goto_error", "args": {"direction": "previous"}
+        "command": "sublime_linter_goto_error", "args": {"direction": "previous"}
     },
     {
         "caption": "SublimeLinter: Show All Errors",
-        "command": "sublimelinter_show_all_errors"
+        "command": "sublime_linter_show_all_errors"
     },
     {
         "caption": "SublimeLinter: Show Line Errors",
-        "command": "sublimelinter_line_report"
+        "command": "sublime_linter_line_report"
     },
     {
         "caption": "SublimeLinter: Report (Open Files)",
-        "command": "sublimelinter_report",
+        "command": "sublime_linter_report",
         "args": {"on": "files"}
-    },
-    {
-        "caption": "SublimeLinter: Enable Linting",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "@disable",
-            "value": null
-        }
-    },
-    {
-        "caption": "SublimeLinter: Disable Linting",
-        "command": "sublimelinter_toggle_setting", "args":
-        {
-            "setting": "@disable",
-            "value": true
-        }
     },
     {
         "caption": "Preferences: SublimeLinter Settings",

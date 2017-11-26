@@ -478,8 +478,6 @@ class Highlight:
                 if icon == "none":  # do not draw icon
                     continue
 
-                print("icon: ", icon)
-
                 # colorize icon
                 if (persist.gutter_marks['colorize'] or icon in ST_ICONS):
                     scope = self.get_style("scope", style, error_type)

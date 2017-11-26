@@ -183,7 +183,6 @@ def update_settings(min_version, usr_dir_abs):
         return settings
 
     usr_settings_path = os.path.join(usr_dir_abs, SETTINGS_FILE)
-    print(usr_settings_path)
 
     # not working with a single context and 'w+'
     with open(usr_settings_path, "r") as rf:

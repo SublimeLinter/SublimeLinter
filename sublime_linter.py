@@ -553,7 +553,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         line_dict = view_dict.get(lineno)
-
         if not line_dict:
             return
 
@@ -571,6 +570,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             line_dict = get_region_errors()
 
         w_count, e_count = self.msg_count(line_dict)
+
+        if w_count is 0 and e_count is 0:
+            return
 
         def join_msgs(error_type, count, heading):
             combined_msg_tmpl = "{linter}: {code} - {msg}"

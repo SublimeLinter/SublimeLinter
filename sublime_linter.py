@@ -564,9 +564,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     filtered_dict[error_type] = []
                     for d in dc:
                         region = d.get("region")
-                        if region:
-                            if region.contains(point):
-                                filtered_dict[error_type].append(d)
+                        if region and region.contains(point):
+                            filtered_dict[error_type].append(d)
                 return filtered_dict
 
             line_dict = get_region_errors()

@@ -138,6 +138,9 @@ class Scheme(metaclass=ABCMeta):
         if not AUTO_SCOPE.match(scope):
             self.scopes.append(scope)
 
+    def clear_scopes(self):
+        self.scopes.clear()
+
     @abstractmethod
     def generate_color_scheme_async(self):
         """       """

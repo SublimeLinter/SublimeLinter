@@ -4,7 +4,7 @@ import sys
 from glob import glob
 
 import sublime
-from .const import SETTINGS_FILE, WARN_ERR
+from .const import SETTINGS_FILE
 from . import util
 
 
@@ -149,6 +149,7 @@ class Settings:
         if not self.changeset:
             return
 
+        """ TODO: Remove 'force_xml_scheme' check once legacy.py and xml scheme generation is no longer supported."""
         if "force_xml_scheme" in self.changeset:
             msg = "Scheme mode changed. You need to restart Sublime Text in order for the changes to take effect."
             sublime.message_dialog(msg)
@@ -156,6 +157,7 @@ class Settings:
 
         if "styles" in self.changeset:
             persist.printf("Style definitions changed. Regenerating.")
+            persist.scheme.clear_scopes()
             persist.scheme.generate()
 
         # Clear the path-related caches if the paths list has changed

@@ -8,15 +8,15 @@
     // Available gutter themes:
     // Blueberry/Blueberry - cross.gutter-theme
     // Blueberry/Blueberry - round.gutter-theme
-    // Circle/Circle.gutter-theme
-    // Danish Royalty/Danish Royalty.gutter-theme
-    // Default/Default.gutter-theme
-    // Hands/Hands.gutter-theme
+    // Circle
+    // Danish Royalty
+    // Default
+    // Hands
     // Knob/Knob - simple.gutter-theme
     // Knob/Knob - symbol.gutter-theme
-    // Koloria/Koloria.gutter-theme
-    // ProjectIcons/ProjectIcons.gutter-theme
-    "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
+    // Koloria
+    // ProjectIcons
+    "gutter_theme": "Default",
 
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
@@ -71,6 +71,7 @@
             "mark_style": "outline",
             "priority": 1,
             "scope": "region.yellowish",
+            "icon": "warning",
             "types": [
                 "warning"
             ]
@@ -79,6 +80,7 @@
             "mark_style": "outline",
             "priority": 1,
             "scope": "region.redish",
+            "icon": "error",
             "types": [
                 "error"
             ]

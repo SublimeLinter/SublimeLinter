@@ -542,7 +542,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         line_dict = view_dict.get(lineno)
-
         if not line_dict:
             return
 
@@ -558,8 +557,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 return filtered_dict
 
             line_dict = get_region_errors()
-
-        w_count, e_count = self.msg_count(line_dict)
 
         def join_msgs(error_type, count, heading):
             combined_msg_tmpl = "{linter}: {code} - {msg}"
@@ -582,13 +579,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             )
 
         tooltip_message = ""
+        w_count, e_count = self.msg_count(line_dict)
+
+        if w_count is 0 and e_count is 0:
+            return
+
         if w_count > 0:
             tooltip_message += join_msgs("warning", w_count, "Warning")
 
         if e_count > 0:
             tooltip_message += join_msgs("error", e_count, "Error")
 
-        # place at beginning of line
         colno = 0 if not is_inline else colno
         location = active_view.text_point(lineno, colno)
         active_view.show_popup(

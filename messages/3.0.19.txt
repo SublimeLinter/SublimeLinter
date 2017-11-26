@@ -1,8 +1,0 @@
-SublimeLinter 3.0.19
----------------------
-- Previously, when a linter plugin name had a dash in it, for example
-  SublimeLinter-foo-bar, the inline setting name was "foobar",
-  which could lead to confusion. Now both "foobar" and "foo-bar"
-  are recognized as inline setting names.
-
-- Fixed a bug with argument generation in some linters.

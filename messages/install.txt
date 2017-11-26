@@ -7,37 +7,10 @@
 
 
 Welcome to SublimeLinter, a linter framework for Sublime Text 3.
-
-                 * * * IMPORTANT! * * *
-
-        Linters *NOT* included with SublimeLinter 3,
-        they must be installed separately.
-
-                * * * READ THE DOCS! * * *
-
-Otherwise you will never know how to install linters, nor will
-you know about all of the great new features in SublimeLinter 3.
-
-For complete documentation on how to install and use SublimeLinter,
-please see:
-
-http://www.sublimelinter.com
+Linters are not included, they must be installed separately.
 
 
-                 _   _      _       _
-                | | | | ___| |_ __ | |
-                | |_| |/ _ \ | '_ \| |
-                |  _  |  __/ | |_) |_|
-                |_| |_|\___|_| .__/(_)
-                             |_|
+For complete documentation on how to use and configure SublimeLinter,
+please see: http://www.sublimelinter.com
 
-
-Hundreds of hours have been spent writing and documenting SublimeLinter
-to make it the best it can be — easy to use, easy to configure,
-easy to update, easy to extend. If you use SublimeLinter and feel
-it is making your coding life better and easier, please consider
-making a donation to help fund development and support.
-
-To donate: https://github.com/SublimeLinter/SublimeLinter3#share-the-love
-
-Thank you!
+To report issues: https://github.com/SublimeLinter/SublimeLinter3

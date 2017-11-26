@@ -17,7 +17,6 @@ import sys
 
 from . import util
 from .settings import Settings
-from .const import PLUGIN_NAME
 
 
 # Get the name of the plugin directory, which is the parent of this file's directory
@@ -164,7 +163,7 @@ def register_linter(linter_class, name, attrs):
 
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
-    print(PLUGIN_NAME + ': ', end='')
+    print('SublimeLinter' + ': ', end='')
 
     for arg in args:
         print(arg, end=' ')

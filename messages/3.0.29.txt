@@ -1,3 +1,0 @@
-SublimeLinter 3.0.29
----------------------
-- Debug mode is now logged at startup.

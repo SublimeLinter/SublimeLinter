@@ -1,3 +1,2 @@
-# ignore tests/ and docs/ from releases
-tests/ export-ignore
+# ignore docs/ from releases
 docs/ export-ignore

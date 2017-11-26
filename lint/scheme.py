@@ -6,7 +6,6 @@ import sublime
 import re
 from . import style
 from collections import OrderedDict
-from .const import UNFOUND_SCOPES_MSG, CHECK_CONSOLE_MSG
 
 MARK_COLOR_RE = (
     r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
@@ -127,9 +126,10 @@ class Scheme(metaclass=ABCMeta):
 
     def unfound_scopes_dialogue(self, unfound):
         from . import persist
-        msg = UNFOUND_SCOPES_MSG + "\n" + "\n".join(unfound)
-        persist.printf(msg)
-        sublime.error_message(UNFOUND_SCOPES_MSG + CHECK_CONSOLE_MSG)
+        persist.printf("\n".join(unfound))
+        sublime.error_message(
+            "SublimeLinter: One or more scopes not found in current color scheme. \nCheck console for details."
+        )
 
     def add_scope(self, scope):
         if not AUTO_SCOPE.match(scope):

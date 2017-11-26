@@ -1,6 +1,5 @@
 import sublime
 from . import persist, util
-from .const import STYLE_KEYS, TARGET_KEYS, INVALID_RULE_MSG, CHECK_CONSOLE_MSG
 import json
 
 
@@ -23,9 +22,10 @@ class StyleParser:
             validity = self.parse_styles(styles, linter_name)
             rule_validities.append(validity)
 
-        # 3 - inform user about invalid rules
         if False in rule_validities:
-            sublime.error_message(INVALID_RULE_MSG + CHECK_CONSOLE_MSG)
+            sublime.error_message(
+                "SublimeLinter: One or more style settings invalid.\nCheck console for details."
+            )
 
     def parse_styles(self, custom_styles, linter_name):
         """ """
@@ -84,9 +84,9 @@ class StyleParser:
 
         if "scope" not in node:
             errors.append("No 'scope' declared.")
-        if not util.any_key_in(node, STYLE_KEYS):
+        if not util.any_key_in(node, ("mark_style", "icon")):
             errors.append("Neither 'mark_style' nor 'icon' declared.")
-        if not util.any_key_in(node, TARGET_KEYS):
+        if not util.any_key_in(node, ("types", "codes")):
             errors.append("Neither 'types' nor 'codes' declared.")
 
         if errors:

@@ -6,15 +6,15 @@
         [
             {
                 "caption": "Lint This View",
-                "command": "sublimelinter_lint"
+                "command": "sublime_linter_lint"
             },
             {
                 "caption": "Next Error",
-                "command": "sublimelinter_goto_error", "args": {"direction": "next"}
+                "command": "sublime_linter_goto_error", "args": {"direction": "next"}
             },
             {
                 "caption": "Previous Error",
-                "command": "sublimelinter_goto_error", "args": {"direction": "previous"}
+                "command": "sublime_linter_goto_error", "args": {"direction": "previous"}
             }
         ]
     }

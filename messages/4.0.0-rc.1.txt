@@ -1,0 +1,7 @@
+SublimeLinter 4.0.0 Pre-Release
+===============================
+
+Commands are now named sublime_linter_* to comply with naming conventions
+Context menu now only list commands relevant for the view context
+Tools menu entry now only lists clear_cache commands
+Default settings now have documentation inline

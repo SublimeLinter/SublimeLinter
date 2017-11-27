@@ -58,8 +58,6 @@ should make this an unnecesary feature.
 How to upgrade
 -------------------------------
 
-To salvage your custom settings:
-- The "user: {" node should have been removed automatically
-- You can keep the "linters" block
-- Check each remaining setting against the defaults and remove what's the same
-  or doesn't exist in the defaults
+Your settings will be upgraded automatically. You may want to review the new
+settings and check if you want to customize anything, or remove some of your
+existing customizations.

@@ -41,6 +41,7 @@ Changes to settings
 -------------------------------
 
 Default settings now have documentation inline.
+Default settings can no longer be edited.
 Default settings are no longer copied to the user settings.
 - Learn about the configuration options for each linter in the docs and
   in the README of the linter plugin.

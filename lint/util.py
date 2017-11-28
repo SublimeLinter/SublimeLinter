@@ -59,7 +59,63 @@ tempdir = os.path.join(tempfile.gettempdir(),
                        'SublimeLinter3-' + getpass.getuser())
 
 
+class Borg:
+    _shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+def is_scratch(view):
+    """
+    Return whether a view is effectively scratch.
+
+    There is a bug (or feature) in the current ST3 where the Find panel
+    is not marked scratch but has no window.
+
+    There is also a bug where settings files opened from within .sublime-package
+    files are not marked scratch during the initial on_modified event, so we have
+    to check that a view with a filename actually exists on disk if the file
+    being opened is in the Sublime Text packages directory.
+
+    """
+
+    if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
+        return True
+    elif (
+        view.file_name() and
+        view.file_name().startswith(sublime.packages_path() + os.path.sep) and
+        not os.path.exists(view.file_name())
+    ):
+        return True
+    else:
+        return False
+
+
+def get_active_view(view=None):
+    if view:
+        return view.window().active_view()
+
+    return sublime.active_window().active_view()
+
+def get_focused_view_id(view):
+    """
+    Return the focused view which shares view's buffer.
+
+    When updating the status, we want to make sure we get
+    the selection of the focused view, since multiple views
+    into the same buffer may be open.
+
+    """
+    active_view = get_active_view(view)
+    if not active_view:
+        return
+
+    for view in view.window().views():
+        if view == active_view:
+            return view
+
 # panel utils
+
 
 def get_project_path(window: sublime.Window) -> 'Optional[str]':
     """

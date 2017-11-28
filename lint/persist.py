@@ -38,9 +38,9 @@ if 'plugin_is_loaded' not in globals():
     scheme = None
 
     # A mapping between view ids and errors, which are line:(col, message) dicts
-    errors = {}
+    errors = None
 
-    warn_err_count = {}
+    # warn_err_count = {}
 
     # A mapping between view ids and HighlightSets
     highlights = {}
@@ -66,7 +66,9 @@ if 'plugin_is_loaded' not in globals():
     edits = defaultdict(list)
 
     # Info about the gutter mark icons
-    gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
+    # gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
+    gutter_marks = {}
+
 
     # Whether sys.path has been imported from the system.
     sys_path_imported = False
@@ -74,9 +76,9 @@ if 'plugin_is_loaded' not in globals():
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
 
-    linter_styles = {}
+    # linter_styles = {}
 
-    highlight_styles = {}
+    # highlight_styles = {}
 
     has_gutter_theme = settings.get('gutter_theme') != 'None'
 

@@ -20,6 +20,7 @@ from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
+from .lint.error import ErrorStore
 from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
 from .panel import diagnostics
 
@@ -42,6 +43,7 @@ def plugin_loaded():
     persist.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
     util.create_tempdir()
 
+    persist.errors = ErrorStore()
     persist.region_store = RegionStore()
 
     for linter in persist.linter_classes.values():
@@ -65,7 +67,7 @@ class Listener:
     def on_modified_async(self, view):
         """Ran when view is motified."""
 
-        if self.is_scratch(view):
+        if util.is_scratch(view):
             return
 
         if view.id() not in persist.view_linters:
@@ -82,7 +84,7 @@ class Listener:
     def on_activated_async(self, view):
         """Ran when a view gains input focus."""
 
-        if self.is_scratch(view):
+        if util.is_scratch(view):
             return
 
         # Reload the plugin settings.
@@ -111,7 +113,7 @@ class Listener:
     def on_new_async(self, view):
         """Ran when a new buffer is created."""
 
-        if self.is_scratch(view):
+        if util.is_scratch(view):
             return
 
         vid = view.id()
@@ -122,7 +124,7 @@ class Listener:
         self.display_errors(view)
 
     def on_post_save_async(self, view):
-        if self.is_scratch(view):
+        if util.is_scratch(view):
             return
 
         # First check to see if the project settings changed
@@ -144,7 +146,7 @@ class Listener:
                 self.file_was_saved(view)
 
     def on_pre_close_async(self, view):
-        if self.is_scratch(view):
+        if util.is_scratch(view):
             return
 
         vid = view.id()
@@ -315,7 +317,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     highlights.clear(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors
-                    persist.warn_err_count[vid] = self.count_we(errors)
 
                     if not window_views.get(wid):
                         window_views[wid] = other_view
@@ -366,30 +367,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def clear(self, view):
         Linter.clear_view(view)
 
-    def is_scratch(self, view):
-        """
-        Return whether a view is effectively scratch.
-
-        There is a bug (or feature) in the current ST3 where the Find panel
-        is not marked scratch but has no window.
-
-        There is also a bug where settings files opened from within .sublime-package
-        files are not marked scratch during the initial on_modified event, so we have
-        to check that a view with a filename actually exists on disk if the file
-        being opened is in the Sublime Text packages directory.
-
-        """
-
-        if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
-            return True
-        elif (
-            view.file_name() and
-            view.file_name().startswith(sublime.packages_path() + os.path.sep) and
-            not os.path.exists(view.file_name())
-        ):
-            return True
-        else:
-            return False
 
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""
@@ -399,22 +376,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         return False
 
-    def get_focused_view_id(self, view):
-        """
-        Return the focused view which shares view's buffer.
 
-        When updating the status, we want to make sure we get
-        the selection of the focused view, since multiple views
-        into the same buffer may be open.
-
-        """
-        active_view = self.get_active_view(view)
-        if not active_view:
-            return
-
-        for view in view.window().views():
-            if view == active_view:
-                return view
 
     def get_line_and_col(self, view):
         try:
@@ -424,28 +386,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         return lineno, colno
 
-    def get_view_dict(self, view):
-        if self.is_scratch(view):
-            return
-
-        view = self.get_focused_view_id(view)
-
-        if not view:
-            return
-
-        return persist.errors.get(view.id())
-
-    def msg_count(self, l_dict):
-        w_count = len(l_dict.get("warning", []))
-        e_count = len(l_dict.get("error", []))
-        return w_count, e_count
-
-    def count_we(self, v_dict):
-        tups = [self.msg_count(v) for v in v_dict.values()]
-        we = [sum(x) for x in zip(*tups)]
-        if not we:
-            return
-        return {WARNING: we[0], ERROR: we[1]}
 
     def display_errors(self, view):
         """
@@ -454,7 +394,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         lineno, colno = self.get_line_and_col(view)
 
-        view_dict = self.get_view_dict(view)
+        view_dict = persist.errors.get_view_dict(view)
         if not view_dict:
             view.erase_status(STATUS_KEY)
             return
@@ -474,7 +414,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         msgs = []
         point = view.text_point(lineno, colno)
 
-        for error_type, dc in line_dict.items():
+        for err_type, dc in line_dict.items():
             for d in dc:
                 region = d.get("region")
                 if region:
@@ -489,11 +429,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if status != view.get_status(STATUS_KEY):
             view.set_status(STATUS_KEY, status)
 
-    def get_active_view(self, view=None):
-        if view:
-            return view.window().active_view()
 
-        return sublime.active_window().active_view()
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
         """ Show a tooltip containing all linting errors on a given line. """
@@ -525,7 +461,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         '''
 
         if not active_view:
-            active_view = self.get_active_view()
+            active_view = util.get_active_view()
 
         # Leave any existing popup open without replacing it
         # don't let the popup flicker / fight with other packages
@@ -537,7 +473,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         else:
             lineno, colno = self.get_line_and_col(active_view)
 
-        view_dict = self.get_view_dict(active_view)
+        view_dict = persist.errors.get_view_dict(active_view)
         if not view_dict:
             return
 
@@ -548,20 +484,20 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if is_inline:  # do not show tooltip on hovering empty gutter
             def get_region_errors():
                 filtered_dict = {}
-                for error_type, dc in line_dict.items():
-                    filtered_dict[error_type] = []
+                for err_type, dc in line_dict.items():
+                    filtered_dict[err_type] = []
                     for d in dc:
                         region = d.get("region")
                         if region and region.contains(point):
-                            filtered_dict[error_type].append(d)
+                            filtered_dict[err_type].append(d)
                 return filtered_dict
 
             line_dict = get_region_errors()
 
-        def join_msgs(error_type, count, heading):
+        def join_msgs(err_type, count, heading):
             combined_msg_tmpl = "{linter}: {code} - {msg}"
             msgs = []
-            msg_list = line_dict.get(error_type)
+            msg_list = line_dict.get(err_type)
 
             if not msg_list:
                 return ""
@@ -572,23 +508,23 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 heading += "s"
 
             return part.format(
-                classname=error_type,
+                classname=err_type,
                 count=count,
                 heading=heading,
                 messages='<br />'.join(msgs)
             )
 
         tooltip_message = ""
-        w_count, e_count = self.msg_count(line_dict)
+        we_count = persist.errors.get_we_count(active_view.id())
 
-        if w_count is 0 and e_count is 0:
+        if (we_count[WARNING] and we_count[ERROR]) == 0:
             return
 
-        if w_count > 0:
-            tooltip_message += join_msgs("warning", w_count, "Warning")
+        if we_count[WARNING] > 0:
+            tooltip_message += join_msgs("warning", we_count[WARNING], "Warning")
 
-        if e_count > 0:
-            tooltip_message += join_msgs("error", e_count, "Error")
+        if we_count[ERROR] > 0:
+            tooltip_message += join_msgs("error", we_count[ERROR], "Error")
 
         colno = 0 if not is_inline else colno
         location = active_view.text_point(lineno, colno)

@@ -31,7 +31,8 @@ from xml.sax.saxutils import unescape
 
 
 from . import highlight, persist, util
-from .const import STATUS_KEY
+from .const import STATUS_KEY, WARNING, ERROR
+from .style import LinterStyleStore
 
 #
 # Private constants
@@ -371,8 +372,6 @@ class Linter(metaclass=LinterMeta):
     disabled = False
     executable_version = None
 
-    lint_styles = None  # gets populated by StyleParser
-
     @classmethod
     def initialize(cls):
         """
@@ -400,7 +399,7 @@ class Linter(metaclass=LinterMeta):
         self.syntax = syntax
         self.code = ''
         self.highlight = highlight.Highlight()
-        self.lint_styles = persist.linter_styles.get(self.name, {})
+        self.style_store = LinterStyleStore(self.name)
 
     @property
     def filename(self):
@@ -1274,6 +1273,15 @@ class Linter(metaclass=LinterMeta):
             else:
                 return os.path.realpath('.')
 
+    def get_err_type(self, error, warning):
+        if error:
+            return ERROR
+        elif warning:
+            return WARNING
+        else:
+            return self.default_type
+
+
     def lint(self, hit_time):
         """
         Perform the lint, retrieve the results, and add marks to the view.
@@ -1316,46 +1324,11 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-        lint_styles = self.lint_styles
-        codes = lint_styles.get("codes", {})
-
-        def get_default_style(error_type, memo={}):
-            """Returns default style for error_type of this linter.
-            If not found returns style of SublimeLinter error_type."""
-
-            if error_type in memo:
-                return memo[error_type]
-
-            def traverse_dict(styled_dict):
-                return styled_dict.setdefault("types", {}).get(error_type)
-
-            lint_def = traverse_dict(lint_styles)
-            if lint_def:
-                return lint_def
-
-            default_styles = persist.linter_styles.get("default")
-            return traverse_dict(default_styles)
-
-        def get_error_type_and_style(error, warning):
-            # 1 - determine error type
-            if error:
-                error_type = highlight.ERROR
-                style = codes.get(error)
-            elif warning:
-                error_type = highlight.WARNING
-                style = codes.get(warning)
-            else:
-                error_type = self.default_type
-                style = None
-
-            if not style:
-                style = get_default_style(error_type)
-
-            return error_type, style
-
-        for match, line, col, error, warning, message, near in self.find_errors(output):
+        found_errors = self.find_errors(output)
+        for match, line, col, error, warning, message, near in found_errors:
             if match and message and line:
-                error_type, style = get_error_type_and_style(error, warning)
+                err_type = self.get_err_type(error, warning)
+                style = self.style_store.get_style(error or warning, err_type)
 
                 assert style  # style should never be None
 
@@ -1384,7 +1357,7 @@ class Linter(metaclass=LinterMeta):
                         line,
                         col,
                         near=near,
-                        error_type=error_type,
+                        err_type=err_type,
                         word_re=self.word_re,
                         style=style
                     )
@@ -1392,7 +1365,7 @@ class Linter(metaclass=LinterMeta):
                     col = self.highlight.near(
                             line,
                             near,
-                            error_type=error_type,
+                            err_type=err_type,
                             word_re=self.word_re,
                             style=style
                         )
@@ -1409,12 +1382,12 @@ class Linter(metaclass=LinterMeta):
                         line,
                         pos,
                         length=0,
-                        error_type=error_type,
+                        err_type=err_type,
                         word_re=self.word_re,
                         style=style
                     )
 
-                self.error(line, col, message, error_type, style=style, code=warning or error, region=region)
+                self.error(line, col, message, err_type, style=style, code=warning or error, region=region)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1634,10 +1607,10 @@ class Linter(metaclass=LinterMeta):
         cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
         return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
 
-    def error(self, line, col, message, error_type, style=None, code=None, region=None):
+    def error(self, line, col, message, err_type, style=None, code=None, region=None):
         """Add a reference to an error/warning on the given line and column."""
 
-        self.highlight.line(line, error_type, style=style)
+        self.highlight.line(line, err_type, style=style)
 
         # Some linters use html entities in error messages, decode them
         message = self.escape_html(message)
@@ -1659,7 +1632,7 @@ class Linter(metaclass=LinterMeta):
             payload["region"] = region
 
         l1 = self.errors.setdefault(line, {})
-        l2 = l1.setdefault(error_type, [])
+        l2 = l1.setdefault(err_type, [])
         l2.append(payload)
 
     def find_errors(self, output):

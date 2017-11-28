@@ -224,10 +224,10 @@ def format_diagnostic(diagnostic) -> str:
         "AAA", "BBB", "CCC", "DDD")
 
 
-def format_diagnostics(file_path, item, error_type):
+def format_diagnostics(file_path, item, err_type):
     content = " ◌ {}:\n".format(file_path)
     f_item = " {}\t{:<12}\t{:<10}\t{}".format(
-        item["col"], item["linter"], error_type, item["msg"])
+        item["col"], item["linter"], err_type, item["msg"])
     content += f_item + "\n"
     return content
 
@@ -250,12 +250,12 @@ def update_diagnostics_panel(window: sublime.Window):
         to_render = []
         for vid, view_dict in errors.items():
             for col, col_dict in view_dict.items():
-                for error_type in WARN_ERR:
-                    items = col_dict.get(error_type, [])
+                for err_type in WARN_ERR:
+                    items = col_dict.get(err_type, [])
                     for item in items:
                         print(item)
                         # relative_file_path
-                        fd = format_diagnostics("view: " + str(vid), item, error_type)
+                        fd = format_diagnostics("view: " + str(vid), item, err_type)
                         to_render.append(fd)
 
         #     relative_file_path = os.path.relpath(

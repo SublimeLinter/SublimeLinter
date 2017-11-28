@@ -165,27 +165,6 @@ class HighlightSet:
         return line_type
 
 
-def get_icon(f):
-    def wrapper(*args):
-        res = f(*args)
-        key = args[1]
-        error_type = args[3]
-
-        if key != "icon":
-            return res
-        else:
-            # returning paths
-            if res != os.path.basename(res):
-                return res
-            else:
-                icon_path = persist.gutter_marks["icons"].get(res)
-                if icon_path:
-                    return icon_path
-            return persist.gutter_marks["icons"][error_type]
-
-    return wrapper
-
-
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
@@ -195,8 +174,8 @@ class Highlight:
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
 
-        from .persist import highlight_styles
-        self.styles = highlight_styles
+        from .style import HighlightStyleStore
+        self.style_store = HighlightStyleStore()
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
@@ -259,7 +238,7 @@ class Highlight:
 
         return start, end
 
-    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
+    def range(self, line, pos, length=-1, near=None, err_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text.
 
@@ -274,13 +253,13 @@ class Highlight:
 
             - If length == 0, no text is marked, but a gutter mark will appear on that line.
 
-        error_type determines what type of error mark will be drawn (ERROR or WARNING).
+        err_type determines what type of error mark will be drawn (ERROR or WARNING).
 
         When length < 0, this method attempts to mark the closest word at pos on the given line.
         If you want to customize the word matching regex, pass it in word_re.
 
-        If the error_type is WARNING and an identical ERROR region exists, it is not added.
-        If the error_type is ERROR and an identical WARNING region exists, the warning region
+        If the err_type is WARNING and an identical ERROR region exists, it is not added.
+        If the err_type is ERROR and an identical WARNING region exists, the warning region
         is removed and the error region is added.
 
         """
@@ -304,27 +283,27 @@ class Highlight:
 
         pos += start
         region = sublime.Region(pos, pos + length)
-        other_type = ERROR if error_type == WARNING else WARNING
+        other_type = ERROR if err_type == WARNING else WARNING
 
         for scope, marks in self.marks[other_type].items():
             i_offset = 0
             for i, mark in enumerate(marks):
                 if (mark.a, mark.b) == (region.a, region.b):
-                    if error_type == WARNING:
+                    if err_type == WARNING:
                         return
                     else:
                         self.marks[other_type][scope].pop(i - i_offset)
                         i_offset += 1
 
-        self.marks[error_type].setdefault(style, []).append(region)
+        self.marks[err_type].setdefault(style, []).append(region)
         return region
 
-    def regex(self, line, regex, error_type=ERROR,
+    def regex(self, line, regex, err_type=ERROR,
               line_match=None, word_match=None, word_re=None):
         """
         Mark a range of text that matches a regex.
 
-        line, error_type and word_re are the same as in range().
+        line, err_type and word_re are the same as in range().
 
         line_match may be a string pattern or a compiled regex.
         If provided, it must have a named group called 'match' that
@@ -361,13 +340,13 @@ class Highlight:
 
         for start, end in results:
             self.range(line, start + offset, end -
-                       start, error_type=error_type)
+                       start, err_type=err_type)
 
-    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
+    def near(self, line, near, err_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text near a given word.
 
-        line, error_type and word_re are the same as in range().
+        line, err_type and word_re are the same as in range().
 
         If near is enclosed by quotes, they are stripped. The first occurrence
         of near in the given line of code is matched. If the first and last
@@ -402,7 +381,7 @@ class Highlight:
             start = -1
 
         if start != -1:
-            self.range(line, start, len(near), error_type=error_type,
+            self.range(line, start, len(near), err_type=err_type,
                        word_re=word_re, style=style)
             return start
         else:
@@ -418,11 +397,11 @@ class Highlight:
         object takes the newlines array from other.
 
         """
-        for error_type in WARN_ERR:
-            self.marks[error_type].update(other.marks[error_type])
+        for err_type in WARN_ERR:
+            self.marks[err_type].update(other.marks[err_type])
 
-            for line, style in other.lines[error_type].items():
-                self.overwrite_line(line, error_type, style)
+            for line, style in other.lines[err_type].items():
+                self.overwrite_line(line, err_type, style)
 
         self.newlines = other.newlines
 
@@ -446,16 +425,16 @@ class Highlight:
         drawn_regions = []
         protected_regions = []
 
-        for error_type in WARN_ERR:
-            if not self.marks[error_type]:
+        for err_type in WARN_ERR:
+            if not self.marks[err_type]:
                 continue
 
-            for style, regions in self.marks[error_type].items():
-                if not self.styles.get(style):
+            for style, regions in self.marks[err_type].items():
+                if not self.style_store.has_style(style):
                     continue
 
-                scope = self.get_style("scope", style, error_type)
-                mark_style = self.get_style("mark_style", style, error_type)
+                scope = self.style_store.get_val("scope", style, err_type)
+                mark_style = self.style_store.get_val("mark_style", style, err_type)
 
                 flags = MARK_STYLES[mark_style]
                 view.add_regions(style, regions, scope=scope, flags=flags)
@@ -467,27 +446,27 @@ class Highlight:
 
             gutter_regions = {}
             # collect regions of error type
-            for line, style in self.lines[error_type].items():
+            for line, style in self.lines[err_type].items():
                 pos = self.newlines[line]
                 region = sublime.Region(pos, pos)
                 gutter_regions.setdefault(style, []).append(region)
 
             # draw gutter marks for
             for style, regions in gutter_regions.items():
-                icon = self.get_style("icon", style, error_type)
+                icon = self.style_store.get_val("icon", style, err_type)
                 if icon == "none":  # do not draw icon
                     continue
 
                 # colorize icon
                 if (persist.gutter_marks['colorize'] or icon in ("circle", "dot", "bookmark")):
-                    scope = self.get_style("scope", style, error_type)
+                    scope = self.style_store.get_val("scope", style, err_type)
                 else:
                     scope = " "  # set scope to non-existent one
 
                 k = style.rfind(".")
                 gutter_key = style[:k] + ".gutter." + style[k + 1:]
 
-                # GUTTER_MARK_KEY_FORMAT.format(error_type)
+                # GUTTER_MARK_KEY_FORMAT.format(err_type)
                 view.add_regions(
                     gutter_key,
                     regions,
@@ -524,15 +503,15 @@ class Highlight:
         self.marks = util.get_new_dict()
         self.lines = util.get_new_dict()
 
-    def line(self, line, error_type, style=None):
+    def line(self, line, err_type, style=None):
         """Record the given line as having the given error type."""
         line += self.line_offset
-        self.overwrite_line(line, error_type, style)
+        self.overwrite_line(line, err_type, style)
 
-    def overwrite_line(self, line, error_type, style):
+    def overwrite_line(self, line, err_type, style):
         """"""
         # Errors override warnings on the same line
-        if error_type == WARNING:
+        if err_type == WARNING:
             if line in self.lines[ERROR]:
                 return
         else:  # ensure no warning icons on same line as error
@@ -540,14 +519,14 @@ class Highlight:
 
         # Styles with higher priority override those of lower one
         # on the same line
-        existing = self.lines[error_type].get(line)
+        existing = self.lines[err_type].get(line)
         if existing:
-            scope_ex = self.styles[existing].get("priority", 0)
-            scope_new = self.styles[style].get("priority", 0)
+            scope_ex = self.style_store.get(existing).get("priority", 0)
+            scope_new = self.style_store.get(style).get("priority", 0)
             if scope_ex > scope_new:
                 return
 
-        self.lines[error_type][line] = style
+        self.lines[err_type][line] = style
 
     def move_to(self, line, char_offset):
         """
@@ -560,62 +539,3 @@ class Highlight:
         """
         self.line_offset = line
         self.char_offset = char_offset
-
-    # def get_icon(self, error_type, icon_val=None):
-    #     # returning paths
-    #     if icon_val:
-    #         if icon_val != os.path.basename(icon_val):
-    #             return icon_val
-    #         else:
-    #             icon_path = persist.gutter_marks["icons"].get(icon_val)
-    #             if icon_path:
-    #                 return icon_path
-
-    #     return persist.gutter_marks["icons"][error_type]
-
-    # def get_icon(key, style, error_type):
-    #     """"""
-    #     def func_wrapper(self, key, style, error_type):
-    #         result = func(self, key, style, error_type)
-    #         te = time()   # things to do after
-    #         # do something with the result here
-
-    #         return result
-    #     return func_wrapper
-
-    @get_icon
-    def get_style(self, key, style, error_type):
-        """Looks up style definition in that order of precedence:
-        1. Individual style definition.
-        2. Linter error type
-        3. Default error type
-
-        """
-
-        # 1. Individual style definition.
-        y = self.styles.setdefault(style, {}).get(key)
-        if y:
-            return y
-
-        styles = self.styles
-
-        def fetch_style(linter_name):
-            x = [v.get(key) for k, v
-                 in styles.items()
-                 if linter_name in k and error_type in v.get("types", [])]
-
-            if x[0]:
-                return x[0]
-
-        base, linter, ext = style.split(".")
-
-        # 2. Linter error type
-        if linter != "default":
-            val = fetch_style(linter)
-            if val:
-                return val
-
-        # 3. Default error type
-        val = fetch_style("default")
-        if val:
-            return val

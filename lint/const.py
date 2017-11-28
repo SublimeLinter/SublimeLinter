@@ -1,4 +1,5 @@
-SETTINGS_FILE = "SublimeLinter.sublime-settings"
+PLUGIN_NAME  = "SublimeLinter"
+SETTINGS_FILE = PLUGIN_NAME + ".sublime-settings"
 
 PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"
 STATUS_KEY = "sublime_linter_status"

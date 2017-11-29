@@ -15,7 +15,12 @@ class ErrorStore(util.Borg):
     def __setitem__(self, vid, vdict):
         self._clear_caches(vid)
 
-        self.data[vid] = {"view_dict": vdict}
+        self.data[vid] = {
+            "lints": vdict,
+            "we_count_view": {},
+            "we_count_lines": {}
+        }
+
         self.region_cache[vid] = {}
 
         self._count_we(vid)
@@ -35,37 +40,28 @@ class ErrorStore(util.Borg):
         self.data = {}
         self.cache = {}
 
-    def get_view_dict(self, view):  # TODO rename to get_focused_view_dict
-        if util.is_scratch(view):
-            return
+    def get_view_dict(self, vid):
+        return self.data.get(vid)
 
-        view = util.get_focused_view_id(view)
+    def get_we_count_line(self, vid, line_no):
+        return self.data.get(vid, {}).get("we_count_lines", {}).get(line_no)
 
-        if not view:
-            return
-
-        return self.data.get(view.id(), {}).get("view_dict")
-
-    def get_we_count(self, vid):
-        return self.cache.get(vid, {}).get("we_count")
-
-    def msg_count(self, l_dict):
-        return len(l_dict.get(WARNING, [])), len(l_dict.get(WARNING, []))
+    def _msg_count(self, l_dict):
+        return len(l_dict.get(WARNING, [])), len(l_dict.get(ERROR, []))
 
     def _count_we(self, vid):
-        vdict = self.data.get(vid).get("view_dict")
+        vdict = self.data.get(vid).get("lints")
 
         we_counts = []
         for line, d in vdict.items():
-            w_count, e_count = self.msg_count(d)
-            d[WARNING]["count"] = w_count
-            d[ERROR]["count"] = e_count
-            we_counts.append((w_count, w_count))
+            w_count, e_count = self._msg_count(d)
+            self.data[vid]["we_count_lines"][line] = {WARNING: w_count, ERROR: e_count}
+            we_counts.append((w_count, e_count))
 
         we = [sum(x) for x in zip(*we_counts)]
         if not we:
             return
-        self.data[vid]["we_count"] = {WARNING: we[0], ERROR: we[1]}
+        self.data[vid]["we_count_view"] = {WARNING: we[0], ERROR: we[1]}
 
     def get_region_errors(self, line_dict, point):
         filtered_dict = {}

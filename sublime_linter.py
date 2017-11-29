@@ -391,22 +391,21 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         """
         Display lint errors in the statusbar of the current view
         """
-
+        view = util.get_focused_view(view)
+        vid = view.id()
         lineno, colno = self.get_line_and_col(view)
 
-        view_dict = persist.errors.get_view_dict(view)
+        view_dict = persist.errors.get_view_dict(vid)
         if not view_dict:
             view.erase_status(STATUS_KEY)
             return
 
-        we_count = persist.warn_err_count.get(view.id())
-        if not we_count:
-            view.erase_status(STATUS_KEY)
-            return
+        we_count = view_dict["we_count_view"]
+        # TODO: special message if W:0 E:0?
 
         status = "W: {warning} E: {error}".format(**we_count)
 
-        line_dict = view_dict.get(lineno)
+        line_dict = view_dict["lints"].get(lineno)
         if not line_dict:
             view.set_status(STATUS_KEY, status)
             return
@@ -428,7 +427,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if status != view.get_status(STATUS_KEY):
             view.set_status(STATUS_KEY, status)
-
 
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
@@ -515,7 +513,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             )
 
         tooltip_message = ""
-        we_count = persist.errors.get_we_count(active_view.id())
+        we_count = persist.errors.get_we_count_line(active_view.id(), lineno)
+
+        if not we_count:
+            return
 
         if (we_count[WARNING] and we_count[ERROR]) == 0:
             return

@@ -97,7 +97,7 @@ def get_active_view(view=None):
 
     return sublime.active_window().active_view()
 
-def get_focused_view_id(view):
+def get_focused_view(view):
     """
     Return the focused view which shares view's buffer.
 
@@ -108,6 +108,9 @@ def get_focused_view_id(view):
     """
     active_view = get_active_view(view)
     if not active_view:
+        return
+
+    if is_scratch(view):
         return
 
     for view in view.window().views():

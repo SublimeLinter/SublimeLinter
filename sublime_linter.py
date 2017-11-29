@@ -471,7 +471,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         else:
             lineno, colno = self.get_line_and_col(active_view)
 
-        view_dict = persist.errors.get_view_dict(active_view)
+        view_dict = persist.errors.get_view_dict(active_view.id())
         if not view_dict:
             return
 

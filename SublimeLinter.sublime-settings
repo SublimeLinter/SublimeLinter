@@ -70,7 +70,7 @@
         {
             "mark_style": "outline",
             "priority": 1,
-            "scope": "region.yellowish",
+            "scope": "region.yellowish markup.warning.sublimelinter",
             "icon": "warning",
             "types": [
                 "warning"
@@ -79,7 +79,7 @@
         {
             "mark_style": "outline",
             "priority": 1,
-            "scope": "region.redish",
+            "scope": "region.redish markup.error.sublimelinter",
             "icon": "error",
             "types": [
                 "error"

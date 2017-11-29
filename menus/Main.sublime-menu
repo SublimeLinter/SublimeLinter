@@ -12,7 +12,7 @@
                         "children": [
                             {
                                 "caption": "Clear Caches",
-                                "command": "sublimelinter_clear_caches"
+                                "command": "sublime_linter_clear_caches"
                             }
                         ]
                     }

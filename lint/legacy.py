@@ -183,18 +183,18 @@ def update_settings(min_version, usr_dir_abs):
         return settings
 
     usr_settings_path = os.path.join(usr_dir_abs, SETTINGS_FILE)
+    if os.path.exists(usr_settings_path):
+        # not working with a single context and 'w+'
+        with open(usr_settings_path, "r") as rf:
+            settings = json.load(rf)
 
-    # not working with a single context and 'w+'
-    with open(usr_settings_path, "r") as rf:
-        settings = json.load(rf)
+        new_settings = update(settings)
 
-    new_settings = update(settings)
+        with open(usr_settings_path, "w") as wf:
+            js = json.dumps(new_settings, indent=4, sort_keys=True)
+            wf.write(js)
 
-    with open(usr_settings_path, "w") as wf:
-        js = json.dumps(new_settings, indent=4, sort_keys=True)
-        wf.write(js)
-
-    merged_settings.load()
+        merged_settings.load()
 
 
 def rm_old_dir(usr_dir_abs):

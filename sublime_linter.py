@@ -467,63 +467,58 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         else:
             lineno, colno = self.get_line_and_col(active_view)
 
-        view_dict = persist.errors.get_view_dict(active_view.id())
-        if not view_dict:
-            print("No view dict retrieved.")
-            return
+        vid = active_view.id()
 
-        line_dict = view_dict["line_dicts"].get(lineno)
+        line_dict = persist.errors.get_line_dict(vid, lineno)
         if not line_dict:
             return
 
+        # test implementation, move that method into error class
+        # or make error class accept view and point as args
+        def calc_point(vid, lineno, colno):
+            return active_view.text_point(lineno, colno)
+
         if is_inline:  # do not show tooltip on hovering empty gutter
-            def get_region_errors():
-                filtered_dict = {}
-                for err_type, dc in line_dict.items():
-                    filtered_dict[err_type] = []
-                    for d in dc:
-                        region = d.get("region")
-                        if region and region.contains(point):
-                            filtered_dict[err_type].append(d)
-                return filtered_dict
-
-            line_dict = get_region_errors()
-
-        def join_msgs(err_type, count, heading):
-            combined_msg_tmpl = "{linter}: {code} - {msg}"
-            msgs = []
-            msg_list = line_dict.get(err_type)
-
-            if not msg_list:
-                return ""
-            for item in msg_list:
-                msgs.append(combined_msg_tmpl.format(**item))
-
-            if count > 1:  # pluralize
-                heading += "s"
-
-            return part.format(
-                classname=err_type,
-                count=count,
-                heading=heading,
-                messages='<br />'.join(msgs)
-            )
+            point = calc_point(vid, lineno, colno)
+            line_dict = persist.errors.get_region_dict(
+                vid, lineno, colno, point)
 
         tooltip_message = ""
         we_count = persist.errors.get_we_count_line(active_view.id(), lineno)
 
         if not we_count:
             return
-
-        if (we_count[WARNING] and we_count[ERROR]) == 0:
+        elif we_count[WARNING] + we_count[ERROR] == 0:
             return
 
-        if we_count[WARNING] > 0:
-            tooltip_message += join_msgs("warning",
-                                         we_count[WARNING], "Warning")
+        # TODO: refactor
+        def join_msgs(line_dict, we_count):
+            combined_msg_tmpl = "{linter}: {code} - {msg}"
 
-        if we_count[ERROR] > 0:
-            tooltip_message += join_msgs("error", we_count[ERROR], "Error")
+            msg = ""
+            for err_type in WARN_ERR:
+                count = we_count[err_type]
+                heading = err_type
+                msgs = []
+                msg_list = line_dict.get(err_type)
+
+                if not msg_list:
+                    continue
+                for item in msg_list:
+                    msgs.append(combined_msg_tmpl.format(**item))
+
+                if count > 1:  # pluralize
+                    heading += "s"
+
+                msg += part.format(
+                    classname=err_type,
+                    count=count,
+                    heading=heading,
+                    messages='<br />'.join(msgs)
+                )
+            return msg
+
+        tooltip_message = join_msgs(line_dict, we_count)
 
         colno = 0 if not is_inline else colno
         location = active_view.text_point(lineno, colno)

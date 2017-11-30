@@ -1,0 +1,34 @@
+%YAML 1.2
+---
+hidden: true
+scope: output.lsp.references
+
+contexts:
+  main:
+    - include: references-preamble
+    - include: references-body
+
+  references-preamble:
+    # References to "function" at path\file.py:
+    - match: ^(.*)(:)$
+      captures:
+        0: meta.references.preamble.lsp
+        1: string.unquoted.lsp
+        2: punctuation.separator.lsp
+
+  references-body:
+    # Must match the
+    #    - "result_file_regex" setting
+    #    - reference output format
+    # Examples:
+    #    ◌ c:\path name\file name.py 423:32
+    #    ◌ /unixpath/file.py 815:1
+    - match: ^\s+(\S)\s+((\S.+)\s+(\d+)(?:(:)(\d+))?)$
+      captures:
+        0: meta.references.body.lsp
+        1: punctuation.section.path.reference.lsp
+        2: meta.path.reference.lsp
+        3: entity.name.file.lsp
+        4: constant.numeric.integer.decimal.lsp
+        5: punctuation.separator.lsp
+        6: constant.numeric.integer.decimal.lsp

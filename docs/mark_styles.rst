@@ -86,45 +86,10 @@ stippled underline
 
 ----
 
-.. _choosing-a-mark-style:
-
-Choosing a mark style
----------------------
-There are three ways to select a mark style:
-
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`mark`. Among the commands you should see ``SublimeLinter: Choose Mark Style``. If that command is not highlighted, use the keyboard or mouse to select it. A list of the available mark styles appears with the current mark style highlighted. Type or click to select the mark style you would like to use.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the |st| ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Mark Styles`` and then select a mark style from the submenu.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Mark Styles`` and then select a mark style from the submenu.
-
-Once you have selected a new mark style, all of the open views are redrawn with the new style. The mark style you select is saved in your :ref:`user settings <mark_style>`, so it will still be active after restarting |st|.
-
 
 .. _no-column-mode:
 
 No-column mode
 --------------
-When a linter reports an error with no column information, by default a mark is put in the gutter but no text is highlighted. You may also choose to highlight the entire line when it there is no column information. To change the no-column highlighting mode, do one of the following:
+When a linter reports an error with no column information, by default a mark is put in the gutter but no text is highlighted. You may also choose to highlight the entire line when it there is no column information.
 
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`column`. Among the commands you should see either ``SublimeLinter: No Column Highlights Entire Line`` or ``SublimeLinter: No Column Only Marks Gutter``. If the command is not highlighted, use the keyboard or mouse to select it. Choosing the command toggle the setting.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the |st| ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Mark Styles`` and then select ``No column Highlights Entire Line`` from the submenu.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Mark Styles`` and then select ``No Column Highlights Entire Line`` from the submenu.
-
-Once you have selected a highlight mode, all of the open views are relinted with the new mode. The no-column mode you select is saved in your :ref:`user settings <no-column-highlights-line>`, so it will still be active after restarting |st|.
-
-.. _Tomorrow and Tomorrow-Night: https://github.com/theymaybecoders/sublime-tomorrow-theme

@@ -4,6 +4,4 @@
 coverage.xml
 *.pyc
 *.sublime-project
-/menus/Context.sublime-menu
-/menus/Main.sublime-menu
 _build/

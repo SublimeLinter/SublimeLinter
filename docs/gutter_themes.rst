@@ -109,30 +109,6 @@ Koloria             |ko_e| |s| |ko_w|
 ProjectIcons        |pi_e| |s| |pi_w|
 =================== ===================
 
-.. _choosing-a-gutter-theme:
-
-Choosing a gutter theme
------------------------
-There are three ways to choose a gutter theme:
-
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`gutter`. Among the commands you should see ``SublimeLinter: Choose Gutter Theme``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-A list of the available gutter themes appears with the current gutter theme highlighted. Below each gutter theme name is an indication of whether the theme is a standard |sl| theme or a user theme, as well as whether the theme is colorized.
-
-If you type or use the arrow keys to move through the list, the current gutter theme will change dynamically to the currently selected theme. If you have a view open with gutter marks, this allows you to preview other themes. Pressing :kbd:`Return/Enter` or clicking on a theme will commit that change. Pressing :kbd:`Escape` will revert to the theme in use before the Command Palette opened.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the |st| ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Choose Gutter Theme...`` and then follow the instructions for selecting from the Command Palette.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Choose Gutter Theme...`` and then follow the instructions for selecting from the Command Palette.
-
-Once you have selected a new gutter theme, all of the open views are redrawn with the new theme. The gutter theme you select is saved in your user settings, so it will still be active after restarting |st|.
-
 
 .. _creating-a-gutter-theme:
 

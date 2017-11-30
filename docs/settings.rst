@@ -62,75 +62,6 @@ User settings
 ~~~~~~~~~~~~~
 User settings are located in :file:`Packages/User/SublimeLinter.sublime-settings`. You should consider this to be the global settings for |sl| and its linters. To make it easier to remember what settings are available, whenever you open the user settings, they are filled in with any missing default settings from |sl| and from all installed linters.
 
-Here is an example user settings file:
-
-.. code-block:: json
-
-    {
-        "user": {
-            "debug": false,
-            "delay": 0.25,
-            "error_color": "D02000",
-            "gutter_theme": "Packages/SublimeLinter/gutter-themes/Knob/simple/Knob - simple.gutter-theme",
-            "gutter_theme_excludes": [],
-            "lint_mode": "background",
-            "linters": {
-                "csslint": {
-                    "@disable": false,
-                    "args": [],
-                    "excludes": []
-                },
-                "flake8": {
-                    "@disable": false,
-                    "args": [],
-                    "excludes": [],
-                    "ignore": "",
-                    "max-complexity": -1,
-                    "max-line-length": null,
-                    "select": ""
-                }
-            },
-            "mark_style": "outline",
-            "paths": {
-                "*": [],
-                "linux": [],
-                "osx": [],
-                "windows": []
-            },
-            "python_paths": {
-                "linux": [],
-                "osx": [],
-                "windows": []
-            },
-            "rc_search_limit": 3,
-            "show_errors_on_save": false,
-            "show_marks_in_minimap": true,
-            "syntax_map": {
-                "php": "html"
-            },
-            "warning_color": "DDB700",
-            "wrap_find": true
-        }
-    }
-
-All of these values were initially filled in by |sl| when the file was first opened. After that, it’s just a matter of changing the settings.
-
-.. _opening-user-settings:
-
-There are three easy ways to open the user settings:
-
-**Command Palette**
-:raw-html:`<br>`
-Bring up the |_cmd| and type :kbd:`prefs`. Among the commands you should see ``Preferences: SublimeLinter Settings - User``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-**Tools menu**
-:raw-html:`<br>`
-At the bottom of the Sublime Text ``Tools`` menu, you will see a ``SublimeLinter`` submenu. Select ``SublimeLinter > Open User Settings``.
-
-**Context menu**
-:raw-html:`<br>`
-If you right-click (or Control-click on OS X) within a file view, you will see a ``SublimeLinter`` submenu at the bottom of the context menu. Select ``SublimeLinter > Open User Settings``.
-
 
 Project settings
 ~~~~~~~~~~~~~~~~
@@ -165,10 +96,10 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
             }
         }
     }
-    
+
 .. note::
 
-    Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document. 
+    Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document.
 
 Unlike user settings, project settings are not filled in by |sl|; you are responsible for adding any settings you wish to apply to files in the project.
 

@@ -4,6 +4,10 @@ Creating a Linter Plugin
 ========================
 |sl| makes it easy to create a linter plugin in a few steps:
 
+#. Fork SublimeLinter-template to bootstrap your new linter
+
+#. Clone it into Packages
+
 #. Using the ``Create Linter Plugin`` command, create a template plugin complete with user documentation.
 
 #. Change a few :doc:`attributes <linter_attributes>` in the linter class.

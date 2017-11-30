@@ -20,13 +20,15 @@ import os
 import getpass
 import re
 import shutil
-from string import Template
 import stat
 import sublime
 import subprocess
 import sys
 import tempfile
-from xml.etree import ElementTree
+
+from copy import deepcopy
+
+from .const import WARNING, ERROR
 
 if sublime.platform() != 'windows':
     import pwd
@@ -38,57 +40,125 @@ STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
-PYTHON_CMD_RE = re.compile(r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?')
+PYTHON_CMD_RE = re.compile(
+    r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?')
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 
-INLINE_SETTINGS_RE = re.compile(r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
-INLINE_SETTING_RE = re.compile(r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
+INLINE_SETTINGS_RE = re.compile(
+    r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
+INLINE_SETTING_RE = re.compile(
+    r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
 
-MENU_INDENT_RE = re.compile(r'^(\s+)\$menus', re.MULTILINE)
-
-MARK_COLOR_RE = (
-    r'(\s*<string>sublimelinter\.{}</string>\s*\r?\n'
-    r'\s*<key>settings</key>\s*\r?\n'
-    r'\s*<dict>\s*\r?\n'
-    r'(?:\s*<key>(?:background|fontStyle)</key>\s*\r?\n'
-    r'\s*<string>.*?</string>\r?\n)*'
-    r'\s*<key>foreground</key>\s*\r?\n'
-    r'\s*<string>)#.+?(</string>\s*\r?\n)'
-)
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 UNSAVED_FILENAME = 'untitled'
 
 # Temp directory used to store temp files for linting
-tempdir = os.path.join(tempfile.gettempdir(), 'SublimeLinter3-' + getpass.getuser())
+tempdir = os.path.join(tempfile.gettempdir(),
+                       'SublimeLinter3-' + getpass.getuser())
+
+
+class Borg:
+    _shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+def is_scratch(view):
+    """
+    Return whether a view is effectively scratch.
+
+    There is a bug (or feature) in the current ST3 where the Find panel
+    is not marked scratch but has no window.
+
+    There is also a bug where settings files opened from within .sublime-package
+    files are not marked scratch during the initial on_modified event, so we have
+    to check that a view with a filename actually exists on disk if the file
+    being opened is in the Sublime Text packages directory.
+
+    """
+
+    if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
+        return True
+    elif (
+        view.file_name() and
+        view.file_name().startswith(sublime.packages_path() + os.path.sep) and
+        not os.path.exists(view.file_name())
+    ):
+        return True
+    else:
+        return False
+
+
+def get_active_view(view=None):
+    if view:
+        return view.window().active_view()
+
+    return sublime.active_window().active_view()
+
+def get_focused_view(view):
+    """
+    Return the focused view which shares view's buffer.
+
+    When updating the status, we want to make sure we get
+    the selection of the focused view, since multiple views
+    into the same buffer may be open.
+
+    """
+    active_view = get_active_view(view)
+    if not active_view:
+        return
+
+    if is_scratch(view):
+        return
+
+    for view in view.window().views():
+        if view == active_view:
+            return view
+
+# panel utils
+
+
+def get_project_path(window: sublime.Window) -> 'Optional[str]':
+    """
+    Returns the common root of all open folders in the window
+    """
+    from . import persist
+    if len(window.folders()):
+        folder_paths = window.folders()
+        return folder_paths[0]
+    else:
+        filename = window.active_view().file_name()
+        if filename:
+            project_path = os.path.dirname(filename)
+            persist.debug("Couldn't determine project directory since no folders are open!",
+                          "Using", project_path, "as a fallback.")
+            return project_path
+        else:
+            persist.debug("Couldn't determine project directory since no folders are open",
+                          "and the current file isn't saved on the disk.")
+            return None
+
+
+# ###
+
+def get_new_dict():
+    return deepcopy({WARNING: {}, ERROR: {}})
+
+
+def msg_count(l_dict):
+    w_count = len(l_dict.get("warning", []))
+    e_count = len(l_dict.get("error", []))
+    return w_count, e_count
+
+
+def any_key_in(target, source):
+    """"""
+    return any(key in target for key in source)
 
 
 # settings utils
-
-def merge_user_settings(settings):
-    """Return the default linter settings merged with the user's settings."""
-
-    default = settings.get('default', {})
-    user = settings.get('user', {})
-
-    if user:
-        linters = default.pop('linters', {})
-        user_linters = user.get('linters', {})
-
-        for name, data in user_linters.items():
-            if name in linters:
-                linters[name].update(data)
-            else:
-                linters[name] = data
-
-        default['linters'] = linters
-
-        user.pop('linters', None)
-        default.update(user)
-
-    return default
-
 
 def inline_settings(comment_re, code, prefix=None, alt_prefix=None):
     r"""
@@ -188,240 +258,10 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            persist.printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
+            persist.printf(
+                'ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
-
-
-def generate_color_scheme(from_reload=True):
-    """
-    Asynchronously call generate_color_scheme_async.
-
-    from_reload is True if this is called from the change callback for user settings.
-
-    """
-
-    # If this was called from a reload of prefs, turn off the prefs observer,
-    # otherwise we'll end up back here when ST updates the prefs with the new color.
-    if from_reload:
-        from . import persist
-
-        def prefs_reloaded():
-            persist.settings.observe_prefs()
-
-        persist.settings.observe_prefs(observer=prefs_reloaded)
-
-    # ST crashes unless this is run async
-    sublime.set_timeout_async(generate_color_scheme_async, 0)
-
-
-def generate_color_scheme_async():
-    """
-    Generate a modified copy of the current color scheme that contains SublimeLinter color entries.
-
-    The current color scheme is checked for SublimeLinter color entries. If any are missing,
-    the scheme is copied, the entries are added, and the color scheme is rewritten to Packages/User/SublimeLinter.
-
-    """
-
-    # First make sure the user prefs are valid. If not, bail.
-    path = os.path.join(sublime.packages_path(), 'User', 'Preferences.sublime-settings')
-
-    if (os.path.isfile(path)):
-        try:
-            with open(path, mode='r', encoding='utf-8') as f:
-                json = f.read()
-
-            sublime.decode_value(json)
-        except (ValueError, IOError):
-            from . import persist
-            persist.printf('generate_color_scheme: Preferences.sublime-settings invalid, aborting')
-            return
-
-    prefs = sublime.load_settings('Preferences.sublime-settings')
-    scheme = prefs.get('color_scheme')
-
-    if scheme is None:
-        return
-
-    scheme_text = sublime.load_resource(scheme)
-
-    # Ensure that all SublimeLinter colors are in the scheme
-    scopes = {
-        'mark.warning': False,
-        'mark.error': False,
-        'gutter-mark': False
-    }
-
-    for scope in scopes:
-        if re.search(MARK_COLOR_RE.format(re.escape(scope)), scheme_text):
-            scopes[scope] = True
-
-    if False not in scopes.values():
-        return
-
-    # Append style dicts with our styles to the style array
-    plist = ElementTree.XML(scheme_text)
-    styles = plist.find('./dict/array')
-
-    from . import persist
-
-    for style in COLOR_SCHEME_STYLES:
-        color = persist.settings.get('{}_color'.format(style), DEFAULT_MARK_COLORS[style]).lstrip('#')
-        styles.append(ElementTree.XML(COLOR_SCHEME_STYLES[style].format(color)))
-
-    if not os.path.exists(os.path.join(sublime.packages_path(), 'User', 'SublimeLinter')):
-        os.makedirs(os.path.join(sublime.packages_path(), 'User', 'SublimeLinter'))
-
-    # Write the amended color scheme to Packages/User/SublimeLinter
-    original_name = os.path.splitext(os.path.basename(scheme))[0]
-    name = original_name + ' (SL)'
-    scheme_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', name + '.tmTheme')
-
-    with open(scheme_path, 'w', encoding='utf8') as f:
-        f.write(COLOR_SCHEME_PREAMBLE)
-        f.write(ElementTree.tostring(plist, encoding='unicode'))
-
-    # Set the amended color scheme to the current color scheme
-    path = os.path.join('User', 'SublimeLinter', os.path.basename(scheme_path))
-    prefs.set('color_scheme', packages_relative_path(path))
-    sublime.save_settings('Preferences.sublime-settings')
-
-
-def change_mark_colors(error_color, warning_color):
-    """Change SublimeLinter error/warning colors in user color schemes."""
-
-    error_color = error_color.lstrip('#')
-    warning_color = warning_color.lstrip('#')
-
-    base_path = os.path.join(sublime.packages_path(), 'User', '*.tmTheme')
-    sublime_path = os.path.join(sublime.packages_path(), 'User', 'SublimeLinter', '*.tmTheme')
-    themes = glob(sublime_path) + glob(base_path)
-
-    for theme in themes:
-        with open(theme, encoding='utf8') as f:
-            text = f.read()
-
-        if re.search(MARK_COLOR_RE.format(r'mark\.error'), text):
-            text = re.sub(MARK_COLOR_RE.format(r'mark\.error'), r'\1#{}\2'.format(error_color), text)
-            text = re.sub(MARK_COLOR_RE.format(r'mark\.warning'), r'\1#{}\2'.format(warning_color), text)
-
-            with open(theme, encoding='utf8', mode='w') as f:
-                f.write(text)
-
-
-def update_syntax_map():
-    """Update the user syntax_map setting with any missing entries from the defaults."""
-
-    from . import persist
-
-    syntax_map = {}
-    syntax_map.update(persist.settings.get('syntax_map', {}))
-    default_syntax_map = persist.settings.plugin_settings.get('default', {}).get('syntax_map', {})
-    modified = False
-
-    for key, value in default_syntax_map.items():
-        if key not in syntax_map:
-            syntax_map[key] = value
-            modified = True
-            persist.debug('added syntax mapping: \'{}\' => \'{}\''.format(key, value))
-
-    if modified:
-        persist.settings.set('syntax_map', syntax_map)
-        persist.settings.save()
-
-
-# menu utils
-
-def indent_lines(text, indent):
-    """Return all of the lines in text indented by prefixing with indent."""
-    return re.sub(r'^', indent, text, flags=re.MULTILINE)[len(indent):]
-
-
-def generate_menus(**kwargs):
-    """Asynchronously call generate_menus_async."""
-    sublime.set_timeout_async(generate_menus_async, 0)
-
-
-def generate_menus_async():
-    """
-    Generate context and Tools SublimeLinter menus.
-
-    This is done dynamically so that we can have a submenu with all
-    of the available gutter themes.
-
-    """
-
-    commands = []
-
-    for chooser in CHOOSERS:
-        commands.append({
-            'caption': chooser,
-            'menus': build_submenu(chooser),
-            'toggleItems': ''
-        })
-
-    menus = []
-    indent = MENU_INDENT_RE.search(CHOOSER_MENU).group(1)
-
-    for cmd in commands:
-        # Indent the commands to where they want to be in the template.
-        # The first line doesn't need to be indented, remove the extra indent.
-        cmd['menus'] = indent_lines(cmd['menus'], indent)
-
-        if cmd['caption'] in TOGGLE_ITEMS:
-            cmd['toggleItems'] = TOGGLE_ITEMS[cmd['caption']]
-            cmd['toggleItems'] = indent_lines(cmd['toggleItems'], indent)
-
-        menus.append(Template(CHOOSER_MENU).safe_substitute(cmd))
-
-    menus = ',\n'.join(menus)
-    text = generate_menu('Context', menus)
-    generate_menu('Main', text)
-
-
-def generate_menu(name, menu_text):
-    """Generate and return a sublime-menu from a template."""
-
-    from . import persist
-    plugin_dir = os.path.join(sublime.packages_path(), persist.PLUGIN_DIRECTORY, 'menus')
-    path = os.path.join(plugin_dir, '{}.sublime-menu.template'.format(name))
-
-    with open(path, encoding='utf8') as f:
-        template = f.read()
-
-    # Get the indent for the menus within the template,
-    # indent the chooser menus except for the first line.
-    indent = MENU_INDENT_RE.search(template).group(1)
-    menu_text = indent_lines(menu_text, indent)
-
-    text = Template(template).safe_substitute({'menus': menu_text})
-    path = os.path.join(plugin_dir, '{}.sublime-menu'.format(name))
-
-    with open(path, mode='w', encoding='utf8') as f:
-        f.write(text)
-
-    return text
-
-
-def build_submenu(caption):
-    """Generate and return a submenu with commands to select a lint mode, mark style, or gutter theme."""
-
-    setting = caption.lower()
-
-    if setting == 'lint mode':
-        from . import persist
-        names = [mode[0].capitalize() for mode in persist.LINT_MODES]
-    elif setting == 'mark style':
-        from . import highlight
-        names = highlight.mark_style_names()
-
-    commands = []
-
-    for name in names:
-        commands.append(CHOOSER_COMMAND.format(setting.replace(' ', '_'), name))
-
-    return ',\n'.join(commands)
 
 
 # file/directory/environment utils
@@ -492,7 +332,8 @@ def run_shell_cmd(cmd):
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''
-        persist.printf('shell timed out after {} seconds, executing {}'.format(timeout, cmd))
+        persist.printf(
+            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
 
     return out
 
@@ -509,7 +350,8 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        persist.printf('Could not parse shell PATH output:\n' + (out if out else '<empty>'))
+        persist.printf('Could not parse shell PATH output:\n' +
+                       (out if out else '<empty>'))
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
             'It is unlikely that any linters will work. '
@@ -534,11 +376,13 @@ def get_shell_path(env):
         # text might be output during shell startup.
         if shell in ('bash', 'zsh'):
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
+                (shell_path, '-l', '-c',
+                 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
             )
         elif shell == 'fish':
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
+                (shell_path, '-l', '-c',
+                 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
                 '\n'
             )
         else:
@@ -571,10 +415,12 @@ def get_environment_variable(name):
 
             # We have to delimit the output with markers because
             # text might be output during shell startup.
-            out = run_shell_cmd((shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
+            out = run_shell_cmd(
+                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
 
             if out:
-                value = out.decode().split('__SUBL_VAR__', 2)[1].strip() or None
+                value = out.decode().split('__SUBL_VAR__', 2)[
+                    1].strip() or None
     else:
         value = os.environ.get(name, None)
 
@@ -606,25 +452,6 @@ def get_path_components(path):
     return components
 
 
-def packages_relative_path(path, prefix_packages=True):
-    """
-    Return a Packages-relative version of path with '/' as the path separator.
-
-    Sublime Text wants Packages-relative paths used in settings and in the plugin API
-    to use '/' as the path separator on all platforms. This method converts platform
-    path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
-    converted path.
-
-    """
-
-    components = get_path_components(path)
-
-    if prefix_packages and components and components[0] != 'Packages':
-        components.insert(0, 'Packages')
-
-    return '/'.join(components)
-
-
 @lru_cache(maxsize=None)
 def create_environment():
     """
@@ -649,7 +476,8 @@ def create_environment():
     paths = persist.settings.get('paths', {})
 
     if sublime.platform() in paths:
-        paths = [os.path.abspath(os.path.expanduser(path)) for path in convert_type(paths[sublime.platform()], [])]
+        paths = [os.path.abspath(os.path.expanduser(path))
+                 for path in convert_type(paths[sublime.platform()], [])]
     else:
         paths = []
 
@@ -668,7 +496,8 @@ def create_environment():
             shell = 'from system'
 
         if env['PATH']:
-            persist.printf('computed PATH {}:\n{}\n'.format(shell, env['PATH'].replace(os.pathsep, '\n')))
+            persist.printf('computed PATH {}:\n{}\n'.format(
+                shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
@@ -796,7 +625,8 @@ def find_python(version=None, script=None, module=None):
         # If no specific version is requested and we have a module,
         # assume the linter will run using ST's python.
         if module is not None:
-            result = ('<builtin>', script, available_version['major'], available_version['minor'])
+            result = ('<builtin>', script,
+                      available_version['major'], available_version['minor'])
             persist.debug('find_python: <=', repr(result))
             return result
 
@@ -809,7 +639,8 @@ def find_python(version=None, script=None, module=None):
     else:
         version = str(version)
         requested_version = extract_major_minor_version(version)
-        persist.debug('find_python: requested version =', repr(requested_version))
+        persist.debug('find_python: requested version =',
+                      repr(requested_version))
 
         # If there is no module, we will use a system python.
         # If there is a module, a specific version was requested,
@@ -818,8 +649,10 @@ def find_python(version=None, script=None, module=None):
         if module is None:
             need_system_python = True
         else:
-            persist.debug('find_python: available version =', repr(available_version))
-            need_system_python = not version_fulfills_request(available_version, requested_version)
+            persist.debug('find_python: available version =',
+                          repr(available_version))
+            need_system_python = not version_fulfills_request(
+                available_version, requested_version)
             path = '<builtin>'
 
         if need_system_python:
@@ -832,12 +665,14 @@ def find_python(version=None, script=None, module=None):
 
     if path and path != '<builtin>':
         available_version = get_python_version(path)
-        persist.debug('find_python: available version =', repr(available_version))
+        persist.debug('find_python: available version =',
+                      repr(available_version))
 
         if version_fulfills_request(available_version, requested_version):
             if script:
                 script_path = find_python_script(path, script)
-                persist.debug('find_python: {!r} path = {}'.format(script, script_path))
+                persist.debug('find_python: {!r} path = {}'.format(
+                    script, script_path))
 
                 if script_path is None:
                     path = None
@@ -847,7 +682,8 @@ def find_python(version=None, script=None, module=None):
         else:
             path = script_path = None
 
-    result = (path, script_path, available_version['major'], available_version['minor'])
+    result = (path, script_path,
+              available_version['major'], available_version['minor'])
     persist.debug('find_python: <=', repr(result))
     return result
 
@@ -888,12 +724,14 @@ def find_posix_python(version):
     if version:
         # Try the exact requested version first
         path = find_executable('python' + version)
-        persist.debug('find_posix_python: python{} => {}'.format(version, path))
+        persist.debug(
+            'find_posix_python: python{} => {}'.format(version, path))
 
         # If that fails, try the major version
         if not path:
             path = find_executable('python' + version[0])
-            persist.debug('find_posix_python: python{} => {}'.format(version[0], path))
+            persist.debug(
+                'find_posix_python: python{} => {}'.format(version[0], path))
 
             # If the major version failed, see if the default is available
             if not path:
@@ -990,7 +828,8 @@ def get_python_paths():
         paths = out.splitlines()
 
         if persist.debug_mode():
-            persist.printf('sys.path for {}:\n{}\n'.format(python_path, '\n'.join(paths)))
+            persist.printf('sys.path for {}:\n{}\n'.format(
+                python_path, '\n'.join(paths)))
     else:
         persist.debug('no python 3 available to augment sys.path')
         paths = []
@@ -1026,19 +865,6 @@ def find_executable(executable):
     return None
 
 
-def touch(path):
-    """Perform the equivalent of touch on Posix systems."""
-    with open(path, 'a'):
-        os.utime(path, None)
-
-
-def open_directory(path):
-    """Open the directory at the given path in a new window."""
-
-    cmd = (get_subl_executable_path(), path)
-    subprocess.Popen(cmd, cwd=path)
-
-
 def get_subl_executable_path():
     """Return the path to the subl command line binary."""
 
@@ -1046,7 +872,8 @@ def get_subl_executable_path():
 
     if sublime.platform() == 'osx':
         suffix = '.app/'
-        app_path = executable_path[:executable_path.rfind(suffix) + len(suffix)]
+        app_path = executable_path[:executable_path.rfind(
+            suffix) + len(suffix)]
         executable_path = app_path + 'Contents/SharedSupport/bin/subl'
 
     return executable_path
@@ -1104,7 +931,8 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None):
     else:
         stdout = stderr = None
 
-    out = popen(cmd, stdout=stdout, stderr=stderr, output_stream=output_stream, extra_env=env)
+    out = popen(cmd, stdout=stdout, stderr=stderr,
+                output_stream=output_stream, extra_env=env)
 
     if out is not None:
         if code is not None:
@@ -1357,16 +1185,6 @@ def convert_type(value, type_value, sep=None, default=None):
     return default
 
 
-def get_user_fullname():
-    """Return the user's full name (or at least first name)."""
-
-    if sublime.platform() in ('osx', 'linux'):
-        import pwd
-        return pwd.getpwuid(os.getuid()).pw_gecos
-    else:
-        return os.environ.get('USERNAME', 'Me')
-
-
 def center_region_in_view(region, view):
     """
     Center the given region in view.
@@ -1404,92 +1222,3 @@ class cd:
     def __exit__(self, etype, value, traceback):
         """Go back to the old wd."""
         os.chdir(self.savedPath)
-
-
-# color-related constants
-
-DEFAULT_MARK_COLORS = {'warning': 'EDBA00', 'error': 'DA2000', 'gutter': 'FFFFFF'}
-
-COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-'''
-
-COLOR_SCHEME_STYLES = {
-    'warning': '''
-        <dict>
-            <key>name</key>
-            <string>SublimeLinter Warning</string>
-            <key>scope</key>
-            <string>sublimelinter.mark.warning</string>
-            <key>settings</key>
-            <dict>
-                <key>foreground</key>
-                <string>#{}</string>
-            </dict>
-        </dict>
-    ''',
-
-    'error': '''
-        <dict>
-            <key>name</key>
-            <string>SublimeLinter Error</string>
-            <key>scope</key>
-            <string>sublimelinter.mark.error</string>
-            <key>settings</key>
-            <dict>
-                <key>foreground</key>
-                <string>#{}</string>
-            </dict>
-        </dict>
-    ''',
-
-    'gutter': '''
-        <dict>
-            <key>name</key>
-            <string>SublimeLinter Gutter Mark</string>
-            <key>scope</key>
-            <string>sublimelinter.gutter-mark</string>
-            <key>settings</key>
-            <dict>
-                <key>foreground</key>
-                <string>#FFFFFF</string>
-            </dict>
-        </dict>
-    '''
-}
-
-
-# menu command constants
-
-CHOOSERS = (
-    'Lint Mode',
-    'Mark Style'
-)
-
-CHOOSER_MENU = '''{
-    "caption": "$caption",
-    "children":
-    [
-        $menus,
-        $toggleItems
-    ]
-}'''
-
-CHOOSER_COMMAND = '''{{
-    "command": "sublimelinter_choose_{}", "args": {{"value": "{}"}}
-}}'''
-
-TOGGLE_ITEMS = {
-    'Mark Style': '''
-{
-    "caption": "-"
-},
-{
-    "caption": "No Column Highlights Line",
-    "command": "sublimelinter_toggle_setting", "args":
-    {
-        "setting": "no_column_highlights_line",
-        "checked": true
-    }
-}'''
-}

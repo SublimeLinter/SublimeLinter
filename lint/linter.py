@@ -21,13 +21,18 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import html.entities
 from numbers import Number
+import html
+
 import os
 import re
 import shlex
 import sublime
 from xml.sax.saxutils import unescape
 
+
 from . import highlight, persist, util
+from .const import STATUS_KEY, WARNING, ERROR
+from .style import LinterStyleStore
 
 #
 # Private constants
@@ -390,13 +395,11 @@ class Linter(metaclass=LinterMeta):
         cls.initialize()
 
     def __init__(self, view, syntax):
-        """Initialize a new instance."""
         self.view = view
         self.syntax = syntax
         self.code = ''
         self.highlight = highlight.Highlight()
-        self.ignore_matches = None
-        self.demote_to_warning_matches = None
+        self.style_store = LinterStyleStore(self.name)
 
     @property
     def filename(self):
@@ -478,7 +481,7 @@ class Linter(metaclass=LinterMeta):
 
         if window:
             data = window.project_data() or {}
-            project_settings = data.get(persist.PLUGIN_NAME, {})
+            project_settings = data.get('SublimeLinter', {})
         else:
             project_settings = {}
 
@@ -579,8 +582,9 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
-            # if a sublime-project file is in the window we use its location
-            # as the root project directory otherwise simply use the project data.
+            if not view.file_name():  # None handling for unsaved files
+                return
+
             # window.project_data delivers the root folder(s) of the view,
             # even without any project file! more flexible that way:
             #
@@ -934,11 +938,6 @@ class Linter(metaclass=LinterMeta):
             linter.clear_settings_caches()
             view_settings = linter.get_view_settings(inline=False)
 
-            # We compile the ignore matches for a linter on each run,
-            # clear the cache first.
-            linter.ignore_matches = None
-            linter.demote_to_warning_matches = None
-
             if view_settings.get('@disable'):
                 disabled.add(linter)
                 continue
@@ -1000,141 +999,11 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def compile_ignore_match(self, pattern):
-        """Return the compiled pattern, log the error if compilation fails."""
-        try:
-            return re.compile(pattern)
-        except re.error as err:
-            persist.printf(
-                'ERROR: {}: invalid ignore_match: "{}" ({})'
-                .format(self.name, pattern, str(err))
-            )
-            return None
-
-    def compiled_ignore_matches(self, ignore_match):
-        """
-        Compile the "ignore_match" linter setting as an optimization.
-
-        If it's a string, return a list with a single compiled regex.
-        If it's a list, return a list of the compiled regexes.
-        If it's a dict, return a list only of the regexes whose key
-        matches the file's extension.
-
-        """
-
-        if isinstance(ignore_match, str):
-            regex = self.compile_ignore_match(ignore_match)
-            return [regex] if regex else []
-
-        elif isinstance(ignore_match, list):
-            matches = []
-
-            for match in ignore_match:
-                regex = self.compile_ignore_match(match)
-
-                if regex:
-                    matches.append(regex)
-
-            return matches
-
-        elif isinstance(ignore_match, dict):
-            if not self.filename:
-                return []
-
-            ext = os.path.splitext(self.filename)[1].lower()
-
-            if not ext:
-                return []
-
-            # Try to match the extension, then the extension without the dot
-            ignore_match = ignore_match.get(ext, ignore_match.get(ext[1:]))
-
-            if ignore_match:
-                return self.compiled_ignore_matches(ignore_match)
-            else:
-                return []
-
-        else:
-            return []
-
-    def compile_demote_to_warning_match(self, pattern):
-        """Return the compiled pattern, log the error if compilation fails."""
-        try:
-            return re.compile(pattern)
-        except re.error as err:
-            persist.printf(
-                'ERROR: {}: invalid demote_to_warning_match: "{}" ({})'
-                .format(self.name, pattern, str(err))
-            )
-            return None
-
-    def compiled_demote_to_warning_matches(self, demote_to_warning_match):
-        """
-        Compile the "demote_to_warning_match" linter setting as an optimization.
-
-        If it's a string, return a list with a single compiled regex.
-        If it's a list, return a list of the compiled regexes.
-        If it's a dict, return a list only of the regexes whose key
-        matches the file's extension.
-
-        """
-
-        if isinstance(demote_to_warning_match, str):
-            regex = self.compile_demote_to_warning_match(demote_to_warning_match)
-            return [regex] if regex else []
-
-        elif isinstance(demote_to_warning_match, list):
-            matches = []
-
-            for match in demote_to_warning_match:
-                regex = self.compile_demote_to_warning_match(match)
-
-                if regex:
-                    matches.append(regex)
-
-            return matches
-
-        elif isinstance(demote_to_warning_match, dict):
-            if not self.filename:
-                return []
-
-            ext = os.path.splitext(self.filename)[1].lower()
-
-            if not ext:
-                return []
-
-            # Try to match the extension, then the extension without the dot
-            demote_to_warning_match = demote_to_warning_match.get(ext, demote_to_warning_match.get(ext[1:]))
-
-            if demote_to_warning_match:
-                return self.compiled_demote_to_warning_matches(demote_to_warning_match)
-            else:
-                return []
-
-        else:
-            return []
-
     def reset(self, code, settings):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
         self.highlight = highlight.Highlight(self.code)
-
-        if self.ignore_matches is None:
-            ignore_match = settings.get('ignore_match')
-
-            if ignore_match:
-                self.ignore_matches = self.compiled_ignore_matches(ignore_match)
-            else:
-                self.ignore_matches = []
-
-        if self.demote_to_warning_matches is None:
-            demote_to_warning_match = settings.get('demote_to_warning_match')
-
-            if demote_to_warning_match:
-                self.demote_to_warning_matches = self.compiled_demote_to_warning_matches(demote_to_warning_match)
-            else:
-                self.demote_to_warning_matches = []
 
     @classmethod
     def which(cls, cmd):
@@ -1404,6 +1273,15 @@ class Linter(metaclass=LinterMeta):
             else:
                 return os.path.realpath('.')
 
+    def get_err_type(self, error, warning):
+        if error:
+            return ERROR
+        elif warning:
+            return WARNING
+        else:
+            return self.default_type
+
+
     def lint(self, hit_time):
         """
         Perform the lint, retrieve the results, and add marks to the view.
@@ -1439,69 +1317,22 @@ class Linter(metaclass=LinterMeta):
             return
 
         # If the view has been modified since the lint was triggered, no point in continuing.
-        if hit_time is not None and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
+        if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
             return
 
         if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
             persist.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-        for match, line, col, error, warning, message, near in self.find_errors(output):
-            if match and message and line is not None:
-                if self.ignore_matches:
-                    ignore = False
+        found_errors = self.find_errors(output)
+        for match, line, col, error, warning, message, near in found_errors:
+            if match and message and line:
+                err_type = self.get_err_type(error, warning)
+                style = self.style_store.get_style(error or warning, err_type)
 
-                    for ignore_match in self.ignore_matches:
-                        if ignore_match.match(message):
-                            ignore = True
+                assert style  # style should never be None
 
-                            if persist.debug_mode():
-                                persist.printf(
-                                    '{} ({}): ignore_match: "{}" == "{}"'
-                                    .format(
-                                        self.name,
-                                        os.path.basename(self.filename) or '<unsaved>',
-                                        ignore_match.pattern,
-                                        message
-                                    )
-                                )
-                            break
-
-                    if ignore:
-                        continue
-
-                if error:
-                    error_type = highlight.ERROR
-                elif warning:
-                    error_type = highlight.WARNING
-                else:
-                    error_type = self.default_type
-
-                if error_type is highlight.ERROR:
-                    demote_to_warning = False
-
-                    if self.demote_to_warning_matches:
-                        for demote_to_warning_match in self.demote_to_warning_matches:
-                            if demote_to_warning_match.match(message):
-                                demote_to_warning = True
-
-                                if persist.debug_mode():
-                                    persist.printf(
-                                        '{} ({}): demote_to_warning_match: "{}" == "{}"'
-                                        .format(
-                                            self.name,
-                                            os.path.basename(self.filename) or '<unsaved>',
-                                            demote_to_warning_match.pattern,
-                                            message
-                                        )
-                                    )
-
-                                break
-
-                    if demote_to_warning:
-                        error_type = highlight.WARNING
-
-                if col is not None:
+                if col:
                     start, end = self.highlight.full_line(line)
 
                     # Adjust column numbers to match the linter's tabs if necessary
@@ -1520,22 +1351,43 @@ class Linter(metaclass=LinterMeta):
                     # Pin the column to the start/end line offsets
                     col = max(min(col, (end - start) - 1), 0)
 
-                if col is not None:
-                    self.highlight.range(line, col, near=near, error_type=error_type, word_re=self.word_re)
+                region = None
+                if col:
+                    region = self.highlight.range(
+                        line,
+                        col,
+                        near=near,
+                        err_type=err_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
                 elif near:
-                    col = self.highlight.near(line, near, error_type=error_type, word_re=self.word_re)
+                    col = self.highlight.near(
+                            line,
+                            near,
+                            err_type=err_type,
+                            word_re=self.word_re,
+                            style=style
+                        )
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
-                        persist.settings.get('gutter_theme') == 'none'
+                        not persist.has_gutter_theme
                     ):
                         pos = -1
                     else:
                         pos = 0
 
-                    self.highlight.range(line, pos, length=0, error_type=error_type, word_re=self.word_re)
+                    region = self.highlight.range(
+                        line,
+                        pos,
+                        length=0,
+                        err_type=err_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
 
-                self.error(line, col, message, error_type)
+                self.error(line, col, message, err_type, style=style, code=warning or error, region=region)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1544,12 +1396,12 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""
+        if not view:
+            return
 
-        view.erase_status('sublimelinter')
+        view.erase_status(STATUS_KEY)
         highlight.Highlight.clear(view)
-
-        if view.id() in persist.errors:
-            del persist.errors[view.id()]
+        persist.errors.pop(view.id(), None)
 
     def clear(self):
         """Clear marks, status and all other cached error info for the given view."""
@@ -1735,10 +1587,6 @@ class Linter(metaclass=LinterMeta):
             return version
         else:
             persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
-            persist.debug('          using cmd: {}, env: {}'.format(
-                cmd,
-                util.create_environment()
-            ))
             return None
 
     @staticmethod
@@ -1755,20 +1603,37 @@ class Linter(metaclass=LinterMeta):
 
         return result
 
-    def error(self, line, col, message, error_type):
+    def escape_html(self, text):
+        cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
+        return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
+
+    def error(self, line, col, message, err_type, style=None, code=None, region=None):
         """Add a reference to an error/warning on the given line and column."""
-        self.highlight.line(line, error_type)
+
+        self.highlight.line(line, err_type, style=style)
 
         # Some linters use html entities in error messages, decode them
-        message = HTML_ENTITY_RE.sub(self.replace_entity, message)
+        message = self.escape_html(message)
+
+        if not code:
+            code = "n/a"
+        else:
+            code = self.escape_html(code)
 
         # Strip trailing CR, space and period
-        message = ((col or 0), str(message).rstrip('\r .'))
+        payload = {
+            "col": (col or 0),
+            "linter": self.name,
+            "code": code,
+            "msg": message
+        }
 
-        if line in self.errors:
-            self.errors[line].append(message)
-        else:
-            self.errors[line] = [message]
+        if region:
+            payload["region"] = region
+
+        l1 = self.errors.setdefault(line, {})
+        l2 = l1.setdefault(err_type, [])
+        l2.append(payload)
 
     def find_errors(self, output):
         """

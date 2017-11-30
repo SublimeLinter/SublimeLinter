@@ -17,11 +17,6 @@ Settings
 The default settings are loaded from the plugin and merged with the settings in :file:`Packages/User/SublimeLinter.sublime-settings`. For more information on |sl| settings, see :doc:`Settings <settings>`.
 
 
-Color scheme
-~~~~~~~~~~~~
-SublimeLinter has to convert color schemes for its use. For more information, see :ref:`Choosing color schemes <choosing-color-schemes>`.
-
-
 Assigning linters
 -----------------
 When a file is opened in |st|, |sl| checks the syntax assigned to the file (Python, JavaScript, etc.), and then uses that name (lowercased) to locate any linters (there may be several) that have advertised they can lint that syntax. Any found linters are assigned to that *view* of the file. |sl| assigns separate linter instances to each view, even if there are multiple views of the same file.
@@ -37,8 +32,6 @@ When you activate or make any modifications to a file, the following sequence of
 - |sl| checks to see if the syntax of the file has changed; and if so, reassigns linters to the view.
 
 - If the **lint mode** is ``background``, a lint request is added to a threaded queue with a delay. The delay is there to prevent lints from occurring instantly on every keystroke — you don’t want the linter complaining too much while you are typing, it quickly becomes annoying. The delay is there to allow a little idle time before a lint occurs.
-
-  For more information on lint modes, see :doc:`Lint Modes <lint_modes>`. The delay can be configured, for more information see :ref:`Global Settings <delay>`.
 
 - The lint request is eventually pulled off the queue after the given delay. If the view it belongs to has been modified since the lint request was made, the request is discarded, since another lint request was generated when the view was modified.
 
@@ -95,35 +88,3 @@ You can quickly toggle a linter on or off. To do so:
 #. Once you select the command, a list of the relevant linters appears. If you chose ``SublimeLinter: Disable Linter``, only the enabled linters appear in the list. If you chose ``SublimeLinter: Enable Linter``, only the disabled linters appear.
 
 #. Select a linter from the list. It will be toggled, disabled or enabled, depending on the command you chose.
-
-
-.. _choosing-color-schemes:
-
-Choosing color schemes
-----------------------
-In order to color errors, warnings and gutter icons correctly, |sl| relies on specific named colors being available in the current color scheme. Whenever a color scheme is loaded — either implicitly at startup or by selecting a color scheme — |sl| checks to see if the color scheme contains its named colors. If not, it adds those colors to a copy of the color scheme, writes it to the :file:`Packages/User/SublimeLinter` directory with a “ (SL)” suffix added to the filename, and switches to the modified color scheme.
-
-For example, if you select ``Preferences > Color Scheme > Color Scheme - Default > Monokai``, |sl| will convert it, write the converted color scheme to :file:`Packages/User/SublimeLinter/Monokai (SL).tmTheme`, and switch to that color scheme. If you then open the ``Preferences > Color Scheme`` menu, ``User > SublimeLinter > Monokai (SL)`` is checked.
-
-.. warning::
-
-   If you choose an unconverted color scheme and an existing converted color scheme exists in :file:`Packages/User/SublimeLinter`, it will be overwritten.
-
-.. note::
-
-   If you ever want to clean up, and delete all the |sl| made color schemes not being used in the settings, simply use the ``SublimeLinter: Clear Color Scheme Folder`` command from the Command Pallete, Tools menus, or Context menu.
-
-For more information on customizing the colors used by |sl|, see :doc:`Global Settings <global_settings>`.
-
-
-User interface
---------------
-There are four main aspects to the |sl| user interface:
-
-- :doc:`Lint mode <lint_modes>` — The lint mode determines when linting occurs.
-
-- :doc:`Mark style <mark_styles>` — The mark style determines how errors are marked in the text.
-
-- :doc:`Gutter theme <gutter_themes>` — The gutter theme determines how lines with errors are marked in the gutter.
-
-- :doc:`Navigating errors <navigating>` — Once linters find errors in your code, you can quickly and easily navigate through them.

@@ -24,6 +24,7 @@ from .lint.error import ErrorStore
 from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
 from .panel import diagnostics
 
+
 def plugin_loaded():
     """Entry point for SL plugins."""
 
@@ -367,7 +368,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def clear(self, view):
         Linter.clear_view(view)
 
-
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""
         for lint in persist.view_linters.get(vid, []):
@@ -376,8 +376,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         return False
 
-
-
     def get_line_and_col(self, view):
         try:
             lineno, colno = view.rowcol(view.sel()[0].begin())
@@ -385,7 +383,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             lineno, colno = -1, -1
 
         return lineno, colno
-
 
     def display_errors(self, view):
         """
@@ -405,7 +402,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         status = "W: {warning} E: {error}".format(**we_count)
 
-        line_dict = view_dict["lints"].get(lineno)
+        line_dict = view_dict["line_dicts"].get(lineno)
         if not line_dict:
             view.set_status(STATUS_KEY, status)
             return
@@ -427,7 +424,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if status != view.get_status(STATUS_KEY):
             view.set_status(STATUS_KEY, status)
-
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
         """ Show a tooltip containing all linting errors on a given line. """
@@ -473,9 +469,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         view_dict = persist.errors.get_view_dict(active_view.id())
         if not view_dict:
+            print("No view dict retrieved.")
             return
 
-        line_dict = view_dict.get(lineno)
+        line_dict = view_dict["line_dicts"].get(lineno)
         if not line_dict:
             return
 
@@ -522,7 +519,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         if we_count[WARNING] > 0:
-            tooltip_message += join_msgs("warning", we_count[WARNING], "Warning")
+            tooltip_message += join_msgs("warning",
+                                         we_count[WARNING], "Warning")
 
         if we_count[ERROR] > 0:
             tooltip_message += join_msgs("error", we_count[ERROR], "Error")
@@ -590,7 +588,8 @@ class LspUpdatePanelCommand(sublime_plugin.TextCommand):
     """
 
     def run(self, edit, characters):
-        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
+        self.view.replace(edit, sublime.Region(
+            0, self.view.size()), characters)
 
         # Move cursor to the end
         selection = self.view.sel()

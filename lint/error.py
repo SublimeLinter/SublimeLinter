@@ -16,7 +16,7 @@ class ErrorStore(util.Borg):
         self._clear_caches(vid)
 
         self.data[vid] = {
-            "lints": vdict,
+            "line_dicts": vdict,
             "we_count_view": {},
             "we_count_lines": {}
         }
@@ -50,7 +50,7 @@ class ErrorStore(util.Borg):
         return len(l_dict.get(WARNING, [])), len(l_dict.get(ERROR, []))
 
     def _count_we(self, vid):
-        vdict = self.data.get(vid).get("lints")
+        vdict = self.data.get(vid).get("line_dicts")
 
         we_counts = []
         for line, d in vdict.items():

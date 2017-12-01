@@ -327,6 +327,9 @@ class Highlight:
         text = self.code[start:end]
         near = self.strip_quotes(near)
 
+        if near == '':
+            return 0
+
         # Add \b fences around the text if it begins/ends with a word character
         fence = ['', '']
 

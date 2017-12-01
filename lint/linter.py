@@ -1590,9 +1590,9 @@ class Linter(metaclass=LinterMeta):
                 can = cls.syntax.match(syntax) is not None
 
         if can:
-            if cls.executable_path is None:
-                executable = ''
+            executable = ''
 
+            if cls.executable_path is None:
                 if not callable(cls.cmd):
                     if isinstance(cls.cmd, (tuple, list)):
                         executable = (cls.cmd or [''])[0]

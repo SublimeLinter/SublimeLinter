@@ -231,6 +231,17 @@ def format_diagnostics(file_path, item, err_type):
     content += f_item + "\n"
     return content
 
+def format_line_view(text):
+    return str(text)
+
+def format_line_line(text):
+    return " " + str(text)
+
+def format_line_err_type(text):
+    return "  "*2 + str(text)
+
+def format_line_err_msg(dict):
+    return "    "*2 + "{start:>8}:{end:<8} {linter:>10} {code:>10}  {msg:>10}".format(**dict)
 
 def update_diagnostics_panel(window: sublime.Window):
     assert window, "missing window!"
@@ -239,7 +250,7 @@ def update_diagnostics_panel(window: sublime.Window):
     panel = ensure_diagnostics_panel(window)
     assert panel, "must have a panel now!"
 
-    errors = persist.errors
+    errors = persist.errors.data
     print(errors)
 
     active_panel = window.active_panel()
@@ -249,14 +260,23 @@ def update_diagnostics_panel(window: sublime.Window):
     if errors:
         to_render = []
         for vid, view_dict in errors.items():
-            for col, col_dict in view_dict.items():
+            to_render.append(format_line_view(vid))
+            for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+                to_render.append(format_line_line(lineno))
                 for err_type in WARN_ERR:
-                    items = col_dict.get(err_type, [])
+                    err_dict = line_dict.get(err_type)
+                    if not err_dict:
+                        continue
+                    to_render.append(format_line_err_type(err_type))
+                    items = sorted(err_dict, key=lambda k: k['start'])
+
                     for item in items:
-                        print(item)
-                        # relative_file_path
-                        fd = format_diagnostics("view: " + str(vid), item, err_type)
-                        to_render.append(fd)
+                        to_render.append(format_line_err_msg(item))
+
+                    #     # print(item)
+            #             # relative_file_path
+            #             fd = format_diagnostics("view: " + str(vid), item, err_type)
+            #             to_render.append(fd)
 
         #     relative_file_path = os.path.relpath(
         #         file_path, base_dir) if base_dir else file_path

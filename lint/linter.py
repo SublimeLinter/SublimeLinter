@@ -1604,6 +1604,8 @@ class Linter(metaclass=LinterMeta):
         return result
 
     def escape_html(self, text):
+        """Some linters use html entities in error messages, decode them
+        Strip trailing CR, space and period"""
         cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
         return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
 
@@ -1612,23 +1614,22 @@ class Linter(metaclass=LinterMeta):
 
         self.highlight.line(line, err_type, style=style)
 
-        # Some linters use html entities in error messages, decode them
         message = self.escape_html(message)
+
+        col = col or 0
 
         if not code:
             code = "n/a"
         else:
             code = self.escape_html(code)
 
-        # Strip trailing CR, space and period
         payload = {
-            "col": col or 0,
+            "start": col,
+            "end": col +  (length or 0),
             "linter": self.name,
             "code": code,
-            "msg": message,
-            "length": length or 0
+            "msg": message
         }
-
 
         l1 = self.errors.setdefault(line, {})
         l2 = l1.setdefault(err_type, [])

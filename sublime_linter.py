@@ -464,7 +464,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             line_dict = persist.errors.get_region_dict(vid, lineno, colno)
 
         tooltip_message = ""
-        we_count = persist.errors.get_we_count_line(active_view.id(), lineno)
+        we_count = persist.errors.get_we_count_line(vid, lineno)
 
         if not we_count:
             return
@@ -473,30 +473,30 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         # TODO: refactor
         def join_msgs(line_dict, we_count):
-            combined_msg_tmpl = "{linter}: {code} - {msg}"
+            template = "{linter}: {code} - {msg}"
 
-            msg = ""
+            all_msgs = ""
             for err_type in WARN_ERR:
                 count = we_count[err_type]
                 heading = err_type
-                msgs = []
+                err_type_msgs = []
                 msg_list = line_dict.get(err_type)
 
                 if not msg_list:
                     continue
                 for item in msg_list:
-                    msgs.append(combined_msg_tmpl.format(**item))
+                    err_type_msgs.append(template.format(**item))
 
                 if count > 1:  # pluralize
                     heading += "s"
 
-                msg += part.format(
+                all_msgs += part.format(
                     classname=err_type,
                     count=count,
                     heading=heading,
-                    messages='<br />'.join(msgs)
+                    messages='<br />'.join(err_type_msgs)
                 )
-            return msg
+            return all_msgs
 
         tooltip_message = join_msgs(line_dict, we_count)
 

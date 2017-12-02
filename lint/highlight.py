@@ -437,7 +437,8 @@ class Highlight:
                     continue
 
                 scope = self.style_store.get_val("scope", style, err_type)
-                mark_style = self.style_store.get_val("mark_style", style, err_type)
+                mark_style = self.style_store.get_val(
+                    "mark_style", style, err_type)
 
                 flags = MARK_STYLES[mark_style]
                 view.add_regions(style, regions, scope=scope, flags=flags)

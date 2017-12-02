@@ -2,7 +2,7 @@ import sublime
 from . import persist, util
 import json
 from abc import ABCMeta, abstractmethod
-from functools import lru_cache
+
 import os
 
 
@@ -50,13 +50,13 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
     styles = {}
 
     def add(cls, name, dict):
-       cls.styles[name] = dict
+        cls.styles[name] = dict
 
     def has_style(cls, style):
-       return style in cls.styles
+        return style in cls.styles
 
     def get(cls, style):
-       return cls.styles.get(style, {})
+        return cls.styles.get(style, {})
 
     @get_icon
     def get_val(cls, key, style, err_type):

@@ -1,8 +1,5 @@
-from functools import lru_cache
 from . import util
 from .const import WARNING, ERROR
-
-import sublime
 
 
 class ErrorStore(util.Borg):
@@ -47,14 +44,15 @@ class ErrorStore(util.Borg):
         return self.get_view_dict(vid).get("line_dicts", {}).get(lineno, {})
 
     def get_region_dict(self, vid, lineno, colno):
+
         line_dict = self.get_line_dict(vid, lineno)
+
         filtered_dict = util.get_new_dict()
+
         for err_type, dc in line_dict.items():
             filtered_dict[err_type] = []
             for d in dc:
-                start = d["col"]
-                end = start + d["length"]
-                if start <= colno <= end:
+                if d["start"] <= colno <= d["end"]:
                     filtered_dict[err_type].append(d)
 
         return filtered_dict

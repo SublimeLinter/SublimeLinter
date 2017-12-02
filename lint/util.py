@@ -534,11 +534,11 @@ def get_shell_path(env):
         # text might be output during shell startup.
         if shell in ('bash', 'zsh'):
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
+                (shell_path, '-c', 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
             )
         elif shell == 'fish':
             return extract_path(
-                (shell_path, '-l', '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
+                (shell_path, '-c', 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
                 '\n'
             )
         else:

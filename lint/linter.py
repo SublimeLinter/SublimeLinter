@@ -1351,9 +1351,9 @@ class Linter(metaclass=LinterMeta):
                     # Pin the column to the start/end line offsets
                     col = max(min(col, (end - start) - 1), 0)
 
-                region = None
+                length = None
                 if col:
-                    region = self.highlight.range(
+                    length = self.highlight.range(
                         line,
                         col,
                         near=near,
@@ -1378,7 +1378,7 @@ class Linter(metaclass=LinterMeta):
                     else:
                         pos = 0
 
-                    region = self.highlight.range(
+                    length = self.highlight.range(
                         line,
                         pos,
                         length=0,
@@ -1387,7 +1387,7 @@ class Linter(metaclass=LinterMeta):
                         style=style
                     )
 
-                self.error(line, col, message, err_type, style=style, code=warning or error, region=region)
+                self.error(line, col, message, err_type, style=style, code=warning or error, length=length)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1607,7 +1607,7 @@ class Linter(metaclass=LinterMeta):
         cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
         return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
 
-    def error(self, line, col, message, err_type, style=None, code=None, region=None):
+    def error(self, line, col, message, err_type, style=None, code=None, length=None):
         """Add a reference to an error/warning on the given line and column."""
 
         self.highlight.line(line, err_type, style=style)
@@ -1622,14 +1622,13 @@ class Linter(metaclass=LinterMeta):
 
         # Strip trailing CR, space and period
         payload = {
-            "col": (col or 0),
+            "col": col or 0,
             "linter": self.name,
             "code": code,
-            "msg": message
+            "msg": message,
+            "length": length or 0
         }
 
-        if region:
-            payload["region"] = region
 
         l1 = self.errors.setdefault(line, {})
         l2 = l1.setdefault(err_type, [])

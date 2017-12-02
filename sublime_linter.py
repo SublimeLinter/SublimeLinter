@@ -397,28 +397,15 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             view.erase_status(STATUS_KEY)
             return
 
-        we_count = view_dict["we_count_view"]
         # TODO: special message if W:0 E:0?
-
+        we_count = view_dict["we_count_view"]
         status = "W: {warning} E: {error}".format(**we_count)
 
-        line_dict = view_dict["line_dicts"].get(lineno)
-        if not line_dict:
-            view.set_status(STATUS_KEY, status)
-            return
-
         msgs = []
-        point = view.text_point(lineno, colno)
-
-        for err_type, dc in line_dict.items():
+        region_dict = persist.errors.get_region_dict(vid, lineno, colno)
+        for err_type, dc in region_dict.items():
             for d in dc:
-                region = d.get("region")
-                if region:
-                    if region.contains(point):
-                        msgs.append(d["msg"])
-                elif colno == 0:
-                    msgs.append(d["msg"])
-
+                msgs.append(d["msg"])
         if msgs:
             status += " - {}".format("; ".join(msgs))
 
@@ -473,15 +460,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not line_dict:
             return
 
-        # test implementation, move that method into error class
-        # or make error class accept view and point as args
-        def calc_point(vid, lineno, colno):
-            return active_view.text_point(lineno, colno)
-
         if is_inline:  # do not show tooltip on hovering empty gutter
-            point = calc_point(vid, lineno, colno)
-            line_dict = persist.errors.get_region_dict(
-                vid, lineno, colno, point)
+            line_dict = persist.errors.get_region_dict(vid, lineno, colno)
 
         tooltip_message = ""
         we_count = persist.errors.get_we_count_line(active_view.id(), lineno)

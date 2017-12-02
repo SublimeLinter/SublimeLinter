@@ -44,17 +44,19 @@ class ErrorStore(util.Borg):
         return self.data.get(vid, {})
 
     def get_line_dict(self, vid, lineno):
-        return self.get_view_dict(vid).get("line_dicts", {}).get(lineno)
+        return self.get_view_dict(vid).get("line_dicts", {}).get(lineno, {})
 
-    def get_region_dict(self, vid, lineno, colno, point):
+    def get_region_dict(self, vid, lineno, colno):
         line_dict = self.get_line_dict(vid, lineno)
-        filtered_dict = {}
+        filtered_dict = util.get_new_dict()
         for err_type, dc in line_dict.items():
             filtered_dict[err_type] = []
             for d in dc:
-                region = d.get("region")
-                if region and region.contains(point):
+                start = d["col"]
+                end = start + d["length"]
+                if start <= colno <= end:
                     filtered_dict[err_type].append(d)
+
         return filtered_dict
 
     def get_we_count_line(self, vid, line_no):
@@ -64,7 +66,7 @@ class ErrorStore(util.Borg):
         return len(l_dict.get(WARNING, [])), len(l_dict.get(ERROR, []))
 
     def _count_we(self, vid):
-        vdict = self.data.get(vid).get("line_dicts")
+        vdict = self.data[vid]["line_dicts"]
 
         we_counts = []
         for line, d in vdict.items():
@@ -74,6 +76,7 @@ class ErrorStore(util.Borg):
             we_counts.append((w_count, e_count))
 
         we = [sum(x) for x in zip(*we_counts)]
+
         if not we:
-            return
+            we = 0, 0
         self.data[vid]["we_count_view"] = {WARNING: we[0], ERROR: we[1]}

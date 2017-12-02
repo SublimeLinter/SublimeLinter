@@ -296,7 +296,7 @@ class Highlight:
                         i_offset += 1
 
         self.marks[err_type].setdefault(style, []).append(region)
-        return region
+        return length
 
     def regex(self, line, regex, err_type=ERROR,
               line_match=None, word_match=None, word_re=None):

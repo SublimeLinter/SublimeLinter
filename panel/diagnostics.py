@@ -114,6 +114,36 @@ def format_severity(severity: int) -> str:
 phantom_sets_by_buffer = {}  # type: Dict[int, sublime.PhantomSet]
 
 
+def get_file_path(vid):
+    print("vid: ", vid)
+    view = sublime.View(vid)
+    return view.file_name()
+
+def get_common_parent(paths: 'List[str]') -> str:
+    """
+    Get the common parent directory of multiple paths.
+
+    Python 3.5+ includes os.path.commonpath which does this, however Sublime
+    currently embeds Python 3.3.
+    """
+    return os.path.commonprefix([path + '/' for path in paths]).rstrip('/')
+
+
+def build_path_dict(x):
+
+    print({vid: "333" for vid in x})
+    abs_dict = {vid: get_file_path(vid) for vid in x}
+    root_dir = get_common_parent(abs_dict.values())
+    print("root_dir: ", root_dir)
+    rel_dict = {
+        vid: os.path.relpath(abs_path, root_dir)
+        for vid, abs_path in abs_dict.items()
+    }
+
+    return rel_dict
+
+
+
 def update_diagnostics_phantoms(view: sublime.View, diagnostics: 'List[Diagnostic]'):
     global phantom_sets_by_buffer
 
@@ -231,18 +261,23 @@ def format_diagnostics(file_path, item, err_type):
     content += f_item + "\n"
     return content
 
-def format_line_view(text):
-    return str(text)
+def format_line_view(vid):
+    f_path = vid
+    return " ◌ {}".format(f_path)
 
-def format_line_line(text):
-    return " " + str(text)
+def format_line_line(lineno, err_type, dic):
+    # if "hide_cols" in dic:
+    #     dic["start"] = ""
+    #     dic["end"] = ""
 
-def format_line_err_type(text):
-    return "  "*2 + str(text)
+    prefix = "{LINENO:^10}{ERR_TYPE:<8} ".format(LINENO=lineno, ERR_TYPE=err_type)
+    tmpl = "{start:>6}:{end:<10}{linter:<15}{code:<4} - {msg:>10}"
+    return prefix + tmpl.format(**dic)
 
-def format_line_err_msg(dict):
-    return "    "*2 + "{start:>8}:{end:<8} {linter:>10} {code:>10}  {msg:>10}".format(**dict)
-
+# TODO:
+# - remove duplicate views into same buffer
+# - make sure at least file name is displayed
+# - col and linter do not repeat previous line
 def update_diagnostics_panel(window: sublime.Window):
     assert window, "missing window!"
     base_dir = util.get_project_path(window)
@@ -251,27 +286,44 @@ def update_diagnostics_panel(window: sublime.Window):
     assert panel, "must have a panel now!"
 
     errors = persist.errors.data
-    print(errors)
 
     active_panel = window.active_panel()
     is_active_panel = (active_panel == "output.diagnostics")
     panel.settings().set("result_base_dir", base_dir)
     panel.set_read_only(False)
     if errors:
+        # import json
+        # print(json.dumps(errors, indent=4, sort_keys=True))
+
+        path_dict = build_path_dict(errors)
+
         to_render = []
         for vid, view_dict in errors.items():
-            to_render.append(format_line_view(vid))
+            to_render.append(format_line_view(path_dict[vid]))
+            prev_lineno = None
             for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-                to_render.append(format_line_line(lineno))
+                prev_err_type = None
                 for err_type in WARN_ERR:
                     err_dict = line_dict.get(err_type)
                     if not err_dict:
                         continue
-                    to_render.append(format_line_err_type(err_type))
                     items = sorted(err_dict, key=lambda k: k['start'])
-
+                    prev_start_end = (None, None)
                     for item in items:
-                        to_render.append(format_line_err_msg(item))
+                        lineno = "" if lineno == prev_lineno else lineno
+                        err_type = "" if err_type == prev_err_type else err_type
+
+                        if prev_start_end == (item['start'], item['end']):
+                            item['hide_cols'] = True
+
+
+                        line_msg = format_line_line(lineno, err_type, item)
+                        to_render.append(line_msg)
+                        prev_lineno = lineno
+                        prev_err_type = err_type
+                        prev_start_end = (item['start'], item['end'])
+            to_render.append("\n")  # empty lines between views
+
 
                     #     # print(item)
             #             # relative_file_path

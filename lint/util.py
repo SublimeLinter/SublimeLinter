@@ -138,7 +138,7 @@ def get_project_path(window: sublime.Window) -> 'Optional[str]':
         else:
             persist.debug("Couldn't determine project directory since no folders are open",
                           "and the current file isn't saved on the disk.")
-            return None
+
 
 
 # ###

@@ -124,32 +124,32 @@ def dedupe_views(errors):
 
 
 def get_file_path(vid):
-    view = sublime.View(vid)
-    return view.file_name()
+    return sublime.View(vid).file_name()
 
 def get_common_parent(paths: 'List[str]') -> str:
     """
     Get the common parent directory of multiple paths.
-
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """
     return os.path.commonprefix([path + '/' for path in paths]).rstrip('/')
 
-
-def build_path_dict(x):
+def create_path_dict(x):
     abs_dict = {vid: get_file_path(vid) for vid in x}
+
     if len(abs_dict) == 1:
-        return {vid: os.path.split(path)[1] for vid, path in abs_dict.items()}
+        for vid, path in abs_dict.items():
+            base_dir, file_name = os.path.split(path)
+            rel_paths = {vid: file_name}
+    else:
+        base_dir = get_common_parent(abs_dict.values())
 
-    root_dir = get_common_parent(abs_dict.values())
+        rel_paths = {
+            vid: os.path.relpath(abs_path, base_dir)
+            for vid, abs_path in abs_dict.items()
+        }
 
-    rel_dict = {
-        vid: os.path.relpath(abs_path, root_dir)
-        for vid, abs_path in abs_dict.items()
-    }
-
-    return rel_dict
+    return rel_paths, base_dir or ""
 
 
 
@@ -207,10 +207,11 @@ def handle_diagnostics(update):
     update_diagnostics_panel(window)
 
 
-class DiagnosticsCursorListener(sublime_plugin.ViewEventListener):
+class PanelCursorListener(sublime_plugin.ViewEventListener):
     def __init__(self, view):
         self.view = view
         self.has_status = False
+        print(self.view)
 
     @classmethod
     def is_applicable(cls, view_settings):
@@ -218,26 +219,31 @@ class DiagnosticsCursorListener(sublime_plugin.ViewEventListener):
         return settings.show_diagnostics_in_view_status and syntax and is_supported_syntax(syntax)
 
     def on_selection_modified_async(self):
-        selections = self.view.sel()
-        if len(selections) > 0:
-            pos = selections[0].begin()
-            line_diagnostics = get_line_diagnostics(self.view, pos)
-            if len(line_diagnostics) > 0:
-                self.show_diagnostics_status(line_diagnostics)
-            elif self.has_status:
-                self.clear_diagnostics_status()
+        print("selection modified in panel")
+    #     selections = self.view.sel()
+    #     if len(selections) > 0:
+    #         pos = selections[0].begin()
+    #         line_diagnostics = get_line_diagnostics(self.view, pos)
+    #         if len(line_diagnostics) > 0:
+    #             self.show_diagnostics_status(line_diagnostics)
+    #         elif self.has_status:
+    #             self.clear_diagnostics_status()
 
-    def show_diagnostics_status(self, line_diagnostics):
-        self.has_status = True
-        self.view.set_status('lsp_diagnostics', line_diagnostics[0].message)
+    # def show_diagnostics_status(self, line_diagnostics):
+    #     self.has_status = True
+    #     self.view.set_status('lsp_diagnostics', line_diagnostics[0].message)
 
-    def clear_diagnostics_status(self):
-        self.view.set_status('lsp_diagnostics', "")
-        self.has_status = False
+    # def clear_diagnostics_status(self):
+    #     self.view.set_status('lsp_diagnostics', "")
+    #     self.has_status = False
 
 
-def create_diagnostics_panel(window):
-    panel = create_output_panel(window, "diagnostics")
+
+
+PANEL_NAME = "sublime_linter_panel"
+
+def create_panel(window):
+    panel = create_output_panel(window, PANEL_NAME)
     panel.settings().set("result_file_regex", r"^\s*\S\s+(\S.*):$")
     panel.settings().set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
     syntax_path = "Packages/" + PLUGIN_NAME + \
@@ -246,118 +252,128 @@ def create_diagnostics_panel(window):
     # Call create_output_panel a second time after assigning the above
     # settings, so that it'll be picked up as a result buffer
     # see: Packages/Default/exec.py#L228-L230
-    return window.create_output_panel("diagnostics")
+    PanelCursorListener(panel)
+    return window.create_output_panel(PANEL_NAME)
+
+def get_panel(window):
+    return window.find_output_panel(PANEL_NAME)
+
+def ensure_panel(window: sublime.Window):
+    return get_panel(window) or create_panel(window)
 
 
-def ensure_diagnostics_panel(window: sublime.Window):
-    return window.find_output_panel("diagnostics") or create_diagnostics_panel(window)
+# def format_diagnostic(diagnostic) -> str:
+#     # location = "{:>8}:{:<4}".format(
+#     #     diagnostic.range.start.row + 1, diagnostic.range.start.col + 1)
+#     # message = diagnostic.message.replace("\n", " ").replace("\r", "")
+#     # return " {}\t{:<12}\t{:<10}\t{}".format(
+#     #     location, diagnostic.source, format_severity(diagnostic.severity), message)
+#     return " {}\t{:<12}\t{:<10}\t{}".format(
+#         "AAA", "BBB", "CCC", "DDD")
 
 
-def format_diagnostic(diagnostic) -> str:
-    # location = "{:>8}:{:<4}".format(
-    #     diagnostic.range.start.row + 1, diagnostic.range.start.col + 1)
-    # message = diagnostic.message.replace("\n", " ").replace("\r", "")
-    # return " {}\t{:<12}\t{:<10}\t{}".format(
-    #     location, diagnostic.source, format_severity(diagnostic.severity), message)
-    return " {}\t{:<12}\t{:<10}\t{}".format(
-        "AAA", "BBB", "CCC", "DDD")
+# def format_diagnostics(file_path, item, err_type):
+#     content = " ◌ {}:\n".format(file_path)
+#     f_item = " {}\t{:<12}\t{:<10}\t{}".format(
+#         item["col"], item["linter"], err_type, item["msg"])
+#     content += f_item + "\n"
+#     return content
 
-
-def format_diagnostics(file_path, item, err_type):
-    content = " ◌ {}:\n".format(file_path)
-    f_item = " {}\t{:<12}\t{:<10}\t{}".format(
-        item["col"], item["linter"], err_type, item["msg"])
-    content += f_item + "\n"
-    return content
-
-def format_line_view(vid):
+def format_header(vid):
     f_path = vid
-    return " ◌ {}".format(f_path)
+    return " ◌ {}".format(f_path)  # TODO: better using phantom + icon?
 
-def format_line_line(lineno, err_type, dic):
-    prefix = "{LINENO:^10}{ERR_TYPE:<8} ".format(LINENO=lineno, ERR_TYPE=err_type)
+def format_row(lineno, err_type, dic):
+    prefix = "{LINENO:>6}   {ERR_TYPE:<8} ".format(
+        LINENO=int(lineno) + 1 if lineno else lineno, ERR_TYPE=err_type)
 
     col_tmpl = "{start:>6}:{end:<10}"
-    # workarund for not repeating identical cols on consecutive lines
+    # workaround for not repeating identical cols on consecutive lines
     if "hide_cols" in dic:
         col_tmpl = " " * 17
 
-    tmpl = col_tmpl + "{linter:<15}{code:<4} - {msg:>10}"
+    tmpl = col_tmpl + "{linter:<15}{code:<6}{msg:>10}"
     return prefix + tmpl.format(**dic)
 
 # TODO:
-# - remove duplicate views into same buffer
-# - make sure at least file name is displayed
-# - col and linter do not repeat previous line
+# - allow command to filter by active,view | type, linter, code
+# - on sublime loaded lint all open views if background or load_save
+# - update diagnostics on lint
+# - jump to next file in panel (needing symbol defintion?)
+# - toggle panel behaviour
+# - remove old commands
 def update_diagnostics_panel(window: sublime.Window):
-    assert window, "missing window!"
-    base_dir = util.get_project_path(window)
+    print("update diagnostics called")
+    errors = persist.errors.data.copy()
+    if not errors:
+        return
 
-    panel = ensure_diagnostics_panel(window)
+    errors = dedupe_views(errors)
+    # base_dir = util.get_project_path(window)
+    path_dict, base_dir = create_path_dict(errors)
+
+    assert window, "missing window!"
+
+    panel = ensure_panel(window)
     assert panel, "must have a panel now!"
 
-    errors = persist.errors.data.copy()
-
     active_panel = window.active_panel()
-    is_active_panel = (active_panel == "output.diagnostics")
+    is_active_panel = (active_panel == "output." + PANEL_NAME)
     panel.settings().set("result_base_dir", base_dir)
+
+    # file_regex = (r"^\s*(\S*\.\w+)\s*(\d*)")
+    file_regex = (r"◌\s*(\S*\.\w+)\s*(\d*)")  # TODO: clean up regex
+
+    line_regex = (r"(^\s*\d+)")
+    panel.settings().set("result_file_regex", file_regex)
+    panel.settings().set("result_line_regex", line_regex)
+
     panel.set_read_only(False)
-    if errors:
-        # import json
-        # print(json.dumps(errors, indent=4, sort_keys=True))
-        errors = dedupe_views(errors)
 
-        path_dict = build_path_dict(errors)
+    # import json
+    # print(json.dumps(errors, indent=4, sort_keys=True))
 
-        to_render = []
-        for vid, view_dict in errors.items():
-            to_render.append(format_line_view(path_dict[vid]))
-            prev_lineno = None
-            for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-                prev_err_type = None
-                for err_type in WARN_ERR:
-                    err_dict = line_dict.get(err_type)
-                    if not err_dict:
-                        continue
-                    items = sorted(err_dict, key=lambda k: k['start'])
-                    prev_start_end = (None, None)
-                    prev_linter = None
-                    for item in items:
-                        lineno = "" if lineno == prev_lineno else lineno
-                        err_type = "" if err_type == prev_err_type else err_type
+    to_render = []
+    for vid, view_dict in errors.items():
+        to_render.append(format_header(path_dict[vid]))
+        prev_lineno = None
+        for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+            prev_err_type = None
+            for err_type in WARN_ERR:
+                err_dict = line_dict.get(err_type)
+                if not err_dict:
+                    continue
+                items = sorted(err_dict, key=lambda k: k['start'])
+                prev_start_end = (None, None)
+                prev_linter = None
+                for item in items:
+                    lineno = "" if lineno == prev_lineno else lineno
+                    err_type = "" if err_type == prev_err_type else err_type
 
-                        if prev_start_end == (item['start'], item['end']):
-                            item['hide_cols'] = True
-                            if item['linter'] == prev_linter:
-                                item["linter"] = ""
+                    if prev_start_end == (item['start'], item['end']):
+                        item['hide_cols'] = True
+                        if item['linter'] == prev_linter:
+                            item["linter"] = ""
 
-                        line_msg = format_line_line(lineno, err_type, item)
-                        to_render.append(line_msg)
-                        prev_lineno = lineno
-                        prev_err_type = err_type
-                        prev_start_end = (item['start'], item['end'])
-                        prev_linter = item['linter']
-            to_render.append("\n")  # empty lines between views
+                    line_msg = format_row(lineno, err_type, item)
+                    to_render.append(line_msg)
+                    prev_lineno = lineno
+                    prev_err_type = err_type
+                    prev_start_end = (item['start'], item['end'])
+                    prev_linter = item['linter']
+        to_render.append("\n")  # empty lines between views
 
+    panel.run_command("sublime_linter_panel_update", {
+                      "characters": "\n".join(to_render)})
+    # if not active_panel:
+    #     window.run_command("show_panel",
+    #                        {"panel": "output." + PANEL_NAME})
+    # else:
+    #     panel.run_command("sublime_linter_panel_clear")
+    #     if is_active_panel:
+    #         window.run_command("hide_panel",
+    #                            {"panel": "output." + PANEL_NAME})
 
-                    #     # print(item)
-            #             # relative_file_path
-            #             fd = format_diagnostics("view: " + str(vid), item, err_type)
-            #             to_render.append(fd)
+            # window.destroy_output_panel(PANEL_NAME)  ## added by me
 
-        #     relative_file_path = os.path.relpath(
-        #         file_path, base_dir) if base_dir else file_path
-        #     if source_diagnostics:
-        #         to_render.append(format_diagnostics(
-        #             relative_file_path, source_diagnostics))
-        panel.run_command("lsp_update_panel", {
-                          "characters": "\n".join(to_render)})
-        if not active_panel:
-            window.run_command("show_panel",
-                               {"panel": "output.diagnostics"})
-    else:
-        panel.run_command("lsp_clear_panel")
-        if is_active_panel:
-            window.run_command("hide_panel",
-                               {"panel": "output.diagnostics"})
     panel.set_read_only(True)

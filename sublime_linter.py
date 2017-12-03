@@ -388,9 +388,18 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         """
         Display lint errors in the statusbar of the current view
         """
+
+        if not view:  # handling of panel
+            return
+
         view = util.get_focused_view(view)
-        vid = view.id()
+
+        if not view:  # handling of panel
+            return
+
+
         lineno, colno = self.get_line_and_col(view)
+        vid = view.id()
 
         view_dict = persist.errors.get_view_dict(vid)
         if not view_dict:
@@ -543,30 +552,15 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def open_panel_report(self):
         print("open_panel_report called")
         window = sublime.active_window()
-        diagnostics.ensure_diagnostics_panel(window)
-        window.run_command("show_panel", {"panel": "output.diagnostics"})
+        diagnostics.ensure_panel(window)
 
         # TODO: remove this line, it's just a test
         diagnostics.update_diagnostics_panel(window)
 
-
-class SublimeLinterEditCommand(sublime_plugin.TextCommand):
-    """A plugin command used to generate an edit object for a view."""
-
-    def run(self, edit):
-        persist.edit(self.view.id(), edit)
+        from .panel.diagnostics import PANEL_NAME
+        window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
 
 
-class LspUpdatePanelCommand(sublime_plugin.TextCommand):
-    """
-    A update_panel command to update the error panel with new text.
-    """
 
-    def run(self, edit, characters):
-        self.view.replace(edit, sublime.Region(
-            0, self.view.size()), characters)
 
-        # Move cursor to the end
-        selection = self.view.sel()
-        selection.clear()
-        selection.add(sublime.Region(self.view.size(), self.view.size()))
+

@@ -196,7 +196,7 @@ class SublimeLinterGotoErrorCommand(GotoErrorCommand):
     def run(self, view, errors, highlights, **kwargs):
         self.goto_error(view, errors, **kwargs)
 
-
+# TODO: remove
 class SublimeLinterShowAllErrors(sublime_plugin.TextCommand):
 
     @error_command
@@ -241,7 +241,7 @@ class SublimeLinterShowAllErrors(sublime_plugin.TextCommand):
             self.view.sel().clear()
             self.view.sel().add_all(self.selection)
 
-
+# TODO: any function? is it used internally? -> check correct snak_case
 class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
     """A command that clears all of SublimeLinter's internal caches."""
 
@@ -252,88 +252,12 @@ class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
         linter.Linter.clear_settings_caches()
 
 
-class SublimeLinterReportCommand(sublime_plugin.WindowCommand):
-    """
-    A command that displays a report of all errors.
+# TODO: does this command serve any function?
+class SublimeLinterEditCommand(sublime_plugin.TextCommand):
+    """A plugin command used to generate an edit object for a view."""
 
-    The scope of the report is all open files in the current window,
-    all files in all folders in the current window, or both.
-
-    """
-
-    def run(self, on='files'):
-        """Run the command. on determines the scope of the report."""
-
-        output = self.window.new_file()
-        output.set_name('{} Error Report'.format(persist.PLUGIN_NAME))
-        output.set_scratch(True)
-
-        from .sublime_linter import SublimeLinter
-        self.plugin = SublimeLinter.shared_plugin()
-
-        if on == 'files' or on == 'both':
-            for view in self.window.views():
-                self.report(output, view)
-
-        if on == 'folders' or on == 'both':
-            for folder in self.window.folders():
-                self.folder(output, folder)
-
-    def folder(self, output, folder):
-        """Report on all files in a folder."""
-
-        for root, dirs, files in os.walk(folder):
-            for name in files:
-                path = os.path.join(root, name)
-
-                # Ignore files over 256K to speed things up a bit
-                if os.stat(path).st_size < 256 * 1024:
-                    pass
-
-    def report(self, output, view):
-        """Write a report on the given view to output."""
-
-        def finish_lint(view, linters, hit_time):
-            if not linters:
-                return
-
-            def insert(edit):
-                if not any(l.errors for l in linters):
-                    return
-
-                filename = os.path.basename(linters[0].filename or 'untitled')
-                out = '\n{}:\n'.format(filename)
-
-                for lint in sorted(linters, key=lambda lint: lint.name):
-                    if lint.errors:
-                        out += '\n  {}:\n'.format(lint.name)
-                        items = sorted(lint.errors.items())
-
-                        # Get the highest line number so we know how much padding numbers need
-                        highest_line = items[-1][0]
-                        width = 1
-
-                        while highest_line >= 10:
-                            highest_line /= 10
-                            width += 1
-
-                        for line, messages in items:
-                            for e_t, ds in messages.items():
-                                for d in ds:
-                                    msg = e_t + " - {code}: {msg}".format(**d)
-                                    out += '    {:>{width}}: {}\n'.format(
-                                        line + 1, msg, width=width)
-
-                output.insert(edit, output.size(), out)
-
-            persist.edits[output.id()].append(insert)
-            output.run_command('sublime_linter_edit')
-
-        kwargs = {'self': self.plugin,
-                  'view_id': view.id(), 'callback': finish_lint}
-
-        from .sublime_linter import SublimeLinter
-        Thread(target=SublimeLinter.lint, kwargs=kwargs).start()
+    def run(self, edit):
+        persist.edit(self.view.id(), edit)
 
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
@@ -346,3 +270,34 @@ class SublimeLinterShowPanelCommand(sublime_plugin.WindowCommand):
     def run(self):
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().open_panel_report()
+
+
+# TODO: make it a true toggle, allow spec of state via arg
+class SublimeLinterPanelToggleCommand(sublime_plugin.TextCommand):
+    """
+    A update_panel command to update the error panel with new text.
+    """
+    def run(self):
+        # ensure_diagnostics_panel(self.window)
+        self.window.run_command("show_panel", {"panel": "output.diagnostics"})
+
+class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
+    """
+    A update_panel command to update the error panel with new text.
+    """
+
+    def run(self, edit, characters):
+        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
+        # Move cursor to the end
+        selection = self.view.sel()
+        selection.clear()
+        selection.add(sublime.Region(self.view.size(), self.view.size()))
+
+
+class SublimeLinterPanelClearCommand(sublime_plugin.TextCommand):
+    """
+    A clear_panel command to clear the error panel.
+    """
+
+    def run(self, edit):
+        self.view.erase(edit, sublime.Region(0, self.view.size()))

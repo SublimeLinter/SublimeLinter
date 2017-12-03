@@ -42,7 +42,8 @@ class LspUpdatePanelCommand(sublime_plugin.TextCommand):
     """
 
     def run(self, edit, characters):
-        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
+        self.view.replace(edit, sublime.Region(
+            0, self.view.size()), characters)
 
         # Move cursor to the end
         selection = self.view.sel()

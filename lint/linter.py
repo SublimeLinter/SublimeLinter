@@ -1619,13 +1619,13 @@ class Linter(metaclass=LinterMeta):
         col = col or 0
 
         if not code:
-            code = "n/a"
+            code = ""
         else:
             code = self.escape_html(code)
 
         payload = {
             "start": col,
-            "end": col +  (length or 0),
+            "end": col + (length or 0),
             "linter": self.name,
             "code": code,
             "msg": message

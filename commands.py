@@ -199,50 +199,6 @@ class SublimeLinterGotoErrorCommand(GotoErrorCommand):
     def run(self, view, errors, highlights, **kwargs):
         self.goto_error(view, errors, **kwargs)
 
-# TODO: remove
-class SublimeLinterShowAllErrors(sublime_plugin.TextCommand):
-
-    @error_command
-    def run(self, view, errors, highlights):
-        self.errors = errors
-        self.highlights = highlights
-        self.points = []
-        options = []
-
-        for lineno, line_errors in sorted(errors.items()):
-            line = view.substr(
-                view.full_line(view.text_point(lineno, 0))
-            ).rstrip('\n\r')
-
-            line = line.lstrip()
-
-            we_count = util.msg_count(line_errors)
-            msg = "W: {} E: {}".format(we_count[0], we_count[1])
-
-            point = view.text_point(lineno, 0)
-            self.points.append(point)
-
-            options.append(['{}  {}'.format(lineno + 1, msg), line])
-
-        self.viewport_pos = view.viewport_position()
-        self.selection = list(view.sel())
-
-        view.window().show_quick_panel(
-            options,
-            on_select=self.select_error,
-            on_highlight=self.select_error
-        )
-
-    def select_error(self, index):
-        """Completion handler for the quick panel. Selects the indexed error."""
-        if index != -1:
-            point = self.points[index]
-            GotoErrorCommand.select_lint_region(
-                self.view, sublime.Region(point, point))
-        else:
-            self.view.set_viewport_position(self.viewport_pos)
-            self.view.sel().clear()
-            self.view.sel().add_all(self.selection)
 
 # TODO: any function? is it used internally? -> check correct snak_case
 class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
@@ -270,9 +226,9 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterShowPanelCommand(sublime_plugin.WindowCommand):
-    def run(self):
+    def run(self, linter):
         from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().open_panel_report()
+        SublimeLinter.shared_plugin().open_panel_report(linter)
 
 
 # TODO: make it a true toggle, allow spec of state via arg
@@ -280,9 +236,11 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.TextCommand):
     """
     A update_panel command to update the error panel with new text.
     """
+
     def run(self):
         # ensure_diagnostics_panel(self.window)
         self.window.run_command("show_panel", {"panel": "output.diagnostics"})
+
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
     """
@@ -290,7 +248,8 @@ class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
     """
 
     def run(self, edit, characters):
-        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)
+        self.view.replace(edit, sublime.Region(
+            0, self.view.size()), characters)
         # Move cursor to the end
         selection = self.view.sel()
         selection.clear()

@@ -302,11 +302,13 @@ def format_row(lineno, err_type, dic):
 # - jump to next file in panel (needing symbol defintion?)
 # - toggle panel behaviour
 # - remove old commands
-def update_diagnostics_panel(window: sublime.Window):
+def update_diagnostics_panel(window, linter):
     print("update diagnostics called")
     errors = persist.errors.data.copy()
     if not errors:
         return
+
+    print("linter in update_diagnostics_panel:", linter)
 
     errors = dedupe_views(errors)
     # base_dir = util.get_project_path(window)
@@ -352,6 +354,11 @@ def update_diagnostics_panel(window: sublime.Window):
 
                     if prev_start_end == (item['start'], item['end']):
                         item['hide_cols'] = True
+
+                        # new filter function
+                        if linter and item['linter'] not in [linter]:
+                            continue
+
                         if item['linter'] == prev_linter:
                             item["linter"] = ""
 

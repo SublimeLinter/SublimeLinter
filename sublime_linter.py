@@ -549,13 +549,13 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
 
-    def open_panel_report(self):
+    def open_panel_report(self, linter=None):
         print("open_panel_report called")
         window = sublime.active_window()
         diagnostics.ensure_panel(window)
 
         # TODO: remove this line, it's just a test
-        diagnostics.update_diagnostics_panel(window)
+        diagnostics.update_diagnostics_panel(window, linter)
 
         from .panel.diagnostics import PANEL_NAME
         window.run_command("show_panel", {"panel": "output." + PANEL_NAME})

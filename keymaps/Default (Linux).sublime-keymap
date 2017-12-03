@@ -1,7 +1,7 @@
 [
-    { "keys": ["ctrl+k", "l"], "command": "sublime_linter_lint" },
-    { "keys": ["ctrl+k", "n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
-    { "keys": ["ctrl+k", "p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },
-    { "keys": ["ctrl+k", "a"], "command": "sublime_linter_show_all_errors" },
-    { "keys": ["ctrl+alt+shift+l"], "command": "sublime_linter_line_report" }
+    { "keys": ["alt+l", "l"], "command": "sublime_linter_lint" },
+    { "keys": ["alt+l", "n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
+    { "keys": ["alt+l", "p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },
+    { "keys": ["alt+l", "a"], "command": "sublime_linter_line_report" },
+    { "keys": ["alt+l", "a"], "command": "sublime_linter_show_panel" }
 ]

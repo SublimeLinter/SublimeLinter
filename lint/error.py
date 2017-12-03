@@ -22,8 +22,8 @@ class ErrorStore(util.Borg):
 
         self._count_we(vid)
 
-    def __getitem__(self, key, item):
-        self.data[key] = item
+    def __get__(self, key):
+        return self.data[key]
 
     def pop(self, vid, default=None):
         self._clear_caches(vid)

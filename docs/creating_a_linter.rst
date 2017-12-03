@@ -2,63 +2,17 @@
 
 Creating a Linter Plugin
 ========================
-|sl| makes it easy to create a linter plugin in a few steps:
 
-#. Fork SublimeLinter-template to bootstrap your new linter
+#. Fork the SublimeLinter-template repo to bootstrap your new linter
 
 #. Clone it into Packages
 
-#. Using the ``Create Linter Plugin`` command, create a template plugin complete with user documentation.
-
 #. Change a few :doc:`attributes <linter_attributes>` in the linter class.
 
-#. Update the user documentation.
+#. Update the user documentation and all other placeholders
 
-#. Submit it for review.
-
-On this page we’ll cover Step 1.
-
-
-.. _create-linter-plugin-command:
-
-Creating a template plugin
---------------------------
-Before creating your plugin, it’s important to understand the naming convention.
-
-.. note::
-
-   Linter plugins must be named after the linter **binary** they use, **not** the language they lint (unless the language binary itself is used to lint). For example, to lint ``python`` with ``pylint``, the linter name you will enter must be ``pylint``, **not** ``python``.
-
-Got it? Okay, here we go:
-
-#. Bring up the |_cmd| and type ``plugin``. Among the commands you should see ``SublimeLinter: Create Linter Plugin``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-#. A dialog will appear explaining the naming convention for linter plugins. If you understand, click “I understand”. If you click “I understand” and still name the linter plugin after the language instead of the linter binary, you will have to pay me $1,000,000. |smiley|
-
-#. An input field will appear at the bottom of the window. Enter the name of the linter binary — **not** the language — that the plugin will interface with and press :kbd:`Return`.
-
-#. You will be asked what language the linter is based on. The linter **plugin** is always python-based, the question here is what language the linter executable (such as `jshint`_) itself is based on. If you select a language, |sl| will fill out the template plugin, copy it to the |st| :file:`Packages` directory with the name :file:`SublimeLinter-contrib-<linter>`, initialize it as a git repository if ``git`` is available, and then open it in a new window.
-
-   .. note::
-
-      Do **not** rename the plugin directory unless absolutely necessary. The directory name **must** come after “|sl|” alphabetically to ensure |sl| loads before the linter plugins. Also, user-created linter plugins use the “-contrib” prefix to distinguish them from “official” plugins that have been vetted and moved into the SublimeLinter org on github.
-
-#. The plugin directory will be opened in |st|. You can then start modifying the linter plugin (``linter.py``) according to your needs.
-
-
-Coding guidelines
------------------
-For the benefit of all users, I try to maintain a consistently high standard in all third party SublimeLinter plugins. This is enforced by maintaining control over the channel Package Control uses for all SublimeLinter-related repos. If you would like your linter plugin to be published to Package Control, you must follow these guidelines:
-
--  Indent is 4 spaces.
-
--  Install the `flake8`_ and `pep257`_ linters to check your code and fix all errors.
-
--  Vertical whitespace helps readability, don’t be afraid to use it.
-
--  Please use descriptive variable names, no abbrevations unless they are very well known.
-
-.. _pep257: https://github.com/GreenSteam/pep257
+#. Open a PR to have it added to package_control:
+   https://github.com/SublimeLinter/package_control_channel
 
 
 Updating class attributes
@@ -112,24 +66,3 @@ Updating documentation
 
 #. Open :file:`messages/install.txt` and change the repo URL to be the correct URL for your plugin’s repository.
 
-#. Follow your own instructions! Try following the installation instructions in the README — if possible on Mac OS X, Linux and Windows — to see if you missed any important information or possibilities for confusion.
-
-
-.. _preparing-for-publication:
-
-Preparing for publication
--------------------------
-When you have followed all of the steps above and you think your plugin is ready for release, post a message on the |_group| with a link to your repo and it will be reviewed for correctness and completeness.
-
-   .. warning::
-
-      Do **NOT** make a pull request on `wbond/package_control_channel <https://github.com/wbond/package_control_channel>`_. All SublimeLinter plugins must go through `SublimeLinter/package_control_channel <https://github.com/SublimeLinter/package_control_channel>`_.
-
-Once your plugin has been reviewed and all issues have been fixed, you need to tag the final commit with a version number before publishing to Package Control:
-
-.. code-block:: none
-
-   git tag 1.0.0
-   git push origin 1.0.0
-
-After the plugin is published to Package Control, every time you make a change, you must increment the version and tag the commit you want to publish. If it is a bug fix, increment the last number in the version. If you add functionality, increment the middle number. Then do the steps above with the new version.

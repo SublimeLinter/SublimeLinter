@@ -4,18 +4,6 @@ Usage
 ============
 |sl| is designed to work well out of the box, but there are many ways to customize it to your taste. Before we get to that, though, let’s take a look at how |sl| works.
 
-.. _startup-actions:
-
-
-Startup actions
----------------
-When |sl| is loaded by |st|, it performs a number of actions to initialize its environment:
-
-
-Settings
-~~~~~~~~
-The default settings are loaded from the plugin and merged with the settings in :file:`Packages/User/SublimeLinter.sublime-settings`. For more information on |sl| settings, see :doc:`Settings <settings>`.
-
 
 Assigning linters
 -----------------
@@ -73,18 +61,3 @@ Disabling all linters
 There may be times when you want to turn off all linting. To do so, bring up the |_cmd| and type :kbd:`disable`. Among the commands you should see ``SublimeLinter: Disable Linting``. If that command is not highlighted, use the keyboard or mouse to select it.
 
 Once you do this, all linters are disabled and all error marks are cleared from all views. To re-enable linting, follow the same steps as above, but select ``SublimeLinter: Don’t Disable Linting``. Note that this does not enable all linters; if you have :ref:`disabled individual linters <disable-linter-setting>` in the settings, they will remain disabled.
-
-
-.. _toggling-linters:
-
-Toggling linters
-----------------
-You can quickly toggle a linter on or off. To do so:
-
-#. Bring up the |cmd| and type :kbd:`toggle`, :kbd:`disable`, or :kbd:`enable` according to what you want to view all linters, only enabled linters, or only disabled linters.
-
-#. Among the commands you should see ``SublimeLinter: Toggle Linter``, ``SublimeLinter: Disable Linter`` or ``SublimeLinter: Enable Linter``, depending on what you typed. If the command is not highlighted, use the keyboard or mouse to select it.
-
-#. Once you select the command, a list of the relevant linters appears. If you chose ``SublimeLinter: Disable Linter``, only the enabled linters appear in the list. If you chose ``SublimeLinter: Enable Linter``, only the disabled linters appear.
-
-#. Select a linter from the list. It will be toggled, disabled or enabled, depending on the command you chose.

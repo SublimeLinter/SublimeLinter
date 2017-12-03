@@ -2,6 +2,7 @@ import html
 import os
 import sublime
 import sublime_plugin
+import copy
 
 try:
     from typing import Any, List, Dict, Tuple, Callable, Optional
@@ -114,8 +115,15 @@ def format_severity(severity: int) -> str:
 phantom_sets_by_buffer = {}  # type: Dict[int, sublime.PhantomSet]
 
 
+def dedupe_views(errors):
+    return {
+        vid: dic
+        for vid, dic in errors.items()
+        if sublime.View(vid).is_primary()
+    }
+
+
 def get_file_path(vid):
-    print("vid: ", vid)
     view = sublime.View(vid)
     return view.file_name()
 
@@ -130,11 +138,12 @@ def get_common_parent(paths: 'List[str]') -> str:
 
 
 def build_path_dict(x):
-
-    print({vid: "333" for vid in x})
     abs_dict = {vid: get_file_path(vid) for vid in x}
+    if len(abs_dict) == 1:
+        return {vid: os.path.split(path)[1] for vid, path in abs_dict.items()}
+
     root_dir = get_common_parent(abs_dict.values())
-    print("root_dir: ", root_dir)
+
     rel_dict = {
         vid: os.path.relpath(abs_path, root_dir)
         for vid, abs_path in abs_dict.items()
@@ -266,12 +275,14 @@ def format_line_view(vid):
     return " ◌ {}".format(f_path)
 
 def format_line_line(lineno, err_type, dic):
-    # if "hide_cols" in dic:
-    #     dic["start"] = ""
-    #     dic["end"] = ""
-
     prefix = "{LINENO:^10}{ERR_TYPE:<8} ".format(LINENO=lineno, ERR_TYPE=err_type)
-    tmpl = "{start:>6}:{end:<10}{linter:<15}{code:<4} - {msg:>10}"
+
+    col_tmpl = "{start:>6}:{end:<10}"
+    # workarund for not repeating identical cols on consecutive lines
+    if "hide_cols" in dic:
+        col_tmpl = " " * 17
+
+    tmpl = col_tmpl + "{linter:<15}{code:<4} - {msg:>10}"
     return prefix + tmpl.format(**dic)
 
 # TODO:
@@ -285,7 +296,7 @@ def update_diagnostics_panel(window: sublime.Window):
     panel = ensure_diagnostics_panel(window)
     assert panel, "must have a panel now!"
 
-    errors = persist.errors.data
+    errors = persist.errors.data.copy()
 
     active_panel = window.active_panel()
     is_active_panel = (active_panel == "output.diagnostics")
@@ -294,6 +305,7 @@ def update_diagnostics_panel(window: sublime.Window):
     if errors:
         # import json
         # print(json.dumps(errors, indent=4, sort_keys=True))
+        errors = dedupe_views(errors)
 
         path_dict = build_path_dict(errors)
 
@@ -309,19 +321,22 @@ def update_diagnostics_panel(window: sublime.Window):
                         continue
                     items = sorted(err_dict, key=lambda k: k['start'])
                     prev_start_end = (None, None)
+                    prev_linter = None
                     for item in items:
                         lineno = "" if lineno == prev_lineno else lineno
                         err_type = "" if err_type == prev_err_type else err_type
 
                         if prev_start_end == (item['start'], item['end']):
                             item['hide_cols'] = True
-
+                            if item['linter'] == prev_linter:
+                                item["linter"] = ""
 
                         line_msg = format_line_line(lineno, err_type, item)
                         to_render.append(line_msg)
                         prev_lineno = lineno
                         prev_err_type = err_type
                         prev_start_end = (item['start'], item['end'])
+                        prev_linter = item['linter']
             to_render.append("\n")  # empty lines between views
 
 

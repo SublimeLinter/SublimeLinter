@@ -10,10 +10,11 @@ The documentation for |sl| is divided into two sections: one for users, and one 
 
 The |sl| source is available `on github`_.
 
+|sl| and linter plugins can be installed using Package Control
 
 Be Part of the Team
 ===================
-Hundreds of hours have been spent writing and documenting |sl| to make it the best it can be — easy to use, easy to configure, easy to update, easy to extend. If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
+If you depend on |sl| to make your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
 
 Donate via:
 
@@ -30,9 +31,7 @@ User Documentation
     :maxdepth: 3
 
     about
-    installation
     usage
-    mark_styles
     gutter_themes
     navigating
     settings

@@ -53,16 +53,6 @@ Settings sources
 Let’s take a look at each of the settings sources in the stack, starting from the base level and working our way up.
 
 
-Default settings
-~~~~~~~~~~~~~~~~
-Default settings are defined by |sl| and by each linter. You should **never** edit the default settings, as your changes may be overwritten the next time |sl| is updated. You should **always** edit the user settings (or other settings higher in the stack).
-
-
-User settings
-~~~~~~~~~~~~~
-User settings are located in :file:`Packages/User/SublimeLinter.sublime-settings`. You should consider this to be the global settings for |sl| and its linters. To make it easier to remember what settings are available, whenever you open the user settings, they are filled in with any missing default settings from |sl| and from all installed linters.
-
-
 Project settings
 ~~~~~~~~~~~~~~~~
 |sl| project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. These settings apply to all files within the project.

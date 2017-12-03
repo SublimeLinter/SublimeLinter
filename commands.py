@@ -36,6 +36,9 @@ def error_command(method):
     def run(self, edit, **kwargs):
         vid = self.view.id()
 
+        if not vid:
+            return
+
         if vid in persist.errors and persist.errors[vid]:
             method(self, self.view,
                    persist.errors[vid], persist.highlights[vid], **kwargs)

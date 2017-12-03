@@ -39,7 +39,7 @@ def error_command(method):
         if not vid:
             return
 
-        if vid in persist.errors and persist.errors[vid]:
+        if vid in persist.errors.data and persist.errors.data[vid]:
             method(self, self.view,
                    persist.errors[vid], persist.highlights[vid], **kwargs)
         else:

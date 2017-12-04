@@ -4,21 +4,9 @@ import sublime
 import sublime_plugin
 import copy
 
-try:
-    from typing import Any, List, Dict, Tuple, Callable, Optional
-    assert Any and List and Dict and Tuple and Callable and Optional
-except ImportError:
-    pass
 
-# from .core.settings import settings
 from ..lint.const import PLUGIN_NAME, WARN_ERR
 from ..lint import util, persist
-
-# from .core.events import Events
-# from .core.configurations import is_supported_syntax
-# from .core.diagnostics import DiagnosticsUpdate, get_window_diagnostics, get_line_diagnostics
-# from .core.workspace import get_project_path
-from .panels import create_output_panel
 
 
 PANEL_NAME = "sublime_linter_panel"
@@ -27,7 +15,7 @@ OUTPUT_PANEL_SETTINGS = {
     "draw_indent_guides": False,
     "draw_white_space": "None",
     "gutter": False,
-    'is_widget': True,
+    "is_widget": True,
     "line_numbers": False,
     "margin": 3,
     "match_brackets": False,
@@ -46,13 +34,6 @@ UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
 BOX_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_EMPTY_AS_OVERWRITE
 
 
-def format_severity(severity: int) -> str:
-    return diagnostic_severity_names.get(severity, "???")
-
-
-phantom_sets_by_buffer = {}  # type: Dict[int, sublime.PhantomSet]
-
-
 def dedupe_views(errors):
     if len(errors) == 1:
         return errors
@@ -68,7 +49,7 @@ def get_file_path(vid):
     return sublime.View(vid).file_name()
 
 
-def get_common_parent(paths: 'List[str]') -> str:
+def get_common_parent(paths):
     """
     Get the common parent directory of multiple paths.
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
@@ -95,29 +76,13 @@ def create_path_dict(x):
     return rel_paths, base_dir or ""
 
 
-def update_diagnostics_regions(view: sublime.View, diagnostics: 'List[Diagnostic]', severity: int):
-    region_name = "lsp_" + format_severity(severity)
-    if settings.show_diagnostics_phantoms and not view.is_dirty():
-        regions = None
-    else:
-        regions = list(diagnostic.range.to_region(view) for diagnostic in diagnostics
-                       if diagnostic.severity == severity)
-    if regions:
-        scope_name = diagnostic_severity_scopes[severity]
-        view.add_regions(
-            region_name, regions, scope_name, settings.diagnostics_gutter_marker,
-            UNDERLINE_FLAGS if settings.diagnostics_highlight_style == "underline" else BOX_FLAGS)
-    else:
-        view.erase_regions(region_name)
-
-
 def create_panel(window):
-    panel = create_output_panel(window, PANEL_NAME)
+    panel = window.create_output_panel(PANEL_NAME)
     settings = panel.settings()
     for key, value in OUTPUT_PANEL_SETTINGS.items():
         settings.set(key, value)
-    settings().set("result_file_regex", r"^\s*\S\s+(\S.*):$")
-    settings().set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
+    settings.set("result_file_regex", r"^\s*\S\s+(\S.*):$")
+    settings.set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
     syntax_path = "Packages/" + PLUGIN_NAME + \
         "/panel/syntaxes/Diagnostics.sublime-syntax"
     panel.assign_syntax(syntax_path)
@@ -165,9 +130,6 @@ def format_row(lineno, err_type, dic):
 # TODO:
 # - on sublime loaded lint all open views if background or load_save
 # - update diagnostics on lint
-# - jump to next file in panel (needing symbol defintion?)
-# - toggle panel behaviour
-# - focus panel upon opening
 
 
 def update_diagnostics_panel(window, select="window", types=None, codes=None, linter=None):
@@ -238,4 +200,4 @@ def update_diagnostics_panel(window, select="window", types=None, codes=None, li
     panel.run_command("sublime_linter_panel_update", {
                       "characters": "\n".join(to_render)})
     panel.set_read_only(True)
-    window.run_command("sublime_linter_panel_toggle", {"ensure_panel": True})
+    window.run_command("sublime_linter_panel_toggle", {"show_panel": True})

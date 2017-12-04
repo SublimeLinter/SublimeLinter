@@ -239,12 +239,12 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     A update_panel command to update the error panel with new text.
     """
 
-    def run(self, ensure_panel=False):
+    def run(self, show_panel=False):
         print("panel toggle called")
         window = self.window
         active_panel = window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
-        if not active_panel or ensure_panel:
+        if not active_panel or show_panel:
             window.run_command("show_panel",
                                {"panel": "output." + PANEL_NAME})
 

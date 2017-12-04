@@ -21,6 +21,8 @@ import sublime_plugin
 from .lint import highlight, linter, persist, util
 from .lint.const import WARNING, ERROR
 
+from .panel.diagnostics import PANEL_NAME
+
 
 def error_command(method):
     """
@@ -226,20 +228,35 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterShowPanelCommand(sublime_plugin.WindowCommand):
-    def run(self, linter):
+    def run(self, select, types, codes, linter):
         from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().open_panel_report(linter)
+        SublimeLinter.shared_plugin().open_panel_report(select, types, codes, linter)
 
 
 # TODO: make it a true toggle, allow spec of state via arg
-class SublimeLinterPanelToggleCommand(sublime_plugin.TextCommand):
+class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     """
     A update_panel command to update the error panel with new text.
     """
 
-    def run(self):
-        # ensure_diagnostics_panel(self.window)
-        self.window.run_command("show_panel", {"panel": "output.diagnostics"})
+    def run(self, ensure_panel=False):
+        print("panel toggle called")
+        window = self.window
+        active_panel = window.active_panel()
+        is_active_panel = (active_panel == "output." + PANEL_NAME)
+        if not active_panel or ensure_panel:
+            window.run_command("show_panel",
+                               {"panel": "output." + PANEL_NAME})
+
+            panel_view = window.find_output_panel(PANEL_NAME)
+            # panel focus does not work as of 3156, due to ST bug
+            window.focus_view(panel_view)
+        else:
+            # panel.run_command("sublime_linter_panel_clear")
+            if is_active_panel:
+                window.run_command("hide_panel",
+                                   {"panel": "output." + PANEL_NAME})
+
 
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
@@ -254,6 +271,7 @@ class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
         selection = self.view.sel()
         selection.clear()
         selection.add(sublime.Region(self.view.size(), self.view.size()))
+
 
 
 class SublimeLinterPanelClearCommand(sublime_plugin.TextCommand):

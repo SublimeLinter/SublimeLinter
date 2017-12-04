@@ -93,7 +93,10 @@ def is_scratch(view):
 
 def get_active_view(view=None):
     if view:
-        return view.window().active_view()
+        window = view.window()
+        if not window:
+            return
+        return window.active_view()
 
     return sublime.active_window().active_view()
 

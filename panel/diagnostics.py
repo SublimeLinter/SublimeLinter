@@ -20,19 +20,22 @@ from ..lint import util, persist
 # from .core.workspace import get_project_path
 from .panels import create_output_panel
 
-# diagnostic_severity_names = {
-#     DiagnosticSeverity.Error: "error",
-#     DiagnosticSeverity.Warning: "warning",
-#     DiagnosticSeverity.Information: "info",
-#     DiagnosticSeverity.Hint: "hint"
-# }
 
-# diagnostic_severity_scopes = {
-#     DiagnosticSeverity.Error: 'markup.deleted.lsp sublimelinter.mark.error markup.error.lsp',
-#     DiagnosticSeverity.Warning: 'markup.changed.lsp sublimelinter.mark.warning markup.warning.lsp',
-#     DiagnosticSeverity.Information: 'markup.inserted.lsp sublimelinter.gutter-mark markup.info.lsp',
-#     DiagnosticSeverity.Hint: 'markup.inserted.lsp sublimelinter.gutter-mark markup.info.suggestion.lsp'
-# }
+PANEL_NAME = "sublime_linter_panel"
+OUTPUT_PANEL_SETTINGS = {
+    "auto_indent": False,
+    "draw_indent_guides": False,
+    "draw_white_space": "None",
+    "gutter": False,
+    'is_widget': True,
+    "line_numbers": False,
+    "margin": 3,
+    "match_brackets": False,
+    "scroll_past_end": False,
+    "tab_size": 4,
+    "translate_tabs_to_spaces": False,
+    "word_wrap": False
+}
 
 
 UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
@@ -92,25 +95,6 @@ def create_path_dict(x):
     return rel_paths, base_dir or ""
 
 
-def update_diagnostics_phantoms(view: sublime.View, diagnostics: 'List[Diagnostic]'):
-    global phantom_sets_by_buffer
-
-    buffer_id = view.buffer_id()
-    if not settings.show_diagnostics_phantoms or view.is_dirty():
-        phantoms = None
-    else:
-        phantoms = list(
-            create_phantom(view, diagnostic) for diagnostic in diagnostics)
-    if phantoms:
-        phantom_set = phantom_sets_by_buffer.get(buffer_id)
-        if not phantom_set:
-            phantom_set = sublime.PhantomSet(view, "lsp_diagnostics")
-            phantom_sets_by_buffer[buffer_id] = phantom_set
-        phantom_set.update(phantoms)
-    else:
-        phantom_sets_by_buffer.pop(buffer_id, None)
-
-
 def update_diagnostics_regions(view: sublime.View, diagnostics: 'List[Diagnostic]', severity: int):
     region_name = "lsp_" + format_severity(severity)
     if settings.show_diagnostics_phantoms and not view.is_dirty():
@@ -127,21 +111,13 @@ def update_diagnostics_regions(view: sublime.View, diagnostics: 'List[Diagnostic
         view.erase_regions(region_name)
 
 
-def handle_diagnostics(update):
-    window = sublime.active_window()
-    view = window.find_open_file(update.file_path)
-    if view:
-        update_diagnostics_in_view(view, update.diagnostics)
-    update_diagnostics_panel(window)
-
-
-PANEL_NAME = "sublime_linter_panel"
-
-
 def create_panel(window):
     panel = create_output_panel(window, PANEL_NAME)
-    panel.settings().set("result_file_regex", r"^\s*\S\s+(\S.*):$")
-    panel.settings().set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
+    settings = panel.settings()
+    for key, value in OUTPUT_PANEL_SETTINGS.items():
+        settings.set(key, value)
+    settings().set("result_file_regex", r"^\s*\S\s+(\S.*):$")
+    settings().set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
     syntax_path = "Packages/" + PLUGIN_NAME + \
         "/panel/syntaxes/Diagnostics.sublime-syntax"
     panel.assign_syntax(syntax_path)

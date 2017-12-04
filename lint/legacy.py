@@ -154,29 +154,48 @@ NEW_KEYS = ("styles", "user", "show_hover_line_report", "force_xml_scheme",
 
 
 def update_settings(min_version, usr_dir_abs):
-
     merged_settings.load()
 
-    def update(settings):
-        mark_style = merged_settings.get("mark_style")
+    def migrate(settings):
+        settings = settings.copy()
+
         if not min_version:
             remove_keys = NEW_KEYS
         else:
             remove_keys = OLD_KEYS
+            mark_style = merged_settings.get("mark_style")
             if mark_style:
                 styles = settings.get("styles", [])
                 for s in styles:
                     s["mark_style"] = mark_style
 
             if settings.get("lint_mode") == "load/save":
-                settings.set("lint_mode", "load_save")
+                settings["lint_mode"] = "load_save"
 
-        # we flatten dict for all versions
-        if settings.get("user"):
-            for k, v in settings.get("user").items():
-                settings.set(k, v)
+        # Flatten settings dict.
+        user_settings = settings.get('user')
+        if user_settings:
+            for key, old_value in user_settings.items():
 
-        # clean settings
+                # If the user setting is the same as new default setting then skip it.
+                if merged_settings.has_setting(key):
+                    new_value = merged_settings.get(key)
+                    if old_value == new_value:
+                        continue
+
+                # Special case: gutter_theme (if the user setting is the same as default skip it)
+                if key == 'gutter_theme':
+                    if old_value == 'Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme':
+                        continue
+
+                # Special case: delay (if the user setting is the same as default skip it)
+                if key == 'delay':
+                    if old_value == 0.25:
+                        continue
+
+                settings[key] = old_value
+
+        # Remove no longer used settings.
         for key in remove_keys:
             settings.pop(key, None)
 
@@ -188,13 +207,17 @@ def update_settings(min_version, usr_dir_abs):
         with open(usr_settings_path, "r") as rf:
             settings = json.load(rf)
 
-        new_settings = update(settings)
+        migrated_settings = migrate(settings)
 
-        with open(usr_settings_path, "w") as wf:
-            js = json.dumps(new_settings, indent=4, sort_keys=True)
-            wf.write(js)
+        # Avoid writing and reloading settings if no change.
+        if settings != migrated_settings:
+            print('SublimeLinter: write migrated settings')
+            with open(usr_settings_path, "w") as wf:
+                js = json.dumps(migrated_settings, indent=4, sort_keys=True)
+                wf.write(js)
 
-        merged_settings.load()
+            print('SublimeLinter: reload settings')
+            merged_settings.load()
 
 
 def rm_old_dir(usr_dir_abs):
@@ -203,7 +226,6 @@ def rm_old_dir(usr_dir_abs):
 
 
 def legacy_check(func):
-    """"""
     min_version = int(sublime.version()) >= 3149  # version check
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
 

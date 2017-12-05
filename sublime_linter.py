@@ -22,7 +22,7 @@ from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint.error import ErrorStore
 from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
-from .panel import diagnostics
+from .panel import panel
 
 
 def plugin_loaded():
@@ -322,7 +322,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     if not window_views.get(wid):
                         window_views[wid] = other_view
 
-            diagnostics.fill_panel(window, update=True)
+            panel.fill_panel(window, update=True)
 
         for view in window_views.values():
             self.display_errors(view)

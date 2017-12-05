@@ -101,15 +101,10 @@ def ensure_panel(window: sublime.Window):
     return get_panel(window) or create_panel(window)
 
 
-def filter_errors(window, select, errors):
-    if select == "current":
-        vid = window.active_view().id()
-        return {vid: errors[vid]}
-    elif select == "window":
+def filter_errors(window, errors):
         vids = [v.id() for v in window.views()]
         return {vid: d for vid, d in errors.items() if vid in vids}
-    else:  # == "all"
-        return errors
+
 
 
 def format_header(f_path):
@@ -133,13 +128,13 @@ def format_row(lineno, err_type, dic):
 # - update diagnostics on lint
 
 
-def fill_panel(window, select="window", types=None, codes=None, linter=None, update=False):
+def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
     errors = persist.errors.data.copy()
     if not errors:
         return
 
-    errors = filter_errors(window, select, errors)
+    errors = filter_errors(window, errors)
     errors = dedupe_views(errors)
     # base_dir = util.get_project_path(window)
     path_dict, base_dir = create_path_dict(errors)
@@ -154,12 +149,11 @@ def fill_panel(window, select="window", types=None, codes=None, linter=None, upd
 
     if update:
         panel.run_command("sublime_linter_panel_clear")
-        select = settings.get("select")
+
         types = settings.get("types")
         codes = settings.get("codes")
         linter = settings.get("linter")
     else:
-        settings.set("select", select)
         settings.set("types", types)
         settings.set("codes", codes)
         settings.set("linter", linter)

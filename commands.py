@@ -19,7 +19,7 @@ import sublime_plugin
 from .lint import highlight, linter, persist, util
 from .lint.const import WARNING, ERROR
 
-from .panel.diagnostics import fill_panel, PANEL_NAME
+from .panel.panel import fill_panel, PANEL_NAME
 
 
 def error_command(method):
@@ -230,13 +230,13 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     A update_panel command to update the error panel with new text.
     """
 
-    def run(self, select=None, types=None, codes=None, linter=None):
+    def run(self, types=None, codes=None, linter=None):
         print("panel toggle called")
         window = self.window
         active_panel = window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
         if not active_panel:
-            fill_panel(window, select, types, codes, linter)
+            fill_panel(window, types, codes, linter)
             window.run_command("show_panel",
                                {"panel": "output." + PANEL_NAME})
 

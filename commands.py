@@ -11,9 +11,7 @@
 
 """This module implements the Sublime Text commands provided by SublimeLinter."""
 
-import os
-from threading import Thread
-from itertools import cycle
+import bisect
 
 import sublime
 import sublime_plugin
@@ -107,19 +105,20 @@ class HasErrorsCommand:
         return vid in persist.errors and len(persist.errors[vid]) > 0
 
 
-def get_neighbours(num, l):
-    cyc = cycle(l)
-    prev_num = next(cyc)
-    next_num = None
-    while True:
-        next_num = next(cyc)
-        if next_num == num:
-            next_num = next(cyc)
-            break
-        elif prev_num < num < next_num:
-            break
-        prev_num = next_num
-    return prev_num, next_num
+def get_neighbours(num, interval):
+    interval = set(interval)
+    interval.discard(num)
+    interval = list(interval)
+    interval.sort()
+
+    if num < interval[0] or interval[-1] < num:
+        return interval[-1], interval[0]
+
+    else:
+        i = bisect.bisect_right(interval, num)
+        neighbours = interval[i-1:i+1]
+        return neighbours
+
 
 
 class GotoErrorCommand(sublime_plugin.TextCommand):
@@ -129,7 +128,7 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
         """Go to the next/previous error in view."""
         sel = view.sel()
 
-        if len(sel) == 0:
+        if not sel or len(sel) == 0:
             sel.add(sublime.Region(0, 0))
 
         # sublime.Selection() changes the view's selection, get the point first

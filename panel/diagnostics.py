@@ -81,10 +81,11 @@ def create_panel(window):
     settings = panel.settings()
     for key, value in OUTPUT_PANEL_SETTINGS.items():
         settings.set(key, value)
-    settings.set("result_file_regex", r"^\s*\S\s+(\S.*):$")
-    settings.set("result_line_regex", r"^\s+([0-9]+):?([0-9]+).*$")
-    syntax_path = "Packages/" + PLUGIN_NAME + \
-        "/panel/syntaxes/Diagnostics.sublime-syntax"
+
+    panel.settings().set("result_file_regex", r"^\s*(\S*\.\w+)\s*(\d*)")
+    panel.settings().set("result_line_regex", r"(^\s*\d+)")
+
+    syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)
     # Call create_output_panel a second time after assigning the above
     # settings, so that it'll be picked up as a result buffer
@@ -132,8 +133,8 @@ def format_row(lineno, err_type, dic):
 # - update diagnostics on lint
 
 
-def update_diagnostics_panel(window, select="window", types=None, codes=None, linter=None):
-    print("update diagnostics called")
+def fill_panel(window, select="window", types=None, codes=None, linter=None, update=False):
+
     errors = persist.errors.data.copy()
     if not errors:
         return
@@ -148,15 +149,22 @@ def update_diagnostics_panel(window, select="window", types=None, codes=None, li
     panel = ensure_panel(window)
     assert panel, "must have a panel now!"
 
-    panel.settings().set("result_base_dir", base_dir)
+    settings = panel.settings()
+    settings.set("result_base_dir", base_dir)
 
-    file_regex = (r"^\s*(\S*\.\w+)\s*(\d*)")
-    line_regex = (r"(^\s*\d+)")
-    panel.settings().set("result_file_regex", file_regex)
-    panel.settings().set("result_line_regex", line_regex)
+    if update:
+        panel.run_command("sublime_linter_panel_clear")
+        select = settings.get("select")
+        types = settings.get("types")
+        codes = settings.get("codes")
+        linter = settings.get("linter")
+    else:
+        settings.set("select", select)
+        settings.set("types", types)
+        settings.set("codes", codes)
+        settings.set("linter", linter)
 
     panel.set_read_only(False)
-
     to_render = []
     for vid, view_dict in errors.items():
         to_render.append(format_header(path_dict[vid]))
@@ -200,4 +208,3 @@ def update_diagnostics_panel(window, select="window", types=None, codes=None, li
     panel.run_command("sublime_linter_panel_update", {
                       "characters": "\n".join(to_render)})
     panel.set_read_only(True)
-    window.run_command("sublime_linter_panel_toggle", {"show_panel": True})

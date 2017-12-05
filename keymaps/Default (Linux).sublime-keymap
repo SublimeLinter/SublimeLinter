@@ -3,5 +3,5 @@
     { "keys": ["ctrl+alt+shift+n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
     { "keys": ["ctrl+alt+shift+p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },
     { "keys": ["alt+l", "a"], "command": "sublime_linter_line_report" },
-    { "keys": ["alt+l", "a"], "command": "sublime_linter_show_panel" }
+    { "keys": ["alt+l", "a"], "command": "sublime_linter_toggle_panel" }
 ]

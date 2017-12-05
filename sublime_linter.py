@@ -322,6 +322,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     if not window_views.get(wid):
                         window_views[wid] = other_view
 
+            diagnostics.fill_panel(window, update=True)
+
         for view in window_views.values():
             self.display_errors(view)
 
@@ -395,7 +397,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         view = util.get_focused_view(view)
         if not view:  # handling of panel
             return
-
 
         lineno, colno = self.get_line_and_col(view)
         vid = view.id()
@@ -547,19 +548,3 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if show_errors and vid in persist.errors and persist.errors[vid]:
             view.run_command('sublimelinter_show_all_errors')
-
-    def open_panel_report(self, select, types, codes, linter):
-        print("open_panel_report called")
-        window = sublime.active_window()
-        diagnostics.ensure_panel(window)
-
-        # TODO: remove this line, it's just a test
-        diagnostics.update_diagnostics_panel(window, select, types, codes, linter)
-
-        from .panel.diagnostics import PANEL_NAME
-        window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
-
-
-
-
-

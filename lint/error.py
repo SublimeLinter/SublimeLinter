@@ -7,18 +7,13 @@ class ErrorStore(util.Borg):
 
     def __init__(self):
         self.data = {}
-        self.region_cache = {}
 
     def __setitem__(self, vid, vdict):
-        self._clear_caches(vid)
-
         self.data[vid] = {
             "line_dicts": vdict,
             "we_count_view": {},
             "we_count_lines": {}
         }
-
-        self.region_cache[vid] = {}
 
         self._count_we(vid)
 
@@ -26,16 +21,11 @@ class ErrorStore(util.Borg):
         return self.data[key]
 
     def pop(self, vid, default=None):
-        self._clear_caches(vid)
         self.data.pop(vid, default)
-
-    def _clear_caches(self, vid):  # TODO see if really necessary
-        self.region_cache.pop(vid, None)
 
     def clear(self):
         """Deletes all errors and empties caches."""
         self.data = {}
-        self.cache = {}
 
     def get_view_dict(self, vid):
         return self.data.get(vid, {})

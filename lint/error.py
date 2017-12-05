@@ -22,7 +22,7 @@ class ErrorStore(util.Borg):
 
         self._count_we(vid)
 
-    def __get__(self, key):
+    def __getitem__(self, key):
         return self.data[key]
 
     def pop(self, vid, default=None):

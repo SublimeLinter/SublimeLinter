@@ -5,8 +5,9 @@ import sublime_plugin
 import copy
 
 
-from ..lint.const import PLUGIN_NAME, WARN_ERR
+from ..lint.const import PLUGIN_NAME, WARN_ERR, WARNING, ERROR
 from ..lint import util, persist
+from difflib import SequenceMatcher
 
 
 PANEL_NAME = "sublime_linter_panel"
@@ -32,6 +33,28 @@ UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
                    | sublime.DRAW_EMPTY_AS_OVERWRITE)
 
 BOX_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_EMPTY_AS_OVERWRITE
+
+""" invisible scope: output.lsp.diagnostics meta.diagnostic.body.lsp markup.changed.lsp sublimelinter.mark.warning markup.warning.lsp """
+# current compare cut-off should be at 52 chars
+
+
+def visual_grouping(lines):
+
+
+    cut_off = 52
+
+
+
+    prev = ""
+    for i, line in enumerate(lines):
+        s = SequenceMatcher(lambda x: x==ERROR, line, prev)
+        match = s.find_longest_match(0, cut_off, 0, cut_off)
+
+        # prev = line
+        #  Match(a=1, b=0, size=4)
+        if match.a != 0:
+            continue
+
 
 
 def dedupe_views(errors):
@@ -112,7 +135,7 @@ def format_header(f_path):
 
 def format_row(lineno, err_type, dic):
     lineno = int(lineno) + 1  # if lineno else lineno
-    tmpl = "{LINENO:>6}   {start:>6}:{end:<10}   {ERR_TYPE:<0}{linter:<15}{code:<6}{msg:>10}"
+    tmpl = "{LINENO:>7}{start:>7}:{end:<7}{ERR_TYPE:15}{linter:<16}{code:<9}{msg:>10}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
 
 

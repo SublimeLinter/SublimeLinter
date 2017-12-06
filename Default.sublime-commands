@@ -13,7 +13,7 @@
     },
     {
         "caption": "SublimeLinter: Show All Errors",
-        "command": "sublime_linter_show_all_errors"
+        "command": "sublime_linter_panel_toggle"
     },
     {
         "caption": "SublimeLinter: Show Line Errors",
@@ -29,7 +29,7 @@
         "command": "edit_settings", "args":
         {
             "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
-            "default": "${packages}/User/SublimeLinter.sublime-settings"
+            "default": "// SublimeLinter Settings - User\n{\n\t$0\n}\n"
         }
     },
     {

@@ -61,14 +61,22 @@
     "show_marks_in_minimap": true,
 
     // Global styles for all linters.
-    // - mark_style options: "fill", "outline", "solid_underline", "squiggly_underline", "stippled_underline", "none".
-    // - priority determines which mark is show in the gutter. Error marks will still always overwrite warning marks.
-    // - the scope is used to determine the color, region.<colorish> are automatically generated scopes in ST > 3148 (required)
+    // - mark_style options:
+    //   "fill", "outline",
+    //   "solid_underline", "squiggly_underline", "stippled_underline"
+    //   "none"
+    // - priority determines which mark is show in the gutter;
+    //   error marks will still always overwrite warning marks.
+    // - scope is used to determine the color;
+    //   region.<colorish> are automatically generated scopes in ST > 3148.
     // - types is an array which can contain "warning" and/or "error".
-    // - codes is an array which can contain any error codes provided by your linter.
-    // icon - can either be an icon name either of icons provided by SublimeText ("circle", "dot" or "bookmark") or by your gutter theme (e.g. "warning") It can also be a relative path to an icon file like: Packages/icons/warning.png
+    // - codes is an array which can contain error codes provided by a linter.
+    // - icon can be:
+    //   one of the default icons: "circle", "dot" or "bookmark"
+    //   or one provided by a gutter theme (e.g. "warning")
+    //   or a path to an icon file like (e.g. "Packages/icons/warning.png")
     // Note: At least one of those targets is required: types or codes.
-    // You can also set styles per linter, e.g. to give them different colors.
+    // Styles can also be specified per linter.
     "styles": [
         {
             "mark_style": "outline",

@@ -69,7 +69,6 @@ if 'plugin_is_loaded' not in globals():
     # gutter_marks = {'warning': 'Default', 'error': 'Default', 'colorize': True}
     gutter_marks = {}
 
-
     # Whether sys.path has been imported from the system.
     sys_path_imported = False
 

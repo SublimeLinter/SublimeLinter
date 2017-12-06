@@ -13,7 +13,7 @@
     },
     {
         "caption": "SublimeLinter: Show All Errors",
-        "command": "sublime_linter_show_all_errors"
+        "command": "sublime_linter_panel_toggle"
     },
     {
         "caption": "SublimeLinter: Show Line Errors",

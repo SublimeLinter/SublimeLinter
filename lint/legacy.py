@@ -148,55 +148,6 @@ class XmlScheme(scheme.Scheme):
         return '/'.join(components)
 
 
-OLD_KEYS = ("warning_color", "error_color", "mark_style", "user")
-NEW_KEYS = ("styles", "user", "show_hover_line_report", "force_xml_scheme",
-            "show_hover_line_report", "show_hover_region_report")
-
-
-def update_settings(min_version, usr_dir_abs):
-
-    merged_settings.load()
-
-    def update(settings):
-        mark_style = merged_settings.get("mark_style")
-        if not min_version:
-            remove_keys = NEW_KEYS
-        else:
-            remove_keys = OLD_KEYS
-            if mark_style:
-                styles = settings.get("styles", [])
-                for s in styles:
-                    s["mark_style"] = mark_style
-
-            if settings.get("lint_mode") == "load/save":
-                settings.set("lint_mode", "load_save")
-
-        # we flatten dict for all versions
-        if settings.get("user"):
-            for k, v in settings.get("user").items():
-                settings.set(k, v)
-
-        # clean settings
-        for key in remove_keys:
-            settings.pop(key, None)
-
-        return settings
-
-    usr_settings_path = os.path.join(usr_dir_abs, SETTINGS_FILE)
-    if os.path.exists(usr_settings_path):
-        # not working with a single context and 'w+'
-        with open(usr_settings_path, "r") as rf:
-            settings = json.load(rf)
-
-        new_settings = update(settings)
-
-        with open(usr_settings_path, "w") as wf:
-            js = json.dumps(new_settings, indent=4, sort_keys=True)
-            wf.write(js)
-
-        merged_settings.load()
-
-
 def rm_old_dir(usr_dir_abs):
     usr_dir_abs = os.path.join(usr_dir_abs, "SublimeLinter")
     shutil.rmtree(usr_dir_abs, ignore_errors=True)
@@ -206,8 +157,6 @@ def legacy_check(func):
     """"""
     min_version = int(sublime.version()) >= 3149  # version check
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
-
-    update_settings(min_version, usr_dir_abs)
 
     if min_version and not merged_settings.get("force_xml_scheme"):
         # remove old User/SublimeLinter dir

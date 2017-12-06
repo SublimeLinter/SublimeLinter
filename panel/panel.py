@@ -102,9 +102,8 @@ def ensure_panel(window: sublime.Window):
 
 
 def filter_errors(window, errors):
-        vids = [v.id() for v in window.views()]
-        return {vid: d for vid, d in errors.items() if vid in vids}
-
+    vids = [v.id() for v in window.views()]
+    return {vid: d for vid, d in errors.items() if vid in vids}
 
 
 def format_header(f_path):
@@ -112,20 +111,9 @@ def format_header(f_path):
 
 
 def format_row(lineno, err_type, dic):
-    prefix = "{LINENO:>6}   {ERR_TYPE:<8} ".format(
-        LINENO=int(lineno) + 1 if lineno else lineno, ERR_TYPE=err_type)
-
-    col_tmpl = "{start:>6}:{end:<10}"
-    # workaround for not repeating identical cols on consecutive lines
-    if "hide_cols" in dic:
-        col_tmpl = " " * 17
-
-    tmpl = col_tmpl + "{linter:<15}{code:<6}{msg:>10}"
-    return prefix + tmpl.format(**dic)
-
-# TODO:
-# - on sublime loaded lint all open views if background or load_save
-# - update diagnostics on lint
+    lineno = int(lineno) + 1  # if lineno else lineno
+    tmpl = "{LINENO:>6}   {start:>6}:{end:<10}   {ERR_TYPE:<0}{linter:<15}{code:<6}{msg:>10}"
+    return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
@@ -149,7 +137,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
     if update:
         panel.run_command("sublime_linter_panel_clear")
-
         types = settings.get("types")
         codes = settings.get("codes")
         linter = settings.get("linter")
@@ -162,9 +149,8 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     to_render = []
     for vid, view_dict in errors.items():
         to_render.append(format_header(path_dict[vid]))
-        prev_lineno = None
+
         for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-            prev_err_type = None
             for err_type in WARN_ERR:
                 if types and err_type not in types:
                     continue
@@ -172,31 +158,18 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
                 if not err_dict:
                     continue
                 items = sorted(err_dict, key=lambda k: k['start'])
-                prev_start_end = (None, None)
-                prev_linter = None
+
                 for item in items:
-                    lineno = "" if lineno == prev_lineno else lineno
-                    err_type = "" if err_type == prev_err_type else err_type
+                    # new filter function
+                    if linter and item['linter'] not in linter:
+                        continue
 
-                    if prev_start_end == (item['start'], item['end']):
-                        item['hide_cols'] = True
-
-                        # new filter function
-                        if linter and item['linter'] not in linter:
-                            continue
-
-                        if codes and item['code'] not in codes:
-                            continue
-
-                        if item['linter'] == prev_linter:
-                            item["linter"] = ""
+                    if codes and item['code'] not in codes:
+                        continue
 
                     line_msg = format_row(lineno, err_type, item)
                     to_render.append(line_msg)
-                    prev_lineno = lineno
-                    prev_err_type = err_type
-                    prev_start_end = (item['start'], item['end'])
-                    prev_linter = item['linter']
+
         to_render.append("\n")  # empty lines between views
 
     panel.run_command("sublime_linter_panel_update", {

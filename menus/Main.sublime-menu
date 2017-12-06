@@ -38,7 +38,7 @@
                                 "command": "edit_settings", "args":
                                 {
                                     "base_file": "${packages}/SublimeLinter/SublimeLinter.sublime-settings",
-                                    "default": "${packages}/User/SublimeLinter.sublime-settings"
+                                    "default": "// SublimeLinter Settings - User\n{\n\t$0\n}\n"
                                 }
                             },
                             {

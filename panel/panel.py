@@ -26,14 +26,6 @@ OUTPUT_PANEL_SETTINGS = {
     "word_wrap": False
 }
 
-
-UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
-                   | sublime.DRAW_NO_OUTLINE
-                   | sublime.DRAW_NO_FILL
-                   | sublime.DRAW_EMPTY_AS_OVERWRITE)
-
-BOX_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_EMPTY_AS_OVERWRITE
-
 STEALTH_KEY = "panel_stealth"
 STEALTH_SCOPE = """ invisible scope: output.lsp.diagnostics meta.diagnostic.body.lsp markup.changed.lsp sublimelinter.mark.warning markup.warning.lsp """
 # current compare cut-off should be at 52 chars
@@ -45,7 +37,7 @@ def visual_grouping(view, lines):
 
     regions = []
     cut_off = 45
-    min_len = 13
+    min_len = 8
 
     for i, line in enumerate(lines):
         if i == 0:
@@ -58,8 +50,6 @@ def visual_grouping(view, lines):
         s = SequenceMatcher(lambda x: x == ERROR, prev, line)
 
         match = s.find_longest_match(0, cut_off, 0, cut_off)
-        if match.size >= min_len:
-            print("Found match")
 
         if match.a == 0 and match.size >= min_len:
             start = view.text_point(i, 0)

@@ -61,12 +61,18 @@ def plugin_loaded():
     if window:
         plugin.on_activated_async(window.active_view())
 
+    # load and lint all views on starrup
+    if persist.settings.get('lint_mode') in ('background', 'load_save'):
+        for window in sublime.windows():
+            for view in window.views():
+                plugin.check_syntax(view)
+        plugin.lint_all_views()
 
 class Listener:
     """Collection of event handler methods."""
 
     def on_modified_async(self, view):
-        """Ran when view is motified."""
+        """Ran when view is modified."""
 
         if util.is_scratch(view):
             return
@@ -103,14 +109,6 @@ class Listener:
 
         self.display_errors(view)
 
-    @classmethod
-    def on_settings_updated(cls, relint=False):
-        """Ran when the settings are updated."""
-        if relint:
-            cls.lint_all_views()
-        else:
-            Linter.redraw_all()
-
     def on_new_async(self, view):
         """Ran when a new buffer is created."""
 
@@ -121,8 +119,9 @@ class Listener:
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
 
-    def on_selection_modified_async(self, view):
-        self.display_errors(view)
+    def on_load_async(self, view):
+        """Ran when a buffer is loaded."""
+        print("buffer loaded: ", view.buffer_id())
 
     def on_post_save_async(self, view):
         if util.is_scratch(view):
@@ -146,6 +145,14 @@ class Listener:
             elif filename != SETTINGS_FILE:
                 self.file_was_saved(view)
 
+    @classmethod
+    def on_settings_updated(cls, relint=False):
+        """Ran when the settings are updated."""
+        if relint:
+            cls.lint_all_views()
+        else:
+            Linter.redraw_all()
+
     def on_pre_close_async(self, view):
         if util.is_scratch(view):
             return
@@ -160,6 +167,9 @@ class Listener:
 
         for d in dicts:
             d.pop(vid, None)
+
+    def on_selection_modified_async(self, view):
+        self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
         """Arguments:

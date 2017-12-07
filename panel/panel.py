@@ -27,6 +27,7 @@ OUTPUT_PANEL_SETTINGS = {
 }
 
 
+
 UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
                    | sublime.DRAW_NO_OUTLINE
                    | sublime.DRAW_NO_FILL

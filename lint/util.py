@@ -90,6 +90,13 @@ def is_scratch(view):
     else:
         return False
 
+def is_none_or_zero(we_count):
+    if not we_count:
+        return True
+    elif we_count[WARNING] + we_count[ERROR] == 0:
+        return True
+    else:
+        return False
 
 def get_active_view(view=None):
     if view:

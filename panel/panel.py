@@ -172,6 +172,10 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     panel.set_read_only(False)
     to_render = []
     for vid, view_dict in errors.items():
+
+        if util.is_none_or_zero(view_dict["we_count_view"]):
+            continue
+
         to_render.append(format_header(path_dict[vid]))
 
         for lineno, line_dict in sorted(view_dict["line_dicts"].items()):

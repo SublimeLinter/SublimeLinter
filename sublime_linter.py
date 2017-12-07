@@ -485,9 +485,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         tooltip_message = ""
         we_count = persist.errors.get_we_count_line(vid, lineno)
 
-        if not we_count:
-            return
-        elif we_count[WARNING] + we_count[ERROR] == 0:
+        if util.is_none_or_zero(we_count):
             return
 
         # TODO: refactor

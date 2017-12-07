@@ -516,6 +516,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return all_msgs
 
         tooltip_message = join_msgs(line_dict, we_count)
+        if not tooltip_message:
+            return
 
         colno = 0 if not is_inline else colno
         location = active_view.text_point(lineno, colno)

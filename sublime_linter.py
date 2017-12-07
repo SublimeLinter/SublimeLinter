@@ -482,6 +482,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if is_inline:  # do not show tooltip on hovering empty gutter
             line_dict = persist.errors.get_region_dict(vid, lineno, colno)
 
+        if not line_dict:
+            return
+
         tooltip_message = ""
         we_count = persist.errors.get_we_count_line(vid, lineno)
 

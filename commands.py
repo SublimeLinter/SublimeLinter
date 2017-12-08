@@ -16,7 +16,7 @@ import bisect
 import sublime
 import sublime_plugin
 
-from .lint import highlight, linter, persist, util
+from .lint import highlight, persist, util
 from .lint.const import WARNING, ERROR
 
 from .panel.panel import fill_panel, PANEL_NAME
@@ -193,8 +193,6 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
 
 class SublimeLinterGotoErrorCommand(GotoErrorCommand):
-    """A command that selects the next/previous error."""
-
     @error_command
     def run(self, view, errors, highlights, **kwargs):
         self.goto_error(view, errors, **kwargs)
@@ -207,12 +205,7 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    """
-    A update_panel command to update the error panel with new text.
-    """
-
     def run(self, types=None, codes=None, linter=None):
-        print("panel toggle called")
         window = self.window
         active_panel = window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
@@ -225,17 +218,12 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             # panel focus does not work as of 3156, due to ST bug
             window.focus_view(panel_view)
         else:
-            # panel.run_command("sublime_linter_panel_clear")
             if is_active_panel:
                 window.run_command("hide_panel",
                                    {"panel": "output." + PANEL_NAME})
 
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
-    """
-    A update_panel command to update the error panel with new text.
-    """
-
     def run(self, edit, characters):
         self.view.replace(edit, sublime.Region(
             0, self.view.size()), characters)

@@ -239,16 +239,12 @@ class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
     def run(self, edit, characters):
         self.view.replace(edit, sublime.Region(
             0, self.view.size()), characters)
-        # Move cursor to the end
+
         selection = self.view.sel()
         selection.clear()
-        selection.add(sublime.Region(self.view.size(), self.view.size()))
+        selection.add(sublime.Region(0, 0))
 
 
 class SublimeLinterPanelClearCommand(sublime_plugin.TextCommand):
-    """
-    A clear_panel command to clear the error panel.
-    """
-
     def run(self, edit):
-        self.view.erase(edit, sublime.Region(0, self.view.size()))
+        self.view.erase(edit, sublime.Region(0, 0))

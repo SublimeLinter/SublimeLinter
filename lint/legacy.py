@@ -148,6 +148,20 @@ class XmlScheme(scheme.Scheme):
         return '/'.join(components)
 
 
+def backup_old_settings(usr_dir_abs):
+    """If user settigns file in old format exists it is renamed to disable it and back it up. A message will be displayed to the user."""
+    msg = "SublimeLinter: Old settings file renamed. Please read instructions."
+    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
+    if os.path.exists(settings_file):
+        with open(settings_file, "r") as f:
+            settings = json.load(f)
+        if "user" in settings:
+            new_name = "SublimeLinter (old).sublime-settings-backup"
+            new_path = os.path.join(usr_dir_abs, new_name)
+            os.rename(settings_file, new_path)
+            sublime.message_dialog(msg)
+
+
 def rm_old_dir(usr_dir_abs):
     usr_dir_abs = os.path.join(usr_dir_abs, "SublimeLinter")
     shutil.rmtree(usr_dir_abs, ignore_errors=True)
@@ -157,6 +171,7 @@ def legacy_check(func):
     """"""
     min_version = int(sublime.version()) >= 3149  # version check
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
+    backup_old_settings(usr_dir_abs)
 
     if min_version and not merged_settings.get("force_xml_scheme"):
         # remove old User/SublimeLinter dir

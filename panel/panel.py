@@ -26,36 +26,38 @@ OUTPUT_PANEL_SETTINGS = {
     "word_wrap": False
 }
 
-
-
-UNDERLINE_FLAGS = (sublime.DRAW_SQUIGGLY_UNDERLINE
-                   | sublime.DRAW_NO_OUTLINE
-                   | sublime.DRAW_NO_FILL
-                   | sublime.DRAW_EMPTY_AS_OVERWRITE)
-
-BOX_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_EMPTY_AS_OVERWRITE
-
-""" invisible scope: output.lsp.diagnostics meta.diagnostic.body.lsp markup.changed.lsp sublimelinter.mark.warning markup.warning.lsp """
+STEALTH_KEY = "panel_stealth"
+STEALTH_SCOPE = """ invisible scope: output.lsp.diagnostics meta.diagnostic.body.lsp markup.changed.lsp sublimelinter.mark.warning markup.warning.lsp """
 # current compare cut-off should be at 52 chars
 
 
-def visual_grouping(lines):
+def visual_grouping(view, lines):
+    """Applies invisibility scope to region to those lines overlapping with content from the previous one. Anchored to the start.
+    Minimal length ensures line number and columns are not minced. Errors are always displayed."""
 
+    regions = []
+    cut_off = 45
+    min_len = 8
 
-    cut_off = 52
-
-
-
-    prev = ""
     for i, line in enumerate(lines):
-        s = SequenceMatcher(lambda x: x==ERROR, line, prev)
+        if i == 0:
+            continue
+        prev = lines[i - 1]
+
+        min_line_len = min(len(prev), len(line))
+        cut_off = min_line_len if min_line_len < cut_off else cut_off
+
+        s = SequenceMatcher(lambda x: x == ERROR, prev, line)
+
         match = s.find_longest_match(0, cut_off, 0, cut_off)
 
-        # prev = line
-        #  Match(a=1, b=0, size=4)
-        if match.a != 0:
-            continue
+        if match.a == 0 and match.size >= min_len:
+            start = view.text_point(i, 0)
+            end = view.text_point(i, match.size)
+            region = sublime.Region(start, end)
+            regions.append(region)
 
+    view.add_regions(STEALTH_KEY, regions, STEALTH_SCOPE)
 
 
 def dedupe_views(errors):
@@ -136,7 +138,7 @@ def format_header(f_path):
 
 def format_row(lineno, err_type, dic):
     lineno = int(lineno) + 1  # if lineno else lineno
-    tmpl = "{LINENO:>7}{start:>7}:{end:<7}{ERR_TYPE:15}{linter:<16}{code:<9}{msg:>10}"
+    tmpl = "{LINENO:>7}:{start:<7}{ERR_TYPE:15}{linter:<16}{code:<9}{msg:>10}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
 
 
@@ -172,6 +174,10 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     panel.set_read_only(False)
     to_render = []
     for vid, view_dict in errors.items():
+
+        if util.is_none_or_zero(view_dict["we_count_view"]):
+            continue
+
         to_render.append(format_header(path_dict[vid]))
 
         for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
@@ -196,6 +202,8 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         to_render.append("\n")  # empty lines between views
 
+    panel.erase_regions(STEALTH_KEY)
     panel.run_command("sublime_linter_panel_update", {
                       "characters": "\n".join(to_render)})
     panel.set_read_only(True)
+    visual_grouping(panel, to_render)

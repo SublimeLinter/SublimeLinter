@@ -7,3 +7,4 @@ STATUS_KEY = "sublime_linter_status"
 WARNING = "warning"
 ERROR = "error"
 WARN_ERR = (WARNING, ERROR)
+INBUILT_ICONS = ("circle", "dot", "bookmark", "none")  # 'none' added as well

@@ -33,7 +33,7 @@ import re
 import sublime
 
 from . import persist, util
-from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR
+from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
 MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
@@ -462,7 +462,7 @@ class Highlight:
                     continue
 
                 # colorize icon
-                if (persist.gutter_marks['colorize'] or icon in ("circle", "dot", "bookmark")):
+                if persist.gutter_marks['colorize'] or icon in INBUILT_ICONS:
                     scope = self.style_store.get_val("scope", style, err_type)
                 else:
                     scope = " "  # set scope to non-existent one

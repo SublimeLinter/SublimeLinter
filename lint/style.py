@@ -2,6 +2,7 @@ import sublime
 from . import persist, util
 import json
 from abc import ABCMeta, abstractmethod
+from .const import INBUILT_ICONS
 
 import os
 
@@ -34,7 +35,10 @@ def get_icon(f):
             return res
         else:
             # returning paths
-            if res != os.path.basename(res):
+
+            if res in INBUILT_ICONS:
+                return res
+            elif res != os.path.basename(res):
                 return res
             else:
                 icon_path = persist.gutter_marks["icons"].get(res)

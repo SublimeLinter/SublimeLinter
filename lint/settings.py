@@ -121,9 +121,15 @@ class Settings:
         res = sublime.find_resources(SETTINGS_FILE)
         merged_dict = {}
         for r in res:
-            s = sublime.load_resource(r)
-            d = sublime.decode_value(s)
-            merged_dict.update(d)
+            try:
+                s = sublime.load_resource(r)
+                d = sublime.decode_value(s)
+            except IOError as ie:
+                util.print("Settings file not found: {}".format(r))
+            except ValueError as ve:
+                util.print("Settings file corrupt: {}".format(r))
+            else:
+                merged_dict.update(d)
         return merged_dict
 
     def on_update_call(self, callback):

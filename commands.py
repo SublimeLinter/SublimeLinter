@@ -209,18 +209,14 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         window = self.window
         active_panel = window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
-        if not active_panel:
-            fill_panel(window, types, codes, linter)
-            window.run_command("show_panel",
-                               {"panel": "output." + PANEL_NAME})
 
-            panel_view = window.find_output_panel(PANEL_NAME)
-            # panel focus does not work as of 3156, due to ST bug
-            window.focus_view(panel_view)
+        if is_active_panel:
+            cmd = "hide_panel"
         else:
-            if is_active_panel:
-                window.run_command("hide_panel",
-                                   {"panel": "output." + PANEL_NAME})
+            fill_panel(window, types, codes, linter)
+            cmd = "show_panel"
+
+        window.run_command(cmd, {"panel": "output." + PANEL_NAME})
 
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):

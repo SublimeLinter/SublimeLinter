@@ -114,7 +114,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     errors = filter_errors(window, errors)
     errors = dedupe_views(errors)
     path_dict, base_dir = create_path_dict(errors)
-
     assert window, "missing window!"
 
     panel = ensure_panel(window)

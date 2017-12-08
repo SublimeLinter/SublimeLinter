@@ -133,12 +133,12 @@ def filter_errors(window, errors):
 
 
 def format_header(f_path):
-    return "{}".format(f_path)  # TODO: better using phantom + icon?
+    return "{}:".format(f_path)
 
 
 def format_row(lineno, err_type, dic):
     lineno = int(lineno) + 1  # if lineno else lineno
-    tmpl = "{LINENO:>7}:{start:<7}{ERR_TYPE:15}{linter:<16}{code:<9}{msg:>10}"
+    tmpl = "{LINENO:>8}:{start:<4}\t{ERR_TYPE:7}\t{linter:>12}: {code:12}\t{msg:12}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
 
 

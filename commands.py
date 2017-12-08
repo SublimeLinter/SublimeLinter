@@ -16,7 +16,7 @@ import bisect
 import sublime
 import sublime_plugin
 
-from .lint import highlight, linter, persist, util
+from .lint import highlight, persist, util
 from .lint.const import WARNING, ERROR
 
 from .panel.panel import fill_panel, PANEL_NAME
@@ -193,30 +193,9 @@ class GotoErrorCommand(sublime_plugin.TextCommand):
 
 
 class SublimeLinterGotoErrorCommand(GotoErrorCommand):
-    """A command that selects the next/previous error."""
-
     @error_command
     def run(self, view, errors, highlights, **kwargs):
         self.goto_error(view, errors, **kwargs)
-
-
-# TODO: any function? is it used internally? -> check correct snak_case
-class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
-    """A command that clears all of SublimeLinter's internal caches."""
-
-    def run(self):
-        util.clear_path_caches()
-        util.get_rc_settings.cache_clear()
-        util.find_file.cache_clear()
-        linter.Linter.clear_settings_caches()
-
-
-# TODO: does this command serve any function?
-class SublimeLinterEditCommand(sublime_plugin.TextCommand):
-    """A plugin command used to generate an edit object for a view."""
-
-    def run(self, edit):
-        persist.edit(self.view.id(), edit)
 
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
@@ -226,12 +205,7 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    """
-    A update_panel command to update the error panel with new text.
-    """
-
     def run(self, types=None, codes=None, linter=None):
-        print("panel toggle called")
         window = self.window
         active_panel = window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
@@ -244,30 +218,21 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             # panel focus does not work as of 3156, due to ST bug
             window.focus_view(panel_view)
         else:
-            # panel.run_command("sublime_linter_panel_clear")
             if is_active_panel:
                 window.run_command("hide_panel",
                                    {"panel": "output." + PANEL_NAME})
 
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):
-    """
-    A update_panel command to update the error panel with new text.
-    """
-
     def run(self, edit, characters):
         self.view.replace(edit, sublime.Region(
             0, self.view.size()), characters)
-        # Move cursor to the end
+
         selection = self.view.sel()
         selection.clear()
-        selection.add(sublime.Region(self.view.size(), self.view.size()))
+        selection.add(sublime.Region(0, 0))
 
 
 class SublimeLinterPanelClearCommand(sublime_plugin.TextCommand):
-    """
-    A clear_panel command to clear the error panel.
-    """
-
     def run(self, edit):
-        self.view.erase(edit, sublime.Region(0, self.view.size()))
+        self.view.erase(edit, sublime.Region(0, 0))

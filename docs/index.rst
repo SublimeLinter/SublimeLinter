@@ -33,7 +33,6 @@ User Documentation
     about
     usage
     gutter_themes
-    navigating
     settings
     global_settings
     meta_settings

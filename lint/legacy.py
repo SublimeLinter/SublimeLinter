@@ -139,7 +139,6 @@ class XmlScheme(scheme.Scheme):
             to use '/' as the path separator on all platforms. This method converts platform
             path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
             converted path.
-
         """
         components = util.get_path_components(path)
 
@@ -150,15 +149,19 @@ class XmlScheme(scheme.Scheme):
 
 
 def backup_old_settings(usr_dir_abs):
-    """If user settigns file in old format exists it is renamed to disable it and back it up. A message will be displayed to the user."""
-    msg = "SublimeLinter: Old settings file renamed. Please read instructions."
+    """
+        If user settigns file in old format exists it is renamed to disable it
+        and back it up.
+        A message will be displayed to the user.
+    """
+    msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/""" # noqa: 501
     settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
         settings = sublime.decode_value(sublime.load_resource(path))
 
         if "user" in settings:
-            new_name = "SublimeLinter (old).sublime-settings-backup"
+            new_name = "SublimeLinter (old).sublime-settings"
             new_path = os.path.join(usr_dir_abs, new_name)
             os.rename(settings_file, new_path)
             sleep(1)
@@ -171,7 +174,6 @@ def rm_old_dir(usr_dir_abs):
 
 
 def legacy_check(func):
-    """"""
     min_version = int(sublime.version()) >= 3149  # version check
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     backup_old_settings(usr_dir_abs)

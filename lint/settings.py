@@ -125,9 +125,9 @@ class Settings:
                 s = sublime.load_resource(r)
                 d = sublime.decode_value(s)
             except IOError as ie:
-                util.print("Settings file not found: {}".format(r))
+                util.printf("Settings file not found: {}".format(r))
             except ValueError as ve:
-                util.print("Settings file corrupt: {}".format(r))
+                util.printf("Settings file corrupt: {}".format(r))
             else:
                 merged_dict.update(d)
         return merged_dict

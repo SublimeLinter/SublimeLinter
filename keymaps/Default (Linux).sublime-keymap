@@ -1,7 +1,9 @@
 [
-    { "keys": ["alt+l", "l"], "command": "sublime_linter_lint" },
-/*    { "keys": ["ctrl+alt+shift+n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
-    { "keys": ["ctrl+alt+shift+p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },*/
-    { "keys": ["alt+l", "a"], "command": "sublime_linter_line_report" },
-    { "keys": ["alt+l", "a"], "command": "sublime_linter_toggle_panel" }
+    { "keys": ["ctrl+k", "l"], "command": "sublime_linter_lint" },
+    { "keys": ["ctrl+k", "n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
+    { "keys": ["ctrl+k", "p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },
+    { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle" }
+
+    // You can also trigger the line report with a keybinding:
+    // { "keys": ["ctrl+k", "a"], "command": "sublime_linter_line_report" },
 ]

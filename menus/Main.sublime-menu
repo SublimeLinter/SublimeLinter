@@ -1,26 +1,5 @@
 [
     {
-        "id": "tools",
-        "children": [
-            {
-                "caption": "Packages",
-                "id": "packages",
-                "children": [
-                    {
-                        "id": "sublimelinter",
-                        "caption": "SublimeLinter",
-                        "children": [
-                            {
-                                "caption": "Clear Caches",
-                                "command": "sublime_linter_clear_caches"
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    },
-    {
         "caption": "Preferences",
         "id": "preferences",
         "mnemonic": "n",

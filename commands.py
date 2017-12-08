@@ -200,25 +200,6 @@ class SublimeLinterGotoErrorCommand(GotoErrorCommand):
         self.goto_error(view, errors, **kwargs)
 
 
-# TODO: any function? is it used internally? -> check correct snak_case
-class SublimeLinterClearCachesCommand(sublime_plugin.WindowCommand):
-    """A command that clears all of SublimeLinter's internal caches."""
-
-    def run(self):
-        util.clear_path_caches()
-        util.get_rc_settings.cache_clear()
-        util.find_file.cache_clear()
-        linter.Linter.clear_settings_caches()
-
-
-# TODO: does this command serve any function?
-class SublimeLinterEditCommand(sublime_plugin.TextCommand):
-    """A plugin command used to generate an edit object for a view."""
-
-    def run(self, edit):
-        persist.edit(self.view.id(), edit)
-
-
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         from .sublime_linter import SublimeLinter

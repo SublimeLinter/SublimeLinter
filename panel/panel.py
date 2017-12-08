@@ -100,7 +100,7 @@ def format_header(f_path):
 
 
 def format_row(lineno, err_type, dic):
-    lineno = int(lineno) + 1  # if lineno else lineno
+    lineno = int(lineno) + 1
     tmpl = "{LINENO:>8}:{start:<4}\t{ERR_TYPE:7}\t{linter:>12}: {code:12}\t{msg:12}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
 
@@ -113,7 +113,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
     errors = filter_errors(window, errors)
     errors = dedupe_views(errors)
-    # base_dir = util.get_project_path(window)
     path_dict, base_dir = create_path_dict(errors)
 
     assert window, "missing window!"

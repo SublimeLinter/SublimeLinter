@@ -262,7 +262,7 @@ class Highlight:
         if pos < 0:
             pos = 0
             length = (end - start) - 1
-        elif near is not None:
+        elif near:
             near = self.strip_quotes(near)
             length = len(near)
         elif length < 0:
@@ -283,7 +283,7 @@ class Highlight:
             for i, mark in enumerate(marks):
                 if (mark.a, mark.b) == (region.a, region.b):
                     if err_type == WARNING:
-                        return
+                        return length
                     else:
                         self.marks[other_type][scope].pop(i - i_offset)
                         i_offset += 1
@@ -377,11 +377,11 @@ class Highlight:
             start = -1
 
         if start != -1:
-            self.range(line, start, len(near), err_type=err_type,
-                       word_re=word_re, style=style)
-            return start
+            length = self.range(
+                line, start, len(near), err_type=err_type, word_re=word_re, style=style)
+            return start, length
         else:
-            return 0
+            return 0, 0
 
     def update(self, other):
         """

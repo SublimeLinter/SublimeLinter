@@ -1361,7 +1361,7 @@ class Linter(metaclass=LinterMeta):
                         style=style
                     )
                 elif near:
-                    col = self.highlight.near(
+                    col, length = self.highlight.near(
                             line,
                             near,
                             err_type=err_type,

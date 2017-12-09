@@ -205,18 +205,27 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self, types=None, codes=None, linter=None):
-        window = self.window
-        active_panel = window.active_panel()
+    def run(self, **kwargs):
+        active_panel = self.window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
 
         if is_active_panel:
-            cmd = "hide_panel"
+            self.show_panel(PANEL_NAME, show=False)
         else:
-            fill_panel(window, types, codes, linter)
-            cmd = "show_panel"
+            fill_panel(self.window, **kwargs)
+            self.show_panel(PANEL_NAME)
 
-        window.run_command(cmd, {"panel": "output." + PANEL_NAME})
+    def show_panel(self, name, show=True):
+        """Changes visibility of panel with given name.
+        Panel will be shown by default.
+        Pass show=False for hiding.
+        """
+        if show:
+            cmd = "show_panel"
+        else:
+            cmd = "hide_panel"
+
+        self.window.run_command(cmd, {"panel": "output." + name or ""})
 
 
 class SublimeLinterPanelUpdateCommand(sublime_plugin.TextCommand):

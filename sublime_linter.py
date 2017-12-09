@@ -21,7 +21,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint.error import ErrorStore
-from .lint.const import SETTINGS_FILE, WARNING, ERROR, WARN_ERR, STATUS_KEY
+from .lint.const import SETTINGS_FILE, WARN_ERR, STATUS_KEY
 from .panel import panel
 
 
@@ -61,12 +61,13 @@ def plugin_loaded():
     if window:
         plugin.on_activated_async(window.active_view())
 
-    # load and lint all views on starrup
+    # Load and lint all views on startup
     if persist.settings.get('lint_mode') in ('background', 'load_save'):
         for window in sublime.windows():
             for view in window.views():
                 plugin.check_syntax(view)
         plugin.lint_all_views()
+
 
 class Listener:
     """Collection of event handler methods."""
@@ -104,7 +105,8 @@ class Listener:
             if view_id not in self.loaded_views:
                 self.on_new_async(view)
 
-            if persist.settings.get('lint_mode') in ('background', 'load_save'):
+            lint_mode = persist.settings.get('lint_mode')
+            if lint_mode in ('background', 'load_save'):
                 self.hit(view)
 
         self.display_errors(view)
@@ -118,10 +120,6 @@ class Listener:
         vid = view.id()
         self.loaded_views.add(vid)
         self.view_syntax[vid] = persist.get_syntax(view)
-
-    def on_load_async(self, view):
-        """Ran when a buffer is loaded."""
-        print("buffer loaded: ", view.buffer_id())
 
     def on_post_save_async(self, view):
         if util.is_scratch(view):
@@ -416,7 +414,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             view.erase_status(STATUS_KEY)
             return
 
-        # TODO: special message if W:0 E:0?
         we_count = view_dict["we_count_view"]
         status = "W: {warning} E: {error}".format(**we_count)
 
@@ -430,6 +427,38 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if status != view.get_status(STATUS_KEY):
             view.set_status(STATUS_KEY, status)
+
+    @classmethod
+    def join_msgs(cls, line_dict, we_count):
+        part = '''
+            <div class="{classname}">{count} {heading}</div>
+            <div>{messages}</div>
+        '''
+
+        template = "{linter}: {code} - {msg}"
+
+        all_msgs = ""
+        for err_type in WARN_ERR:
+            count = we_count[err_type]
+            heading = err_type
+            err_type_msgs = []
+            msg_list = line_dict.get(err_type)
+
+            if not msg_list:
+                continue
+            for item in msg_list:
+                err_type_msgs.append(template.format(**item))
+
+            if count > 1:  # pluralize
+                heading += "s"
+
+            all_msgs += part.format(
+                classname=err_type,
+                count=count,
+                heading=heading,
+                messages='<br />'.join(err_type_msgs)
+            )
+        return all_msgs
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
         """ Show a tooltip containing all linting errors on a given line. """
@@ -453,11 +482,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 <style>{stylesheet}</style>
                 <div>{message}</div>
             </body>
-        '''
-
-        part = '''
-            <div class="{classname}">{count} {heading}</div>
-            <div>{messages}</div>
         '''
 
         if not active_view:
@@ -491,34 +515,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if util.is_none_or_zero(we_count):
             return
 
-        # TODO: refactor
-        def join_msgs(line_dict, we_count):
-            template = "{linter}: {code} - {msg}"
-
-            all_msgs = ""
-            for err_type in WARN_ERR:
-                count = we_count[err_type]
-                heading = err_type
-                err_type_msgs = []
-                msg_list = line_dict.get(err_type)
-
-                if not msg_list:
-                    continue
-                for item in msg_list:
-                    err_type_msgs.append(template.format(**item))
-
-                if count > 1:  # pluralize
-                    heading += "s"
-
-                all_msgs += part.format(
-                    classname=err_type,
-                    count=count,
-                    heading=heading,
-                    messages='<br />'.join(err_type_msgs)
-                )
-            return all_msgs
-
-        tooltip_message = join_msgs(line_dict, we_count)
+        tooltip_message = self.join_msgs(line_dict, we_count)
         if not tooltip_message:
             return
 

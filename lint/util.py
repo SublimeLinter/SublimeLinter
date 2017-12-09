@@ -65,6 +65,7 @@ class Borg:
     def __init__(self):
         self.__dict__ = self._shared_state
 
+
 def is_scratch(view):
     """
     Return whether a view is effectively scratch.
@@ -90,6 +91,7 @@ def is_scratch(view):
     else:
         return False
 
+
 def is_none_or_zero(we_count):
     """Function to check warning/error count of dict."""
     if not we_count:
@@ -99,6 +101,7 @@ def is_none_or_zero(we_count):
     else:
         return False
 
+
 def get_active_view(view=None):
     if view:
         window = view.window()
@@ -107,6 +110,7 @@ def get_active_view(view=None):
         return window.active_view()
 
     return sublime.active_window().active_view()
+
 
 def get_focused_view(view):
     """
@@ -151,7 +155,6 @@ def get_project_path(window: sublime.Window) -> 'Optional[str]':
                           "and the current file isn't saved on the disk.")
 
 
-
 # ###
 
 def get_new_dict():
@@ -165,7 +168,7 @@ def msg_count(l_dict):
 
 
 def any_key_in(target, source):
-    """"""
+    """Performs an m:n member check between two iterables."""
     return any(key in target for key in source)
 
 

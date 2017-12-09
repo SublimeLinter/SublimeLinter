@@ -28,14 +28,13 @@ MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 """
 
-import os
 import re
 import sublime
 
 from . import persist, util
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
-MARK_KEY_FORMAT = 'sublimelinter-{}-marks'
+MARK_KEY_FORMAT = 'sublime_linter-{}-marks'
 GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
 MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
@@ -470,7 +469,6 @@ class Highlight:
                 k = style.rfind(".")
                 gutter_key = style[:k] + ".gutter." + style[k + 1:]
 
-                # GUTTER_MARK_KEY_FORMAT.format(err_type)
                 view.add_regions(
                     gutter_key,
                     regions,
@@ -513,7 +511,6 @@ class Highlight:
         self.overwrite_line(line, err_type, style)
 
     def overwrite_line(self, line, err_type, style):
-        """"""
         # Errors override warnings on the same line
         if err_type == WARNING:
             if line in self.lines[ERROR]:

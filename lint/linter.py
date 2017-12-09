@@ -1265,8 +1265,8 @@ class Linter(metaclass=LinterMeta):
         chdir = settings.get('chdir', None)
 
         if chdir and os.path.isdir(chdir):
-            return chdir
             persist.debug('chdir has been set to: {0}'.format(chdir))
+            return chdir
         else:
             if self.filename:
                 return os.path.dirname(self.filename)
@@ -1280,7 +1280,6 @@ class Linter(metaclass=LinterMeta):
             return WARNING
         else:
             return self.default_type
-
 
     def lint(self, hit_time):
         """

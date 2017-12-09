@@ -9,61 +9,49 @@ import os
 
 class StyleBaseStore(metaclass=ABCMeta):
 
-    def clear_caches(func):
-        """"""
-        def func_wrapper(*args):
-            result = func(*args)
-
-            return result
-        return func_wrapper
-
     @abstractmethod
-    @clear_caches
     def add(cls):
         pass
-
-# TODO: make this staticmethod witin StyleStore, to be used as decorator?
-
-
-def get_icon(f):
-    def wrapper(*args):
-        res = f(*args)
-        key = args[1]
-        err_type = args[3]
-
-        if key != "icon":
-            return res
-        else:
-            # returning paths
-
-            if res in INBUILT_ICONS:
-                return res
-            elif res != os.path.basename(res):
-                return res
-            else:
-                icon_path = persist.gutter_marks["icons"].get(res)
-                if icon_path:
-                    return icon_path
-            return persist.gutter_marks["icons"][err_type]
-
-    return wrapper
 
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
 
     styles = {}
 
-    def add(cls, name, dict):
-        cls.styles[name] = dict
+    def add(self, name, dict):
+        self.styles[name] = dict
 
-    def has_style(cls, style):
-        return style in cls.styles
+    def has_style(self, style):
+        return style in self.styles
 
-    def get(cls, style):
-        return cls.styles.get(style, {})
+    def get(self, style):
+        return self.styles.get(style, {})
+
+    def get_icon(f):
+        def wrapper(*args):
+            res = f(*args)
+            key = args[1]
+            err_type = args[3]
+
+            if key != "icon":
+                return res
+            else:
+                # returning paths
+
+                if res in INBUILT_ICONS:
+                    return res
+                elif res != os.path.basename(res):
+                    return res
+                else:
+                    icon_path = persist.gutter_marks["icons"].get(res)
+                    if icon_path:
+                        return icon_path
+                return persist.gutter_marks["icons"][err_type]
+
+        return wrapper
 
     @get_icon
-    def get_val(cls, key, style, err_type):
+    def get_val(self, key, style, err_type):
         """Looks up style definition in that order of precedence:
         1. Individual style definition.
         2. Linter error type
@@ -72,11 +60,11 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
         """
 
         # 1. Individual style definition.
-        y = cls.styles.setdefault(style, {}).get(key)
+        y = self.styles.setdefault(style, {}).get(key)
         if y:
             return y
 
-        styles = cls.styles
+        styles = self.styles
 
         def fetch_style(linter_name):
             x = [v.get(key) for k, v

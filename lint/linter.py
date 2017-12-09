@@ -80,7 +80,7 @@ class LinterMeta(type):
                 if isinstance(syntax, str) and syntax[0] == '^':
                     setattr(cls, 'syntax', re.compile(syntax))
             except re.error as err:
-                persist.printf(
+                util.printf(
                     'ERROR: {} disabled, error compiling syntax: {}'
                     .format(name.lower(), str(err))
                 )
@@ -97,7 +97,7 @@ class LinterMeta(type):
                         try:
                             setattr(cls, regex, re.compile(attr, cls.re_flags))
                         except re.error as err:
-                            persist.printf(
+                            util.printf(
                                 'ERROR: {} disabled, error compiling {}: {}'
                                 .format(name.lower(), regex, str(err))
                             )
@@ -105,7 +105,7 @@ class LinterMeta(type):
 
             if not cls.disabled:
                 if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    persist.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
+                    util.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
                     setattr(cls, 'disabled', True)
 
             for attr in ('inline_settings', 'inline_overrides'):
@@ -128,7 +128,35 @@ class LinterMeta(type):
                 cls.reinitialize()
 
             if 'syntax' in attrs and name not in BASE_CLASSES:
-                persist.register_linter(cls, name, attrs)
+                cls.register_linter(name, attrs)
+
+    def register_linter(cls, name, attrs):
+        """Add a linter class to our mapping of class names <-> linter classes."""
+        if name:
+            name = name.lower()
+            persist.linter_classes[name] = cls
+
+            # By setting the lint_settings to None, they will be set the next
+            # time linter_class.settings() is called.
+            cls.lint_settings = None
+
+            # The sublime plugin API is not available until plugin_loaded is executed
+            if persist.plugin_is_loaded:
+                persist.settings.load(force=True)
+
+                # If the linter had previously been loaded, just reassign that linter
+                if name in persist.linter_classes:
+                    linter_name = name
+                else:
+                    linter_name = None
+
+                for view in persist.views.values():
+                    cls.assign(view, linter_name=linter_name)
+
+                util.printf('{} linter reloaded'.format(name))
+
+            else:
+                util.printf('{} linter loaded'.format(name))
 
     def map_args(cls, defaults):
         """
@@ -764,7 +792,7 @@ class Linter(metaclass=LinterMeta):
 
         vid = view.id()
         persist.views[vid] = view
-        syntax = persist.get_syntax(view)
+        syntax = util.get_syntax(view)
 
         if not syntax:
             cls.remove(vid)
@@ -925,7 +953,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         disabled = set()
-        syntax = persist.get_syntax(persist.views[vid])
+        syntax = util.get_syntax(persist.views[vid])
 
         for linter in linters:
             # First check to see if the linter can run in the current lint mode.
@@ -1076,7 +1104,7 @@ class Linter(metaclass=LinterMeta):
             path = self.which(which)
 
         if not path:
-            persist.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
+            util.printf('ERROR: {} cannot locate \'{}\''.format(self.name, which))
             return ''
 
         cmd[0:1] = util.convert_type(path, [])
@@ -1321,7 +1349,7 @@ class Linter(metaclass=LinterMeta):
 
         if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
-            persist.printf('{} output:\n{}'.format(self.name, stripped_output))
+            util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         found_errors = self.find_errors(output)
         for match, line, col, error, warning, message, near in found_errors:
@@ -1371,7 +1399,7 @@ class Linter(metaclass=LinterMeta):
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
-                        not persist.has_gutter_theme
+                        not persist.settings.has('gutter_theme')
                     ):
                         pos = -1
                     else:
@@ -1492,7 +1520,7 @@ class Linter(metaclass=LinterMeta):
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 
             if status:
-                persist.printf(status)
+                util.printf(status)
 
         return can
 
@@ -1530,7 +1558,7 @@ class Linter(metaclass=LinterMeta):
                 if cls.executable_version:
                     persist.debug('{} version: {}'.format(cls.name, cls.executable_version))
                 else:
-                    persist.printf('WARNING: {} unable to determine module version'.format(cls.name))
+                    util.printf('WARNING: {} unable to determine module version'.format(cls.name))
             else:
                 return True
         elif not(cls.version_args is not None and cls.version_re and cls.version_requirement):
@@ -1551,7 +1579,7 @@ class Linter(metaclass=LinterMeta):
                 )
                 return True
             else:
-                persist.printf(
+                util.printf(
                     'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
                     .format(cls.name, cls.version_requirement, cls.executable_version)
                 )
@@ -1585,7 +1613,7 @@ class Linter(metaclass=LinterMeta):
             persist.debug('{} version: {}'.format(cls.name, version))
             return version
         else:
-            persist.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
 
     @staticmethod
@@ -1698,7 +1726,7 @@ class Linter(metaclass=LinterMeta):
 
         """
         if persist.debug_mode():
-            persist.printf('{}: {} {}'.format(self.name,
+            util.printf('{}: {} {}'.format(self.name,
                                               os.path.basename(self.filename or '<unsaved>'),
                                               cmd or '<builtin>'))
 
@@ -1714,7 +1742,7 @@ class Linter(metaclass=LinterMeta):
         """Return the mapped tempfile_suffix."""
         if self.tempfile_suffix and not self.view.file_name():
             if isinstance(self.tempfile_suffix, dict):
-                suffix = self.tempfile_suffix.get(persist.get_syntax(self.view), self.syntax)
+                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
             else:
                 suffix = self.tempfile_suffix
 

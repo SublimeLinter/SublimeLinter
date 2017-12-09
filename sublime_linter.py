@@ -21,7 +21,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint.error import ErrorStore
-from .lint.const import SETTINGS_FILE, WARN_ERR, STATUS_KEY
+from .lint.const import SETTINGS_FILE, WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
 from .panel import panel
 
 
@@ -41,7 +41,7 @@ def plugin_loaded():
     persist.scheme = set_scheme()
     persist.scheme.generate(from_reload=False)
 
-    persist.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
+    util.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
     util.create_tempdir()
 
     persist.errors = ErrorStore()
@@ -119,7 +119,7 @@ class Listener:
 
         vid = view.id()
         self.loaded_views.add(vid)
-        self.view_syntax[vid] = persist.get_syntax(view)
+        self.view_syntax[vid] = util.get_syntax(view)
 
     def on_post_save_async(self, view):
         if util.is_scratch(view):
@@ -210,7 +210,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             if user_only:
                 return dirname == 'User'
             else:
-                return dirname in (persist.PLUGIN_DIRECTORY, 'User')
+                return dirname in (PLUGIN_DIRECTORY, 'User')
 
     @classmethod
     def shared_plugin(cls):
@@ -364,7 +364,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         vid = view.id()
-        syntax = persist.get_syntax(view)
+        syntax = util.get_syntax(view)
 
         # Syntax either has never been set or just changed
         if vid not in self.view_syntax or self.view_syntax[vid] != syntax:

@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 import sublime
 import re
-from . import style
+from . import style, util
 from collections import OrderedDict
 
 MARK_COLOR_RE = (
@@ -112,11 +112,11 @@ class Scheme(metaclass=ABCMeta):
         from . import persist
 
         if path != self.scheme:
-            persist.printf("New scheme path detected. Updating.")
+            util.printf("New scheme path detected. Updating.")
             self.prefs.set('color_scheme', path)
             sublime.save_settings('Preferences.sublime-settings')
         else:
-            persist.printf("Old scheme path detected. Pass.")
+            util.printf("Old scheme path detected. Pass.")
             pass
 
     def get_nodes(self):
@@ -126,7 +126,7 @@ class Scheme(metaclass=ABCMeta):
 
     def unfound_scopes_dialogue(self, unfound):
         from . import persist
-        persist.printf("\n".join(unfound))
+        util.printf("\n".join(unfound))
         sublime.error_message(
             "SublimeLinter: One or more scopes not found in current color scheme. \nCheck console for details."
         )

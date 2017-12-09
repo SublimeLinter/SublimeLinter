@@ -29,6 +29,7 @@ import re
 import sublime
 
 from . import persist, util
+from .style import GUTTER_MARKS, HighlightStyleStore
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
 
@@ -166,8 +167,6 @@ class Highlight:
         self.marks = util.get_new_dict()
         self.mark_style = 'outline'
         self.mark_flags = MARK_STYLES[self.mark_style]
-
-        from .style import HighlightStyleStore
         self.style_store = HighlightStyleStore()
 
         # Every line that has a mark is kept in this dict, so we know which
@@ -438,7 +437,7 @@ class Highlight:
                 drawn_regions.append(style)
 
             # gutter marks
-            if not persist.has_gutter_theme:
+            if not persist.settings.has('gutter_theme'):
                 continue
 
             gutter_regions = {}
@@ -455,7 +454,7 @@ class Highlight:
                     continue
 
                 # colorize icon
-                if persist.gutter_marks['colorize'] or icon in INBUILT_ICONS:
+                if 'colorize' in GUTTER_MARKS or icon in INBUILT_ICONS:
                     scope = self.style_store.get_val("scope", style, err_type)
                 else:
                     scope = " "  # set scope to non-existent one

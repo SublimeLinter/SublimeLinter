@@ -6,6 +6,8 @@ from .const import INBUILT_ICONS
 
 import os
 
+GUTTER_MARKS = {}
+
 
 class StyleBaseStore(metaclass=ABCMeta):
 
@@ -16,6 +18,7 @@ class StyleBaseStore(metaclass=ABCMeta):
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
     styles = {}
+    gutter_marks = {}
 
     def add(self, name, dict):
         self.styles[name] = dict
@@ -42,10 +45,10 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
                 elif res != os.path.basename(res):
                     return res
                 else:
-                    icon_path = persist.gutter_marks["icons"].get(res)
+                    icon_path = GUTTER_MARKS["icons"].get(res)
                     if icon_path:
                         return icon_path
-                return persist.gutter_marks["icons"][err_type]
+                return GUTTER_MARKS["icons"][err_type]
 
         return wrapper
 
@@ -176,7 +179,7 @@ class StyleParser:
             transfer_style_item("scope")
             transfer_style_item("mark_style")
 
-            if persist.has_gutter_theme:
+            if persist.settings.has('gutter_theme'):
                 transfer_style_item("icon")
                 transfer_style_item("priority")
 
@@ -211,7 +214,7 @@ class StyleParser:
             msg = "Style rule is corrupt for: {}\n".format(linter_name)
             msg += "\n".join(errors)
             msg += json.dumps(node, indent=4, sort_keys=True)
-            persist.printf(msg)
+            util.printf(msg)
             return False
 
         return True

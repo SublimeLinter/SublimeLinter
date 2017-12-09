@@ -145,11 +145,11 @@ class PythonLinter(linter.Linter):
                     warning = ''
                     message += ', linter will not run using built in python'
 
-                persist.printf(message.format(warning, module, cls.name))
+                util.printf(message.format(warning, module, cls.name))
                 module = None
 
             except Exception as ex:
-                persist.printf(
+                util.printf(
                     'ERROR: unknown exception in {}: {}'
                     .format(cls.name, str(ex))
                 )
@@ -180,7 +180,7 @@ class PythonLinter(linter.Linter):
             if module:
                 cls.cmd = None
         else:
-            persist.printf(
+            util.printf(
                 'WARNING: {} deactivated, no available version of python{} satisfies {}'
                 .format(
                     cls.name,
@@ -274,7 +274,7 @@ class PythonLinter(linter.Linter):
 
             if use_module:
                 if persist.debug_mode():
-                    persist.printf(
+                    util.printf(
                         '{}: {} <builtin>'.format(
                             self.name,
                             os.path.basename(self.filename or '<unsaved>')
@@ -284,7 +284,7 @@ class PythonLinter(linter.Linter):
                 try:
                     errors = self.check(code, os.path.basename(self.filename or '<unsaved>'))
                 except Exception as err:
-                    persist.printf(
+                    util.printf(
                         'ERROR: exception in {}.check: {}'
                         .format(self.name, str(err))
                     )
@@ -316,7 +316,7 @@ class PythonLinter(linter.Linter):
 
         """
 
-        persist.printf(
+        util.printf(
             '{}: subclasses must override the PythonLinter.check method'
             .format(self.name)
         )

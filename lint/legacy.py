@@ -31,7 +31,7 @@ class XmlScheme(scheme.Scheme):
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
         # build legacy style_parser
-        from . import persist
+        from . import persist, style
         persist.linter_styles["default"] = {
             "types": {
                 "warning": "sublimelinter.mark.warning",
@@ -47,12 +47,12 @@ class XmlScheme(scheme.Scheme):
             "sublimelinter.mark.warning": {
                 "scope": "sublimelinter.mark.warning",
                 "mark_style": get_mark_style(),
-                "icon": persist.gutter_marks["warning"]
+                "icon": style.GUTTER_MARKS["warning"]
             },
             "sublimelinter.mark.error": {
                 "scope": "sublimelinter.mark.error",
                 "mark_style": get_mark_style(),
-                "icon": persist.gutter_marks["error"]
+                "icon": style.GUTTER_MARKS["error"]
             }
         }
 

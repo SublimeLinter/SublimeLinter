@@ -62,7 +62,7 @@ For example, the `coffeelint`_ linter plugin does the following:
 
         result = [self.executable_path, '--jslint', '--stdin']
 
-        if persist.get_syntax(self.view) == 'coffeescript_literate':
+        if util.get_syntax(self.view) == 'coffeescript_literate':
             result.append('--literate')
 
         return result

@@ -7,6 +7,7 @@ from .const import SETTINGS_FILE
 from . import util
 
 
+
 class DictDelta:
     """
         Returns a list of ḱeys, which are added, deleted or whose values have
@@ -68,7 +69,7 @@ class Settings:
             self.observe_prefs()
         self.update_gutter_marks()
 
-    def has_setting(self, setting):
+    def has(self, setting):
         """Return whether the given setting exists."""
         return setting in self.settings
 
@@ -158,10 +159,10 @@ class Settings:
         if "force_xml_scheme" in self.changeset:
             msg = "Scheme mode changed. You need to restart Sublime Text in order for the changes to take effect."
             sublime.message_dialog(msg)
-            persist.printf(msg)
+            util.printf(msg)
 
         if "styles" in self.changeset:
-            persist.printf("Style definitions changed. Regenerating.")
+            util.printf("Style definitions changed. Regenerating.")
             persist.scheme.clear_scopes()
             persist.scheme.generate()
 
@@ -238,4 +239,5 @@ class Settings:
 
             new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
 
-        persist.gutter_marks = new_gutter_dict
+        from . import style
+        style.GUTTER_MARKS = new_gutter_dict

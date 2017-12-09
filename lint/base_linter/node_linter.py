@@ -118,7 +118,7 @@ class NodeLinter(linter.Linter):
             local_cmd = self.find_local_cmd_path(cmd[0])
 
         if not local_cmd and not global_cmd:
-            persist.printf(
+            util.printf(
                 'WARNING: {} deactivated, cannot locate local or global binary'
                 .format(self.name, cmd[0])
             )

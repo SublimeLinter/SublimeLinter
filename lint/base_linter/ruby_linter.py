@@ -95,7 +95,7 @@ class RubyLinter(linter.Linter):
             ruby = util.which('jruby')
 
         if not rbenv and not ruby:
-            persist.printf(
+            util.printf(
                 'WARNING: {} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby'
                 .format(cls.name, cmd[0])
             )
@@ -126,7 +126,7 @@ class RubyLinter(linter.Linter):
                 else:
                     ruby_cmd = [ruby, gem_path]
             else:
-                persist.printf(
+                util.printf(
                     'WARNING: {} deactivated, cannot locate the gem \'{}\''
                     .format(cls.name, gem)
                 )

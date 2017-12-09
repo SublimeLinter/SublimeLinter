@@ -60,6 +60,36 @@ tempdir = os.path.join(tempfile.gettempdir(),
                        'SublimeLinter3-' + getpass.getuser())
 
 
+# Code migrated from 'lint/persist.py'
+def printf(*args):
+    """Print args to the console, prefixed by the plugin name."""
+    print('SublimeLinter: ', end='')
+    for arg in args:
+        print(arg, end=' ')
+    print()
+
+
+def get_syntax(view):
+    """Return the view's syntax or the syntax it is mapped to in the "syntax_map" setting."""
+    syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
+    view_syntax = view.settings().get('syntax', '')
+    mapped_syntax = ''
+
+    if view_syntax:
+        match = syntax_re.search(view_syntax)
+
+        if match:
+            view_syntax = match.group(1).lower()
+            from .persist import settings
+            mapped_syntax = settings.get(
+                'syntax_map', {}).get(view_syntax, '').lower()
+        else:
+            view_syntax = ''
+
+    return mapped_syntax or view_syntax
+
+###
+
 class Borg:
     _shared_state = {}
 
@@ -273,7 +303,7 @@ def get_rc_settings(start_dir, limit=None):
             return rc_settings
         except (OSError, ValueError) as ex:
             from . import persist
-            persist.printf(
+            printf(
                 'ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
@@ -347,7 +377,7 @@ def run_shell_cmd(cmd):
     except subprocess.TimeoutExpired:
         proc.kill()
         out = b''
-        persist.printf(
+        printf(
             'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
 
     return out
@@ -365,7 +395,7 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        persist.printf('Could not parse shell PATH output:\n' +
+        printf('Could not parse shell PATH output:\n' +
                        (out if out else '<empty>'))
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
@@ -402,7 +432,7 @@ def get_shell_path(env):
             )
         else:
             from . import persist
-            persist.printf('Using an unsupported shell:', shell)
+            printf('Using an unsupported shell:', shell)
 
     # guess PATH if we haven't returned yet
     split = env['PATH'].split(':')
@@ -511,7 +541,7 @@ def create_environment():
             shell = 'from system'
 
         if env['PATH']:
-            persist.printf('computed PATH {}:\n{}\n'.format(
+            printf('computed PATH {}:\n{}\n'.format(
                 shell, env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
@@ -589,7 +619,7 @@ def get_python_version(path):
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
         from . import persist
-        persist.printf(
+        printf(
             'ERROR: an error occurred retrieving the version for {}: {}'
             .format(path, str(ex)))
 
@@ -843,7 +873,7 @@ def get_python_paths():
         paths = out.splitlines()
 
         if persist.debug_mode():
-            persist.printf('sys.path for {}:\n{}\n'.format(
+            printf('sys.path for {}:\n{}\n'.format(
                 python_path, '\n'.join(paths)))
     else:
         persist.debug('no python 3 available to augment sys.path')
@@ -1130,10 +1160,9 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, ex
             env=env
         )
     except Exception as err:
-        from . import persist
-        persist.printf('ERROR: could not launch', repr(cmd))
-        persist.printf('reason:', str(err))
-        persist.printf('PATH:', env.get('PATH', ''))
+        printf('ERROR: could not launch', repr(cmd))
+        printf('reason:', str(err))
+        printf('PATH:', env.get('PATH', ''))
 
 
 # view utils

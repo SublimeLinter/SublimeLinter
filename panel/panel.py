@@ -23,6 +23,14 @@ OUTPUT_PANEL_SETTINGS = {
 }
 
 
+def update_panel(view, text=""):
+    view.set_read_only(False)
+    view.run_command('select_all')
+    view.run_command('left_delete')
+    view.run_command('append', {'characters': text})
+    view.set_read_only(True)
+
+
 def dedupe_views(errors):
     if len(errors) == 1:
         return errors
@@ -106,7 +114,6 @@ def format_row(lineno, err_type, dic):
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
-
     errors = persist.errors.data.copy()
     if not errors:
         return
@@ -123,7 +130,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     settings.set("result_base_dir", base_dir)
 
     if update:
-        panel.run_command("sublime_linter_panel_clear")
         types = settings.get("types")
         codes = settings.get("codes")
         linter = settings.get("linter")
@@ -132,7 +138,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
         settings.set("codes", codes)
         settings.set("linter", linter)
 
-    panel.set_read_only(False)
     to_render = []
     for vid, view_dict in errors.items():
 
@@ -163,6 +168,4 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         to_render.append("\n")  # empty lines between views
 
-    panel.run_command("sublime_linter_panel_update", {
-                      "characters": "\n".join(to_render)})
-    panel.set_read_only(True)
+    update_panel(panel, text="\n".join(to_render))

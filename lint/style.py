@@ -15,7 +15,6 @@ class StyleBaseStore(metaclass=ABCMeta):
 
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
-
     styles = {}
 
     def add(self, name, dict):
@@ -127,8 +126,6 @@ class LinterStyleStore(StyleBaseStore):
 
 
 class StyleParser:
-    """"""
-
     def __call__(self):
         rule_validities = []
 
@@ -151,8 +148,6 @@ class StyleParser:
             )
 
     def parse_styles(self, custom_styles, linter_name):
-        """ """
-
         all_rules_valid = True
         lint_dict = {}
         lint_dict["types"] = {}

@@ -22,9 +22,6 @@ The following constants are exported:
 WARNING - name of warning type
 ERROR   - name of error type
 
-MARK_KEY_FORMAT         - format string for key used to mark code regions
-GUTTER_MARK_KEY_FORMAT  - format string for key used to mark gutter mark regions
-MARK_SCOPE_FORMAT       - format string used for color scheme scope names
 
 """
 
@@ -34,9 +31,6 @@ import sublime
 from . import persist, util
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
-MARK_KEY_FORMAT = 'sublime_linter-{}-marks'
-GUTTER_MARK_KEY_FORMAT = 'sublimelinter-{}-gutter-marks'
-MARK_SCOPE_FORMAT = 'sublimelinter.mark.{}'
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
 

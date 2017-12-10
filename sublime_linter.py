@@ -557,4 +557,4 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 show_errors = False
 
         if show_errors and vid in persist.errors and persist.errors[vid]:
-            view.run_command('sublimelinter_show_all_errors')
+            view.run_command('sublime_linter_show_all_errors', {"force_show": False})

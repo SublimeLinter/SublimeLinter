@@ -60,11 +60,11 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self, **kwargs):
+    def run(self, force_show=False, **kwargs):
         active_panel = self.window.active_panel()
         is_active_panel = (active_panel == "output." + PANEL_NAME)
 
-        if is_active_panel:
+        if is_active_panel and not force_show:
             self.show_panel(PANEL_NAME, show=False)
         else:
             fill_panel(self.window, **kwargs)

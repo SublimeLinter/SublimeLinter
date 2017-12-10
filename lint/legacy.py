@@ -29,7 +29,7 @@ class XmlScheme(scheme.Scheme):
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
         # build legacy style_parser
-        from . import style
+        from . import persist, style
 
         linter_styles = {
             "types": {
@@ -37,7 +37,7 @@ class XmlScheme(scheme.Scheme):
                 "error": "sublimelinter.mark.error"
             }
         }
-        style.LinterStyleStore().update("default", linter_styles)
+        style.LinterStyleStore.update("default", linter_styles)
 
         def get_mark_style():
             mark_style = persist.settings.get("mark_style", "outline")

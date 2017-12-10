@@ -2,12 +2,10 @@ import sublime
 from . import util, scheme
 from xml.etree import ElementTree
 from .persist import settings as merged_settings
-from .const import SETTINGS_FILE
 
 import re
 import os
 import shutil
-import json
 from time import sleep
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -26,7 +24,7 @@ class XmlScheme(scheme.Scheme):
             Generate a modified copy of the current color scheme that contains
             SublimeLinter color entries.
 
-            The current color scheme is checked for SublimeLinter color entries.
+            The current color scheme is checked for SublimeLinter entries.
             If any are missing, the scheme is copied, the entries are added,
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
@@ -133,11 +131,13 @@ class XmlScheme(scheme.Scheme):
 
     def packages_relative_path(self, path, prefix_packages=True):
         """
-            Return a Packages-relative version of path with '/' as the path separator.
+            Return a Packages-relative version of path with '/' as
+            the path separator.
 
-            Sublime Text wants Packages-relative paths used in settings and in the plugin API
-            to use '/' as the path separator on all platforms. This method converts platform
-            path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
+            Sublime Text wants Packages-relative paths used in settings and in
+            the plugin API to use '/' as the path separator on all platforms.
+            This method converts platform path separators to '/'.
+            If insert_packages = True, 'Packages' is prefixed to the
             converted path.
         """
         components = util.get_path_components(path)

@@ -7,7 +7,6 @@ from .const import SETTINGS_FILE
 from . import util
 
 
-
 class DictDelta:
     """
         Returns a list of ḱeys, which are added, deleted or whose values have

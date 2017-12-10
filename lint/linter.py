@@ -1,21 +1,3 @@
-#
-# linter.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Ryan Hileman and Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
-"""
-This module exports linter-related classes.
-
-LinterMeta      Metaclass for Linter classes that does setup when they are loaded.
-Linter          The main base class for linters.
-
-"""
-
 from distutils.versionpredicate import VersionPredicate
 from fnmatch import fnmatch
 from functools import lru_cache
@@ -29,14 +11,10 @@ import shlex
 import sublime
 from xml.sax.saxutils import unescape
 
-
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
 from .style import LinterStyleStore
 
-#
-# Private constants
-#
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
 HTML_ENTITY_RE = re.compile(r'&(?:(?:#(x)?([0-9a-fA-F]{1,4}))|(\w+));')

@@ -1,17 +1,3 @@
-# coding: utf-8
-#
-# commands.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Ryan Hileman and Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
-"""This module implements the Sublime Text commands provided by SublimeLinter."""
-
-
 import sublime_plugin
 
 from .lint import persist
@@ -71,7 +57,8 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             self.show_panel(PANEL_NAME)
 
     def show_panel(self, name, show=True):
-        """Changes visibility of panel with given name.
+        """
+        Changes visibility of panel with given name.
         Panel will be shown by default.
         Pass show=False for hiding.
         """

@@ -1,14 +1,3 @@
-# coding=utf8
-#
-# util.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Ryan Hileman and Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module provides general utility methods."""
 
 from functools import lru_cache
@@ -34,9 +23,7 @@ from .const import WARNING, ERROR
 if sublime.platform() != 'windows':
     import pwd
 
-#
-# Public constants
-#
+
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
@@ -70,7 +57,10 @@ def printf(*args):
 
 
 def get_syntax(view):
-    """Return the view's syntax or the syntax it is mapped to in the "syntax_map" setting."""
+    """
+    Return the view's syntax
+    or the syntax it is mapped to in the "syntax_map" setting.
+    """
     syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
     view_syntax = view.settings().get('syntax', '')
     mapped_syntax = ''

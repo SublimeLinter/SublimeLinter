@@ -1,9 +1,12 @@
 [
     { "keys": ["ctrl+k", "l"], "command": "sublime_linter_lint" },
-    { "keys": ["ctrl+k", "n"], "command": "sublime_linter_goto_error", "args": {"direction": "next"} },
-    { "keys": ["ctrl+k", "p"], "command": "sublime_linter_goto_error", "args": {"direction": "previous"} },
+    /* You can also goto next/previous error via the inbuilt commands:
+    { "keys": ["f4"], "command": "next_result" },
+    { "keys": ["shift+f4"], "command": "prev_result" }*/
+
+    // You may provide filter options: 'type':[], 'linter':[], 'code':[]
     { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle" }
 
     // You can also trigger the line report with a keybinding:
-    // { "keys": ["ctrl+k", "a"], "command": "sublime_linter_line_report" },
+    // { "keys": ["ctrl+k", "r"], "command": "sublime_linter_line_report" }
 ]

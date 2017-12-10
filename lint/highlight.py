@@ -2,7 +2,7 @@ import re
 import sublime
 
 from . import persist, util
-from .style import GUTTER_MARKS, HighlightStyleStore
+from .style import HighlightStyleStore
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
 
@@ -417,6 +417,8 @@ class Highlight:
         since each one potentially needs a different color.
 
         """
+        from .style import GUTTER_ICONS
+
         self.set_mark_style()
 
         drawn_regions = []
@@ -456,7 +458,8 @@ class Highlight:
                     continue
 
                 # colorize icon
-                if 'colorize' in GUTTER_MARKS or icon in INBUILT_ICONS:
+
+                if GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
                     scope = self.style_store.get_val("scope", style, err_type)
                 else:
                     scope = " "  # set scope to non-existent one

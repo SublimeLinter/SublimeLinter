@@ -109,7 +109,6 @@ class Scheme(metaclass=ABCMeta):
 
     def set_scheme_path(self, path):
         """Set 'color_scheme' to provided path if it is currently is not."""
-        from . import persist
 
         if path != self.scheme:
             util.printf("New scheme path detected. Updating.")
@@ -125,7 +124,6 @@ class Scheme(metaclass=ABCMeta):
         return s_dict.values()
 
     def unfound_scopes_dialogue(self, unfound):
-        from . import persist
         util.printf("\n".join(unfound))
         sublime.error_message(
             "SublimeLinter: One or more scopes not found in current color scheme. \nCheck console for details."

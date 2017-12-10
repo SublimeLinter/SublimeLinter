@@ -6,11 +6,10 @@ from .const import INBUILT_ICONS
 
 import os
 
-GUTTER_MARKS = {}
+GUTTER_ICONS = {}
 
 
 class StyleBaseStore(metaclass=ABCMeta):
-
     @abstractmethod
     def add(cls):
         pass
@@ -18,7 +17,6 @@ class StyleBaseStore(metaclass=ABCMeta):
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
     styles = {}
-    gutter_marks = {}
 
     def add(self, name, dict):
         self.styles[name] = dict
@@ -45,10 +43,10 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
                 elif res != os.path.basename(res):
                     return res
                 else:
-                    icon_path = GUTTER_MARKS["icons"].get(res)
+                    icon_path = GUTTER_ICONS["icons"].get(res)
                     if icon_path:
                         return icon_path
-                return GUTTER_MARKS["icons"][err_type]
+                return GUTTER_ICONS["icons"][err_type]
 
         return wrapper
 

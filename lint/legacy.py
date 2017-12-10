@@ -29,19 +29,21 @@ class XmlScheme(scheme.Scheme):
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
         # build legacy style_parser
-        from . import persist, style
-        persist.linter_styles["default"] = {
+        from . import style
+
+        linter_styles = {
             "types": {
                 "warning": "sublimelinter.mark.warning",
                 "error": "sublimelinter.mark.error"
             }
         }
+        style.LinterStyleStore().update("default", linter_styles)
 
         def get_mark_style():
             mark_style = persist.settings.get("mark_style", "outline")
             return re.sub(" ", "_", mark_style)
 
-        persist.highlight_styles = {
+        highlight_styles = {
             "sublimelinter.mark.warning": {
                 "scope": "sublimelinter.mark.warning",
                 "mark_style": get_mark_style(),
@@ -53,14 +55,16 @@ class XmlScheme(scheme.Scheme):
                 "icon": style.GUTTER_ICONS["error"]
             }
         }
+        style_store = style.HighlightStyleStore()
+        for style_name, style_dict in highlight_styles.items():
+            style_store.update(style_name, style_dict)
 
         # Append style dicts with our styles to the style array
         scheme_text = sublime.load_resource(self.paths["scheme_orig"])
         plist = ElementTree.XML(scheme_text)
         styles = plist.find('./dict/array')
 
-        unfound = self.parse_scheme_xml(
-            persist.highlight_styles, text=scheme_text)
+        unfound = self.parse_scheme_xml(highlight_styles, text=scheme_text)
         if not unfound:
             return
 

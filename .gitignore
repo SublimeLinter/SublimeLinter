@@ -5,3 +5,5 @@ coverage.xml
 *.pyc
 *.sublime-project
 _build/
+.mypy_cache/
+.ropeproject/

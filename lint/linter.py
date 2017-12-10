@@ -1335,7 +1335,7 @@ class Linter(metaclass=LinterMeta):
                 err_type = self.get_err_type(error, warning)
                 style = self.style_store.get_style(error or warning, err_type)
 
-                assert style  # style should never be None
+                assert style
 
                 if col:
                     start, end = self.highlight.full_line(line)

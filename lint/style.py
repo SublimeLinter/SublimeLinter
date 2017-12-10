@@ -11,14 +11,14 @@ GUTTER_ICONS = {}
 
 class StyleBaseStore(metaclass=ABCMeta):
     @abstractmethod
-    def add(cls):
+    def update(cls):
         pass
 
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
     styles = {}
 
-    def add(self, name, dict):
+    def update(self, name, dict):
         self.styles[name] = dict
 
     def has_style(self, style):
@@ -93,7 +93,7 @@ class LinterStyleStore(StyleBaseStore):
     default_styles = {}
 
     @classmethod
-    def add(cls, name, dict):
+    def update(cls, name, dict):
         if name == "default":
             cls.default_styles = dict
         else:
@@ -192,9 +192,9 @@ class StyleParser:
             for code in node.get("codes", []):
                 lint_dict["codes"][code] = rule_name
 
-            HighlightStyleStore().add(rule_name, style_dict)
+            HighlightStyleStore().update(rule_name, style_dict)
 
-        LinterStyleStore.add(linter_name, lint_dict)
+        LinterStyleStore.update(linter_name, lint_dict)
 
         return all_rules_valid
 

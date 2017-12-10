@@ -10,13 +10,13 @@
     // Blueberry/Blueberry - round.gutter-theme
     // Circle
     // Danish Royalty
-    // Default
+    // SublimeLinter
     // Hands
     // Knob/Knob - simple.gutter-theme
     // Knob/Knob - symbol.gutter-theme
     // Koloria
     // ProjectIcons
-    "gutter_theme": "Default",
+    "gutter_theme": "none",
 
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
@@ -72,6 +72,7 @@
     //   one of the default icons: "circle", "dot" or "bookmark"
     //   or one provided by a gutter theme (e.g. "warning")
     //   or a path to an icon file like (e.g. "Packages/icons/warning.png")
+    //   or "none" to remove the icon
     // Note: At least one of those targets is required: types or codes.
     // Styles can also be specified per linter.
     "styles": [
@@ -79,7 +80,7 @@
             "mark_style": "outline",
             "priority": 1,
             "scope": "region.yellowish markup.warning.sublime_linter",
-            "icon": "warning",
+            "icon": "dot",
             "types": [
                 "warning"
             ]
@@ -88,7 +89,7 @@
             "mark_style": "outline",
             "priority": 1,
             "scope": "region.redish markup.error.sublime_linter",
-            "icon": "error",
+            "icon": "dot",
             "types": [
                 "error"
             ]

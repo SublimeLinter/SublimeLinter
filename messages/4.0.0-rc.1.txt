@@ -9,6 +9,10 @@ New features
 - The statusbar now shows error (E) and warning (W) counts if there are any.
 - The statusbar shows the error for your cursor position instead of all errors
   for that line.
+- A panel displays errors in all open files.
+- The panel can be filtered to just show specific types or severity level.
+- Built-in next/prev_results can be used to navigate to all errors.
+- The filtering also applies to these navigation commands.
 - A new "styles" setting to configure error highlighting.
 - Each linter setting now accepts such a "styles" setting, so colors and
   highlight style can be differentiated per linter.

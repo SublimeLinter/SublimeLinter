@@ -4,25 +4,12 @@
         "command": "sublime_linter_lint"
     },
     {
-        "caption": "SublimeLinter: Next Error",
-        "command": "sublime_linter_goto_error", "args": {"direction": "next"}
-    },
-    {
-        "caption": "SublimeLinter: Previous Error",
-        "command": "sublime_linter_goto_error", "args": {"direction": "previous"}
-    },
-    {
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublime_linter_panel_toggle"
     },
     {
         "caption": "SublimeLinter: Show Line Errors",
         "command": "sublime_linter_line_report"
-    },
-    {
-        "caption": "SublimeLinter: Report (Open Files)",
-        "command": "sublime_linter_report",
-        "args": {"on": "files"}
     },
     {
         "caption": "Preferences: SublimeLinter Settings",

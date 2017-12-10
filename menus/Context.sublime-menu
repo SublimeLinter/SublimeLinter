@@ -1,21 +1,7 @@
 [
     {
         "id": "sublimelinter",
-        "caption": "SublimeLinter",
-        "children":
-        [
-            {
-                "caption": "Lint This View",
-                "command": "sublime_linter_lint"
-            },
-            {
-                "caption": "Next Error",
-                "command": "sublime_linter_goto_error", "args": {"direction": "next"}
-            },
-            {
-                "caption": "Previous Error",
-                "command": "sublime_linter_goto_error", "args": {"direction": "previous"}
-            }
-        ]
+        "caption": "Lint This View",
+        "command": "sublime_linter_lint"
     }
 ]

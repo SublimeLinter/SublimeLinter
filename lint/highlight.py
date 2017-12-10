@@ -1,30 +1,3 @@
-#
-# highlight.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Ryan Hileman and Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
-"""
-This module implements highlighting code with marks.
-
-The following classes are exported:
-
-HighlightSet
-Highlight
-
-
-The following constants are exported:
-
-WARNING - name of warning type
-ERROR   - name of error type
-
-
-"""
-
 import re
 import sublime
 
@@ -97,7 +70,10 @@ class RegionStore:
 
 
 class HighlightSet:
-    """This class maintains a set of Highlight objects and performs bulk operations on them."""
+    """
+    This class maintains a set of Highlight objects
+    and performs bulk operations on them.
+    """
 
     def __init__(self):
         self.all = set()
@@ -137,7 +113,10 @@ class HighlightSet:
         self.draw(view)
 
     def reset(self, view):
-        """Clear all marks in the given view and reset the list of marks in our Highlights."""
+        """
+        Clear all marks in the given view
+        and reset the list of marks in our Highlights.
+        """
         self.clear(view)
 
         for highlight in self.all:
@@ -173,18 +152,22 @@ class Highlight:
         # lines to mark in the gutter.
         self.lines = util.get_new_dict()
 
-        # These are used when highlighting embedded code, for example JavaScript
-        # or CSS within an HTML file. The embedded code is linted as if it begins
-        # at (0, 0), but we need to keep track of where the actual start is within the source.
+        # These are used when highlighting embedded code
+        # The embedded code is linted as if it begins
+        # at (0, 0), but we need to keep track of where
+        # the actual start is within the source.
         self.line_offset = 0
         self.char_offset = 0
 
-        # Linting runs asynchronously on a snapshot of the code. Marks are added to the code
-        # during that asynchronous linting, and the markup code needs to calculate character
-        # positions given a line + column. By the time marks are added, the actual buffer
-        # may have changed, so we can't reliably use the plugin API to calculate character
-        # positions. The solution is to calculate and store the character positions for
-        # every line when this object is created, then reference that when needed.
+        # Linting runs asynchronously on a snapshot of the code.
+        # Marks are added to the code during that asynchronous linting,
+        # and the markup code needs to calculate character positions given
+        # a line + column. By the time marks are added, the actual buffer
+        # may have changed, so we can't reliably use the plugin API to
+        # calculate character positions.
+        # The solution is to calculate and store the character positions for
+        # every line when this object is created, then reference that
+        # when needed.
         self.newlines = newlines = [0]
         last = -1
 
@@ -212,9 +195,9 @@ class Highlight:
         """
         Return the start/end character positions for the given line.
 
-        This returns *real* character positions (relative to the beginning of self.code)
-        base on the *virtual* line number (adjusted by the self.line_offset).
-
+        This returns *real* character positions (relative to the beginning
+        of self.code) base on the *virtual* line number (adjusted by the
+        self.line_offset).
         """
 
         # The first line of the code needs the character offset
@@ -230,29 +213,42 @@ class Highlight:
 
         return start, end
 
-    def range(self, line, pos, length=-1, near=None, err_type=ERROR, word_re=None, style=None):
+    def range(
+        self,
+        line,
+        pos,
+        length=-1,
+        near=None,
+        err_type=ERROR,
+        word_re=None,
+        style=None
+    ):
         """
         Mark a range of text.
 
-        line and pos should be zero-based. The pos and length argument can be used to control marking:
+        line and pos should be zero-based. The pos and length argument can be
+        used to control marking:
 
-            - If pos < 0, the entire line is marked and length is ignored.
+        - If pos < 0, the entire line is marked and length is ignored.
 
-            - If near is not None, it is stripped of quotes and length = len(near)
+        - If near is not None, it is stripped of quotes and length = len(near)
 
-            - If length < 0, the nearest word starting at pos is marked, and if
-              no word is matched, the character at pos is marked.
+        - If length < 0, the nearest word starting at pos is marked, and if
+          no word is matched, the character at pos is marked.
 
-            - If length == 0, no text is marked, but a gutter mark will appear on that line.
+        - If length == 0, no text is marked,
+          but a gutter mark will appear on that line.
 
-        err_type determines what type of error mark will be drawn (ERROR or WARNING).
+        err_type determines what type mark will be drawn (ERROR or WARNING).
 
-        When length < 0, this method attempts to mark the closest word at pos on the given line.
+        When length < 0, this method attempts to mark the closest word at
+        pos on the given line.
         If you want to customize the word matching regex, pass it in word_re.
 
-        If the err_type is WARNING and an identical ERROR region exists, it is not added.
-        If the err_type is ERROR and an identical WARNING region exists, the warning region
-        is removed and the error region is added.
+        If the err_type is WARNING and an identical ERROR region exists,
+        it is not added.
+        If the err_type is ERROR and an identical WARNING region exists,
+        the warning region is removed and the error region is added.
 
         """
 
@@ -377,7 +373,13 @@ class Highlight:
 
         if start != -1:
             length = self.range(
-                line, start, len(near), err_type=err_type, word_re=word_re, style=style)
+                line,
+                start,
+                len(near),
+                err_type=err_type,
+                word_re=word_re,
+                style=style
+            )
             return start, length
         else:
             return 0, 0

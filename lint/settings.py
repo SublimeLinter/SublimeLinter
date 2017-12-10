@@ -3,7 +3,6 @@ import sys
 from glob import glob
 
 import sublime
-from .const import SETTINGS_FILE
 from . import util
 
 
@@ -111,14 +110,14 @@ class Settings:
 
     def observe(self, observer=None):
         """Observer changes to the plugin settings."""
-        self.plugin_settings = sublime.load_settings(SETTINGS_FILE)
+        self.plugin_settings = sublime.load_settings("SublimeLinter.sublime-settings")
         self.plugin_settings.clear_on_change('sublimelinter-persist-settings')
         self.plugin_settings.add_on_change('sublimelinter-persist-settings',
                                            observer or self.on_update)
 
     def get_merged_settings(self):
         """Returns dict of default and user settings merged."""
-        res = sublime.find_resources(SETTINGS_FILE)
+        res = sublime.find_resources("SublimeLinter.sublime-settings")
         merged_dict = {}
         for r in res:
             try:

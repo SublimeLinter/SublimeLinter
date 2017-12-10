@@ -2,11 +2,11 @@ import sublime
 from . import util, scheme
 from xml.etree import ElementTree
 from .persist import settings as merged_settings
-from .const import SETTINGS_FILE
 
 import re
 import os
 import shutil
+
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -24,7 +24,7 @@ class XmlScheme(scheme.Scheme):
             Generate a modified copy of the current color scheme that contains
             SublimeLinter color entries.
 
-            The current color scheme is checked for SublimeLinter color entries.
+            The current color scheme is checked for SublimeLinter entries.
             If any are missing, the scheme is copied, the entries are added,
             and the color scheme is rewritten to Packages/User/SublimeLinter.
         """
@@ -131,11 +131,13 @@ class XmlScheme(scheme.Scheme):
 
     def packages_relative_path(self, path, prefix_packages=True):
         """
-            Return a Packages-relative version of path with '/' as the path separator.
+            Return a Packages-relative version of path with '/' as
+            the path separator.
 
-            Sublime Text wants Packages-relative paths used in settings and in the plugin API
-            to use '/' as the path separator on all platforms. This method converts platform
-            path separators to '/'. If insert_packages = True, 'Packages' is prefixed to the
+            Sublime Text wants Packages-relative paths used in settings and in
+            the plugin API to use '/' as the path separator on all platforms.
+            This method converts platform path separators to '/'.
+            If insert_packages = True, 'Packages' is prefixed to the
             converted path.
         """
         components = util.get_path_components(path)
@@ -153,7 +155,7 @@ def backup_old_settings(usr_dir_abs):
         A message will be displayed to the user.
     """
     msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"""  # noqa: 501
-    settings_file = os.path.join(usr_dir_abs, SETTINGS_FILE)
+    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
         settings = sublime.decode_value(sublime.load_resource(path))
@@ -171,7 +173,7 @@ def rm_old_dir(usr_dir_abs):
 
 
 def legacy_check(func):
-    min_version = int(sublime.version()) >= 3149  # version check
+    min_version = int(sublime.version()) >= 3149
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     backup_old_settings(usr_dir_abs)
 

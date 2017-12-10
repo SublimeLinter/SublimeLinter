@@ -6,25 +6,25 @@ scope: output.sublime_linter
 
 contexts:
   main:
-    - include: diagnostic-body
+    - include: linter-body
 
-  diagnostic-body:
+  linter-body:
     - match: '^(.+):$'
       captures:
         1: entity.name.filename.sublime_linter
     - match: '^\s+(?=\d)'
       push:
-        - ensure-diag-meta-scope
+        - ensure-linter-meta-scope
         - expect-linter-type
-        - expect-diag-type
+        - expect-linter-severity
         - expect-line-maybe-column
 
-  ensure-diag-meta-scope:
-    - meta_scope: meta.diagnostic.body.sublime_linter
+  ensure-linter-meta-scope:
+    - meta_scope: meta.linter.body.sublime_linter
     - match: ""  # match the empty string
       pop: true
 
-  expect-diag-type:
+  expect-linter-severity:
     - include: pop-at-end
     - match: \berror\b
       scope: markup.deleted.sublime_linter markup.error.sublime_linter

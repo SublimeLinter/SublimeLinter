@@ -1,14 +1,3 @@
-# coding=utf8
-#
-# util.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Ryan Hileman and Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module provides general utility methods."""
 
 from functools import lru_cache
@@ -34,9 +23,7 @@ from .const import WARNING, ERROR
 if sublime.platform() != 'windows':
     import pwd
 
-#
-# Public constants
-#
+
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
@@ -70,7 +57,10 @@ def printf(*args):
 
 
 def get_syntax(view):
-    """Return the view's syntax or the syntax it is mapped to in the "syntax_map" setting."""
+    """
+    Return the view's syntax
+    or the syntax it is mapped to in the "syntax_map" setting.
+    """
     syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
     view_syntax = view.settings().get('syntax', '')
     mapped_syntax = ''
@@ -88,7 +78,6 @@ def get_syntax(view):
 
     return mapped_syntax or view_syntax
 
-###
 
 class Borg:
     _shared_state = {}
@@ -302,9 +291,7 @@ def get_rc_settings(start_dir, limit=None):
 
             return rc_settings
         except (OSError, ValueError) as ex:
-            from . import persist
-            printf(
-                'ERROR: could not load \'{}\': {}'.format(path, str(ex)))
+            printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -395,8 +382,10 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        printf('Could not parse shell PATH output:\n' +
-                       (out if out else '<empty>'))
+        printf(
+            'Could not parse shell PATH output:\n'
+            + (out if out else '<empty>')
+        )
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
             'It is unlikely that any linters will work. '
@@ -431,7 +420,6 @@ def get_shell_path(env):
                 '\n'
             )
         else:
-            from . import persist
             printf('Using an unsupported shell:', shell)
 
     # guess PATH if we haven't returned yet
@@ -618,7 +606,6 @@ def get_python_version(path):
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
-        from . import persist
         printf(
             'ERROR: an error occurred retrieving the version for {}: {}'
             .format(path, str(ex)))

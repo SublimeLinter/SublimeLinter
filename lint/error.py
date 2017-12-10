@@ -3,7 +3,6 @@ from .const import WARNING, ERROR
 
 
 class ErrorStore(util.Borg):
-    """docstring for ErrorStore"""
 
     def __init__(self):
         self.data = {}

@@ -1,4 +1,3 @@
-import html
 import os
 import sublime
 

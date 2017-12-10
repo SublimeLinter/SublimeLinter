@@ -1,13 +1,3 @@
-#
-# ruby_linter.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module exports the RubyLinter subclass of Linter."""
 
 import os
@@ -15,7 +5,7 @@ import re
 import shlex
 import sublime
 
-from .. import linter, persist, util
+from .. import linter, util
 
 CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
 

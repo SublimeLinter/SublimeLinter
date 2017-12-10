@@ -1,13 +1,3 @@
-#
-# node_linter.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Andrew de Andrade <andrew@deandrade.com.br>
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module exports the NodeLinter subclass of Linter."""
 
 import json
@@ -17,7 +7,7 @@ import sublime
 
 from functools import lru_cache
 from os import path, access, X_OK
-from .. import linter, persist, util
+from .. import linter, util
 
 
 class NodeLinter(linter.Linter):

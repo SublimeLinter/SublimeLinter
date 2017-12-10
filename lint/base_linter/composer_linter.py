@@ -1,13 +1,3 @@
-#
-# composer_linter.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Christy Quinn <christyjquinn@gmail.com>
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module exports the ComposerLinter subclass of Linter."""
 
 import json
@@ -16,7 +6,7 @@ import codecs
 
 from functools import lru_cache
 from os import path, access, X_OK
-from .. import linter, persist, util
+from .. import linter, util
 
 
 class ComposerLinter(linter.Linter):

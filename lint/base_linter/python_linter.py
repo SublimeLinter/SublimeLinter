@@ -1,13 +1,3 @@
-#
-# python_linter.py
-# Part of SublimeLinter3, a code checking framework for Sublime Text 3
-#
-# Written by Aparajita Fishman
-#
-# Project: https://github.com/SublimeLinter/SublimeLinter3
-# License: MIT
-#
-
 """This module exports the PythonLinter subclass of Linter."""
 
 import importlib

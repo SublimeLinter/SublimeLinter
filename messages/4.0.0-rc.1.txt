@@ -1,8 +1,8 @@
-SublimeLinter 4.0.0 Pre-Release
-===============================
+SublimeLinter 4.0 Pre-Release
+===========================================
 
 New features
--------------------------------
+-------------------------------------------
 
 - Hover over an error to view the message.
 - Hover over the gutter to view all error messages for that line.
@@ -14,9 +14,9 @@ New features
 - Built-in next/prev_results can be used to navigate to all errors.
 - The filtering also applies to these navigation commands.
 - A new "styles" setting to configure error highlighting.
-- Each linter setting now accepts such a "styles" setting, so colors and
+- Each linter setting now accepts such a "styles" setting, so colors, icons and
   highlight style can be differentiated per linter.
-- Styles also have a "priority" which decides what color to show in the gutter.
+- Styles also have a "priority" which decides what icon to show in the gutter.
 - Gutter themes can now be set using just their name.
 - Generated "(SL)" color schemes are now hidden.
 
@@ -28,21 +28,24 @@ On Sublime Text 3 builds > 3149 (dev builds):
   your color scheme (e.g. "entity.name")
 
 
-Changes to commands and menus
--------------------------------
+Changes to commands, menus and key bindings
+-------------------------------------------
 
-The context menu now only list commands relevant for the view context.
-The tools menu now only lists the clear_cache command.
+The context menu now only lists the Lint This View command.
+The tools menu has been removed.
 Commands are now named sublime_linter_* to comply with naming conventions.
+The built-in "next_result" and "prev_result" commands can be used to navigate
+to errors, so the SublimeLinter-specific key bindings have been dropped.
 
 Commands to change settings or toggle linters have been removed.
 - Settings can be changed by modifying your user settings.
 - Linters may be disabled in the user settings, in .sublimelinterrc files, or
-  in your project configuration. Or you can disable each specific plugin.
+  in your project configuration. Or you can disable each specific plugin with
+  Package Control.
 
 
 Changes to settings
--------------------------------
+-------------------------------------------
 
 Default settings now have documentation inline.
 Default settings can no longer be edited.
@@ -55,13 +58,12 @@ The "user" node has been removed from settings.
 The settings "ignore_matches" and "demote_to_warning_matches" have been removed.
 Your linter should have settings to modify the rules or severity levels.
 
-The setting make_warnings_passive has been removed. The new reporting features
-should make this an unnecesary feature.
+The new output panel and filtering have supplanted the "make_warnings_passive"
+and "show_errors_on_save" features.
 
 
 How to upgrade
 -------------------------------
 
-Your settings will be upgraded automatically. You may want to review the new
-settings and check if you want to customize anything, or remove some of your
-existing customizations.
+Your old settings will be backed up. You may want to compare them to the new
+settings and check if you want to migrate anything.

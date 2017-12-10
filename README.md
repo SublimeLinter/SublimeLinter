@@ -6,7 +6,7 @@ SublimeLinter
 
 ## About SublimeLinter
 
-A framework for interactive code linting in the [Sublime Text 3](http://sublimetext.com/3) editor.
+A framework for interactive code linting in [Sublime Text 3](http://sublimetext.com/3).
 
 
 ## Key Bindings

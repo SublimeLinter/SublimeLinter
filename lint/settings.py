@@ -7,7 +7,6 @@ from .const import SETTINGS_FILE
 from . import util
 
 
-
 class DictDelta:
     """
         Returns a list of ḱeys, which are added, deleted or whose values have
@@ -204,8 +203,6 @@ class Settings:
     def update_gutter_marks(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
 
-        from . import persist
-
         new_gutter_dict = {"icons": {}}
 
         theme_path = self.settings.get('gutter_theme')
@@ -240,4 +237,5 @@ class Settings:
             new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
 
         from . import style
+
         style.GUTTER_MARKS = new_gutter_dict

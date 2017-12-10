@@ -18,7 +18,6 @@ class StyleBaseStore(metaclass=ABCMeta):
 
 class HighlightStyleStore(StyleBaseStore, util.Borg):
     styles = {}
-    gutter_marks = {}
 
     def add(self, name, dict):
         self.styles[name] = dict

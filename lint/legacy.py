@@ -7,8 +7,6 @@ from .const import SETTINGS_FILE
 import re
 import os
 import shutil
-import json
-from time import sleep
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -154,8 +152,8 @@ def backup_old_settings(usr_dir_abs):
         and back it up.
         A message will be displayed to the user.
     """
-    msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/""" # noqa: 501
-    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
+    msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"""  # noqa: 501
+    settings_file = os.path.join(usr_dir_abs, SETTINGS_FILE)
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
         settings = sublime.decode_value(sublime.load_resource(path))
@@ -164,7 +162,6 @@ def backup_old_settings(usr_dir_abs):
             new_name = "SublimeLinter (old).sublime-settings"
             new_path = os.path.join(usr_dir_abs, new_name)
             os.rename(settings_file, new_path)
-            sleep(1)
             sublime.message_dialog(msg)
 
 

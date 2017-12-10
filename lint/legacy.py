@@ -6,6 +6,7 @@ from .persist import settings as merged_settings
 import re
 import os
 import shutil
+from .const import WARNING, ERROR
 
 
 COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -47,12 +48,12 @@ class XmlScheme(scheme.Scheme):
             "sublimelinter.mark.warning": {
                 "scope": "sublimelinter.mark.warning",
                 "mark_style": get_mark_style(),
-                "icon": style.GUTTER_ICONS["warning"]
+                "icon": style.GUTTER_ICONS["icons"][WARNING]
             },
             "sublimelinter.mark.error": {
                 "scope": "sublimelinter.mark.error",
                 "mark_style": get_mark_style(),
-                "icon": style.GUTTER_ICONS["error"]
+                "icon": style.GUTTER_ICONS["icons"][ERROR]
             }
         }
         style_store = style.HighlightStyleStore()

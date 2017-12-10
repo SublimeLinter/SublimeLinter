@@ -148,6 +148,9 @@ def get_focused_view(view):
     if is_scratch(view):
         return
 
+    if not view.window():
+        return
+
     for view in view.window().views():
         if view == active_view:
             return view

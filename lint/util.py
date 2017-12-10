@@ -78,7 +78,6 @@ def get_syntax(view):
 
     return mapped_syntax or view_syntax
 
-###
 
 class Borg:
     _shared_state = {}
@@ -292,9 +291,7 @@ def get_rc_settings(start_dir, limit=None):
 
             return rc_settings
         except (OSError, ValueError) as ex:
-            from . import persist
-            printf(
-                'ERROR: could not load \'{}\': {}'.format(path, str(ex)))
+            printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
     else:
         return None
 
@@ -385,8 +382,10 @@ def extract_path(cmd, delim=':'):
         path = path[1]
         return ':'.join(path.strip().split(delim))
     else:
-        printf('Could not parse shell PATH output:\n' +
-                       (out if out else '<empty>'))
+        printf(
+            'Could not parse shell PATH output:\n'
+            + (out if out else '<empty>')
+        )
         sublime.error_message(
             'SublimeLinter could not determine your shell PATH. '
             'It is unlikely that any linters will work. '
@@ -421,7 +420,6 @@ def get_shell_path(env):
                 '\n'
             )
         else:
-            from . import persist
             printf('Using an unsupported shell:', shell)
 
     # guess PATH if we haven't returned yet
@@ -608,7 +606,6 @@ def get_python_version(path):
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
-        from . import persist
         printf(
             'ERROR: an error occurred retrieving the version for {}: {}'
             .format(path, str(ex)))

@@ -173,7 +173,7 @@ def rm_old_dir(usr_dir_abs):
 
 
 def legacy_check(func):
-    min_version = int(sublime.version()) >= 3149  # version check
+    min_version = int(sublime.version()) >= 3149
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     backup_old_settings(usr_dir_abs)
 

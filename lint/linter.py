@@ -1704,9 +1704,11 @@ class Linter(metaclass=LinterMeta):
 
         """
         if persist.debug_mode():
-            util.printf('{}: {} {}'.format(self.name,
-                                              os.path.basename(self.filename or '<unsaved>'),
-                                              cmd or '<builtin>'))
+            util.printf('{}: {} {}'.format(
+                self.name,
+                os.path.basename(self.filename or '<unsaved>'),
+                cmd or '<builtin>')
+            )
 
         if self.tempfile_suffix:
             if self.tempfile_suffix != '-':

@@ -66,7 +66,7 @@ class Settings:
             self.observe()
             self.on_update()
             self.observe_prefs()
-        self.update_gutter_marks()
+        self.update_gutter_icons()
 
     def has(self, setting):
         """Return whether the given setting exists."""
@@ -187,7 +187,7 @@ class Settings:
                 lambda view: Linter.assign(view, reset=True))
 
         if "gutter_theme" in self.changeset:
-            self.update_gutter_marks()
+            self.update_gutter_icons()
 
         Linter.reload()  # always reload
         from ..sublime_linter import SublimeLinter
@@ -200,7 +200,7 @@ class Settings:
         from .persist import scheme
         scheme.generate()
 
-    def update_gutter_marks(self):
+    def update_gutter_icons(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
 
         new_gutter_dict = {"icons": {}}
@@ -238,4 +238,4 @@ class Settings:
 
         from . import style
 
-        style.GUTTER_MARKS = new_gutter_dict
+        style.GUTTER_ICONS = new_gutter_dict

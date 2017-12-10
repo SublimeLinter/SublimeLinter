@@ -415,7 +415,7 @@ class Highlight:
         since each one potentially needs a different color.
 
         """
-        from .style import GUTTER_MARKS
+        from .style import GUTTER_ICONS
 
         self.set_mark_style()
 
@@ -457,7 +457,7 @@ class Highlight:
 
                 # colorize icon
 
-                if GUTTER_MARKS.get('colorize', True) or icon in INBUILT_ICONS:
+                if GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
                     scope = self.style_store.get_val("scope", style, err_type)
                 else:
                     scope = " "  # set scope to non-existent one

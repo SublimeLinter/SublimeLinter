@@ -45,12 +45,12 @@ class XmlScheme(scheme.Scheme):
             "sublimelinter.mark.warning": {
                 "scope": "sublimelinter.mark.warning",
                 "mark_style": get_mark_style(),
-                "icon": style.GUTTER_MARKS["warning"]
+                "icon": style.GUTTER_ICONS["warning"]
             },
             "sublimelinter.mark.error": {
                 "scope": "sublimelinter.mark.error",
                 "mark_style": get_mark_style(),
-                "icon": style.GUTTER_MARKS["error"]
+                "icon": style.GUTTER_ICONS["error"]
             }
         }
 

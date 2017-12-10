@@ -155,7 +155,7 @@ def backup_old_settings(usr_dir_abs):
         A message will be displayed to the user.
     """
     msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"""  # noqa: 501
-    settings_file = os.path.join(usr_dir_abs, SETTINGS_FILE)
+    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
         settings = sublime.decode_value(sublime.load_resource(path))

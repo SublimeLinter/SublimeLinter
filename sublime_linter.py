@@ -11,7 +11,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, scheme
 from .lint.error import ErrorStore
-from .lint.const import SETTINGS_FILE, WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
+from .lint.const import WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
 from .panel import panel
 
 
@@ -130,7 +130,7 @@ class Listener:
 
             # If a file other than one of our settings files changed,
             # check if the syntax changed or if we need to show errors.
-            elif filename != SETTINGS_FILE:
+            elif filename != "SublimeLinter.sublime-settings":
                 self.file_was_saved(view)
 
     @classmethod

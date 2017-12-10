@@ -1,7 +1,5 @@
 import os
 
-PLUGIN_NAME = "SublimeLinter"
-SETTINGS_FILE = PLUGIN_NAME + ".sublime-settings"
 PLUGIN_DIRECTORY = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"

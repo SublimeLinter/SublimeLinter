@@ -1,4 +1,11 @@
 {
+    // Optionally disable all linters
+    // @disable: true
+
+    // Optionally specify a python version
+    // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
+    // @python: 3
+
     "debug": false,
 
     // When in the "background" lint mode, this value determines
@@ -23,6 +30,26 @@
     // load_save: when a file is opened and every time it's saved
     // manual: only when calling the Lint This View command
     "lint_mode": "background",
+
+    // Example of linter specific settings.
+    // What settings are available is documented in the readme of the
+    // specific linter plugin.
+    // "linters": {
+    //     "csslint": {
+    //         "@disable": false,
+    //         "args": [],
+    //         "excludes": []
+    //     },
+    //     "flake8": {
+    //         "@disable": false,
+    //         "args": [],
+    //         "excludes": [],
+    //         "ignore": "",
+    //         "max-complexity": -1,
+    //         "max-line-length": null,
+    //         "select": ""
+    //     }
+    // }
 
     // Determines what happens when a linter reports an error without column.
     // By default, a mark is put in the gutter but no text is highlighted.

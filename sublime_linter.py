@@ -31,7 +31,7 @@ def plugin_loaded():
     persist.scheme = set_scheme()
     persist.scheme.generate(from_reload=False)
 
-    util.printf('debug mode:', 'on' if persist.debug_mode() else 'off')
+    persist.debug('debug mode: on')
     util.create_tempdir()
 
     persist.errors = ErrorStore()

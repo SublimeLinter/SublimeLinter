@@ -105,8 +105,7 @@ class Settings:
         """Observe changes to the ST prefs."""
         prefs = sublime.load_settings('Preferences.sublime-settings')
         prefs.clear_on_change('sublimelinter-pref-settings')
-        prefs.add_on_change('sublimelinter-pref-settings',
-                            observer or self.on_prefs_update)
+        prefs.add_on_change('sublimelinter-pref-settings', observer)
 
     def observe(self, observer=None):
         """Observer changes to the plugin settings."""
@@ -148,21 +147,8 @@ class Settings:
 
         self.changeset.extend(self.dict_comparer(self.settings))
 
-        from . import persist
-
         if not self.changeset:
             return
-
-        """ TODO: Remove 'force_xml_scheme' check once legacy.py and xml scheme generation is no longer supported."""
-        if "force_xml_scheme" in self.changeset:
-            msg = "Scheme mode changed. You need to restart Sublime Text in order for the changes to take effect."
-            sublime.message_dialog(msg)
-            util.printf(msg)
-
-        if "styles" in self.changeset:
-            util.printf("Style definitions changed. Regenerating.")
-            persist.scheme.clear_scopes()
-            persist.scheme.generate()
 
         # Clear the path-related caches if the paths list has changed
         if "paths" in self.changeset:
@@ -193,11 +179,6 @@ class Settings:
         SublimeLinter.lint_all_views()
 
         self.changeset.clear()
-
-    def on_prefs_update(self):
-        """Perform maintenance when the ST prefs are updated."""
-        from .persist import scheme
-        scheme.generate()
 
     def update_gutter_icons(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""

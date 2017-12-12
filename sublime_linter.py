@@ -1,7 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
-import re
 
 import sublime
 import sublime_plugin
@@ -9,27 +8,40 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
-from .lint import persist, util, scheme
+from .lint import persist, util, style
 from .lint.error import ErrorStore
-from .lint.const import WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
+from .lint.const import WARN_ERR, STATUS_KEY
 from .panel import panel
+
+
+def backup_old_settings():
+    """
+        If user settings file in old format exists it is renamed to disable it
+        and back it up.
+        A message will be displayed to the user.
+    """
+    usr_dir_abs = os.path.join(sublime.packages_path(), "User")
+    msg = "SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"  # noqa: 501
+    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
+    if os.path.exists(settings_file):
+        path = "Packages/User/SublimeLinter.sublime-settings"
+        settings = sublime.decode_value(sublime.load_resource(path))
+
+        if "user" in settings:
+            new_name = "SublimeLinter (old).sublime-settings"
+            new_path = os.path.join(usr_dir_abs, new_name)
+            os.rename(settings_file, new_path)
+            sublime.message_dialog(msg)
 
 
 def plugin_loaded():
     """Entry point for SL plugins."""
 
     persist.plugin_is_loaded = True
+    backup_old_settings()
     persist.settings.load()
 
-    # remove the two lines below to unlink legacy.py
-    from .lint.legacy import legacy_check
-
-    @legacy_check
-    def set_scheme():
-        return scheme.JsonScheme()
-
-    persist.scheme = set_scheme()
-    persist.scheme.generate(from_reload=False)
+    style.StyleParser()()
 
     persist.debug('debug mode: on')
     util.create_tempdir()
@@ -177,30 +189,7 @@ class Listener:
 class SublimeLinter(sublime_plugin.EventListener, Listener):
     """The main ST3 plugin class."""
 
-    # We use this to match linter settings filenames.
-    LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
-
     shared_instance = None
-
-    def is_settings_file(self, view, user_only=False):
-        """Return True if view is a SublimeLinter settings file."""
-
-        filename = view.file_name()
-
-        if not filename:
-            return False
-
-        if not filename.startswith(sublime.packages_path()):
-            return False
-
-        dirname, filename = os.path.split(filename)
-        dirname = os.path.basename(dirname)
-
-        if self.LINTER_SETTINGS_RE.match(filename):
-            if user_only:
-                return dirname == 'User'
-            else:
-                return dirname in (PLUGIN_DIRECTORY, 'User')
 
     @classmethod
     def shared_plugin(cls):

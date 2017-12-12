@@ -155,30 +155,6 @@ def get_focused_view(view):
         if view == active_view:
             return view
 
-# panel utils
-
-
-def get_project_path(window: sublime.Window) -> 'Optional[str]':
-    """
-    Returns the common root of all open folders in the window
-    """
-    from . import persist
-    if len(window.folders()):
-        folder_paths = window.folders()
-        return folder_paths[0]
-    else:
-        filename = window.active_view().file_name()
-        if filename:
-            project_path = os.path.dirname(filename)
-            persist.debug("Couldn't determine project directory since no folders are open!",
-                          "Using", project_path, "as a fallback.")
-            return project_path
-        else:
-            persist.debug("Couldn't determine project directory since no folders are open",
-                          "and the current file isn't saved on the disk.")
-
-
-# ###
 
 def get_new_dict():
     return deepcopy({WARNING: {}, ERROR: {}})
@@ -464,28 +440,6 @@ def get_environment_variable(name):
     persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
 
     return value
-
-
-def get_path_components(path):
-    """Split a file path into its components and return the list of components."""
-    components = []
-
-    while path:
-        head, tail = os.path.split(path)
-
-        if tail:
-            components.insert(0, tail)
-
-        if head:
-            if head == os.path.sep or head == os.path.altsep:
-                components.insert(0, head)
-                break
-
-            path = head
-        else:
-            break
-
-    return components
 
 
 @lru_cache(maxsize=None)
@@ -900,20 +854,6 @@ def find_executable(executable):
     return None
 
 
-def get_subl_executable_path():
-    """Return the path to the subl command line binary."""
-
-    executable_path = sublime.executable_path()
-
-    if sublime.platform() == 'osx':
-        suffix = '.app/'
-        app_path = executable_path[:executable_path.rfind(
-            suffix) + len(suffix)]
-        executable_path = app_path + 'Contents/SharedSupport/bin/subl'
-
-    return executable_path
-
-
 # popen utils
 
 def decode(bytes):
@@ -1217,28 +1157,6 @@ def convert_type(value, type_value, sep=None, default=None):
             return list(value)
 
     return default
-
-
-def center_region_in_view(region, view):
-    """
-    Center the given region in view.
-
-    There is a bug in ST3 that prevents a selection change
-    from being drawn when a quick panel is open unless the
-    viewport moves. So we get the current viewport position,
-    move it down 1.0, center the region, see if the viewport
-    moved, and if not, move it up 1.0 and center again.
-
-    """
-
-    x1, y1 = view.viewport_position()
-    view.set_viewport_position((x1, y1 + 1.0))
-    view.show_at_center(region)
-    x2, y2 = view.viewport_position()
-
-    if y2 == y1:
-        view.set_viewport_position((x1, y1 - 1.0))
-        view.show_at_center(region)
 
 
 class cd:

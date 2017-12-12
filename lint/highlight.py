@@ -42,18 +42,6 @@ class RegionStore:
             view.erase_regions(key)
         self._set_views(view_id)
 
-    def get_mark_regions(self, view):
-        saved_keys = self._get_views(view.id())
-        regions = [
-            view.get_regions(key)
-            for key in saved_keys
-            if "gutter" not in key
-        ]
-        regions = [y for x in regions for y in x]  # flatten
-        points = [r.a for r in regions]
-        points = sorted(list(set(points)))
-        return points
-
     def _get_views(self, view_id):
         return self.memory.get("views").get(str(view_id), [])
 
@@ -145,7 +133,6 @@ class Highlight:
         self.code = code
         self.marks = util.get_new_dict()
         self.mark_style = 'outline'
-        self.mark_flags = MARK_STYLES[self.mark_style]
         self.style_store = HighlightStyleStore()
 
         # Every line that has a mark is kept in this dict, so we know which
@@ -402,13 +389,6 @@ class Highlight:
 
         self.newlines = other.newlines
 
-    def set_mark_style(self):
-        """Configure the mark style and flags based on settings."""
-        self.mark_flags = MARK_STYLES[self.mark_style]
-
-        if not persist.settings.get('show_marks_in_minimap'):
-            self.mark_flags |= sublime.HIDE_ON_MINIMAP
-
     def draw(self, view):
         """
         Draw code and gutter marks in the given view.
@@ -418,8 +398,6 @@ class Highlight:
 
         """
         from .style import GUTTER_ICONS
-
-        self.set_mark_style()
 
         drawn_regions = []
         protected_regions = []

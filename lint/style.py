@@ -167,7 +167,6 @@ class StyleParser:
             # 1 - define style
             # scopes => scheme.py
             rule_name = rule_name_tmpl.format(i + 1)
-            persist.scheme.add_scope(node["scope"])
 
             def transfer_style_item(key):
                 if key in node:

@@ -9,7 +9,7 @@ import sublime_plugin
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
-from .lint import persist, util, scheme
+from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
 from .panel import panel
@@ -21,15 +21,7 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
 
-    # remove the two lines below to unlink legacy.py
-    from .lint.legacy import legacy_check
-
-    @legacy_check
-    def set_scheme():
-        return scheme.JsonScheme()
-
-    persist.scheme = set_scheme()
-    persist.scheme.generate(from_reload=False)
+    style.StyleParser()()
 
     persist.debug('debug mode: on')
     util.create_tempdir()

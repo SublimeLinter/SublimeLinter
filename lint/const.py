@@ -1,5 +1,3 @@
-import os
-
 PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"
 STATUS_KEY = "sublime_linter_status"
 

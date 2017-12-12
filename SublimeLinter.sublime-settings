@@ -106,7 +106,7 @@
         {
             "mark_style": "outline",
             "priority": 1,
-            "scope": "region.yellowish markup.warning.sublime_linter",
+            "scope": "region.yellowish markup.changed.sublime_linter markup.warning.sublime_linter",
             "icon": "dot",
             "types": [
                 "warning"
@@ -115,7 +115,7 @@
         {
             "mark_style": "outline",
             "priority": 1,
-            "scope": "region.redish markup.error.sublime_linter",
+            "scope": "region.redish markup.deleted.sublime_linter markup.error.sublime_linter",
             "icon": "dot",
             "types": [
                 "error"

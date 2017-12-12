@@ -86,3 +86,7 @@ new options.
 
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.
+
+If you're on ST > 3150, you can remove the Packages/User/SublimeLinter
+directory. It holds augmented color schemes that are no longer needed. Be sure
+to first change you color scheme setting though.

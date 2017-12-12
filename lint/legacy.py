@@ -14,11 +14,6 @@ COLOR_SCHEME_PREAMBLE = '''<?xml version="1.0" encoding="UTF-8"?>
 '''
 
 
-def touch_dir(dir):
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-
-
 class XmlScheme(scheme.Scheme):
     def generate_color_scheme_async(self):
         """
@@ -79,7 +74,10 @@ class XmlScheme(scheme.Scheme):
 
         content = ElementTree.tostring(plist, encoding='unicode')
 
-        touch_dir(self.paths["usr_dir_abs"])  # ensure dir exists
+        userdir = self.paths["usr_dir_abs"]
+        if not os.path.exists(userdir):
+            os.makedirs(userdir)
+
         with open(mod_scheme_path, 'w', encoding='utf8') as f:
             f.write(COLOR_SCHEME_PREAMBLE + content)
 
@@ -172,20 +170,12 @@ def backup_old_settings(usr_dir_abs):
             sublime.message_dialog(msg)
 
 
-def rm_old_dir(usr_dir_abs):
-    usr_dir_abs = os.path.join(usr_dir_abs, "SublimeLinter")
-    shutil.rmtree(usr_dir_abs, ignore_errors=True)
-
-
 def legacy_check(func):
     min_version = int(sublime.version()) >= 3149
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     backup_old_settings(usr_dir_abs)
 
     if min_version and not merged_settings.get("force_xml_scheme"):
-        # remove old User/SublimeLinter dir
-        rm_old_dir(usr_dir_abs)
-
         def func_wrapper():
             return func
 

@@ -14,13 +14,14 @@ from .lint.const import WARN_ERR, STATUS_KEY
 from .panel import panel
 
 
-def backup_old_settings(usr_dir_abs):
+def backup_old_settings():
     """
         If user settings file in old format exists it is renamed to disable it
         and back it up.
         A message will be displayed to the user.
     """
-    msg = """SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"""  # noqa: 501
+    usr_dir_abs = os.path.join(sublime.packages_path(), "User")
+    msg = "SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"  # noqa: 501
     settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
@@ -37,7 +38,7 @@ def plugin_loaded():
     """Entry point for SL plugins."""
 
     persist.plugin_is_loaded = True
-    backup_old_settings(os.path.join(sublime.packages_path(), "User"))
+    backup_old_settings()
     persist.settings.load()
 
     style.StyleParser()()

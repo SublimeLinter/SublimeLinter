@@ -152,10 +152,6 @@ class Settings:
         if not self.changeset:
             return
 
-        if "styles" in self.changeset:
-            util.printf("Style definitions changed. Regenerating.")
-            persist.scheme.clear_scopes()
-
         # Clear the path-related caches if the paths list has changed
         if "paths" in self.changeset:
             util.clear_path_caches()

@@ -1,7 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
-import re
 
 import sublime
 import sublime_plugin
@@ -11,7 +10,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
-from .lint.const import WARN_ERR, STATUS_KEY, PLUGIN_DIRECTORY
+from .lint.const import WARN_ERR, STATUS_KEY
 from .panel import panel
 
 
@@ -169,30 +168,7 @@ class Listener:
 class SublimeLinter(sublime_plugin.EventListener, Listener):
     """The main ST3 plugin class."""
 
-    # We use this to match linter settings filenames.
-    LINTER_SETTINGS_RE = re.compile(r'^SublimeLinter(-.+?)?\.sublime-settings')
-
     shared_instance = None
-
-    def is_settings_file(self, view, user_only=False):
-        """Return True if view is a SublimeLinter settings file."""
-
-        filename = view.file_name()
-
-        if not filename:
-            return False
-
-        if not filename.startswith(sublime.packages_path()):
-            return False
-
-        dirname, filename = os.path.split(filename)
-        dirname = os.path.basename(dirname)
-
-        if self.LINTER_SETTINGS_RE.match(filename):
-            if user_only:
-                return dirname == 'User'
-            else:
-                return dirname in (PLUGIN_DIRECTORY, 'User')
 
     @classmethod
     def shared_plugin(cls):

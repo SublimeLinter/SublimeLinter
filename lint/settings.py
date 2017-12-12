@@ -147,8 +147,6 @@ class Settings:
 
         self.changeset.extend(self.dict_comparer(self.settings))
 
-        from . import persist
-
         if not self.changeset:
             return
 

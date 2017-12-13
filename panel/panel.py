@@ -40,10 +40,6 @@ def dedupe_views(errors):
         }
 
 
-def get_file_path(vid):
-    return sublime.View(vid).file_name()
-
-
 def get_common_parent(paths):
     """
     Get the common parent directory of multiple paths.
@@ -55,7 +51,12 @@ def get_common_parent(paths):
 
 
 def create_path_dict(x):
-    abs_dict = {vid: get_file_path(vid) for vid in x}
+    abs_dict = {}
+    for vid in x:
+        if sublime.View(vid).file_name():
+            abs_dict[vid] = sublime.View(vid).file_name()
+        else:
+            abs_dict[vid] = "untitled"
 
     if len(abs_dict) == 1:
         for vid, path in abs_dict.items():

@@ -35,15 +35,19 @@ def backup_old_settings():
 
 
 def plugin_loaded():
-    """Entry point for SL plugins."""
+    from package_control import events
+    if events.post_upgrade("SublimeLinter"):
+        backup_old_settings()
+        for linter in persist.linter_classes.values():
+            linter.reinitialize()
 
     persist.plugin_is_loaded = True
-    backup_old_settings()
+
     persist.settings.load()
 
     style.StyleParser()()
 
-    persist.debug('debug mode: on')
+    persist.debug("debug mode: on")
     util.create_tempdir()
 
     persist.errors = ErrorStore()
@@ -64,7 +68,7 @@ def plugin_loaded():
         plugin.on_activated_async(window.active_view())
 
     # Load and lint all views on startup
-    if persist.settings.get('lint_mode') in ('background', 'load_save'):
+    if persist.settings.get("lint_mode") in ("background", "load_save"):
         for window in sublime.windows():
             for view in window.views():
                 plugin.check_syntax(view)

@@ -1,6 +1,7 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 import os
+import html
 
 import sublime
 import sublime_plugin
@@ -413,7 +414,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             <div>{messages}</div>
         '''
 
-        template = "{linter}: {code} - {msg}"
+        template = "{linter}: {code} - {escaped_msg}"
 
         all_msgs = ""
         for error_type in WARN_ERR:
@@ -425,6 +426,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             if not msg_list:
                 continue
             for item in msg_list:
+                item["escaped_msg"] = html.escape(item["msg"])
                 error_type_msgs.append(template.format(**item))
 
             if count > 1:  # pluralize

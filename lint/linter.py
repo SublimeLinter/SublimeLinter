@@ -1,15 +1,12 @@
 from distutils.versionpredicate import VersionPredicate
 from fnmatch import fnmatch
 from functools import lru_cache
-import html.entities
 from numbers import Number
-import html
 
 import os
 import re
 import shlex
 import sublime
-from xml.sax.saxutils import unescape
 
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
@@ -17,7 +14,6 @@ from .style import LinterStyleStore
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
-HTML_ENTITY_RE = re.compile(r'&(?:(?:#(x)?([0-9a-fA-F]{1,4}))|(\w+));')
 
 
 class LinterMeta(type):
@@ -1594,39 +1590,15 @@ class Linter(metaclass=LinterMeta):
             util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
 
-    @staticmethod
-    def replace_entity(match):
-        """Return the character corresponding to an HTML entity."""
-        number = match.group(2)
-
-        if number:
-            hex = match.group(1) is not None
-            result = chr(int(number, 16 if hex else 10))
-        else:
-            entity = match.group(3)
-            result = unescape(entity, html.entities.html5)
-
-        return result
-
-    def escape_html(self, text):
-        """Some linters use html entities in error messages, decode them
-        Strip trailing CR, space and period"""
-        cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
-        return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
-
     def error(self, line, col, message, error_type, style=None, code=None, length=None):
         """Add a reference to an error/warning on the given line and column."""
 
         self.highlight.line(line, error_type, style=style)
 
-        message = self.escape_html(message)
-
         col = col or 0
 
         if not code:
             code = ""
-        else:
-            code = self.escape_html(code)
 
         payload = {
             "start": col,

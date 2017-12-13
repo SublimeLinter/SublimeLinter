@@ -131,10 +131,10 @@ class LinterMeta(type):
                 for view in persist.views.values():
                     cls.assign(view, linter_name=linter_name)
 
-                util.printf('{} linter reloaded'.format(name))
+                persist.debug('{} linter reloaded'.format(name))
 
             else:
-                util.printf('{} linter loaded'.format(name))
+                persist.debug('{} linter loaded'.format(name))
 
     def map_args(cls, defaults):
         """
@@ -1498,7 +1498,7 @@ class Linter(metaclass=LinterMeta):
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 
             if status:
-                util.printf(status)
+                persist.debug(status)
 
         return can
 

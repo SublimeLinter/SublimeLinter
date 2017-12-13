@@ -1279,7 +1279,7 @@ class Linter(metaclass=LinterMeta):
             else:
                 return os.path.realpath('.')
 
-    def get_err_type(self, error, warning):
+    def get_error_type(self, error, warning):
         if error:
             return ERROR
         elif warning:
@@ -1332,8 +1332,8 @@ class Linter(metaclass=LinterMeta):
         found_errors = self.find_errors(output)
         for match, line, col, error, warning, message, near in found_errors:
             if match and message and line:
-                err_type = self.get_err_type(error, warning)
-                style = self.style_store.get_style(error or warning, err_type)
+                error_type = self.get_error_type(error, warning)
+                style = self.style_store.get_style(error or warning, error_type)
 
                 assert style
 
@@ -1362,7 +1362,7 @@ class Linter(metaclass=LinterMeta):
                         line,
                         col,
                         near=near,
-                        err_type=err_type,
+                        error_type=error_type,
                         word_re=self.word_re,
                         style=style
                     )
@@ -1370,7 +1370,7 @@ class Linter(metaclass=LinterMeta):
                     col, length = self.highlight.near(
                             line,
                             near,
-                            err_type=err_type,
+                            error_type=error_type,
                             word_re=self.word_re,
                             style=style
                         )
@@ -1387,12 +1387,12 @@ class Linter(metaclass=LinterMeta):
                         line,
                         pos,
                         length=0,
-                        err_type=err_type,
+                        error_type=error_type,
                         word_re=self.word_re,
                         style=style
                     )
 
-                self.error(line, col, message, err_type, style=style, code=warning or error, length=length)
+                self.error(line, col, message, error_type, style=style, code=warning or error, length=length)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1614,10 +1614,10 @@ class Linter(metaclass=LinterMeta):
         cleaned_text = HTML_ENTITY_RE.sub(self.replace_entity, text)
         return html.escape(str(cleaned_text).rstrip('\r .'), quote=False)
 
-    def error(self, line, col, message, err_type, style=None, code=None, length=None):
+    def error(self, line, col, message, error_type, style=None, code=None, length=None):
         """Add a reference to an error/warning on the given line and column."""
 
-        self.highlight.line(line, err_type, style=style)
+        self.highlight.line(line, error_type, style=style)
 
         message = self.escape_html(message)
 
@@ -1637,7 +1637,7 @@ class Linter(metaclass=LinterMeta):
         }
 
         l1 = self.errors.setdefault(line, {})
-        l2 = l1.setdefault(err_type, [])
+        l2 = l1.setdefault(error_type, [])
         l2.append(payload)
 
     def find_errors(self, output):

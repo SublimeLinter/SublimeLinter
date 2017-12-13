@@ -186,8 +186,6 @@ class Highlight:
         of self.code) base on the *virtual* line number (adjusted by the
         self.line_offset).
         """
-
-        # The first line of the code needs the character offset
         if line == 0:
             char_offset = self.char_offset
         else:
@@ -206,7 +204,7 @@ class Highlight:
         pos,
         length=-1,
         near=None,
-        err_type=ERROR,
+        error_type=ERROR,
         word_re=None,
         style=None
     ):
@@ -226,19 +224,17 @@ class Highlight:
         - If length == 0, no text is marked,
           but a gutter mark will appear on that line.
 
-        err_type determines what type mark will be drawn (ERROR or WARNING).
+        error_type determines what type mark will be drawn (ERROR or WARNING).
 
         When length < 0, this method attempts to mark the closest word at
         pos on the given line.
         If you want to customize the word matching regex, pass it in word_re.
 
-        If the err_type is WARNING and an identical ERROR region exists,
+        If the error_type is WARNING and an identical ERROR region exists,
         it is not added.
-        If the err_type is ERROR and an identical WARNING region exists,
+        If the error_type is ERROR and an identical WARNING region exists,
         the warning region is removed and the error region is added.
-
         """
-
         start, end = self.full_line(line)
 
         if pos < 0:
@@ -258,27 +254,27 @@ class Highlight:
 
         pos += start
         region = sublime.Region(pos, pos + length)
-        other_type = ERROR if err_type == WARNING else WARNING
+        other_type = ERROR if error_type == WARNING else WARNING
 
         for scope, marks in self.marks[other_type].items():
             i_offset = 0
             for i, mark in enumerate(marks):
                 if (mark.a, mark.b) == (region.a, region.b):
-                    if err_type == WARNING:
+                    if error_type == WARNING:
                         return length
                     else:
                         self.marks[other_type][scope].pop(i - i_offset)
                         i_offset += 1
 
-        self.marks[err_type].setdefault(style, []).append(region)
+        self.marks[error_type].setdefault(style, []).append(region)
         return length
 
-    def regex(self, line, regex, err_type=ERROR,
+    def regex(self, line, regex, error_type=ERROR,
               line_match=None, word_match=None, word_re=None):
         """
         Mark a range of text that matches a regex.
 
-        line, err_type and word_re are the same as in range().
+        line, error_type and word_re are the same as in range().
 
         line_match may be a string pattern or a compiled regex.
         If provided, it must have a named group called 'match' that
@@ -315,13 +311,13 @@ class Highlight:
 
         for start, end in results:
             self.range(line, start + offset, end -
-                       start, err_type=err_type)
+                       start, error_type=error_type)
 
-    def near(self, line, near, err_type=ERROR, word_re=None, style=None):
+    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text near a given word.
 
-        line, err_type and word_re are the same as in range().
+        line, error_type and word_re are the same as in range().
 
         If near is enclosed by quotes, they are stripped. The first occurrence
         of near in the given line of code is matched. If the first and last
@@ -363,7 +359,7 @@ class Highlight:
                 line,
                 start,
                 len(near),
-                err_type=err_type,
+                error_type=error_type,
                 word_re=word_re,
                 style=style
             )
@@ -381,11 +377,11 @@ class Highlight:
         object takes the newlines array from other.
 
         """
-        for err_type in WARN_ERR:
-            self.marks[err_type].update(other.marks[err_type])
+        for error_type in WARN_ERR:
+            self.marks[error_type].update(other.marks[error_type])
 
-            for line, style in other.lines[err_type].items():
-                self.overwrite_line(line, err_type, style)
+            for line, style in other.lines[error_type].items():
+                self.overwrite_line(line, error_type, style)
 
         self.newlines = other.newlines
 
@@ -402,17 +398,20 @@ class Highlight:
         drawn_regions = []
         protected_regions = []
 
-        for err_type in WARN_ERR:
-            if not self.marks[err_type]:
+        for error_type in WARN_ERR:
+            if not self.marks[error_type]:
                 continue
 
-            for style, regions in self.marks[err_type].items():
+            for style, regions in self.marks[error_type].items():
                 if not self.style_store.has_style(style):
                     continue
 
-                scope = self.style_store.get_val("scope", style, err_type)
+                scope = self.style_store.get_val("scope", style, error_type)
                 mark_style = self.style_store.get_val(
-                    "mark_style", style, err_type)
+                    "mark_style",
+                    style,
+                    error_type
+                )
 
                 flags = MARK_STYLES[mark_style]
                 view.add_regions(style, regions, scope=scope, flags=flags)
@@ -424,21 +423,23 @@ class Highlight:
 
             gutter_regions = {}
             # collect regions of error type
-            for line, style in self.lines[err_type].items():
+            for line, style in self.lines[error_type].items():
+                if not self.style_store.has_style(style):
+                    continue
                 pos = self.newlines[line]
                 region = sublime.Region(pos, pos)
                 gutter_regions.setdefault(style, []).append(region)
 
             # draw gutter marks for
             for style, regions in gutter_regions.items():
-                icon = self.style_store.get_val("icon", style, err_type)
+                icon = self.style_store.get_val("icon", style, error_type)
                 if icon == "none":  # do not draw icon
                     continue
 
                 # colorize icon
 
                 if GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
-                    scope = self.style_store.get_val("scope", style, err_type)
+                    scope = self.style_store.get_val("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one
 
@@ -457,8 +458,11 @@ class Highlight:
             # overlaying all gutter regions with common invisible one,
             # to create unified handle for GitGutter and other plugins
             # flag might not be neccessary
-            view.add_regions(PROTECTED_REGIONS_KEY,
-                             protected_regions, flags=sublime.HIDDEN)
+            view.add_regions(
+                PROTECTED_REGIONS_KEY,
+                protected_regions,
+                flags=sublime.HIDDEN
+            )
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
         # persisting region keys for later clearance
@@ -481,14 +485,14 @@ class Highlight:
         self.marks = util.get_new_dict()
         self.lines = util.get_new_dict()
 
-    def line(self, line, err_type, style=None):
+    def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
         line += self.line_offset
-        self.overwrite_line(line, err_type, style)
+        self.overwrite_line(line, error_type, style)
 
-    def overwrite_line(self, line, err_type, style):
+    def overwrite_line(self, line, error_type, style):
         # Errors override warnings on the same line
-        if err_type == WARNING:
+        if error_type == WARNING:
             if line in self.lines[ERROR]:
                 return
         else:  # ensure no warning icons on same line as error
@@ -496,14 +500,14 @@ class Highlight:
 
         # Styles with higher priority override those of lower one
         # on the same line
-        existing = self.lines[err_type].get(line)
+        existing = self.lines[error_type].get(line)
         if existing:
             scope_ex = self.style_store.get(existing).get("priority", 0)
             scope_new = self.style_store.get(style).get("priority", 0)
             if scope_ex > scope_new:
                 return
 
-        self.lines[err_type][line] = style
+        self.lines[error_type][line] = style
 
     def move_to(self, line, char_offset):
         """

@@ -31,7 +31,7 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
         def wrapper(*args):
             res = f(*args)
             key = args[1]
-            err_type = args[3]
+            error_type = args[3]
 
             if key != "icon":
                 return res
@@ -46,12 +46,12 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
                     icon_path = GUTTER_ICONS["icons"].get(res)
                     if icon_path:
                         return icon_path
-                return GUTTER_ICONS["icons"][err_type]
+                return GUTTER_ICONS["icons"][error_type]
 
         return wrapper
 
     @get_icon
-    def get_val(self, key, style, err_type):
+    def get_val(self, key, style, error_type):
         """Looks up style definition in that order of precedence:
         1. Individual style definition.
         2. Linter error type
@@ -69,7 +69,7 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
         def fetch_style(linter_name):
             x = [v.get(key) for k, v
                  in styles.items()
-                 if linter_name in k and err_type in v.get("types", [])]
+                 if linter_name in k and error_type in v.get("types", [])]
 
             if x[0]:
                 return x[0]
@@ -102,26 +102,26 @@ class LinterStyleStore(StyleBaseStore):
     def __init__(self, linter_name):
         self.linter_styles = self.all_linter_styles.get(linter_name, {})
 
-    def traverse_dict(self, dict, err_type):
-        return dict.setdefault("types", {}).get(err_type)
+    def traverse_dict(self, dict, error_type):
+        return dict.setdefault("types", {}).get(error_type)
 
-    def get_default_style(self, err_type):
-        """Returns default style for err_type of this linter.
-        If not found returns style of SublimeLinter err_type."""
+    def get_default_style(self, error_type):
+        """Returns default style for error_type of this linter.
+        If not found returns style of SublimeLinter error_type."""
 
-        lint_def = self.traverse_dict(self.linter_styles, err_type)
+        lint_def = self.traverse_dict(self.linter_styles, error_type)
         if lint_def:
             return lint_def
 
         # default_styles = persist.linter_styles.get("default")
-        return self.traverse_dict(self.default_styles, err_type)
+        return self.traverse_dict(self.default_styles, error_type)
 
-    def get_style(self, code, err_type):
+    def get_style(self, code, error_type):
 
         style = self.linter_styles.get("codes", {}).get(code)
 
         if not style:
-            style = self.get_default_style(err_type)
+            style = self.get_default_style(error_type)
 
         return style
 

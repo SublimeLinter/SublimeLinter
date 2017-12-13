@@ -38,11 +38,11 @@ class ErrorStore(util.Borg):
 
         filtered_dict = util.get_new_dict()
 
-        for err_type, dc in line_dict.items():
-            filtered_dict[err_type] = []
+        for error_type, dc in line_dict.items():
+            filtered_dict[error_type] = []
             for d in dc:
                 if d["start"] <= colno <= d["end"]:
-                    filtered_dict[err_type].append(d)
+                    filtered_dict[error_type].append(d)
 
         return filtered_dict
 

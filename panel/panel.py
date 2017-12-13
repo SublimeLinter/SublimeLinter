@@ -106,10 +106,10 @@ def format_header(f_path):
     return "{}:".format(f_path)
 
 
-def format_row(lineno, err_type, dic):
+def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
     tmpl = "{LINENO:>8}:{start:<4}\t{ERR_TYPE:7}\t{linter:>12}: {code:12}\t{msg:12}"
-    return tmpl.format(LINENO=lineno, ERR_TYPE=err_type, **dic)
+    return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
@@ -146,10 +146,10 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
         to_render.append(format_header(path_dict[vid]))
 
         for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-            for err_type in WARN_ERR:
-                if types and err_type not in types:
+            for error_type in WARN_ERR:
+                if types and error_type not in types:
                     continue
-                err_dict = line_dict.get(err_type)
+                err_dict = line_dict.get(error_type)
                 if not err_dict:
                     continue
                 items = sorted(err_dict, key=lambda k: k['start'])
@@ -162,7 +162,7 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
                     if codes and item['code'] not in codes:
                         continue
 
-                    line_msg = format_row(lineno, err_type, item)
+                    line_msg = format_row(lineno, error_type, item)
                     to_render.append(line_msg)
 
         to_render.append("\n")  # empty lines between views

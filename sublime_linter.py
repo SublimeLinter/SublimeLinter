@@ -397,7 +397,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         msgs = []
         region_dict = persist.errors.get_region_dict(vid, lineno, colno)
-        for err_type, dc in region_dict.items():
+        for error_type, dc in region_dict.items():
             for d in dc:
                 msgs.append(d["msg"])
         if msgs:
@@ -416,25 +416,25 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         template = "{linter}: {code} - {msg}"
 
         all_msgs = ""
-        for err_type in WARN_ERR:
-            count = we_count[err_type]
-            heading = err_type
-            err_type_msgs = []
-            msg_list = line_dict.get(err_type)
+        for error_type in WARN_ERR:
+            count = we_count[error_type]
+            heading = error_type
+            error_type_msgs = []
+            msg_list = line_dict.get(error_type)
 
             if not msg_list:
                 continue
             for item in msg_list:
-                err_type_msgs.append(template.format(**item))
+                error_type_msgs.append(template.format(**item))
 
             if count > 1:  # pluralize
                 heading += "s"
 
             all_msgs += part.format(
-                classname=err_type,
+                classname=error_type,
                 count=count,
                 heading=heading,
-                messages='<br />'.join(err_type_msgs)
+                messages='<br />'.join(error_type_msgs)
             )
         return all_msgs
 

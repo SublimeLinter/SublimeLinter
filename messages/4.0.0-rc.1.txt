@@ -1,6 +1,12 @@
 SublimeLinter 4.0 Pre-Release
 ===========================================
 
+You can find this text at
+https://github.com/SublimeLinter/SublimeLinter3/blob/next/messages/4.0.0-rc.1.txt
+
+Please restart Sublime Text before continuing.
+
+
 New features
 -------------------------------------------
 
@@ -18,14 +24,12 @@ New features
   highlight style can be differentiated per linter.
 - Styles also have a "priority" which decides what icon to show in the gutter.
 - Gutter themes can now be set using just their name.
-- Generated "(SL)" color schemes are now hidden.
-
-On Sublime Text 3 builds > 3149 (dev builds):
-- No "(SL)" color scheme files are generated.
-- Select a color by specifying "region.<colorish>" in the scope option. Colors:
+- No "(SL)" color scheme files are generated, in stead relying on common scopes.
+- It's possible to use a color by specifying any scope that's in your color
+  scheme (e.g. "entity.name")
+- If you're using ST dev builds you can change colors by specifying
+  "region.<colorish>" in the scope option. Colors:
   redish, orangish, yellowish, greenish, bluish, purplish, pinkish
-- It's also possible to use any other color by specifying any scope that's in
-  your color scheme (e.g. "entity.name")
 
 
 Changes to commands, menus and key bindings
@@ -70,8 +74,9 @@ You may want to compare them to the new settings and check if you want to
 migrate anything.
 
 To migrate your settings, first remove the "user" level and un-indent/flatten
-everything a level. Check the default settings on the left to remove
-settings that don't exist anymore:
+everything a level. Check the default settings to remove settings that don't
+exist anymore:
+
 - mark_style
 - error_color
 - gutter_theme_excludes
@@ -81,12 +86,9 @@ settings that don't exist anymore:
 - tooltip_fontsize, tooltip_theme, tooltip_theme_excludes, tooltips
 - warning_color
 
-Please remove your existing gutter_theme setting and check the defaults for the
-new options.
-
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.
 
-If you're on ST > 3150, you can remove the Packages/User/SublimeLinter
-directory. It holds augmented color schemes that are no longer needed. Be sure
-to first change you color scheme setting though.
+You can now change your color scheme to one without the (SL) suffix. After
+doing so you can remove the Packages/User/SublimeLinter directory. It holds
+augmented color schemes that are no longer needed.

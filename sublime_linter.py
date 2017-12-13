@@ -21,13 +21,13 @@ def backup_old_settings():
         A message will be displayed to the user.
     """
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
-    msg = "SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"  # noqa: 501
     settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
     if os.path.exists(settings_file):
         path = "Packages/User/SublimeLinter.sublime-settings"
         settings = sublime.decode_value(sublime.load_resource(path))
 
         if "user" in settings:
+            msg = "SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"  # noqa: 501
             new_name = "SublimeLinter (old).sublime-settings"
             new_path = os.path.join(usr_dir_abs, new_name)
             os.rename(settings_file, new_path)
@@ -35,14 +35,9 @@ def backup_old_settings():
 
 
 def plugin_loaded():
-    from package_control import events
-    if events.post_upgrade("SublimeLinter"):
-        backup_old_settings()
-        for linter in persist.linter_classes.values():
-            linter.reinitialize()
+    backup_old_settings()
 
     persist.plugin_is_loaded = True
-
     persist.settings.load()
 
     style.StyleParser()()

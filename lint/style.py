@@ -33,6 +33,10 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
             key = args[1]
             error_type = args[3]
 
+            if not res:
+                util.printf("Styles are invalid. Please check your settings and restart Sublime Text.")
+                return
+
             if key != "icon":
                 return res
             else:

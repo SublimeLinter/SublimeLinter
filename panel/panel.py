@@ -22,11 +22,11 @@ OUTPUT_PANEL_SETTINGS = {
 
 
 def update_panel(view, text=""):
-    view.set_read_only(False)
-    view.run_command('select_all')
-    view.run_command('left_delete')
-    view.run_command('append', {'characters': text})
-    view.set_read_only(True)
+    try:
+        view.set_read_only(False)
+        view.run_command('sublime_linter_replace_all', {'characters': text})
+    finally:
+        view.set_read_only(True)
 
 
 def dedupe_views(errors):

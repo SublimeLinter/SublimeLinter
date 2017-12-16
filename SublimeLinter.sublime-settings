@@ -1,11 +1,12 @@
 {
     // Optionally disable all linters
-    // @disable: true
+    "@disable": false,
 
     // Optionally specify a python version
     // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
-    // @python: 3
+    "@python": null,
 
+    // Set to true to print extra information in the console.
     "debug": false,
 
     // When in the "background" lint mode, this value determines
@@ -50,6 +51,7 @@
     //         "select": ""
     //     }
     // }
+    "linters": {},
 
     // Determines what happens when a linter reports an error without column.
     // By default, a mark is put in the gutter but no text is highlighted.

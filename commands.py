@@ -72,7 +72,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
-    def run(self, edit, text=""):
+    def run(self, edit, text="", clear_sel=False):
         """Replace a view's text entirely and attempt to restore previous selection."""
         sel = self.view.sel()
         # Doesn't make sense to consider multiple selections
@@ -84,7 +84,7 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
         self.view.set_read_only(True)
 
         sel.clear()
-        if selected_text:
+        if selected_text and not clear_sel:
             new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
             if new_selected_region:
                 sel.add(new_selected_region)

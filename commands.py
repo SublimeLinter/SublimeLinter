@@ -1,3 +1,4 @@
+import sublime
 import sublime_plugin
 
 from .lint import persist
@@ -68,3 +69,25 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             cmd = "hide_panel"
 
         self.window.run_command(cmd, {"panel": "output." + name or ""})
+
+
+class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
+    def run(self, edit, text=""):
+        """Replace a view's text entirely and attempt to restore previous selection."""
+        sel = self.view.sel()
+        # Doesn't make sense to consider multiple selections
+        selected_region = sel[0] if sel else None
+        selected_text = self.view.substr(selected_region) if sel else None
+
+        self.view.set_read_only(False)
+        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
+        self.view.set_read_only(True)
+
+        sel.clear()
+        if selected_text:
+            new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
+            if new_selected_region:
+                sel.add(new_selected_region)
+                return
+
+        sel.add(0)

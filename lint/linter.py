@@ -1661,7 +1661,7 @@ class Linter(metaclass=LinterMeta):
 
             return match, line, col, error, warning, message, near
         else:
-            persist.debug('No match for {}'.format(self.regex))
+            persist.debug('No match for regex: {}'.format(self.regex.pattern))
             return match, None, None, None, None, '', None
 
     def run(self, cmd, code):

@@ -80,7 +80,7 @@ def create_panel(window):
         settings.set(key, value)
 
     panel.settings().set("result_file_regex", r"^\s*(\S*\.\w+)\s*(\d*)")
-    panel.settings().set("result_line_regex", r"(^\s*\d+)")
+    panel.settings().set("result_line_regex", r"^\s*(\d+)(?::(\d+))?\s*(.*?)$")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)
@@ -168,4 +168,4 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         to_render.append("\n")  # empty lines between views
 
-    update_panel(panel, text="\n".join(to_render))
+    update_panel(panel, text="\n".join(to_render).strip())

@@ -21,14 +21,6 @@ OUTPUT_PANEL_SETTINGS = {
 }
 
 
-def update_panel(view, text=""):
-    view.set_read_only(False)
-    view.run_command('select_all')
-    view.run_command('left_delete')
-    view.run_command('append', {'characters': text})
-    view.set_read_only(True)
-
-
 def dedupe_views(errors):
     if len(errors) == 1:
         return errors
@@ -120,6 +112,7 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
     errors = filter_errors(window, errors)
     errors = dedupe_views(errors)
+
     path_dict, base_dir = create_path_dict(errors)
     assert window, "missing window!"
 
@@ -168,4 +161,8 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         to_render.append("\n")  # empty lines between views
 
-    update_panel(panel, text="\n".join(to_render).strip())
+    if to_render:
+        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
+    else:
+        panel.run_command('sublime_linter_update_panel',
+                          {'text': "No lint errors.", 'clear_sel': True})

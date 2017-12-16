@@ -6,6 +6,7 @@
     // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
     "@python": null,
 
+    // Set to true to print extra information in the console.
     "debug": false,
 
     // When in the "background" lint mode, this value determines

@@ -1,3 +1,4 @@
+import sublime
 import sublime_plugin
 
 from .lint import persist
@@ -68,3 +69,8 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             cmd = "hide_panel"
 
         self.window.run_command(cmd, {"panel": "output." + name or ""})
+
+
+class SublimeLinterReplaceAllCommand(sublime_plugin.TextCommand):
+    def run(self, edit, characters):
+        self.view.replace(edit, sublime.Region(0, self.view.size()), characters)

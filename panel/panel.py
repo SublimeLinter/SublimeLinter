@@ -39,7 +39,7 @@ def get_common_parent(paths):
     currently embeds Python 3.3.
     """
     common_path = os.path.commonprefix([path + '/' for path in paths if path])
-    return common_path.rstrip('/')
+    return common_path.rstrip('/\\')
 
 
 def create_path_dict(x):
@@ -56,11 +56,13 @@ def create_path_dict(x):
             rel_paths = {vid: file_name}
     else:
         base_dir = get_common_parent(abs_dict.values())
-
-        rel_paths = {
-            vid: os.path.relpath(abs_path, base_dir)
-            for vid, abs_path in abs_dict.items()
-        }
+        if not base_dir:
+            rel_paths = abs_dict
+        else:
+            rel_paths = {
+                vid: os.path.relpath(abs_path, base_dir)
+                for vid, abs_path in abs_dict.items()
+            }
 
     return rel_paths, base_dir or ""
 

@@ -425,7 +425,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             if not msg_list:
                 continue
             for item in msg_list:
-                item["escaped_msg"] = html.escape(item["msg"])
+                item["escaped_msg"] = html.escape(item["msg"], quote=False)
                 error_type_msgs.append(template.format(**item))
 
             if count > 1:  # pluralize

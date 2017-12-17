@@ -161,7 +161,7 @@ class Listener:
 
         dicts = [
             self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
-            persist.warn_err_count, persist.highlights, persist.view_linters,
+            persist.highlights, persist.view_linters,
             persist.views, persist.last_hit_times
         ]
 
@@ -279,7 +279,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         errors = {}
         highlights = persist.highlights[vid] = HighlightSet()
-        persist.warn_err_count = {}
 
         for linter in linters:
             if linter.highlight:

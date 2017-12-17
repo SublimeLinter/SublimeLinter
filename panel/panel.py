@@ -38,7 +38,7 @@ def get_common_parent(paths):
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """
-    common_path = os.path.commonprefix([path + '/' for path in paths if path])
+    common_path = os.path.commonprefix([path + '/' for path in paths if path and path != "untitled"])
     if not os.path.exists(common_path):
         common_path = os.path.dirname(common_path)
     return common_path.rstrip('/\\')

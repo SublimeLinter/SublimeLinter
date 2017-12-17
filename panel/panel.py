@@ -105,7 +105,7 @@ def format_header(f_path):
 
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
-    tmpl = "{LINENO:>8}:{start:<4}\t{ERR_TYPE:7}\t{linter:>12}: {code:12}\t{msg:12}"
+    tmpl = " {LINENO:>5}:{start:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
 
 

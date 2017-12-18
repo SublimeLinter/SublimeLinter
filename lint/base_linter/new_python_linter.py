@@ -1,11 +1,11 @@
+"""This module exports the NewPythonLinter subclass of Linter."""
+
 from functools import lru_cache
 import os
 import subprocess
 
 import sublime
 from .. import linter, persist, util
-
-"""This module exports the NewPythonLinter subclass of Linter."""
 
 
 class NewPythonLinter(linter.Linter):
@@ -15,7 +15,6 @@ class NewPythonLinter(linter.Linter):
     @lru_cache(maxsize=None)
     def can_lint(cls, syntax):
         """Determine optimistically if the linter can handle the provided syntax."""
-
         can = False
         syntax = syntax.lower()
 
@@ -33,7 +32,6 @@ class NewPythonLinter(linter.Linter):
 
     def context_sensitive_executable_path(self, cmd):
         """Try to find an executable for a given cmd."""
-
         settings = self.get_view_settings()
 
         # If the user explicitly set an executable, it takes precedence.
@@ -176,7 +174,6 @@ def _find_executables(executable):
 @lru_cache(maxsize=None)
 def find_executable(executable):
     """Return the full path to an executable searching PATH."""
-
     for path in _find_executables(executable):
         return path
 
@@ -185,7 +182,6 @@ def find_executable(executable):
 
 def find_python_version(version):  # type: Str
     """Return python binaries on PATH matching a specific version."""
-
     requested_version = util.extract_major_minor_version(version)
     for python in _find_executables('python'):
         python_version = util.get_python_version(python)
@@ -198,7 +194,6 @@ def find_python_version(version):  # type: Str
 @lru_cache(maxsize=None)
 def find_script_by_python_version(script_name, version):
     """Return full path to a script, given just a python version."""
-
     # They can be multiple matching pythons. We try to find a python with
     # its complete environment, not just a symbolic link or so.
     for python in find_python_version(version):
@@ -213,7 +208,6 @@ def find_script_by_python_version(script_name, version):
 @lru_cache(maxsize=None)
 def find_script_by_python_env(python_env_path, script):
     """Return full path to a script, given a python environment base dir."""
-
     posix = sublime.platform() in ('osx', 'linux')
 
     if posix:
@@ -230,7 +224,6 @@ def find_script_by_python_env(python_env_path, script):
 
 def expand_variables(string):
     """Expand typical sublime variables in the given string."""
-
     window = sublime.active_window()
     env = window.extract_variables()
     return sublime.expand_variables(string, env)
@@ -238,7 +231,6 @@ def expand_variables(string):
 
 def get_project_path():
     """Return the project_path using Sublime's window.project_data() API."""
-
     window = sublime.active_window()
     # window.project_data() is a relative new API.
     # I don't know what we can expect from 'folders' here. Can we just take
@@ -251,7 +243,6 @@ def get_project_path():
 
 def ask_pipenv(linter_name, chdir):
     """Ask pipenv for a virtual environment and maybe resolve the linter."""
-
     # Some pre-checks bc `pipenv` is super slow
     project_path = get_project_path()
     if not project_path:
@@ -281,7 +272,6 @@ def _ask_pipenv(linter_name, chdir):
 
 def _communicate(cmd):
     """Short wrapper around subprocess.check_output to eat all errors."""
-
     env = util.create_environment()
     info = None
 

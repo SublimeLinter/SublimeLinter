@@ -5,11 +5,11 @@ import subprocess
 import sublime
 from . import linter, persist, util
 
+"""This module exports the NewPythonLinter subclass of Linter."""
+
 
 class NewPythonLinter(linter.Linter):
-    """New Python Linter [WIP].
-
-    """
+    """New Python Linter [WIP]."""
 
     @classmethod
     @lru_cache(maxsize=None)

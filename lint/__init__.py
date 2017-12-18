@@ -10,6 +10,7 @@ from . import (
 
 from .linter import Linter
 from .base_linter.python_linter import PythonLinter
+from .base_linter.new_python_linter import NewPythonLinter
 from .base_linter.ruby_linter import RubyLinter
 from .base_linter.node_linter import NodeLinter
 from .base_linter.composer_linter import ComposerLinter

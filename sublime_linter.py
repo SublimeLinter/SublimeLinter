@@ -414,6 +414,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         '''
 
         template = "{linter}: {code} - {escaped_msg}"
+        template_no_code = "{linter}: {escaped_msg}"
 
         all_msgs = ""
         for error_type in WARN_ERR:
@@ -426,7 +427,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 continue
             for item in msg_list:
                 item["escaped_msg"] = html.escape(item["msg"], quote=False)
-                error_type_msgs.append(template.format(**item))
+                template_to_fill = template if item.get('code') else template_no_code
+                error_type_msgs.append(template_to_fill.format(**item))
 
             if count > 1:  # pluralize
                 heading += "s"

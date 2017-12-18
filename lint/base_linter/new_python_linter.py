@@ -11,6 +11,8 @@ from .. import linter, persist, util
 class NewPythonLinter(linter.Linter):
     """New Python Linter [WIP]."""
 
+    comment_re = r'\s*#'
+
     @classmethod
     @lru_cache(maxsize=None)
     def can_lint(cls, syntax):

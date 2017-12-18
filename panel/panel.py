@@ -80,7 +80,7 @@ def create_panel(window):
     # row:col   type   linter: code   message
     # where code is optional
     # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
-    panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?")
+    panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)

@@ -3,7 +3,7 @@ import os
 import subprocess
 
 import sublime
-from . import linter, persist, util
+from .. import linter, persist, util
 
 """This module exports the NewPythonLinter subclass of Linter."""
 

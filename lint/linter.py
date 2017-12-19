@@ -1009,8 +1009,18 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def which(cls, cmd):
-        """Call util.which with this class' module and return the result."""
-        return util.which(cmd, module=getattr(cls, 'module', None))
+        """Return full path to a given executable.
+
+        This version just delegates to `util.which` but plugin authors can
+        override this method.
+
+        Note that this method will be called statically as well as per
+        instance. So you can rely on `get_view_settings` to be available.
+
+        `context_sensitive_executable_path` is guaranteed to be called per
+        instance and might be the better override point.
+        """
+        return util.which(cmd)
 
     def get_cmd(self):
         """

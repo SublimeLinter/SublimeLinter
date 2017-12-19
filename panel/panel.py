@@ -46,12 +46,14 @@ def get_common_parent(paths):
 
 def create_path_dict(x):
     abs_dict = {}
+    has_untitleds = False
     for vid in x:
         view = sublime.View(vid)
         if view.file_name():
             abs_dict[vid] = view.file_name()
         else:
             abs_dict[vid] = "untitled"
+            has_untitleds = True
 
     if len(abs_dict) == 1:
         for vid, path in abs_dict.items():
@@ -59,7 +61,7 @@ def create_path_dict(x):
             rel_paths = {vid: file_name}
     else:
         base_dir = get_common_parent(abs_dict.values())
-        if not base_dir:
+        if has_untitleds or not base_dir:
             rel_paths = abs_dict
         else:
             rel_paths = {

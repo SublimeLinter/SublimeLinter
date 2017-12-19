@@ -396,7 +396,7 @@ class Linter(metaclass=LinterMeta):
         """
         cls.initialize()
 
-    def __init__(self, view, syntax):
+    def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
         self.code = ''
@@ -1270,7 +1270,7 @@ class Linter(metaclass=LinterMeta):
             else:
                 return os.path.realpath('.')
 
-    def get_error_type(self, error, warning):
+    def get_error_type(self, error, warning):  # noqa:D102
         if error:
             return ERROR
         elif warning:
@@ -1359,12 +1359,12 @@ class Linter(metaclass=LinterMeta):
                     )
                 elif near:
                     col, length = self.highlight.near(
-                            line,
-                            near,
-                            error_type=error_type,
-                            word_re=self.word_re,
-                            style=style
-                        )
+                        line,
+                        near,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or

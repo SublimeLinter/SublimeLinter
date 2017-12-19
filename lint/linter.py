@@ -39,7 +39,7 @@ class LinterMeta(type):
         if bases:
             setattr(cls, 'disabled', False)
 
-            if name in ('PythonLinter', 'NewPythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
+            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
                 return
 
             cls.alt_name = cls.make_alt_name(name)

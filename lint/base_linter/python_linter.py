@@ -100,18 +100,6 @@ class PythonLinter(linter.Linter):
                     cmd_name, str(python)
                 )
 
-                # If we didn't find anything useful, use the legacy
-                # code from SublimeLinter for resolving that version.
-                if executable is None:
-                    persist.debug(
-                        "{}: Still trying to resolve {}, now trying "
-                        "SublimeLinter's legacy code."
-                        .format(self.name, python)
-                    )
-                    _, executable, *_ = util.find_python(
-                        str(python), cmd_name
-                    )
-
                 if executable is None:
                     persist.printf(
                         "WARNING: {} deactivated, cannot locate '{}' "

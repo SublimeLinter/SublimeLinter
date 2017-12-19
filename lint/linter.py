@@ -1296,14 +1296,7 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
-        if self.cmd is None:
-            cmd = None
-        else:
-            cmd = self.get_cmd()
-
-            if cmd is not None and not cmd:
-                return
-
+        cmd = self.get_cmd()
         settings = self.get_view_settings()
         self.chdir = self.get_chdir(settings)
 

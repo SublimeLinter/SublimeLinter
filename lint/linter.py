@@ -1458,8 +1458,6 @@ class Linter(metaclass=LinterMeta):
                         (isinstance(cls.executable_path, (tuple, list)) and None in cls.executable_path)
                     ):
                         cls.executable_path = ''
-                elif cls.cmd is None:
-                    cls.executable_path = '<builtin>'
                 else:
                     cls.executable_path = ''
 
@@ -1515,26 +1513,10 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        cls.executable_version = None
-
-        if cls.executable_path == '<builtin>':
-            if callable(getattr(cls, 'get_module_version', None)):
-                if not(cls.version_re and cls.version_requirement):
-                    return True
-
-                cls.executable_version = cls.get_module_version()
-
-                if cls.executable_version:
-                    persist.debug('{} version: {}'.format(cls.name, cls.executable_version))
-                else:
-                    util.printf('WARNING: {} unable to determine module version'.format(cls.name))
-            else:
-                return True
-        elif not(cls.version_args is not None and cls.version_re and cls.version_requirement):
+        if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
             return True
 
-        if cls.executable_version is None:
-            cls.executable_version = cls.get_executable_version()
+        cls.executable_version = cls.get_executable_version()
 
         if cls.executable_version:
             predicate = VersionPredicate(

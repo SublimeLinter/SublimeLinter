@@ -1049,7 +1049,7 @@ class Linter(metaclass=LinterMeta):
 
             return self.build_cmd(cmd)
 
-    def build_cmd(self, cmd=None):
+    def build_cmd(self, cmd):
         """
         Return a tuple with the command line to execute.
 
@@ -1070,13 +1070,6 @@ class Linter(metaclass=LinterMeta):
         cmd.
 
         """
-
-        cmd = cmd or self.cmd
-
-        if isinstance(cmd, str):
-            cmd = shlex.split(cmd)
-        else:
-            cmd = list(cmd)
 
         which = cmd[0]
         have_path, path = self.context_sensitive_executable_path(cmd)

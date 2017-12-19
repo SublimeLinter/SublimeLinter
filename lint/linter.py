@@ -1039,24 +1039,19 @@ class Linter(metaclass=LinterMeta):
         if callable(cmd):
             cmd = cmd()
 
-            if isinstance(cmd, str):
-                cmd = shlex.split(cmd)
-
-            return self.insert_args(cmd)
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
         else:
-            if isinstance(cmd, str):
-                cmd = shlex.split(cmd)
-            else:
-                cmd = list(cmd)
+            cmd = list(cmd)
 
-            # For backwards compatibility: SL3 allow a '@python' suffix which
-            # when set triggered special handling. SL4 doesn't need this marker,
-            # bc all the special handling is just done in the subclass.
-            which = cmd[0]
-            if '@python' in which:
-                cmd[0] = which[:which.find('@python')]
+        # For backwards compatibility: SL3 allowed a '@python' suffix which,
+        # when set, triggered special handling. SL4 doesn't need this marker,
+        # bc all the special handling is just done in the subclass.
+        which = cmd[0]
+        if '@python' in which:
+            cmd[0] = which[:which.find('@python')]
 
-            return self.build_cmd(cmd)
+        return self.build_cmd(cmd)
 
     def build_cmd(self, cmd):
         """
@@ -1074,12 +1069,20 @@ class Linter(metaclass=LinterMeta):
         if have_path:
             # happy path
             ...
+        elif util.can_exec(which):
+            # If `cmd` is a method, it is expected it finds an executable on
+            # its own. (Unless `context_sensitive_executable_path` is also
+            # implemented.)
+            path = which
         elif self.executable_path:
+            # `executable_path` is set statically by `can_lint`.
             path = self.executable_path
 
             if isinstance(path, (list, tuple)) and None in path:
                 path = None
         else:
+            # `which` here is a fishy escape hatch bc it was almost always
+            # asked in `can_lint` already.
             path = self.which(which)
 
         if not path:

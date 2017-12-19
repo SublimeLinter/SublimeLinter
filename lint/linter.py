@@ -1074,9 +1074,8 @@ class Linter(metaclass=LinterMeta):
         have_path, path = self.context_sensitive_executable_path(cmd)
 
         if have_path:
-            # Returning None means the linter runs code internally
-            if path == '<builtin>':
-                return None
+            # happy path
+            ...
         elif self.executable_path:
             path = self.executable_path
 

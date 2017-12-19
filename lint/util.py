@@ -40,8 +40,6 @@ INLINE_SETTING_RE = re.compile(
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
-UNSAVED_FILENAME = 'untitled'
-
 # Temp directory used to store temp files for linting
 tempdir = os.path.join(tempfile.gettempdir(),
                        'SublimeLinter3-' + getpass.getuser())
@@ -975,7 +973,7 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
     """
 
     if not filename:
-        filename = UNSAVED_FILENAME
+        filename = "untitled"
     else:
         filename = os.path.basename(filename)
 

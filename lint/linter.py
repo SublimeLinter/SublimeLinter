@@ -1096,6 +1096,11 @@ class Linter(metaclass=LinterMeta):
 
         Subclasses may override this to return a special path.
 
+        Return (True, '<path>') if you can resolve the executable given at cmd[0]
+        Return (True, None) if you want to skip the linter
+        Return (False, None) if you want to kick in the default implementation
+            of SublimeLinter
+
         """
         return False, None
 

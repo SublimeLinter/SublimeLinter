@@ -1,314 +1,316 @@
 """This module exports the PythonLinter subclass of Linter."""
 
-import importlib
+from functools import lru_cache
 import os
 import re
+import subprocess
 
+import sublime
 from .. import linter, persist, util
 
 
 class PythonLinter(linter.Linter):
-    """
-    This Linter subclass provides python-specific functionality.
-
-    Linters that check python should inherit from this class.
-    By doing so, they automatically get the following features:
-
-    - comment_re is defined correctly for python.
-
-    - A python shebang is returned as the @python:<version> meta setting.
-
-    - Execution directly via a module method or via an executable.
-
-    If the module attribute is defined and is successfully imported,
-    whether it is used depends on the following algorithm:
-
-      - If the cmd attribute specifies @python and ST's python
-        satisfies that version, the module will be used. Note that this
-        check is done during class construction.
-
-      - If the check_version attribute is False, the module will be used
-        because the module is not version-sensitive.
-
-      - If the "@python" setting is set and ST's python satisfies
-        that version, the module will be used.
-
-      - Otherwise the executable will be used with the python specified
-        in the "@python" setting, the cmd attribute, or the default system
-        python.
-
-    """
-
-    SHEBANG_RE = re.compile(r'\s*#!(?:(?:/[^/]+)*[/ ])?python(?P<version>\d(?:\.\d)?)')
+    """(New) Python Linter [WIP]."""
 
     comment_re = r'\s*#'
 
-    # If the linter wants to import a module and run a method directly,
-    # it should set this attribute to the module name, suitable for passing
-    # to importlib.import_module. During class construction, the named module
-    # will be imported, and if successful, the attribute will be replaced
-    # with the imported module.
-    module = None
-
-    # Some python-based linters are version-sensitive, i.e. the python version
-    # they are run with has to match the version of the code they lint.
-    # If a linter is version-sensitive, this attribute should be set to True.
-    check_version = False
-
-    @staticmethod
-    def match_shebang(code):
-        """Convert and return a python shebang as a @python:<version> setting."""
-
-        match = PythonLinter.SHEBANG_RE.match(code)
-
-        if match:
-            return '@python', match.group('version')
-        else:
-            return None
-
-    shebang_match = match_shebang
-
     @classmethod
-    def initialize(cls):
-        """Perform class-level initialization."""
+    @lru_cache(maxsize=None)
+    def can_lint(cls, syntax):
+        """Determine optimistically if the linter can handle the provided syntax."""
+        can = False
+        syntax = syntax.lower()
 
-        super().initialize()
-        persist.import_sys_path()
-        cls.import_module()
+        if cls.syntax:
+            if isinstance(cls.syntax, (tuple, list)):
+                can = syntax in cls.syntax
+            elif cls.syntax == '*':
+                can = True
+            elif isinstance(cls.syntax, str):
+                can = syntax == cls.syntax
+            else:
+                can = cls.syntax.match(syntax) is not None
 
-    @classmethod
-    def reinitialize(cls):
-        """Perform class-level initialization after plugins have been loaded at startup."""
-
-        # Be sure to clear _cmd so that import_module will re-import.
-        if hasattr(cls, '_cmd'):
-            delattr(cls, '_cmd')
-
-        cls.initialize()
-
-    @classmethod
-    def import_module(cls):
-        """
-        Attempt to import the configured module.
-
-        If it could not be imported, use the executable.
-
-        """
-
-        if hasattr(cls, '_cmd'):
-            return
-
-        module = getattr(cls, 'module', None)
-        cls._cmd = None
-        cmd = cls.cmd
-        script = None
-
-        if isinstance(cls.cmd, (list, tuple)):
-            cmd = cls.cmd[0]
-
-        if module is not None:
-            try:
-                module = importlib.import_module(module)
-                persist.debug('{} imported {}'.format(cls.name, module))
-
-                # If the linter specifies a python version, check to see
-                # if ST's python satisfies that version.
-                if cmd and not callable(cmd):
-                    match = util.PYTHON_CMD_RE.match(cmd)
-
-                    if match and match.group('version'):
-                        version, script = match.group('version', 'script')
-                        version = util.find_python(version=version, script=script, module=module)
-
-                        # If we cannot find a python or script of the right version,
-                        # we cannot use the module.
-                        if version[0] is None or script and version[1] is None:
-                            module = None
-
-            except ImportError:
-                message = '{}import of {} module in {} failed'
-
-                if cls.check_version:
-                    warning = 'WARNING: '
-                    message += ', linter will not work with python 3 code'
-                else:
-                    warning = ''
-                    message += ', linter will not run using built in python'
-
-                util.printf(message.format(warning, module, cls.name))
-                module = None
-
-            except Exception as ex:
-                util.printf(
-                    'ERROR: unknown exception in {}: {}'
-                    .format(cls.name, str(ex))
-                )
-                module = None
-
-        # If no module was specified, or the module could not be imported,
-        # or ST's python does not satisfy the version specified, see if
-        # any version of python available satisfies the linter. If not,
-        # set the cmd to '' to disable the linter.
-        can_lint = True
-
-        if not module and cmd and not callable(cmd):
-            match = util.PYTHON_CMD_RE.match(cmd)
-
-            if match and match.group('version'):
-                can_lint = False
-                version, script = match.group('version', 'script')
-                version = util.find_python(version=version, script=script)
-
-                if version[0] is not None and (not script or version[1] is not None):
-                    can_lint = True
-
-        if can_lint:
-            cls._cmd = cls.cmd
-
-            # If there is a module, setting cmd to None tells us to
-            # use the check method.
-            if module:
-                cls.cmd = None
-        else:
-            util.printf(
-                'WARNING: {} deactivated, no available version of python{} satisfies {}'
-                .format(
-                    cls.name,
-                    ' or {}'.format(script) if script else '',
-                    cmd
-                ))
-
-            cls.disabled = True
-
-        cls.module = module
+        return can
 
     def context_sensitive_executable_path(self, cmd):
-        """
-        Calculate the context-sensitive executable path, using @python and check_version.
+        """Try to find an executable for a given cmd."""
+        settings = self.get_view_settings()
 
-        Return a tuple of (have_path, path).
+        # If the user explicitly set an executable, it takes precedence.
+        # We expand environment variables. E.g. a user could have a project
+        # structure where a virtual environment is always located within
+        # the project structure. She could then simply specify
+        # `${project_path}/venv/bin/flake8`. Note that setting `@python`
+        # to a path will have a similar effect.
+        executable = settings.get('executable', '')
+        if executable:
+            executable = expand_variables(executable)
 
-        Return have_path == False if not self.check_version.
-        Return have_path == True if cmd is in [script]@python[version] form.
-        Return None for path if the desired version of python/script cannot be found.
-        Return '<builtin>' for path if the built-in python should be used.
+            persist.debug(
+                "{}: wanted executable is '{}'".format(self.name, executable)
+            )
 
-        """
+            if util.can_exec(executable):
+                return True, executable
 
-        if not self.check_version:
-            return False, None
+            persist.printf(
+                "ERROR: {} deactivated, cannot locate '{}' "
+                .format(self.name, executable)
+            )
+            # no fallback, the user specified something, so we err
+            return True, None
 
-        # Check to see if we have a @python command
-        match = util.PYTHON_CMD_RE.match(cmd[0])
+        # `@python` can be number or a string. If it is a string it should
+        # point to a python environment, NOT a python binary.
+        # We expand environment variables. E.g. a user could have a project
+        # structure where virtual envs are located always like such
+        # `some/where/venvs/${project_base_name}` or she has the venv
+        # contained in the project dir `${project_path}/venv`. She then
+        # could edit the global settings once and can be sure that always the
+        # right linter installed in the virtual environment gets executed.
+        python = settings.get('@python', None)
+        if isinstance(python, str):
+            python = expand_variables(python)
 
-        if match:
-            settings = self.get_view_settings()
-
-            if '@python' in settings:
-                script = match.group('script') or ''
-                which = '{}@python{}'.format(script, settings.get('@python'))
-                path = self.which(which)
-
-                if path:
-                    if path[0] == '<builtin>':
-                        return True, '<builtin>'
-                    elif path[0] is None:
-                        return True, None
-
-                return True, path
-
-        return False, None
-
-    @classmethod
-    def get_module_version(cls):
-        """
-        Return the string version of the imported module, without any prefix/suffix.
-
-        This method handles the common case where a module (or one of its parents)
-        defines a __version__ string. For other cases, subclasses should override
-        this method and return the version string.
-
-        """
-
-        if cls.module:
-            module = cls.module
-
-            while True:
-                if isinstance(getattr(module, '__version__', None), str):
-                    return module.__version__
-
-                if hasattr(module, '__package__'):
-                    try:
-                        module = importlib.import_module(module.__package__)
-                    except ImportError:
-                        return None
-        else:
-            return None
-
-    def run(self, cmd, code):
-        """Run the module checker or executable on code and return the output."""
-        if self.module is not None:
-            use_module = False
-
-            if not self.check_version:
-                use_module = True
-            else:
-                settings = self.get_view_settings()
-                version = settings.get('@python')
-
-                if version is None:
-                    use_module = cmd is None or cmd[0] == '<builtin>'
-                else:
-                    version = util.find_python(version=version, module=self.module)
-                    use_module = version[0] == '<builtin>'
-
-            if use_module:
-                if persist.debug_mode():
-                    util.printf(
-                        '{}: {} <builtin>'.format(
-                            self.name,
-                            os.path.basename(self.filename or '<unsaved>')
-                        )
-                    )
-
-                try:
-                    errors = self.check(code, os.path.basename(self.filename or '<unsaved>'))
-                except Exception as err:
-                    util.printf(
-                        'ERROR: exception in {}.check: {}'
-                        .format(self.name, str(err))
-                    )
-                    errors = ''
-
-                if isinstance(errors, (tuple, list)):
-                    return '\n'.join([str(e) for e in errors])
-                else:
-                    return errors
-            else:
-                cmd = self._cmd
-        else:
-            cmd = self.cmd or self._cmd
-
-        cmd = self.build_cmd(cmd=cmd)
-
-        if cmd:
-            return super().run(cmd, code)
-        else:
-            return ''
-
-    def check(self, code, filename):
-        """
-        Run a built-in check of code, returning errors.
-
-        Subclasses that provide built in checking must override this method
-        and return a string with one more lines per error, an array of strings,
-        or an array of objects that can be converted to strings.
-
-        """
-
-        util.printf(
-            '{}: subclasses must override the PythonLinter.check method'
-            .format(self.name)
+        persist.debug(
+            "{}: wanted @python is '{}'".format(self.name, python)
         )
 
+        cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
+
+        if python:
+            if isinstance(python, str):
+                executable = find_script_by_python_env(
+                    python, cmd_name
+                )
+                if not executable:
+                    persist.printf(
+                        "WARNING: {} deactivated, cannot locate '{}' "
+                        "for given @python '{}'"
+                        .format(self.name, cmd_name, python)
+                    )
+                    # Do not fallback, user specified something we didn't find
+                    return True, None
+
+                return True, executable
+
+            else:
+                executable = find_script_by_python_version(
+                    cmd_name, str(python)
+                )
+
+                if executable is None:
+                    persist.printf(
+                        "WARNING: {} deactivated, cannot locate '{}' "
+                        "for given @python '{}'"
+                        .format(self.name, cmd_name, python)
+                    )
+                    return True, None
+
+                persist.debug(
+                    "{}: Using {} for given @python '{}'"
+                    .format(self.name, executable, python)
+                )
+                return True, executable
+
+        # If we're here the user didn't specify anything. This is the default
+        # experience. So we kick in some 'magic'
+        chdir = self.get_chdir(settings)
+        executable = ask_pipenv(cmd[0], chdir)
+        if executable:
+            persist.debug(
+                "{}: Using {} according to 'pipenv'"
+                .format(self.name, executable)
+            )
+            return True, executable
+
+        # Should we try a `pyenv which` as well? Problem: I don't have it,
+        # it's MacOS only.
+
+        persist.debug(
+            "{}: trying to use globally installed {}"
+            .format(self.name, cmd_name)
+        )
+        # fallback, similiar to a which(cmd)
+        executable = util.which(cmd_name)
+        if executable is None:
+            persist.printf(
+                "WARNING: cannot locate '{}'. Fill in the '@python' or "
+                "'executable' setting."
+                .format(self.name)
+            )
+        return True, executable
+
+
+def find_python_version(version):  # type: Str
+    """Return python binaries on PATH matching a specific version."""
+    requested_version = extract_major_minor_version(version)
+    for python in util.find_executables('python'):
+        python_version = get_python_version(python)
+        if version_fulfills_request(python_version, requested_version):
+            yield python
+
+    return None
+
+
+@lru_cache(maxsize=None)
+def find_script_by_python_version(script_name, version):
+    """Return full path to a script, given just a python version."""
+    # They can be multiple matching pythons. We try to find a python with
+    # its complete environment, not just a symbolic link or so.
+    for python in find_python_version(version):
+        python_env = os.path.dirname(python)
+        script_path = find_script_by_python_env(python_env, script_name)
+        if script_path:
+            return script_path
+
+    return None
+
+
+@lru_cache(maxsize=None)
+def find_script_by_python_env(python_env_path, script):
+    """Return full path to a script, given a python environment base dir."""
+    posix = sublime.platform() in ('osx', 'linux')
+
+    if posix:
+        full_path = os.path.join(python_env_path, 'bin', script)
+    else:
+        full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
+
+    persist.printf("trying {}".format(full_path))
+    if os.path.exists(full_path):
+        return full_path
+
+    return None
+
+
+def expand_variables(string):
+    """Expand typical sublime variables in the given string."""
+    window = sublime.active_window()
+    env = window.extract_variables()
+    return sublime.expand_variables(string, env)
+
+
+def get_project_path():
+    """Return the project_path using Sublime's window.project_data() API."""
+    window = sublime.active_window()
+    # window.project_data() is a relative new API.
+    # I don't know what we can expect from 'folders' here. Can we just take
+    # the first one, if any, and be happy?
+    project_data = window.project_data() or {}
+    folders = project_data.get('folders', [])
+    if folders:
+        return folders[0]['path']  # ?
+
+
+def ask_pipenv(linter_name, chdir):
+    """Ask pipenv for a virtual environment and maybe resolve the linter."""
+    # Some pre-checks bc `pipenv` is super slow
+    project_path = get_project_path()
+    if not project_path:
+        return
+
+    pipfile = os.path.join(project_path, 'Pipfile')
+    if not os.path.exists(pipfile):
+        return
+
+    # Defer the real work to another function we can cache.
+    # ATTENTION: If the user has a Pipfile, but did not (yet) installed the
+    # environment, we will cache a wrong result here.
+    return _ask_pipenv(linter_name, chdir)
+
+
+@lru_cache(maxsize=None)
+def _ask_pipenv(linter_name, chdir):
+    cmd = ['pipenv', '--venv']
+    with util.cd(chdir):
+        venv = _communicate(cmd).strip().split('\n')[-1]
+
+    if not venv:
+        return
+
+    return find_script_by_python_env(venv, linter_name)
+
+
+def _communicate(cmd):
+    """Short wrapper around subprocess.check_output to eat all errors."""
+    env = util.create_environment()
+    info = None
+
+    # On Windows, start process without a window
+    if os.name == 'nt':
+        info = subprocess.STARTUPINFO()
+        info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
+        info.wShowWindow = subprocess.SW_HIDE
+
+    try:
+        return subprocess.check_output(
+            cmd, env=env, startupinfo=info, universal_newlines=True
+        )
+    except Exception as err:
+        persist.debug(
+            "executing {} failed: reason: {}".format(cmd, str(err))
+        )
         return ''
+
+###
+
+
+VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
+
+
+@lru_cache(maxsize=None)
+def get_python_version(path):
+    """Return a dict with the major/minor version of the python at path."""
+
+    try:
+        # Different python versions use different output streams, so check both
+        output = util.communicate((path, '-V'), '', output_stream=util.STREAM_BOTH)
+
+        # 'python -V' returns 'Python <version>', extract the version number
+        return extract_major_minor_version(output.split(' ')[1])
+    except Exception as ex:
+        util.printf(
+            'ERROR: an error occurred retrieving the version for {}: {}'
+            .format(path, str(ex)))
+
+        return {'major': None, 'minor': None}
+
+
+def extract_major_minor_version(version):
+    """Extract and return major and minor versions from a string version."""
+
+    match = VERSION_RE.match(version)
+
+    if match:
+        return {key: int(value) if value is not None else None for key, value in match.groupdict().items()}
+    else:
+        return {'major': None, 'minor': None}
+
+
+def version_fulfills_request(available_version, requested_version):
+    """
+    Return whether available_version fulfills requested_version.
+
+    Both are dicts with 'major' and 'minor' items.
+
+    """
+
+    # No requested major version is fulfilled by anything
+    if requested_version['major'] is None:
+        return True
+
+    # If major version is requested, that at least must match
+    if requested_version['major'] != available_version['major']:
+        return False
+
+    # Major version matches, if no requested minor version it's a match
+    if requested_version['minor'] is None:
+        return True
+
+    # If a minor version is requested, the available minor version must be >=
+    return (
+        available_version['minor'] is not None and
+        available_version['minor'] >= requested_version['minor']
+    )

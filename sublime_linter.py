@@ -165,8 +165,6 @@ class Listener:
             persist.views, persist.last_hit_times
         ]
 
-        print("persist.errors: ", persist.errors)
-
         for d in dicts:
             if type(d) is set:
                 d.discard(vid)

@@ -9,15 +9,16 @@ contexts:
     - include: linter-body
 
   linter-body:
-    - match: '^(.+):$'
+    - match: '^(.+):$\n?'
+      scope: markup.heading.sublime_linter
       captures:
         1: entity.name.filename.sublime_linter
-    - match: '^\s+(?=\d)'
+    - match: '^\s+'
       push:
         - ensure-linter-meta-scope
         - expect-linter-type
-        - expect-linter-severity
         - expect-line-maybe-column
+        - expect-linter-severity
 
   ensure-linter-meta-scope:
     - meta_scope: meta.linter.body.sublime_linter
@@ -26,10 +27,10 @@ contexts:
 
   expect-linter-severity:
     - include: pop-at-end
-    - match: \berror\b
+    - match: '⨂'
       scope: markup.deleted.sublime_linter markup.error.sublime_linter
       pop: true
-    - match: \bwarning\b
+    - match: '⨻'
       scope: markup.changed.sublime_linter markup.warning.sublime_linter
       pop: true
 
@@ -40,8 +41,10 @@ contexts:
       pop: true
 
   expect-line-maybe-column:
+    - meta_content_scope: string
     - include: pop-at-end
     - match: (\d+)(?:(:)(\d+))?
+      scope: comment.block markup.italic
       captures:
         1: constant.numeric.line-number.sublime_linter
         2: punctuation.separator.sublime_linter

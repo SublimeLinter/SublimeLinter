@@ -9,15 +9,25 @@ OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,
     "draw_white_space": "None",
-    "gutter": False,
+    "gutter": True,
     "is_widget": True,
     "line_numbers": False,
     "margin": 3,
     "match_brackets": False,
+    # path/file.ext:
+    "result_file_regex": r"^(.*):$",
+    # type  row:col  linter  code  message
+    # <col> is optional
+    "result_line_regex": r"^\s+[⨻⨂]\s+(\d+)(?::(\d+))?\s+.*$",
     "scroll_past_end": False,
-    "tab_size": 4,
+    "tab_size": 2,
     "translate_tabs_to_spaces": False,
     "word_wrap": False
+}
+
+ICONS = {
+    "warning": "⨻",
+    "error": "⨂"
 }
 
 
@@ -76,12 +86,6 @@ def create_panel(window):
     for key, value in OUTPUT_PANEL_SETTINGS.items():
         settings.set(key, value)
 
-    panel.settings().set("result_file_regex", r"^(.*):$")
-    # row:col   type   linter: code   message
-    # where code is optional
-    # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
-    panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
-
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)
     # Call create_output_panel a second time after assigning the above
@@ -109,8 +113,8 @@ def format_header(f_path):
 
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
-    tmpl = " {LINENO:>5}:{start:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
+    tmpl = "\t{severity} {lineno:>6}:{start:<4} {linter:12} {code:5} {msg}"
+    return tmpl.format(lineno=lineno, severity=ICONS[error_type], **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
@@ -164,13 +168,11 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
                     if codes and item['code'] not in codes:
                         continue
 
-                    line_msg = format_row(lineno, error_type, item)
-                    to_render.append(line_msg)
+                    to_render.append(format_row(lineno, error_type, item))
 
-        to_render.append("\n")  # empty lines between views
-
-    if to_render:
-        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
-    else:
-        panel.run_command('sublime_linter_update_panel',
-                          {'text': "No lint errors.", 'clear_sel': True})
+    panel.run_command(
+        'sublime_linter_update_panel', {
+            'text': "\n".join(to_render) + "\n"
+        } if to_render else {
+            'text': "No lint errors.\n", 'clear_sel': True
+        })

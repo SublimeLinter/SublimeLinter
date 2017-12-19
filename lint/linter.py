@@ -1024,15 +1024,30 @@ class Linter(metaclass=LinterMeta):
         Otherwise the result of build_cmd is returned.
 
         """
-        if callable(self.cmd):
-            cmd = self.cmd()
+
+        cmd = self.cmd
+
+        if callable(cmd):
+            cmd = cmd()
 
             if isinstance(cmd, str):
                 cmd = shlex.split(cmd)
 
             return self.insert_args(cmd)
         else:
-            return self.build_cmd()
+            if isinstance(cmd, str):
+                cmd = shlex.split(cmd)
+            else:
+                cmd = list(cmd)
+
+            # For backwards compatibility: SL3 allow a '@python' suffix which
+            # when set triggered special handling. SL4 doesn't need this marker,
+            # bc all the special handling is just done in the subclass.
+            which = cmd[0]
+            if '@python' in which:
+                cmd[0] = which[:which.find('@python')]
+
+            return self.build_cmd(cmd)
 
     def build_cmd(self, cmd=None):
         """

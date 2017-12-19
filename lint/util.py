@@ -505,9 +505,31 @@ def can_exec(path):
 
 @lru_cache(maxsize=None)
 def which(cmd):
-    """Return the full path to the given command, or None if not found."""
+    """Return the full path to an executable searching PATH."""
+    for path in find_executables(cmd):
+        return path
 
-    return find_executable(cmd)
+    return None
+
+
+def find_executables(executable):
+    """Yield full paths to given executable."""
+    env = create_environment()
+
+    for base in env.get('PATH', '').split(os.pathsep):
+        path = os.path.join(os.path.expanduser(base), executable)
+
+        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
+        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
+            for extension in ('.exe', '.cmd', '.bat'):
+                path_ext = path + extension
+
+                if can_exec(path_ext):
+                    yield path_ext
+        elif can_exec(path):
+            yield path
+
+    return None
 
 
 @lru_cache(maxsize=None)
@@ -536,34 +558,6 @@ def get_python_paths():
         paths = []
 
     return paths
-
-
-@lru_cache(maxsize=None)
-def find_executable(executable):
-    """
-    Return the path to the given executable, or None if not found.
-
-    create_environment is used to augment PATH before searching
-    for the executable.
-
-    """
-
-    env = create_environment()
-
-    for base in env.get('PATH', '').split(os.pathsep):
-        path = os.path.join(os.path.expanduser(base), executable)
-
-        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
-        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
-            for extension in ('.exe', '.cmd', '.bat'):
-                path_ext = path + extension
-
-                if can_exec(path_ext):
-                    return path_ext
-        elif can_exec(path):
-            return path
-
-    return None
 
 
 # popen utils
@@ -823,7 +817,6 @@ def clear_path_caches():
     create_environment.cache_clear()
     which.cache_clear()
     get_python_paths.cache_clear()
-    find_executable.cache_clear()
 
 
 def convert_type(value, type_value, sep=None, default=None):

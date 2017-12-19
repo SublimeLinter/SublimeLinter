@@ -145,7 +145,7 @@ class PythonLinter(linter.Linter):
             .format(self.name, cmd_name)
         )
         # fallback, similiar to a which(cmd)
-        executable = find_executable(cmd_name)
+        executable = util.which(cmd_name)
         if executable is None:
             persist.printf(
                 "WARNING: cannot locate '{}'. Fill in the '@python' or "
@@ -155,38 +155,10 @@ class PythonLinter(linter.Linter):
         return True, executable
 
 
-def _find_executables(executable):
-    env = util.create_environment()
-
-    for base in env.get('PATH', '').split(os.pathsep):
-        path = os.path.join(os.path.expanduser(base), executable)
-
-        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
-        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
-            for extension in ('.exe', '.cmd', '.bat'):
-                path_ext = path + extension
-
-                if util.can_exec(path_ext):
-                    yield path_ext
-        elif util.can_exec(path):
-            yield path
-
-    return None
-
-
-@lru_cache(maxsize=None)
-def find_executable(executable):
-    """Return the full path to an executable searching PATH."""
-    for path in _find_executables(executable):
-        return path
-
-    return None
-
-
 def find_python_version(version):  # type: Str
     """Return python binaries on PATH matching a specific version."""
     requested_version = extract_major_minor_version(version)
-    for python in _find_executables('python'):
+    for python in util.find_executables('python'):
         python_version = get_python_version(python)
         if version_fulfills_request(python_version, requested_version):
             yield python

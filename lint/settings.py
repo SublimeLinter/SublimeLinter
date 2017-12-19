@@ -4,7 +4,7 @@ from glob import glob
 
 import sublime
 from . import util
-x
+
 
 class DictDelta:
     """

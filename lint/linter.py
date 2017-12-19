@@ -1053,24 +1053,12 @@ class Linter(metaclass=LinterMeta):
         """
         Return a tuple with the command line to execute.
 
-        We start with cmd or the cmd class attribute. If it is a string,
-        it is parsed with shlex.split.
+        Tries to find an executable with its complete path for cmd and replaces
+        cmd[0] with it.
 
-        If the first element of the command line matches [script]@python[version],
-        and '@python' is in the aggregated view settings, util.which is called
-        to determine the path to the script and given version of python. This
-        allows settings to override the version of python used.
-
-        Otherwise, if self.executable_path has already been calculated, that
-        is used. If not, the executable path is located with util.which.
-
-        If the path to the executable can be determined, a list of extra arguments
-        is built with build_args. If the cmd contains '*', it is replaced
-        with the extra argument list, otherwise the extra args are appended to
-        cmd.
+        The delegates to `insert_args` and returns whatever it returns.
 
         """
-
         which = cmd[0]
         have_path, path = self.context_sensitive_executable_path(cmd)
 

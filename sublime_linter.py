@@ -28,10 +28,10 @@ def backup_old_settings():
         settings = sublime.decode_value(sublime.load_resource(path))
 
         if "user" in settings:
-            msg = "SublimeLinter\n\nYour settings have been backed up to:\nSublimeLinter (old).sublime-settings\nin Packages/User/"  # noqa: 501
             new_name = "SublimeLinter (old).sublime-settings"
             new_path = os.path.join(usr_dir_abs, new_name)
             os.rename(settings_file, new_path)
+            msg = "SublimeLinter\n\nYour settings have been backed up to:\n{}\nin Packages/User/".format(new_name)  # noqa: 501
             sublime.message_dialog(msg)
 
 
@@ -153,7 +153,7 @@ class Listener:
         else:
             Linter.redraw_all()
 
-    def on_pre_close_async(self, view):
+    def on_pre_close(self, view):
         if util.is_scratch(view):
             return
 
@@ -165,8 +165,15 @@ class Listener:
             persist.views, persist.last_hit_times
         ]
 
+        print("persist.errors: ", persist.errors)
+
         for d in dicts:
-            d.pop(vid, None)
+            if type(d) is set:
+                d.discard(vid)
+            else:
+                d.pop(vid, None)
+
+        panel.fill_panel(view.window(), update=True)
 
     def on_selection_modified_async(self, view):
         self.display_errors(view)
@@ -511,26 +518,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         syntax_changed = self.check_syntax(view)
         vid = view.id()
         mode = persist.settings.get('lint_mode')
-        show_errors = persist.settings.get('show_errors_on_save')
 
         if syntax_changed:
             self.clear(view)
 
-            if vid in persist.view_linters:
-                if mode != 'manual':
-                    self.hit(view)
-                else:
-                    show_errors = False
-            else:
-                show_errors = False
-        else:
-            if show_errors:
-                # if showing errors on save, linting must be synchronized.
-                self.lint(vid)
-            elif (
-                mode == 'load_save' or
-                mode == 'background' and self.view_has_file_only_linter(vid)
-            ):
+        if mode != 'manual':
+            if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
-            elif mode == 'manual':
-                show_errors = False
+

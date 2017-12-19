@@ -85,7 +85,8 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
 
         sel.clear()
         if selected_text and not clear_sel:
-            new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
+            new_selected_region = self.view.find(
+                selected_text, 0, flags=sublime.LITERAL)
             if new_selected_region:
                 sel.add(new_selected_region)
                 return

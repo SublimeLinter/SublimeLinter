@@ -5,9 +5,3 @@ WARNING = "warning"
 ERROR = "error"
 WARN_ERR = (WARNING, ERROR)
 INBUILT_ICONS = ("circle", "dot", "bookmark", "none")
-
-LINT_MODES = (
-    ('background', 'Lint whenever the text is modified'),
-    ('load_save', 'Lint only when a file is loaded or saved'),
-    ('manual', 'Lint only when requested')
-)

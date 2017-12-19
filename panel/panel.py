@@ -38,15 +38,18 @@ def get_common_parent(paths):
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """
-    common_path = os.path.commonprefix([path + '/' for path in paths if path])
-    return common_path.rstrip('/')
+    common_path = os.path.commonprefix([path + '/' for path in paths if path and path != "untitled"])
+    if not os.path.exists(common_path):
+        common_path = os.path.dirname(common_path)
+    return common_path.rstrip('/\\')
 
 
 def create_path_dict(x):
     abs_dict = {}
     for vid in x:
-        if sublime.View(vid).file_name():
-            abs_dict[vid] = sublime.View(vid).file_name()
+        view = sublime.View(vid)
+        if view.file_name():
+            abs_dict[vid] = view.file_name()
         else:
             abs_dict[vid] = "untitled"
 
@@ -56,11 +59,13 @@ def create_path_dict(x):
             rel_paths = {vid: file_name}
     else:
         base_dir = get_common_parent(abs_dict.values())
-
-        rel_paths = {
-            vid: os.path.relpath(abs_path, base_dir)
-            for vid, abs_path in abs_dict.items()
-        }
+        if not base_dir:
+            rel_paths = abs_dict
+        else:
+            rel_paths = {
+                vid: os.path.relpath(abs_path, base_dir)
+                for vid, abs_path in abs_dict.items()
+            }
 
     return rel_paths, base_dir or ""
 
@@ -71,8 +76,11 @@ def create_panel(window):
     for key, value in OUTPUT_PANEL_SETTINGS.items():
         settings.set(key, value)
 
-    panel.settings().set("result_file_regex", r"^\s*(\S*\.\w+)\s*(\d*)")
-    panel.settings().set("result_line_regex", r"^\s*(\d+)(?::(\d+))?\s*(.*?)$")
+    panel.settings().set("result_file_regex", r"^(.*):$")
+    # row:col   type   linter: code   message
+    # where code is optional
+    # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
+    panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)
@@ -101,7 +109,7 @@ def format_header(f_path):
 
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
-    tmpl = "{LINENO:>8}:{start:<4}\t{ERR_TYPE:7}\t{linter:>12}: {code:12}\t{msg:12}"
+    tmpl = " {LINENO:>5}:{start:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
     return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
 
 

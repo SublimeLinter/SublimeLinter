@@ -1657,7 +1657,7 @@ class Linter(metaclass=LinterMeta):
             util.printf('{}: {} {}'.format(
                 self.name,
                 os.path.basename(self.filename or '<unsaved>'),
-                cmd or '<builtin>')
+                cmd)
             )
 
         if self.tempfile_suffix:

@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 import os
+import re
 import subprocess
 
 import sublime
@@ -292,3 +293,64 @@ def _communicate(cmd):
             "executing {} failed: reason: {}".format(cmd, str(err))
         )
         return ''
+
+###
+
+
+VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
+
+
+@lru_cache(maxsize=None)
+def get_python_version(path):
+    """Return a dict with the major/minor version of the python at path."""
+
+    try:
+        # Different python versions use different output streams, so check both
+        output = util.communicate((path, '-V'), '', output_stream=util.STREAM_BOTH)
+
+        # 'python -V' returns 'Python <version>', extract the version number
+        return extract_major_minor_version(output.split(' ')[1])
+    except Exception as ex:
+        util.printf(
+            'ERROR: an error occurred retrieving the version for {}: {}'
+            .format(path, str(ex)))
+
+        return {'major': None, 'minor': None}
+
+
+def extract_major_minor_version(version):
+    """Extract and return major and minor versions from a string version."""
+
+    match = VERSION_RE.match(version)
+
+    if match:
+        return {key: int(value) if value is not None else None for key, value in match.groupdict().items()}
+    else:
+        return {'major': None, 'minor': None}
+
+
+def version_fulfills_request(available_version, requested_version):
+    """
+    Return whether available_version fulfills requested_version.
+
+    Both are dicts with 'major' and 'minor' items.
+
+    """
+
+    # No requested major version is fulfilled by anything
+    if requested_version['major'] is None:
+        return True
+
+    # If major version is requested, that at least must match
+    if requested_version['major'] != available_version['major']:
+        return False
+
+    # Major version matches, if no requested minor version it's a match
+    if requested_version['minor'] is None:
+        return True
+
+    # If a minor version is requested, the available minor version must be >=
+    return (
+        available_version['minor'] is not None and
+        available_version['minor'] >= requested_version['minor']
+    )

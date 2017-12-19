@@ -1298,9 +1298,9 @@ class Linter(metaclass=LinterMeta):
 
         cmd = self.get_cmd()
         settings = self.get_view_settings()
-        self.chdir = self.get_chdir(settings)
+        chdir = self.get_chdir(settings)
 
-        with util.cd(self.chdir):
+        with util.cd(chdir):
             output = self.run(cmd, self.code)
 
         if not output:

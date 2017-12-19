@@ -525,4 +525,3 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
-

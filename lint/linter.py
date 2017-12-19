@@ -1078,9 +1078,6 @@ class Linter(metaclass=LinterMeta):
         elif self.executable_path:
             # `executable_path` is set statically by `can_lint`.
             path = self.executable_path
-
-            if isinstance(path, (list, tuple)) and None in path:
-                path = None
         else:
             # `which` here is a fishy escape hatch bc it was almost always
             # asked in `can_lint` already.
@@ -1459,12 +1456,6 @@ class Linter(metaclass=LinterMeta):
 
                 if executable:
                     cls.executable_path = cls.which(executable) or ''
-
-                    if (
-                        cls.executable_path is None or
-                        (isinstance(cls.executable_path, (tuple, list)) and None in cls.executable_path)
-                    ):
-                        cls.executable_path = ''
                 else:
                     cls.executable_path = ''
 

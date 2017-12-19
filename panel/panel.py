@@ -52,7 +52,7 @@ def create_path_dict(x):
         if view.file_name():
             abs_dict[vid] = view.file_name()
         else:
-            abs_dict[vid] = "untitled"
+            abs_dict[vid] = "<untitled " + str(vid) + ">"
             has_untitleds = True
 
     if len(abs_dict) == 1:

@@ -414,6 +414,9 @@ class Highlight:
                 )
 
                 flags = MARK_STYLES[mark_style]
+                if not persist.settings.get('show_marks_in_minimap'):
+                    flags |= sublime.HIDE_ON_MINIMAP
+
                 view.add_regions(style, regions, scope=scope, flags=flags)
                 drawn_regions.append(style)
 

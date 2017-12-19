@@ -39,7 +39,7 @@ class LinterMeta(type):
         if bases:
             setattr(cls, 'disabled', False)
 
-            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
+            if name in ('PythonLinter', 'NewPythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
                 return
 
             cls.alt_name = cls.make_alt_name(name)
@@ -396,7 +396,7 @@ class Linter(metaclass=LinterMeta):
         """
         cls.initialize()
 
-    def __init__(self, view, syntax):
+    def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
         self.code = ''
@@ -1009,8 +1009,18 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def which(cls, cmd):
-        """Call util.which with this class' module and return the result."""
-        return util.which(cmd, module=getattr(cls, 'module', None))
+        """Return full path to a given executable.
+
+        This version just delegates to `util.which` but plugin authors can
+        override this method.
+
+        Note that this method will be called statically as well as per
+        instance. So you can rely on `get_view_settings` to be available.
+
+        `context_sensitive_executable_path` is guaranteed to be called per
+        instance and might be the better override point.
+        """
+        return util.which(cmd)
 
     def get_cmd(self):
         """
@@ -1023,58 +1033,53 @@ class Linter(metaclass=LinterMeta):
         Otherwise the result of build_cmd is returned.
 
         """
-        if callable(self.cmd):
-            cmd = self.cmd()
 
-            if isinstance(cmd, str):
-                cmd = shlex.split(cmd)
+        cmd = self.cmd
 
-            return self.insert_args(cmd)
-        else:
-            return self.build_cmd()
-
-    def build_cmd(self, cmd=None):
-        """
-        Return a tuple with the command line to execute.
-
-        We start with cmd or the cmd class attribute. If it is a string,
-        it is parsed with shlex.split.
-
-        If the first element of the command line matches [script]@python[version],
-        and '@python' is in the aggregated view settings, util.which is called
-        to determine the path to the script and given version of python. This
-        allows settings to override the version of python used.
-
-        Otherwise, if self.executable_path has already been calculated, that
-        is used. If not, the executable path is located with util.which.
-
-        If the path to the executable can be determined, a list of extra arguments
-        is built with build_args. If the cmd contains '*', it is replaced
-        with the extra argument list, otherwise the extra args are appended to
-        cmd.
-
-        """
-
-        cmd = cmd or self.cmd
+        if callable(cmd):
+            cmd = cmd()
 
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
         else:
             cmd = list(cmd)
 
+        # For backwards compatibility: SL3 allowed a '@python' suffix which,
+        # when set, triggered special handling. SL4 doesn't need this marker,
+        # bc all the special handling is just done in the subclass.
+        which = cmd[0]
+        if '@python' in which:
+            cmd[0] = which[:which.find('@python')]
+
+        return self.build_cmd(cmd)
+
+    def build_cmd(self, cmd):
+        """
+        Return a tuple with the command line to execute.
+
+        Tries to find an executable with its complete path for cmd and replaces
+        cmd[0] with it.
+
+        The delegates to `insert_args` and returns whatever it returns.
+
+        """
         which = cmd[0]
         have_path, path = self.context_sensitive_executable_path(cmd)
 
         if have_path:
-            # Returning None means the linter runs code internally
-            if path == '<builtin>':
-                return None
+            # happy path
+            ...
+        elif util.can_exec(which):
+            # If `cmd` is a method, it is expected it finds an executable on
+            # its own. (Unless `context_sensitive_executable_path` is also
+            # implemented.)
+            path = which
         elif self.executable_path:
+            # `executable_path` is set statically by `can_lint`.
             path = self.executable_path
-
-            if isinstance(path, (list, tuple)) and None in path:
-                path = None
         else:
+            # `which` here is a fishy escape hatch bc it was almost always
+            # asked in `can_lint` already.
             path = self.which(which)
 
         if not path:
@@ -1089,6 +1094,11 @@ class Linter(metaclass=LinterMeta):
         Calculate the context-sensitive executable path, return a tuple of (have_path, path).
 
         Subclasses may override this to return a special path.
+
+        Return (True, '<path>') if you can resolve the executable given at cmd[0]
+        Return (True, None) if you want to skip the linter
+        Return (False, None) if you want to kick in the default implementation
+            of SublimeLinter
 
         """
         return False, None
@@ -1226,42 +1236,6 @@ class Linter(metaclass=LinterMeta):
 
         return args
 
-    def build_options(self, options, type_map, transform=None):
-        """
-        Build a list of options to be passed directly to a linting method.
-
-        This method is designed for use with linters that do linting directly
-        in code and need to pass a dict of options.
-
-        options is the starting dict of options. For each of the settings
-        listed in self.args_map:
-
-        - See if the setting name is in view settings.
-
-        - If so, and the value is non-empty, see if the setting
-          name is in type_map. If so, convert the value to the type
-          of the value in type_map.
-
-        - If transform is not None, pass the name to it and assign to the result.
-
-        - Add the name/value pair to options.
-
-        """
-
-        view_settings = self.get_view_settings(inline=True)
-
-        for name, info in self.args_map.items():
-            value = view_settings.get(name)
-
-            if value:
-                value = util.convert_type(value, type_map.get(name), sep=info.get('sep'))
-
-                if value is not None:
-                    if transform:
-                        name = transform(name)
-
-                    options[name] = value
-
     def get_chdir(self, settings):
         """Find the chdir to use with the linter."""
         chdir = settings.get('chdir', None)
@@ -1275,7 +1249,7 @@ class Linter(metaclass=LinterMeta):
             else:
                 return os.path.realpath('.')
 
-    def get_error_type(self, error, warning):
+    def get_error_type(self, error, warning):  # noqa:D102
         if error:
             return ERROR
         elif warning:
@@ -1300,18 +1274,11 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return
 
-        if self.cmd is None:
-            cmd = None
-        else:
-            cmd = self.get_cmd()
-
-            if cmd is not None and not cmd:
-                return
-
+        cmd = self.get_cmd()
         settings = self.get_view_settings()
-        self.chdir = self.get_chdir(settings)
+        chdir = self.get_chdir(settings)
 
-        with util.cd(self.chdir):
+        with util.cd(chdir):
             output = self.run(cmd, self.code)
 
         if not output:
@@ -1364,12 +1331,12 @@ class Linter(metaclass=LinterMeta):
                     )
                 elif near:
                     col, length = self.highlight.near(
-                            line,
-                            near,
-                            error_type=error_type,
-                            word_re=self.word_re,
-                            style=style
-                        )
+                        line,
+                        near,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
                 else:
                     if (
                         persist.settings.get('no_column_highlights_line') or
@@ -1444,27 +1411,18 @@ class Linter(metaclass=LinterMeta):
 
         if can:
             if cls.executable_path is None:
-                executable = ''
+                executable = None
+                cmd = cls.cmd
 
-                if not callable(cls.cmd):
-                    if isinstance(cls.cmd, (tuple, list)):
-                        executable = (cls.cmd or [''])[0]
-                    elif isinstance(cls.cmd, str):
-                        executable = cls.cmd
-
-                if not executable and cls.executable:
+                if cmd and not callable(cmd):
+                    if isinstance(cls.cmd, str):
+                        cmd = shlex.split(cmd)
+                    executable = cmd[0]
+                else:
                     executable = cls.executable
 
                 if executable:
                     cls.executable_path = cls.which(executable) or ''
-
-                    if (
-                        cls.executable_path is None or
-                        (isinstance(cls.executable_path, (tuple, list)) and None in cls.executable_path)
-                    ):
-                        cls.executable_path = ''
-                elif cls.cmd is None:
-                    cls.executable_path = '<builtin>'
                 else:
                     cls.executable_path = ''
 
@@ -1520,26 +1478,10 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        cls.executable_version = None
-
-        if cls.executable_path == '<builtin>':
-            if callable(getattr(cls, 'get_module_version', None)):
-                if not(cls.version_re and cls.version_requirement):
-                    return True
-
-                cls.executable_version = cls.get_module_version()
-
-                if cls.executable_version:
-                    persist.debug('{} version: {}'.format(cls.name, cls.executable_version))
-                else:
-                    util.printf('WARNING: {} unable to determine module version'.format(cls.name))
-            else:
-                return True
-        elif not(cls.version_args is not None and cls.version_re and cls.version_requirement):
+        if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
             return True
 
-        if cls.executable_version is None:
-            cls.executable_version = cls.get_executable_version()
+        cls.executable_version = cls.get_executable_version()
 
         if cls.executable_version:
             predicate = VersionPredicate(
@@ -1679,7 +1621,7 @@ class Linter(metaclass=LinterMeta):
             util.printf('{}: {} {}'.format(
                 self.name,
                 os.path.basename(self.filename or '<unsaved>'),
-                cmd or '<builtin>')
+                cmd)
             )
 
         if self.tempfile_suffix:

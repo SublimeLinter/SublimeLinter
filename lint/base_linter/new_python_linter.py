@@ -1,16 +1,15 @@
-"""This module exports the PythonLinter subclass of Linter."""
+"""This module exports the NewPythonLinter subclass of Linter."""
 
 from functools import lru_cache
 import os
-import re
 import subprocess
 
 import sublime
 from .. import linter, persist, util
 
 
-class PythonLinter(linter.Linter):
-    """(New) Python Linter [WIP]."""
+class NewPythonLinter(linter.Linter):
+    """New Python Linter [WIP]."""
 
     comment_re = r'\s*#'
 
@@ -100,6 +99,18 @@ class PythonLinter(linter.Linter):
                     cmd_name, str(python)
                 )
 
+                # If we didn't find anything useful, use the legacy
+                # code from SublimeLinter for resolving that version.
+                if executable is None:
+                    persist.debug(
+                        "{}: Still trying to resolve {}, now trying "
+                        "SublimeLinter's legacy code."
+                        .format(self.name, python)
+                    )
+                    _, executable, *_ = util.find_python(
+                        str(python), cmd_name
+                    )
+
                 if executable is None:
                     persist.printf(
                         "WARNING: {} deactivated, cannot locate '{}' "
@@ -133,7 +144,7 @@ class PythonLinter(linter.Linter):
             .format(self.name, cmd_name)
         )
         # fallback, similiar to a which(cmd)
-        executable = util.which(cmd_name)
+        executable = find_executable(cmd_name)
         if executable is None:
             persist.printf(
                 "WARNING: cannot locate '{}'. Fill in the '@python' or "
@@ -143,12 +154,40 @@ class PythonLinter(linter.Linter):
         return True, executable
 
 
+def _find_executables(executable):
+    env = util.create_environment()
+
+    for base in env.get('PATH', '').split(os.pathsep):
+        path = os.path.join(os.path.expanduser(base), executable)
+
+        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
+        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
+            for extension in ('.exe', '.cmd', '.bat'):
+                path_ext = path + extension
+
+                if util.can_exec(path_ext):
+                    yield path_ext
+        elif util.can_exec(path):
+            yield path
+
+    return None
+
+
+@lru_cache(maxsize=None)
+def find_executable(executable):
+    """Return the full path to an executable searching PATH."""
+    for path in _find_executables(executable):
+        return path
+
+    return None
+
+
 def find_python_version(version):  # type: Str
     """Return python binaries on PATH matching a specific version."""
-    requested_version = extract_major_minor_version(version)
-    for python in util.find_executables('python'):
-        python_version = get_python_version(python)
-        if version_fulfills_request(python_version, requested_version):
+    requested_version = util.extract_major_minor_version(version)
+    for python in _find_executables('python'):
+        python_version = util.get_python_version(python)
+        if util.version_fulfills_request(python_version, requested_version):
             yield python
 
     return None
@@ -253,64 +292,3 @@ def _communicate(cmd):
             "executing {} failed: reason: {}".format(cmd, str(err))
         )
         return ''
-
-###
-
-
-VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
-
-
-@lru_cache(maxsize=None)
-def get_python_version(path):
-    """Return a dict with the major/minor version of the python at path."""
-
-    try:
-        # Different python versions use different output streams, so check both
-        output = util.communicate((path, '-V'), '', output_stream=util.STREAM_BOTH)
-
-        # 'python -V' returns 'Python <version>', extract the version number
-        return extract_major_minor_version(output.split(' ')[1])
-    except Exception as ex:
-        util.printf(
-            'ERROR: an error occurred retrieving the version for {}: {}'
-            .format(path, str(ex)))
-
-        return {'major': None, 'minor': None}
-
-
-def extract_major_minor_version(version):
-    """Extract and return major and minor versions from a string version."""
-
-    match = VERSION_RE.match(version)
-
-    if match:
-        return {key: int(value) if value is not None else None for key, value in match.groupdict().items()}
-    else:
-        return {'major': None, 'minor': None}
-
-
-def version_fulfills_request(available_version, requested_version):
-    """
-    Return whether available_version fulfills requested_version.
-
-    Both are dicts with 'major' and 'minor' items.
-
-    """
-
-    # No requested major version is fulfilled by anything
-    if requested_version['major'] is None:
-        return True
-
-    # If major version is requested, that at least must match
-    if requested_version['major'] != available_version['major']:
-        return False
-
-    # Major version matches, if no requested minor version it's a match
-    if requested_version['minor'] is None:
-        return True
-
-    # If a minor version is requested, the available minor version must be >=
-    return (
-        available_version['minor'] is not None and
-        available_version['minor'] >= requested_version['minor']
-    )

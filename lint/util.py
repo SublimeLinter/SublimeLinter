@@ -512,38 +512,10 @@ def can_exec(path):
 
 
 @lru_cache(maxsize=None)
-def which(cmd, module=None):
-    """
-    Return the full path to the given command, or None if not found.
+def which(cmd):
+    """Return the full path to the given command, or None if not found."""
 
-    If cmd is in the form [script]@python[version], find_python is
-    called to locate the appropriate version of python. If an executable
-    version of the script can be found, its path is returned. Otherwise
-    the result is a tuple of the full python path and the full path to the script
-    (or None if there is no script).
-
-    """
-
-    match = PYTHON_CMD_RE.match(cmd)
-
-    if match:
-        args = match.groupdict()
-        args['module'] = module
-        path = find_python(**args)[0:2]
-
-        # If a script is requested and an executable path is returned
-        # with no script path, just use the executable.
-        if (
-            path is not None and
-            path[0] is not None and
-            path[1] is None and
-            args['script']  # for the case where there is no script in cmd
-        ):
-            return path[0]
-        else:
-            return path
-    else:
-        return find_executable(cmd)
+    return find_executable(cmd)
 
 
 def extract_major_minor_version(version):

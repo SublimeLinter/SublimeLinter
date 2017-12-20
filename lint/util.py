@@ -29,20 +29,27 @@ STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 PYTHON_CMD_RE = re.compile(
-    r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?')
-VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
+    r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?'
+)
+VERSION_RE = re.compile(
+    r'(?P<major>\d+)(?:\.(?P<minor>\d+))?'
+)
 
 INLINE_SETTINGS_RE = re.compile(
-    r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]')
+    r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]'
+)
 INLINE_SETTING_RE = re.compile(
-    r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)')
+    r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)'
+)
 
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 # Temp directory used to store temp files for linting
-tempdir = os.path.join(tempfile.gettempdir(),
-                       'SublimeLinter3-' + getpass.getuser())
+tempdir = os.path.join(
+    tempfile.gettempdir(),
+    "SublimeLinter3-" + getpass.getuser()
+)
 
 
 # Code migrated from 'lint/persist.py'

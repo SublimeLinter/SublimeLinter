@@ -519,7 +519,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             template.format(stylesheet=stylesheet, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
             location=location,
-            max_width=1000)
+            max_width=1000
+        )
 
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""

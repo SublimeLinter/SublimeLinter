@@ -157,7 +157,8 @@ class Settings:
         # Add python paths if they changed
         if "python_paths" in self.changeset:
             python_paths = self.settings.get('python_paths', {}).get(
-                sublime.platform(), [])
+                sublime.platform(), []
+            )
 
             for path in python_paths:
                 if path not in sys.path:
@@ -169,7 +170,8 @@ class Settings:
         if "syntax_map" in self.changeset:
             Linter.clear_all()
             util.apply_to_all_views(
-                lambda view: Linter.assign(view, reset=True))
+                lambda view: Linter.assign(view, reset=True)
+            )
 
         if "gutter_theme" in self.changeset:
             self.update_gutter_icons()

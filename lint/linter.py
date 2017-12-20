@@ -618,7 +618,8 @@ class Linter(metaclass=LinterMeta):
                 'token': '${directory}',
                 'value': (
                     os.path.dirname(view.file_name()).replace('\\', '/') if
-                    view and view.file_name() else "FILE NOT ON DISK")
+                    view and view.file_name() else "FILE NOT ON DISK"
+                )
             })
 
         expressions.append({

@@ -1036,6 +1036,8 @@ class Linter(metaclass=LinterMeta):
         """
 
         cmd = self.cmd
+        if cmd is None:
+            return None
 
         if callable(cmd):
             cmd = cmd()
@@ -1422,8 +1424,13 @@ class Linter(metaclass=LinterMeta):
                 else:
                     executable = cls.executable
 
+                if not executable:
+                    return True
+
                 if executable:
                     cls.executable_path = cls.which(executable) or ''
+                elif cmd is None:
+                    cls.executable_path = '<builtin>'
                 else:
                     cls.executable_path = ''
 

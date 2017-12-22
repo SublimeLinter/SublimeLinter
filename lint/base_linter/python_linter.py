@@ -186,7 +186,21 @@ def find_script_by_python_env(python_env_path, script):
 
 
 def expand_variables(string):
-    """Expand typical sublime variables in the given string."""
+    """Expand environment, user, and sublime text variables in the given string.
+
+    User variables:
+    https://docs.python.org/3/library/os.path.html#os.path.expanduser
+
+    Environment variables:
+    See https://docs.python.org/3/library/os.path.html#os.path.expandvars
+
+    Sublime Text variables:
+    e.g. "packages", "platform", "file", "file_path", file_name",
+    "file_base_name", "file_extension, "folder", "project", project_path",
+    "project_name", "project_base_name, "project_extension".
+    """
+    string = os.path.expanduser(string)
+    string = os.path.expandvars(string)
     window = sublime.active_window()
     env = window.extract_variables()
     return sublime.expand_variables(string, env)

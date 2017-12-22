@@ -370,48 +370,6 @@ def extract_path(cmd, delim=':'):
         return ''
 
 
-def get_shell_path(env):
-    """
-    Return the user's shell PATH using shell --login.
-
-    This method is only used on Posix systems.
-
-    """
-
-    if 'SHELL' in env:
-        shell_path = env['SHELL']
-        shell = os.path.basename(shell_path)
-
-        # We have to delimit the PATH output with markers because
-        # text might be output during shell startup.
-        if shell in ('bash', 'zsh'):
-            return extract_path(
-                (shell_path, '-l', '-c',
-                 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
-            )
-        elif shell == 'fish':
-            return extract_path(
-                (shell_path, '-l', '-c',
-                 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
-                '\n'
-            )
-        else:
-            printf('Using an unsupported shell:', shell)
-
-    # guess PATH if we haven't returned yet
-    split = env['PATH'].split(':')
-    p = env['PATH']
-
-    for path in (
-        '/usr/bin', '/usr/local/bin',
-        '/usr/local/php/bin', '/usr/local/php5/bin'
-    ):
-        if path not in split:
-            p += (':' + path)
-
-    return p
-
-
 @lru_cache(maxsize=None)
 def get_environment_variable(name):
     """Return the value of the given environment variable, or None if not found."""
@@ -456,9 +414,6 @@ def create_environment():
 
     env = {}
     env.update(os.environ)
-
-    if os.name == 'posix':
-        env['PATH'] = get_shell_path(os.environ)
 
     paths = persist.settings.get('paths', {})
 

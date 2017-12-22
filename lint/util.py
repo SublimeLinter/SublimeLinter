@@ -26,9 +26,6 @@ STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
-PYTHON_CMD_RE = re.compile(
-    r'(?P<script>[^@]+)?@python(?P<version>[\d\.]+|.+)?'
-)
 
 INLINE_SETTINGS_RE = re.compile(
     r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]'

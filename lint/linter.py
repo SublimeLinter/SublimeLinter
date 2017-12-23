@@ -29,6 +29,7 @@ MATCH_DICT = OrderedDict({
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(tuple(MATCH_DICT.values()))
 
+
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 

@@ -346,30 +346,6 @@ def run_shell_cmd(cmd):
     return out
 
 
-def extract_path(cmd, delim=':'):
-    """Return the user's PATH as a colon-delimited list."""
-    from . import persist
-    persist.debug('user shell:', cmd[0])
-
-    out = run_shell_cmd(cmd).decode()
-    path = out.split('__SUBL_PATH__', 2)
-
-    if len(path) > 1:
-        path = path[1]
-        return ':'.join(path.strip().split(delim))
-    else:
-        printf(
-            'Could not parse shell PATH output:\n'
-            + (out if out else '<empty>')
-        )
-        sublime.error_message(
-            'SublimeLinter could not determine your shell PATH. '
-            'It is unlikely that any linters will work. '
-            '\n\n'
-            'Please see the troubleshooting guide for info on how to debug PATH problems.')
-        return ''
-
-
 @lru_cache(maxsize=None)
 def get_environment_variable(name):
     """Return the value of the given environment variable, or None if not found."""

@@ -16,7 +16,6 @@ from .style import LinterStyleStore
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
 
-<<<<<<< HEAD
 MATCH_DICT = OrderedDict({
     "match": None,
     "line": None,
@@ -26,9 +25,8 @@ MATCH_DICT = OrderedDict({
     "message": '',
     "near": None
 })
-=======
+
 MATCH_DICT = OrderedDict({"match": None, "line": None, "col": None, "error": None, "warning": None, "message": '', "near": None})
->>>>>>> next_namedtuple
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 
 
@@ -260,11 +258,7 @@ class Linter(metaclass=LinterMeta):
     re_flags = 0
 
     # The default type assigned to non-classified errors. Should be either
-<<<<<<< HEAD
     # ERROR or WARNING.
-=======
-    # highlight.ERROR or highlight.WARNING.
->>>>>>> next_namedtuple
     default_type = ERROR
 
     # Linters usually report errors with a line number, some with a column number

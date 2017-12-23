@@ -168,7 +168,8 @@ class Listener:
             persist.highlights,
             persist.view_linters,
             persist.views,
-            persist.last_hit_times
+            persist.last_hit_times,
+            persist.indicators
         ]
 
         for d in dicts:

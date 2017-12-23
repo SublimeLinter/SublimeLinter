@@ -27,7 +27,7 @@ MATCH_DICT = OrderedDict({
 })
 
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
-
+LintMatch.__new__.__defaults__ = tuple(tuple(MATCH_DICT.values())
 
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
@@ -1672,7 +1672,7 @@ class Linter(metaclass=LinterMeta):
                     col = len(col)
                 match_dict["col"] = col
 
-        return LintMatch(*match_dict.values())
+        return LintMatch(**match_dict.values())
 
     def run(self, cmd, code):
         """

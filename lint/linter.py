@@ -1673,7 +1673,7 @@ class Linter(metaclass=LinterMeta):
                     col = len(col)
                 match_dict["col"] = col
 
-        return LintMatch(**match_dict.values())
+        return LintMatch(**match_dict)
 
     def run(self, cmd, code):
         """

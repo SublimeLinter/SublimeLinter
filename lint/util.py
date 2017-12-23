@@ -564,6 +564,24 @@ def get_shell_path(env):
     return p
 
 
+def merge_lists(a, b):
+    """
+    Merge two lists `a` and `b` by removing duplicates (from `b`).
+
+    This method differs from list(set(a + b)) by preserving the original ordering.
+
+    """
+
+    newlist = []
+    for i in a:
+        newlist.append(i)
+    for z in b:
+        if z not in newlist:
+            newlist.append(z)
+
+    return newlist
+
+
 @lru_cache(maxsize=None)
 def get_environment_variable(name):
     """Return the value of the given environment variable, or None if not found."""
@@ -649,7 +667,9 @@ def create_environment():
     env.update(os.environ)
 
     if os.name == 'posix':
-        env['PATH'] = get_shell_path(os.environ)
+        default_paths = filter(None, env['PATH'].split(os.pathsep))
+        computed_paths = filter(None, get_shell_path(os.environ).split(os.pathsep))
+        env['PATH'] = os.pathsep.join(merge_lists(computed_paths, default_paths))
 
     paths = persist.settings.get('paths', {})
 

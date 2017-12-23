@@ -30,7 +30,7 @@ The following forms are valid for the first argument of ``cmd``:
 If ``rbenv`` is installed and the gem is also under ``rbenv`` control,
 the gem will be executed directly. Otherwise ``(ruby [, gem])`` will be executed.
 
-If ``rvm-auto-ruby`` is installed, ``(rvm-auto-ruby [, gem])`` will be executed.
+If ``rvm-auto-ruby`` is installed, ``(rvm-auto-ruby [, gem])`` will be executed unless the ``use_rvm_auto_ruby`` linter setting is explicitly set to false.
 
 Otherwise ``ruby`` or ``gem`` will be executed.
 

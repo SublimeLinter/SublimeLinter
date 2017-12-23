@@ -76,7 +76,7 @@ class RubyLinter(linter.Linter):
         be returned.
 
         If rvm-auto-ruby is installed, [rvm-auto-ruby <, gem>] will be
-        returned.
+        returned unless the 'use_rvm_auto_ruby' linter setting is set to false.
 
         Otherwise [ruby] or [gem] will be returned.
 
@@ -85,7 +85,7 @@ class RubyLinter(linter.Linter):
         ruby = None
         rbenv = util.which('rbenv')
 
-        if not rbenv:
+        if not rbenv and cls.settings().get('use_rvm_auto_ruby', True):
             ruby = util.which('rvm-auto-ruby')
 
         if not ruby:

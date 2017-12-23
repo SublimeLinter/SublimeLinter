@@ -16,6 +16,7 @@
 .. |cmd| replace:: Command Palette (:kbd:`cmd+shift+p` on Mac OS X, :kbd:`ctrl+shift+p` on Linux/Windows)
 .. |path| replace:: ``PATH``
 .. |regex| replace:: If you need help constructing, testing or debugging a regular expression, `regular expressions 101 <https://regex101.com/>`__ provides an easy way to do so.
+.. |customenv| replace:: For more information on how to customize Sublime Text's environment on Mac OS, see `this gist <https://gist.github.com/smanolloff/54a787f661a3b8b5af10541f5cc5fa2c>`__
 
 .. |_sl| replace:: `SublimeLinter <https://github.com/SublimeLinter/SublimeLinter3>`__
 .. |_org| replace:: `SublimeLinter organization <https://github.com/SublimeLinter>`__

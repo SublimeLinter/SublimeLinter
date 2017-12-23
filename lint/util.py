@@ -85,7 +85,7 @@ class Borg:
 
 def is_scratch(view):
     """
-    Return whether a view is effectively scratch.
+    Returns true when a view is not lintable, e.g. scratch, read_only, etc.
 
     There is a bug (or feature) in the current ST3 where the Find panel
     is not marked scratch but has no window.
@@ -97,7 +97,7 @@ def is_scratch(view):
 
     """
 
-    if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
+    if not view or not view.window() or view.is_scratch() or view.is_read_only() or view.settings().get("repl"):
         return True
     elif (
         view.file_name() and

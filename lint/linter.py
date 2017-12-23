@@ -584,7 +584,7 @@ class Linter(metaclass=LinterMeta):
         if window:
             view = window.active_view()
 
-            if not view.file_name():  # None handling for unsaved files
+            if not view or not view.file_name():
                 return
 
             # window.project_data delivers the root folder(s) of the view,

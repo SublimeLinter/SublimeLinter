@@ -26,7 +26,6 @@ MATCH_DICT = OrderedDict({
     "near": None
 })
 
-MATCH_DICT = OrderedDict({"match": None, "line": None, "col": None, "error": None, "warning": None, "message": '', "near": None})
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 
 

@@ -10,7 +10,30 @@ from .. import linter, persist, util
 
 
 class PythonLinter(linter.Linter):
-    """(New) Python Linter [WIP]."""
+    """
+    This Linter subclass provides Python-specific functionality.
+
+    Linters that check python should inherit from this class.
+    By doing so, they automatically get the following features:
+
+    - Automatic discovery of virtual environments using `pipenv`
+
+    - Support for a "@python" setting.
+
+      @python can be set to a version, in which case we try to find
+      a python on your system matching that version.
+
+      @python can alternatively set to a base path of a python
+      environment. We then look for linter binaries within that
+      environment. A python environment can be a real installation
+      or a virtual environment
+
+    - Support for a "executable" setting.
+
+      A set "executable" will take precedence over any other method.
+      It must point to a real, executable binary.
+
+    """
 
     comment_re = r'\s*#'
 
@@ -267,8 +290,6 @@ def _communicate(cmd):
             "executing {} failed: reason: {}".format(cmd, str(err))
         )
         return ''
-
-###
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')

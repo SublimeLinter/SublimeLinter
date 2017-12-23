@@ -22,6 +22,8 @@ Participate in the beta right now by editing your Package Control preferences an
 ]
 ```
 
+If you want to use **SublimeLinter-flake8** during the beta, you need to add it to the "install_prereleases" as well. Most other linter plugins should be compatible.
+
 *Disclaimer: there will be bugs and we will make changes that will break your workflow, but it's pretty awesome otherwise*
 
 

@@ -85,7 +85,7 @@ class Borg:
 
 def is_scratch(view):
     """
-    Return whether a view is effectively scratch.
+    Returns true when a view is not lintable, e.g. scratch, read_only, etc.
 
     There is a bug (or feature) in the current ST3 where the Find panel
     is not marked scratch but has no window.
@@ -97,7 +97,7 @@ def is_scratch(view):
 
     """
 
-    if view.is_scratch() or view.is_read_only() or not view.window() or view.settings().get("repl"):
+    if not view or not view.window() or view.is_scratch() or view.is_read_only() or view.settings().get("repl"):
         return True
     elif (
         view.file_name() and
@@ -346,72 +346,6 @@ def run_shell_cmd(cmd):
     return out
 
 
-def extract_path(cmd, delim=':'):
-    """Return the user's PATH as a colon-delimited list."""
-    from . import persist
-    persist.debug('user shell:', cmd[0])
-
-    out = run_shell_cmd(cmd).decode()
-    path = out.split('__SUBL_PATH__', 2)
-
-    if len(path) > 1:
-        path = path[1]
-        return ':'.join(path.strip().split(delim))
-    else:
-        printf(
-            'Could not parse shell PATH output:\n'
-            + (out if out else '<empty>')
-        )
-        sublime.error_message(
-            'SublimeLinter could not determine your shell PATH. '
-            'It is unlikely that any linters will work. '
-            '\n\n'
-            'Please see the troubleshooting guide for info on how to debug PATH problems.')
-        return ''
-
-
-def get_shell_path(env):
-    """
-    Return the user's shell PATH using shell --login.
-
-    This method is only used on Posix systems.
-
-    """
-
-    if 'SHELL' in env:
-        shell_path = env['SHELL']
-        shell = os.path.basename(shell_path)
-
-        # We have to delimit the PATH output with markers because
-        # text might be output during shell startup.
-        if shell in ('bash', 'zsh'):
-            return extract_path(
-                (shell_path, '-l', '-c',
-                 'echo "__SUBL_PATH__${PATH}__SUBL_PATH__"')
-            )
-        elif shell == 'fish':
-            return extract_path(
-                (shell_path, '-l', '-c',
-                 'echo "__SUBL_PATH__"; for p in $PATH; echo $p; end; echo "__SUBL_PATH__"'),
-                '\n'
-            )
-        else:
-            printf('Using an unsupported shell:', shell)
-
-    # guess PATH if we haven't returned yet
-    split = env['PATH'].split(':')
-    p = env['PATH']
-
-    for path in (
-        '/usr/bin', '/usr/local/bin',
-        '/usr/local/php/bin', '/usr/local/php5/bin'
-    ):
-        if path not in split:
-            p += (':' + path)
-
-    return p
-
-
 @lru_cache(maxsize=None)
 def get_environment_variable(name):
     """Return the value of the given environment variable, or None if not found."""
@@ -456,9 +390,6 @@ def create_environment():
 
     env = {}
     env.update(os.environ)
-
-    if os.name == 'posix':
-        env['PATH'] = get_shell_path(os.environ)
 
     paths = persist.settings.get('paths', {})
 

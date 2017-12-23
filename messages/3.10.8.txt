@@ -1,0 +1,23 @@
+SublimeLinter 3.10.8
+---------------------
+
+Added a "use_current_shell_path" preference that basically does what is says :)
+
+---------------------
+
+SublimeLinter 4 now in beta!
+
+Read about it here:
+https://github.com/SublimeLinter/SublimeLinter3/blob/next/messages/4.0.0-rc.1.txt
+
+Participate by editing your Package Control preferences and adding
+SublimeLinter to the "install_prereleases" key:
+
+"install_prereleases":
+[
+  "SublimeLinter"
+]
+
+If you want to use SublimeLinter-flake8 during the beta, you need to add it to
+the "install_prereleases" as well.
+Most other linter plugins should be compatible.

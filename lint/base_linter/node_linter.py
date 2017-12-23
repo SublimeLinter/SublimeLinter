@@ -108,15 +108,10 @@ class NodeLinter(linter.Linter):
             local_cmd = self.find_local_cmd_path(cmd[0])
 
         if not local_cmd and not global_cmd:
-            util.printf(
-                'WARNING: {} deactivated, cannot locate local or global binary'
-                .format(self.name, cmd[0])
-            )
-            return False, ''
+            return True, None
 
         node_cmd_path = local_cmd if local_cmd else global_cmd
-        self.executable_path = node_cmd_path
-        return False, node_cmd_path
+        return True, node_cmd_path
 
     def get_manifest_path(self):
         """Get the path to the package.json file for the current file."""

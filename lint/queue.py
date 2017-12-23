@@ -46,34 +46,33 @@ class Daemon:
                 try:
                     item = self.q.get(block=True, timeout=self.MIN_DELAY)
                 except Empty:
-                    for view_id, (timestamp, delay) in last_runs.copy().items():
-                        # Lint the view if we have gone past the time
-                        # at which the lint wants to run.
-                        if time.monotonic() > timestamp + delay:
-                            self.last_runs[view_id] = time.monotonic()
-                            del last_runs[view_id]
-                            self.lint(view_id, timestamp)
+                    pass  # no immediate task to handle
+                else:
+                    if isinstance(item, tuple):
+                        view_id, timestamp, delay = item
+                        if view_id in self.last_runs and timestamp < self.last_runs[view_id]:
+                            continue
+                        last_runs[view_id] = timestamp, delay
 
-                    continue
+                    elif isinstance(item, (int, float)):
+                        time.sleep(item)
 
-                if isinstance(item, tuple):
-                    view_id, timestamp, delay = item
-
-                    if view_id in self.last_runs and timestamp < self.last_runs[view_id]:
-                        continue
-
-                    last_runs[view_id] = timestamp, delay
-
-                elif isinstance(item, (int, float)):
-                    time.sleep(item)
-
-                elif isinstance(item, str):
-                    if item == 'reload':
+                    elif isinstance(item, str) and item == 'reload':
                         util.printf('daemon detected a reload')
                         self.last_runs.clear()
                         last_runs.clear()
-                else:
-                    util.printf('unknown message sent to daemon:', item)
+                    else:
+                        util.printf('unknown message sent to daemon:', item)
+                    continue
+
+                for view_id, (timestamp, delay) in last_runs.copy().items():
+                    # Lint the view if we have gone past the time
+                    # at which the lint wants to run.
+                    if time.monotonic() > timestamp + delay:
+                        self.last_runs[view_id] = time.monotonic()
+                        del last_runs[view_id]
+                        self.lint(view_id, timestamp)
+
             except Exception:
                 util.printf('error in SublimeLinter daemon:')
                 util.printf('-' * 20)

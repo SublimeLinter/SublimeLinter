@@ -38,7 +38,7 @@ def get_common_parent(paths):
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """
-    common_path = os.path.commonprefix([path + '/' for path in paths if path and path != "untitled"])
+    common_path = os.path.commonprefix([path + '/' for path in paths if path])
     if not os.path.exists(common_path):
         common_path = os.path.dirname(common_path)
     return common_path.rstrip('/\\')
@@ -46,12 +46,13 @@ def get_common_parent(paths):
 
 def create_path_dict(x):
     abs_dict = {}
+    base_dir = ""
     for vid in x:
         view = sublime.View(vid)
         if view.file_name():
             abs_dict[vid] = view.file_name()
         else:
-            abs_dict[vid] = "untitled"
+            abs_dict[vid] = "<untitled " + str(view.buffer_id()) + ">"
 
     if len(abs_dict) == 1:
         for vid, path in abs_dict.items():

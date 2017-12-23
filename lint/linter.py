@@ -1,3 +1,4 @@
+from collections import namedtuple, OrderedDict
 from distutils.versionpredicate import VersionPredicate
 from fnmatch import fnmatch
 from functools import lru_cache
@@ -14,6 +15,9 @@ from .style import LinterStyleStore
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
+
+MATCH_DICT = OrderedDict({"match": None, "line": None, "col": None, "error": None, "warning": None, "message": '', "near": None})
+LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 
 
 class LinterMeta(type):
@@ -245,7 +249,7 @@ class Linter(metaclass=LinterMeta):
 
     # The default type assigned to non-classified errors. Should be either
     # highlight.ERROR or highlight.WARNING.
-    default_type = highlight.ERROR
+    default_type = ERROR
 
     # Linters usually report errors with a line number, some with a column number
     # as well. In general, most linters report one-based line numbers and column
@@ -1325,70 +1329,80 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
-        found_errors = self.find_errors(output)
-        for match, line, col, error, warning, message, near in found_errors:
-            if match and message and line:
-                error_type = self.get_error_type(error, warning)
-                style = self.style_store.get_style(error or warning, error_type)
+        for m in self.find_errors(output):
+            if not m or not m[0]:
+                continue
 
-                assert style
+            if not isinstance(m, LintMatch):  # ensure right type
+                m = LintMatch(*m)
 
-                if col:
-                    start, end = self.highlight.full_line(line)
+            if m.message and m.line:
+                self.process_match(m)
 
-                    # Adjust column numbers to match the linter's tabs if necessary
-                    if self.tab_width > 1:
-                        code_line = self.code[start:end]
-                        diff = 0
+    def process_match(self, m):
+        error_type = self.get_error_type(m.error, m.warning)
+        style = self.style_store.get_style(m.error or m.warning, error_type)
 
-                        for i in range(len(code_line)):
-                            if code_line[i] == '\t':
-                                diff += (self.tab_width - 1)
+        assert style
 
-                            if col - diff <= i:
-                                col = i
-                                break
+        col = m.col
 
-                    # Pin the column to the start/end line offsets
-                    col = max(min(col, (end - start) - 1), 0)
+        if col:
+            start, end = self.highlight.full_line(m.line)
 
-                length = None
-                if col:
-                    length = self.highlight.range(
-                        line,
-                        col,
-                        near=near,
-                        error_type=error_type,
-                        word_re=self.word_re,
-                        style=style
-                    )
-                elif near:
-                    col, length = self.highlight.near(
-                            line,
-                            near,
-                            error_type=error_type,
-                            word_re=self.word_re,
-                            style=style
-                        )
-                else:
-                    if (
-                        persist.settings.get('no_column_highlights_line') or
-                        not persist.settings.has('gutter_theme')
-                    ):
-                        pos = -1
-                    else:
-                        pos = 0
+            # Adjust column numbers to match the linter's tabs if necessary
+            if self.tab_width > 1:
+                code_line = self.code[start:end]
+                diff = 0
 
-                    length = self.highlight.range(
-                        line,
-                        pos,
-                        length=0,
-                        error_type=error_type,
-                        word_re=self.word_re,
-                        style=style
-                    )
+                for i in range(len(code_line)):
+                    if code_line[i] == '\t':
+                        diff += (self.tab_width - 1)
 
-                self.error(line, col, message, error_type, style=style, code=warning or error, length=length)
+                    if col - diff <= i:
+                        col = i
+                        break
+
+            # Pin the column to the start/end line offsets
+            col = max(min(col, (end - start) - 1), 0)
+
+        length = None
+        if col:
+            length = self.highlight.range(
+                m.line,
+                col,
+                near=m.near,
+                error_type=error_type,
+                word_re=self.word_re,
+                style=style
+            )
+        elif m.near:
+            col, length = self.highlight.near(
+                    m.line,
+                    m.near,
+                    error_type=error_type,
+                    word_re=self.word_re,
+                    style=style
+                )
+        else:
+            if (
+                persist.settings.get('no_column_highlights_line') or
+                not persist.settings.has('gutter_theme')
+            ):
+                pos = -1
+            else:
+                pos = 0
+
+            length = self.highlight.range(
+                m.line,
+                pos,
+                length=0,
+                error_type=error_type,
+                word_re=self.word_re,
+                style=style
+            )
+
+        self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
 
     def draw(self):
         """Draw the marks from the last lint."""
@@ -1642,27 +1656,28 @@ class Linter(metaclass=LinterMeta):
         and return them.
 
         """
+        match_dict = MATCH_DICT.copy()
 
-        if match:
-            items = {'line': None, 'col': None, 'error': None, 'warning': None, 'message': '', 'near': None}
-            items.update(match.groupdict())
-            line, col, error, warning, message, near = [
-                items[k] for k in ('line', 'col', 'error', 'warning', 'message', 'near')
-            ]
+        if not match:
+            persist.debug('No match for regex: {}'.format(self.regex.pattern))
+        else:
+            match_dict.update(match.groupdict())
+            match_dict["match"] = match
 
-            if line is not None:
-                line = int(line) - self.line_col_base[0]
+            # normalize line and col if necessary
+            line = match_dict["line"]
+            if line:
+                match_dict["line"] = int(line) - self.line_col_base[0]
 
-            if col is not None:
+            col = match_dict["col"]
+            if col:
                 if col.isdigit():
                     col = int(col) - self.line_col_base[1]
                 else:
                     col = len(col)
+                match_dict["col"] = col
 
-            return match, line, col, error, warning, message, near
-        else:
-            persist.debug('No match for regex: {}'.format(self.regex.pattern))
-            return match, None, None, None, None, '', None
+        return LintMatch(*match_dict.values())
 
     def run(self, cmd, code):
         """

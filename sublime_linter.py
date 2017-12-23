@@ -160,9 +160,14 @@ class Listener:
         vid = view.id()
 
         dicts = [
-            self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
-            persist.highlights, persist.view_linters,
-            persist.views, persist.last_hit_times
+            self.loaded_views,
+            self.linted_views,
+            self.view_syntax,
+            persist.errors,
+            persist.highlights,
+            persist.view_linters,
+            persist.views,
+            persist.last_hit_times
         ]
 
         for d in dicts:

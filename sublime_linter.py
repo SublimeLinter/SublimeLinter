@@ -77,7 +77,7 @@ class Listener:
     def on_modified_async(self, view):
         """Ran when view is modified."""
 
-        if util.is_scratch(view):
+        if not util.is_lintable(view):
             return
 
         if view.id() not in persist.view_linters:
@@ -94,7 +94,7 @@ class Listener:
     def on_activated_async(self, view):
         """Ran when a view gains input focus."""
 
-        if util.is_scratch(view):
+        if not util.is_lintable(view):
             return
 
         # Reload the plugin settings.
@@ -116,7 +116,7 @@ class Listener:
     def on_new_async(self, view):
         """Ran when a new buffer is created."""
 
-        if util.is_scratch(view):
+        if not util.is_lintable(view):
             return
 
         vid = view.id()
@@ -124,7 +124,7 @@ class Listener:
         self.view_syntax[vid] = util.get_syntax(view)
 
     def on_post_save_async(self, view):
-        if util.is_scratch(view):
+        if not util.is_lintable(view):
             return
 
         # First check to see if the project settings changed
@@ -154,7 +154,7 @@ class Listener:
             Linter.redraw_all()
 
     def on_pre_close(self, view):
-        if util.is_scratch(view):
+        if not util.is_lintable(view):
             return
 
         vid = view.id()

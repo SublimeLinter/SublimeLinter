@@ -169,7 +169,7 @@ class Settings:
                     sys.path.append(path)
 
         # If the syntax map changed, reassign linters to all views
-        from .linter import Linter
+        from ..linter import Linter
 
         if "syntax_map" in self.changeset:
             Linter.clear_all()
@@ -181,8 +181,7 @@ class Settings:
             self.update_gutter_icons()
 
         Linter.reload()  # always reload
-        from ..sublime_linter import SublimeLinter
-        SublimeLinter.lint_all_views()
+        self.view.run_command("sublime_linter_lint", {"lint_all_views": True})
 
         self.changeset.clear()
 

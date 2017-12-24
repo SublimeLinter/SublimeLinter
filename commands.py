@@ -34,11 +34,18 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
         return True
 
-    def run(self, edit):
+    def run(self, edit, lint_all_views=False):
         """Lint the current view."""
         from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().hit(self.view)
 
+        plugin = SublimeLinter.shared_plugin()
+        if not lint_all_views:
+            plugin.hit(self.view)
+        else:
+            for window in sublime.windows():
+                for view in window.views():
+                    plugin.check_syntax(view)
+            plugin.lint_all_views()
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):

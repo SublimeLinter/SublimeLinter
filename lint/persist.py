@@ -5,7 +5,7 @@ from collections import defaultdict
 import sys
 
 from .util import get_python_paths, printf
-from .settings.settings import Settings
+from .settings import Settings
 
 
 if 'plugin_is_loaded' not in globals():

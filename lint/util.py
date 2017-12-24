@@ -83,7 +83,7 @@ class Borg:
         self.__dict__ = self._shared_state
 
 
-def is_scratch(view):
+def is_lintable(view):
     """
     Returns true when a view is not lintable, e.g. scratch, read_only, etc.
 
@@ -96,17 +96,22 @@ def is_scratch(view):
     being opened is in the Sublime Text packages directory.
 
     """
-
-    if not view or not view.window() or view.is_scratch() or view.is_read_only() or view.settings().get("repl"):
-        return True
+    if (
+        not view or
+        not view.window() or
+        view.is_scratch() or
+        view.is_read_only() or
+        view.settings().get("repl")
+    ):
+        return False
     elif (
         view.file_name() and
         view.file_name().startswith(sublime.packages_path() + os.path.sep) and
         not os.path.exists(view.file_name())
     ):
-        return True
-    else:
         return False
+    else:
+        return True
 
 
 def is_none_or_zero(we_count):
@@ -142,7 +147,7 @@ def get_focused_view(view):
     if not active_view:
         return
 
-    if is_scratch(view):
+    if not is_lintable(view):
         return
 
     if not view.window():

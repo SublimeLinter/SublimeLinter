@@ -1,8 +1,8 @@
 import sublime
-import sublime_plugin
 from itertools import cycle
 
 from .const import STATUS_KEY
+
 
 class LintIndicator:
     busy = False
@@ -32,6 +32,3 @@ class LintIndicator:
     def stop(self):
         self.busy = False
         self.view.erase_status(STATUS_KEY)
-
-
-

@@ -20,6 +20,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
                     plugin.check_syntax(view)
             plugin.lint_all_views()
 
+
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         from .sublime_linter import SublimeLinter

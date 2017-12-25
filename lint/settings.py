@@ -1,12 +1,9 @@
 import os
 import sys
 from glob import glob
-import json
 
 import sublime
-from .. import util
-from .jsonschema.validators import validate
-from .jsonschema.exceptions import ValidationError
+from . import util
 
 
 class DictDelta:
@@ -147,7 +144,6 @@ class Settings:
         """
 
         self.settings = self.get_merged_settings()
-        self.validate_settings()
 
         self.changeset.extend(self.dict_comparer(self.settings))
 
@@ -169,7 +165,7 @@ class Settings:
                     sys.path.append(path)
 
         # If the syntax map changed, reassign linters to all views
-        from ..linter import Linter
+        from .linter import Linter
 
         if "syntax_map" in self.changeset:
             Linter.clear_all()
@@ -221,24 +217,6 @@ class Settings:
 
             new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
 
-        from .. import style
+        from . import style
 
         style.GUTTER_ICONS = new_gutter_dict
-
-    def validate_settings(self):
-        """Validates merged settings against json schema.
-        If invalid message is displayed in status bar and console."""
-        schema_file = "settings-schema.json"
-        schema_path = "SublimeLinter/lint/settings/jsonschema/schemas"
-        path = os.path.join(sublime.packages_path(), schema_path, schema_file)
-
-        with open(path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
-
-        try:
-            validate(self.settings, schema)
-        except ValidationError as ve:
-            console_msg = "Settings invalid:\n{}".format(ve)
-            util.printf(console_msg)
-            status_msg = "SublimeLinter - Settings invalid. Check console for details."
-            sublime.active_window().status_message(status_msg)

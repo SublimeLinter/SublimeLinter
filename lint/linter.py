@@ -1333,7 +1333,7 @@ class Linter(metaclass=LinterMeta):
 
         found_errors = self.find_errors(output)
         for match, line, col, error, warning, message, near in found_errors:
-            if match and message and line:
+            if match and message and line is not None:
                 error_type = self.get_error_type(error, warning)
                 style = self.style_store.get_style(error or warning, error_type)
 

@@ -1371,6 +1371,61 @@ class Linter(metaclass=LinterMeta):
                 code_line = self.code[start:end]
                 diff = 0
 
+                found_errors = self.find_errors(output)
+                
+        for match, line, col, error, warning, message, near in found_errors:
+            if match and message and line is not None:
+                error_type = self.get_error_type(error, warning)
+                style = self.style_store.get_style(error or warning, error_type)
+
+                assert style
+
+                if col:
+                    start, end = self.highlight.full_line(line)
+
+                    # Adjust column numbers to match the linter's tabs if necessary
+                    if self.tab_width > 1:
+                        code_line = self.code[start:end]
+                        diff = 0
+
+                        for i in range(len(code_line)):
+                            if code_line[i] == '\t':
+                                diff += (self.tab_width - 1)
+
+                            if col - diff <= i:
+                                col = i
+                                break
+
+                    # Pin the column to the start/end line offsets
+                    col = max(min(col, (end - start) - 1), 0)
+
+                length = None
+                if col:
+                    length = self.highlight.range(
+                        line,
+                        col,
+                        near=near,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
+                elif near:
+                    col, length = self.highlight.near(
+                        line,
+                        near,
+                        error_type=error_type,
+                        word_re=self.word_re,
+                        style=style
+                    )
+                else:
+                    if (
+                        persist.settings.get('no_column_highlights_line') or
+                        not persist.settings.has('gutter_theme')
+                    ):
+                        pos = -1
+                    else:
+                        pos = 0
+
                 for i in range(len(code_line)):
                     if code_line[i] == '\t':
                         diff += (self.tab_width - 1)

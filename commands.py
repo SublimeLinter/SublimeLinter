@@ -1,7 +1,6 @@
 import sublime
 import sublime_plugin
 
-from .lint import persist
 from .panel.panel import fill_panel, PANEL_NAME
 
 

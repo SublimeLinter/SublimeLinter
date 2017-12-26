@@ -3,13 +3,13 @@
         "caption": "SublimeLinter: Lint This View",
         "command": "sublime_linter_lint"
     },
-    // {
-    //     "caption": "SublimeLinter: Lint All Views",
-    //     "command": "sublime_linter_lint",  "args":
-    //     {
-    //         "lint_all_views": true
-    //     }
-    // },
+    {
+        "caption": "SublimeLinter: Lint All Views",
+        "command": "sublime_linter_lint",  "args":
+        {
+            "lint_all_views": true
+        }
+    },
     {
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublime_linter_panel_toggle"

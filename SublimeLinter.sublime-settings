@@ -1,7 +1,7 @@
 {
     // Optionally specify a python version
     // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
-    "@python": null,
+    "python": null,
 
     // Set to true to print extra information in the console.
     "debug": false,

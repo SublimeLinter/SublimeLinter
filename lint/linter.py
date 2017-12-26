@@ -383,11 +383,6 @@ class Linter(metaclass=LinterMeta):
 
         return cls.lint_settings
 
-    @staticmethod
-    def meta_settings(settings):
-        """Return a dict with the items in settings whose keys begin with '@'."""
-        return {key: value for key, value in settings.items() if key.startswith('@')}
-
     def get_view_settings(self):
         """
         Return a union of all non-inline settings specific to this view's linter.
@@ -397,7 +392,6 @@ class Linter(metaclass=LinterMeta):
         default settings
         user settings
         project settings
-        user + project meta settings
 
         After merging, tokens in the settings are replaced.
 
@@ -414,13 +408,7 @@ class Linter(metaclass=LinterMeta):
         else:
             project_settings = {}
 
-        # Merge global meta settings with project meta settings
-        meta = self.meta_settings(persist.settings.settings)
-        meta.update(self.meta_settings(project_settings))
-
-        # Get the linter's project settings, update them with meta settings
         project_settings = project_settings.get('linters', {}).get(self.name, {})
-        project_settings.update(meta)
 
         # Update the linter's settings with the project settings and rc settings
         settings = self.merge_project_settings(self.settings().copy(), project_settings)

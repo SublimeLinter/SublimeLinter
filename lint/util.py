@@ -916,30 +916,40 @@ def find_windows_python(version):
     """Find the nearest version of python and return its path."""
 
     if version:
-        # On Windows, there may be no separately named python/python3 binaries,
-        # so it seems the only reliable way to check for a given version is to
-        # check the root drive for 'Python*' directories, and try to match the
+        from . import persist
+
+        # Try to find python.exe using py.exe
+        # Try the exact version first, then the major version
+        code = r'import sys;sys.stdout.write(sys.executable)'
+        for testversion in (version, version.partition('.')[0]):
+            path = communicate(('py.exe', '-%s' % testversion), code)
+            if path:
+                if ('python.exe' in path.lower()) and can_exec(path):
+                    persist.debug('find_windows_python: <=', path)
+                    return path
+
+        # Check the root drive for 'Python*' directories, and try to match the
         # version based on the directory names. The 'Python*' directories end
         # with the <major><minor> version number, so for matching with the version
         # passed in, strip any decimal points.
         stripped_version = version.replace('.', '')
         prefix = os.path.abspath(os.path.join(
-            os.environ.get("SYSTEMROOT", "\\")[:2],
+            os.environ.get("SYSTEMDRIVE", ""),
+            os.sep,
             'Python'
         ))
         prefix_len = len(prefix)
         dirs = sorted(glob(prefix + '*'), reverse=True)
-        from . import persist
 
         # Try the exact version first, then the major version
-        for version in (stripped_version, stripped_version[0]):
+        for testversion in (stripped_version, stripped_version[0]):
             for python_dir in dirs:
                 path = os.path.join(python_dir, 'python.exe')
                 python_version = python_dir[prefix_len:]
                 persist.debug('find_windows_python: matching =>', path)
 
                 # Try the exact version first, then the major version
-                if python_version.startswith(version) and can_exec(path):
+                if python_version.startswith(testversion) and can_exec(path):
                     persist.debug('find_windows_python: <=', path)
                     return path
 

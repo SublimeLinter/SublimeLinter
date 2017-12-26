@@ -177,8 +177,7 @@ class Settings:
             self.update_gutter_icons()
 
         Linter.reload()  # always reload
-        from ..sublime_linter import SublimeLinter
-        SublimeLinter.lint_all_views()
+        sublime.active_window().run_command("sublime_linter_lint", {"lint_all_views": True})
 
         self.changeset.clear()
 

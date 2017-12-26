@@ -19,6 +19,8 @@ if 'plugin_is_loaded' not in globals():
     highlights = {}
     region_store = None
 
+    indicators = {}
+
     # A mapping between linter class names and linter classes
     linter_classes = {}
 

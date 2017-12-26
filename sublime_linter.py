@@ -12,31 +12,12 @@ from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR, STATUS_KEY
+from .lint.indicator import LintIndicator
 from .panel import panel
 
 
-def backup_old_settings():
-    """
-        If user settings file in old format exists it is renamed to disable it
-        and back it up.
-        A message will be displayed to the user.
-    """
-    usr_dir_abs = os.path.join(sublime.packages_path(), "User")
-    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
-    if os.path.exists(settings_file):
-        path = "Packages/User/SublimeLinter.sublime-settings"
-        settings = sublime.decode_value(sublime.load_resource(path))
-
-        if "user" in settings:
-            new_name = "SublimeLinter (old).sublime-settings"
-            new_path = os.path.join(usr_dir_abs, new_name)
-            os.rename(settings_file, new_path)
-            msg = "SublimeLinter\n\nYour settings have been backed up to:\n{}\nin Packages/User/".format(new_name)  # noqa: 501
-            sublime.message_dialog(msg)
-
-
 def plugin_loaded():
-    backup_old_settings()
+    util.backup_old_settings()
 
     persist.plugin_is_loaded = True
     persist.settings.load()
@@ -63,12 +44,9 @@ def plugin_loaded():
     if window:
         plugin.on_activated_async(window.active_view())
 
-    # Load and lint all views on startup
-    if persist.settings.get("lint_mode") in ("background", "load_save"):
-        for window in sublime.windows():
-            for view in window.views():
-                plugin.check_syntax(view)
-        plugin.lint_all_views()
+        # Load and lint all views on startup
+        if persist.settings.get("lint_all_views_on_startup"):
+            window.run_command("sublime_linter_lint", {"lint_all_views": True})
 
 
 class Listener:
@@ -160,9 +138,15 @@ class Listener:
         vid = view.id()
 
         dicts = [
-            self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
-            persist.highlights, persist.view_linters,
-            persist.views, persist.last_hit_times
+            self.loaded_views,
+            self.linted_views,
+            self.view_syntax,
+            persist.errors,
+            persist.highlights,
+            persist.view_linters,
+            persist.views,
+            persist.last_hit_times,
+            persist.indicators
         ]
 
         for d in dicts:
@@ -316,6 +300,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             panel.fill_panel(window, update=True)
 
         for view in window_views.values():
+            # stop lint indicator
+            indicator = persist.indicators[view.id()]
+            indicator.stop()
+
             self.display_errors(view)
 
     def hit(self, view):
@@ -327,6 +315,12 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         vid = view.id()
         self.check_syntax(view)
         self.linted_views.add(vid)
+
+        # add/start lint indicator
+        if vid not in persist.indicators:
+            persist.indicators[vid] = LintIndicator(view)
+        indicator = persist.indicators[vid]
+        indicator.start()
 
         if view.size() == 0:
             for linter in Linter.get_linters(vid):

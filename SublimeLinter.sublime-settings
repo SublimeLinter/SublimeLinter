@@ -26,6 +26,9 @@
     // ProjectIcons
     "gutter_theme": "none",
 
+    // Lints all open views on startup. Recommended only for faster systems.
+    "lint_all_views_on_startup": false,
+
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
     // load_save: when a file is opened and every time it's saved

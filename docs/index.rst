@@ -22,7 +22,6 @@ Donate via:
 `Bitcoin`_
 
 .. _PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU
-.. _Bitcoin: https://www.coinbase.com/groteworld/
 
 
 User Documentation
@@ -49,4 +48,3 @@ Developer Documentation
     linter_methods
     python_linter
     ruby_linter
-    acknowledgements

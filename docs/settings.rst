@@ -1,21 +1,16 @@
 .. include:: defines.inc
 
-Settings
-==================
-Most of the settings that affect |sl|’s user interface are available through commands and menu items. But there are some |sl| settings that can only be changed manually in settings files. In addition to |sl|’s settings, each linter may define its own settings, which usually must be changed manually as well.
-
-
 .. _settings-stack:
 
 Settings stack
 --------------
-When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings from several sources to calculate the value. The settings sources can be visualized as a stack, with settings at the top taking precedence over settings lower down:
+When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings from several sources to calculate the value.
 
 .. code-block:: none
 
-    Project settings
-    User settings
     Default settings
+    User settings
+    Project settings
 
 
 Setting types
@@ -24,28 +19,17 @@ There are three distinct types of settings:
 
 Global
 ~~~~~~
-Global settings control |sl|’s behavior and apply to all views. For example, the ``"error_color"`` setting determines the color of error marks and applies to all views. Defaults for all global settings are defined in the |sl| default settings and may only be modified within the user settings.
+Global settings control |sl|’s behavior and apply to all views. Defaults for all global settings are defined in the |sl| default settings and may be modified with the user settings.
 
 Linter
 ~~~~~~
 Linter settings apply only to a specific named linter. Linter settings are always defined within a ``"linters"`` object whose subobjects are named according to the lowercase class name of the linter. For an example, see the `user settings`_ sample below.
 
-.. _settings-sources:
-
-Settings sources
-----------------
-Let’s take a look at each of the settings sources in the stack, starting from the base level and working our way up.
-
-
 Project settings
 ~~~~~~~~~~~~~~~~
-|sl| project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. These settings apply to all files within the project.
+|sl| project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. Here you can change linter settings for a project.
 
-.. note::
-
-   Only meta-settings and linter settings are recognized in project settings.
-
-Project settings are opened from the ``Project > Edit Project`` menu. Here is an example project settings file with some |sl| settings:
+Project settings are opened from the ``Project > Edit Project`` menu. Here is an example project settings file where the flake8 linter has been disabled:
 
 .. code-block:: json
 
@@ -62,10 +46,7 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
             "linters":
             {
                 "flake8": {
-                    "excludes": [
-                        "*/test/**"
-                    ],
-                    "ignore": "W"
+                    "disable": true
                 }
             }
         }
@@ -74,8 +55,6 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
 .. note::
 
     Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document.
-
-Unlike user settings, project settings are not filled in by |sl|; you are responsible for adding any settings you wish to apply to files in the project.
 
 
 .. _settings-tokens:

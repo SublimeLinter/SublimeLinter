@@ -64,6 +64,12 @@ Your linter should have settings to modify the rules or severity levels.
 The new output panel and filtering have supplanted the "make_warnings_passive"
 and "show_errors_on_save" features.
 
+Settings can be specified in your user settings, or in project configuration
+(*.sublime-project files). Inline settings, inline overrides, shebang settings
+and .sublimelinterrc files are no longer supported.
+
+A python version can no longer be set globally.
+
 
 How to upgrade
 -------------------------------

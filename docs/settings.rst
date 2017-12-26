@@ -30,17 +30,6 @@ Linter
 ~~~~~~
 Linter settings apply only to a specific named linter. Linter settings are always defined within a ``"linters"`` object whose subobjects are named according to the lowercase class name of the linter. For an example, see the `user settings`_ sample below.
 
-Meta
-~~~~
-Meta settings are special settings whose names begin with ``"@"``. When defined at the global level, their value is applied to the settings of every linter. For example, when you select the :ref:`Disable Linting <disabling-all-linters>` command, |sl| sets the meta setting ``"@disable"`` to ``true`` at the global level, which is applied to all linters.
-
-Meta settings may also be set within a single linter’s settings, and in that case they apply only to that linter.
-
-.. note::
-
-   A meta setting at the global level overrides the same linter meta setting. For example, even if ``"@disable"`` is ``true`` within a linter’s settings, setting ``"@disable"`` to ``false`` at the global level will override the linter setting and enable that linter.
-
-
 .. _settings-sources:
 
 Settings sources

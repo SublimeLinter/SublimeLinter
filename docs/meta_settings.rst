@@ -1,25 +1,5 @@
 .. include:: defines.inc
 
-Meta Settings
-=============
-Meta settings are special global settings that can be used both at the global and linter level. When used globally, they are applied to every linter and override a linter meta setting. Meta setting names always begin with “@”.
-
-The following meta settings are supported:
-
-
-.. _disable-meta-setting:
-
-@disable
-~~~~~~~~
-This boolean setting disables linters, preventing them from running. If this setting is present globally, it forces all linters to be disabled if ``true`` or forces all linters to be enabled if ``false``.
-
-If you want to disable all linters, rather than change this setting manually, you are better off using the user interface to :ref:`disable all linters <disabling-all-linters>`.
-
-.. note::
-
-   Setting ``@disable`` to ``false`` enables **all** linters, regardless of whether you have set ``@disable`` to ``true`` for an individual linter. If you want to disable linters individually, you must remove the global ``@disable`` setting. Setting the global ``@disable`` setting through the user interface does this for you.
-
-
 .. _python-meta-setting:
 
 @python

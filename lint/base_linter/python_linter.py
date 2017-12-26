@@ -35,7 +35,6 @@ class PythonLinter(linter.Linter):
 
     """
 
-
     @classmethod
     @lru_cache(maxsize=None)
     def can_lint(cls, syntax):

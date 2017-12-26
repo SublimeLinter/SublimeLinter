@@ -110,7 +110,7 @@ The user sees these settings in their user settings:
 
     {
         "flake8": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "excludes": [],
             "ignore": "",
@@ -132,7 +132,7 @@ If the user changes the settings to this:
 
     {
         "flake8": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "excludes": [],
             "ignore": "W291,W293",
@@ -178,7 +178,7 @@ The user sees these settings in their user settings:
 
     {
         "gjslint": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "disable": "",
             "excludes": [],
@@ -195,7 +195,7 @@ If the user changes the settings to this:
 
     {
         "gjslint": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "disable": "0131,02",
             "excludes": [],

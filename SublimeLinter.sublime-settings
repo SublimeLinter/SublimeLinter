@@ -1,7 +1,4 @@
 {
-    // Optionally disable all linters
-    "@disable": false,
-
     // Optionally specify a python version
     // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
     "@python": null,
@@ -37,12 +34,12 @@
     // specific linter plugin.
     // "linters": {
     //     "csslint": {
-    //         "@disable": false,
+    //         "disable": false,
     //         "args": [],
     //         "excludes": []
     //     },
     //     "flake8": {
-    //         "@disable": false,
+    //         "disable": false,
     //         "args": [],
     //         "excludes": [],
     //         "ignore": "",

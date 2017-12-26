@@ -7,7 +7,7 @@ Each linter plugin is responsible for providing its own settings. In addition to
 
 .. _disable-linter-setting:
 
-@disable
+disable
 --------
 Disables the linter.
 

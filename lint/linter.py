@@ -747,7 +747,7 @@ class Linter(metaclass=LinterMeta):
 
             view_settings = linter.get_view_settings()
 
-            if view_settings.get('@disable'):
+            if view_settings.get('disable'):
                 disabled.add(linter)
                 continue
 
@@ -1287,17 +1287,6 @@ class Linter(metaclass=LinterMeta):
             if can:
                 can = cls.can_lint_syntax(syntax)
 
-            if can:
-                settings = persist.settings
-                disabled = (
-                    settings.get('@disabled') or
-                    settings.get('linters', {}).get(cls.name, {}).get('@disable', False)
-                )
-                status = '{} activated: {}{}'.format(
-                    cls.name,
-                    cls.executable_path,
-                    ' (disabled in settings)' if disabled else ''
-                )
             elif status is None:
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 

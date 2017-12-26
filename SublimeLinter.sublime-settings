@@ -1,11 +1,4 @@
 {
-    // Optionally disable all linters
-    "@disable": false,
-
-    // Optionally specify a python version
-    // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
-    "@python": null,
-
     // Set to true to print extra information in the console.
     "debug": false,
 
@@ -40,12 +33,13 @@
     // specific linter plugin.
     // "linters": {
     //     "csslint": {
-    //         "@disable": false,
+    //         "disable": false,
     //         "args": [],
     //         "excludes": []
     //     },
     //     "flake8": {
-    //         "@disable": false,
+    //         "python": null,
+    //         "disable": false,
     //         "args": [],
     //         "excludes": [],
     //         "ignore": "",
@@ -72,10 +66,6 @@
         "osx": [],
         "windows": []
     },
-
-    // The maximum number of parent directories that are searched to find
-    // a .sublimelinterrc file.
-    "rc_search_limit": 3,
 
     // How much time we should be available for reading $PATH from the shell.
     "shell_timeout": 10,

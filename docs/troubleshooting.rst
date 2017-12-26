@@ -286,7 +286,7 @@ When using python-based linters, there are more possibilities for configuration 
 
 - The version of python or the python script specified in the linter plugin may not be available.
 
-- The version of python you specify for your source code with the :ref:`@python meta setting <python-meta-setting>` or a :ref:`shebang <shebangs>` may not be available.
+- The version of python specified in your settings may not be available.
 
 - The specified version of python may be available, but the linter module for that version may not be installed.
 

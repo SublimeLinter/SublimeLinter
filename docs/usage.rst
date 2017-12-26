@@ -53,11 +53,3 @@ Python paths
 ~~~~~~~~~~~~
 When locating python and python scripts such as `flake8`_, |sl| goes through a special process. For more information, see :ref:`the @python meta setting <python-meta-setting>`.
 
-
-.. _disabling-all-linters:
-
-Disabling all linters
----------------------
-There may be times when you want to turn off all linting. To do so, bring up the |_cmd| and type :kbd:`disable`. Among the commands you should see ``SublimeLinter: Disable Linting``. If that command is not highlighted, use the keyboard or mouse to select it.
-
-Once you do this, all linters are disabled and all error marks are cleared from all views. To re-enable linting, follow the same steps as above, but select ``SublimeLinter: Don’t Disable Linting``. Note that this does not enable all linters; if you have :ref:`disabled individual linters <disable-linter-setting>` in the settings, they will remain disabled.

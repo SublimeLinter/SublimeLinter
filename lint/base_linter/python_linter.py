@@ -18,12 +18,12 @@ class PythonLinter(linter.Linter):
 
     - Automatic discovery of virtual environments using `pipenv`
 
-    - Support for a "@python" setting.
+    - Support for a "python" setting.
 
-      @python can be set to a version, in which case we try to find
+      python can be set to a version, in which case we try to find
       a python on your system matching that version.
 
-      @python can alternatively set to a base path of a python
+      python can alternatively set to a base path of a python
       environment. We then look for linter binaries within that
       environment. A python environment can be a real installation
       or a virtual environment
@@ -35,7 +35,6 @@ class PythonLinter(linter.Linter):
 
     """
 
-    comment_re = r'\s*#'
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -64,7 +63,7 @@ class PythonLinter(linter.Linter):
         # We expand environment variables. E.g. a user could have a project
         # structure where a virtual environment is always located within
         # the project structure. She could then simply specify
-        # `${project_path}/venv/bin/flake8`. Note that setting `@python`
+        # `${project_path}/venv/bin/flake8`. Note that setting `python`
         # to a path will have a similar effect.
         executable = settings.get('executable', '')
         if executable:
@@ -84,7 +83,7 @@ class PythonLinter(linter.Linter):
             # no fallback, the user specified something, so we err
             return True, None
 
-        # `@python` can be number or a string. If it is a string it should
+        # `python` can be number or a string. If it is a string it should
         # point to a python environment, NOT a python binary.
         # We expand environment variables. E.g. a user could have a project
         # structure where virtual envs are located always like such
@@ -92,12 +91,12 @@ class PythonLinter(linter.Linter):
         # contained in the project dir `${project_path}/venv`. She then
         # could edit the global settings once and can be sure that always the
         # right linter installed in the virtual environment gets executed.
-        python = settings.get('@python', None)
+        python = settings.get('python', None)
         if isinstance(python, str):
             python = expand_variables(python)
 
         persist.debug(
-            "{}: wanted @python is '{}'".format(self.name, python)
+            "{}: wanted python is '{}'".format(self.name, python)
         )
 
         cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
@@ -110,7 +109,7 @@ class PythonLinter(linter.Linter):
                 if not executable:
                     persist.printf(
                         "WARNING: {} deactivated, cannot locate '{}' "
-                        "for given @python '{}'"
+                        "for given python '{}'"
                         .format(self.name, cmd_name, python)
                     )
                     # Do not fallback, user specified something we didn't find
@@ -126,13 +125,13 @@ class PythonLinter(linter.Linter):
                 if executable is None:
                     persist.printf(
                         "WARNING: {} deactivated, cannot locate '{}' "
-                        "for given @python '{}'"
+                        "for given python '{}'"
                         .format(self.name, cmd_name, python)
                     )
                     return True, None
 
                 persist.debug(
-                    "{}: Using {} for given @python '{}'"
+                    "{}: Using {} for given python '{}'"
                     .format(self.name, executable, python)
                 )
                 return True, executable
@@ -159,7 +158,7 @@ class PythonLinter(linter.Linter):
         executable = util.which(cmd_name)
         if executable is None:
             persist.printf(
-                "WARNING: cannot locate '{}'. Fill in the '@python' or "
+                "WARNING: cannot locate '{}'. Fill in the 'python' or "
                 "'executable' setting."
                 .format(self.name)
             )

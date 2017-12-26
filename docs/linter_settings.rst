@@ -7,12 +7,9 @@ Each linter plugin is responsible for providing its own settings. In addition to
 
 .. _disable-linter-setting:
 
-@disable
+disable
 --------
-This is actually a meta setting that is added to every linter’s settings. For a discussion of the ``@disable`` setting, see :ref:`Meta Settings <disable-meta-setting>`.
-
-Rather than change this setting manually, you can use the user interface to :ref:`disable or enable a linter <toggling-linters>`.
-
+Disables the linter.
 
 args
 ----

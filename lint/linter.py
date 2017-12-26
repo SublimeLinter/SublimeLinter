@@ -75,7 +75,7 @@ class LinterMeta(type):
                 setattr(cls, 'disabled', True)
 
             if not cls.disabled:
-                for regex in ('regex', 'comment_re', 'word_re', 'version_re'):
+                for regex in ('regex', 'word_re', 'version_re'):
                     attr = getattr(cls, regex)
 
                     if isinstance(attr, str):
@@ -96,19 +96,10 @@ class LinterMeta(type):
                     util.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
                     setattr(cls, 'disabled', True)
 
-            for attr in ('inline_settings', 'inline_overrides'):
-                if attr in attrs and isinstance(attrs[attr], str):
-                    setattr(cls, attr, (attrs[attr],))
-
             # If this class has its own defaults, create an args_map.
             # Otherwise we use the superclass' args_map.
             if 'defaults' in attrs and attrs['defaults']:
                 cls.map_args(attrs['defaults'])
-
-            if 'PythonLinter' in [base.__name__ for base in bases]:
-                # Set attributes necessary for the @python inline setting
-                inline_settings = list(getattr(cls, 'inline_settings') or [])
-                setattr(cls, 'inline_settings', inline_settings + ['@python'])
 
             if persist.plugin_is_loaded:
                 # If the plugin has already loaded, then we get here because
@@ -346,38 +337,6 @@ class Linter(metaclass=LinterMeta):
     # setting is replaced with <name>.
     defaults = None
 
-    # Linters may define a list of settings that can be specified inline.
-    # As with defaults, you can specify that an inline setting should be passed
-    # as an argument by using a prefix and optional suffix. However, if
-    # the same setting was already specified as an argument in defaults,
-    # you do not need to use the prefix or suffix here.
-    #
-    # Within a file, the actual inline setting name is '<linter>-setting', where <linter>
-    # is the lowercase name of the linter class.
-    inline_settings = None
-
-    # Many linters allow a list of options to be specified for a single setting.
-    # For example, you can often specify a list of errors to ignore.
-    # This attribute is like inline_settings, but inline values will override
-    # existing values instead of replacing them, using the override_options method.
-    inline_overrides = None
-
-    # If the linter supports inline settings, you need to specify the regex that
-    # begins a comment. comment_re should be an unanchored pattern (no ^)
-    # that matches everything through the comment prefix, including leading whitespace.
-    #
-    # For example, to specify JavaScript comments, you would use the pattern:
-    #    r'\s*/[/*]'
-    # and for python:
-    #    r'\s*#'
-    comment_re = None
-
-    # Some linters may want to turn a shebang into an inline setting.
-    # To do so, set this attribute to a callback which receives the first line
-    # of code and returns a tuple/list which contains the name and value for the
-    # inline setting, or None if there is no match.
-    shebang_match = None
-
     #
     # Internal class storage, do not set
     #
@@ -428,11 +387,6 @@ class Linter(metaclass=LinterMeta):
         return self.__class__.__name__.lower()
 
     @classmethod
-    def clear_settings_caches(cls):
-        """Clear settings-related caches for this class' methods."""
-        cls.get_view_settings.cache_clear()
-
-    @classmethod
     def settings(cls):
         """Return the default settings for this linter, merged with the user settings."""
 
@@ -443,37 +397,7 @@ class Linter(metaclass=LinterMeta):
 
         return cls.lint_settings
 
-    @staticmethod
-    def meta_settings(settings):
-        """Return a dict with the items in settings whose keys begin with '@'."""
-        return {key: value for key, value in settings.items() if key.startswith('@')}
-
-    @lru_cache(maxsize=None)
-    def get_view_settings(self, inline=True):
-        """
-        Return a union of all settings specific to this linter, related to the given view.
-
-        The settings are merged in the following order:
-
-        default settings
-        user settings
-        project settings
-        user + project meta settings
-        rc settings
-        rc meta settings
-        shebang or inline settings (overrides)
-
-        """
-
-        settings = self.get_merged_settings()
-
-        if inline:
-            inline_settings = self.get_inline_settings()
-            settings = self.merge_inline_settings(settings.copy(), inline_settings)
-
-        return settings
-
-    def get_merged_settings(self):
+    def get_view_settings(self):
         """
         Return a union of all non-inline settings specific to this view's linter.
 
@@ -482,9 +406,6 @@ class Linter(metaclass=LinterMeta):
         default settings
         user settings
         project settings
-        user + project meta settings
-        rc settings
-        rc meta settings
 
         After merging, tokens in the settings are replaced.
 
@@ -501,41 +422,11 @@ class Linter(metaclass=LinterMeta):
         else:
             project_settings = {}
 
-        # Merge global meta settings with project meta settings
-        meta = self.meta_settings(persist.settings.settings)
-        meta.update(self.meta_settings(project_settings))
-
-        # Get the linter's project settings, update them with meta settings
         project_settings = project_settings.get('linters', {}).get(self.name, {})
-        project_settings.update(meta)
 
         # Update the linter's settings with the project settings and rc settings
         settings = self.merge_project_settings(self.settings().copy(), project_settings)
-        self.merge_rc_settings(settings)
         self.replace_settings_tokens(settings)
-        return settings
-
-    def get_inline_settings(self):
-        """Return shebang and inline settings from the current file."""
-        settings = {}
-
-        if self.shebang_match:
-            eol = self.code.find('\n')
-
-            if eol != -1:
-                setting = self.shebang_match(self.code[0:eol])
-
-                if setting is not None:
-                    settings[setting[0]] = setting[1]
-
-        if self.comment_re and (self.inline_settings or self.inline_overrides):
-            settings.update(util.inline_settings(
-                self.comment_re,
-                self.code,
-                prefix=self.name,
-                alt_prefix=self.alt_name
-            ))
-
         return settings
 
     def replace_settings_tokens(self, settings):
@@ -656,53 +547,6 @@ class Linter(metaclass=LinterMeta):
 
         recursive_replace(expressions, settings)
 
-    def merge_rc_settings(self, settings):
-        """
-        Merge .sublimelinterrc settings with settings.
-
-        Searches for .sublimelinterrc, starting at the directory of the linter's view.
-        The search is limited to rc_search_limit directories. If found, the meta settings
-        and settings for this linter in the rc file are merged with settings.
-
-        """
-
-        limit = persist.settings.get('rc_search_limit', None)
-        rc_settings = util.get_view_rc_settings(self.view, limit=limit)
-
-        if rc_settings:
-            meta = self.meta_settings(rc_settings)
-            rc_settings = rc_settings.get('linters', {}).get(self.name, {})
-            rc_settings.update(meta)
-            settings.update(rc_settings)
-
-    def merge_inline_settings(self, view_settings, inline_settings):
-        """
-        Return view settings merged with inline settings.
-
-        view_settings is merged with inline_settings specified by
-        the class attributes inline_settings and inline_overrides.
-        view_settings is updated in place and returned.
-
-        """
-
-        for setting, value in inline_settings.items():
-            if self.inline_settings and setting in self.inline_settings:
-                view_settings[setting] = value
-            elif self.inline_overrides and setting in self.inline_overrides:
-                options = view_settings[setting]
-                sep = self.args_map.get(setting, {}).get('sep')
-
-                if sep:
-                    kwargs = {'sep': sep}
-                    options = options or ''
-                else:
-                    kwargs = {}
-                    options = options or ()
-
-                view_settings[setting] = self.override_options(options, value, **kwargs)
-
-        return view_settings
-
     def merge_project_settings(self, view_settings, project_settings):
         """
         Return this linter's view settings merged with the current project settings.
@@ -714,53 +558,6 @@ class Linter(metaclass=LinterMeta):
         """
         view_settings.update(project_settings)
         return view_settings
-
-    def override_options(self, options, overrides, sep=','):
-        """
-        Return a list of options with overrides applied.
-
-        If you want inline settings to override but not replace view settings,
-        this method makes it easier. Given a set or sequence of options and some
-        overrides, this method will do the following:
-
-        - Copies options into a set.
-        - Split overrides into a list if it's a string, using sep to split.
-        - Iterates over each value in the overrides list:
-            - If it begins with '+', the value (without '+') is added to the options set.
-            - If it begins with '-', the value (without '-') is removed from the options set.
-            - Otherwise the value is added to the options set.
-        - The options set is converted to a list and returned.
-
-        For example, given the options 'E101,E501,W' and the overrides
-        '-E101,E202,-W,+W324', we would end up with 'E501,E202,W324'.
-
-        """
-
-        if isinstance(options, str):
-            options = options.split(sep) if options else ()
-            return_str = True
-        else:
-            return_str = False
-
-        modified_options = set(options)
-
-        if isinstance(overrides, str):
-            overrides = overrides.split(sep)
-
-        for override in overrides:
-            if not override:
-                continue
-            elif override[0] == '+':
-                modified_options.add(override[1:])
-            elif override[0] == '-':
-                modified_options.discard(override[1:])
-            else:
-                modified_options.add(override)
-
-        if return_str:
-            return sep.join(modified_options)
-        else:
-            return list(modified_options)
 
     @classmethod
     def assign(cls, view, linter_name=None, reset=False):
@@ -950,12 +747,9 @@ class Linter(metaclass=LinterMeta):
                 disabled.add(linter)
                 continue
 
-            # Because get_view_settings is potentially expensive, we use an lru_cache
-            # to cache its results. Before each lint, reset the cache.
-            linter.clear_settings_caches()
-            view_settings = linter.get_view_settings(inline=False)
+            view_settings = linter.get_view_settings()
 
-            if view_settings.get('@disable'):
+            if view_settings.get('disable'):
                 disabled.add(linter)
                 continue
 
@@ -1122,7 +916,7 @@ class Linter(metaclass=LinterMeta):
 
     def insert_args(self, cmd):
         """Insert user arguments into cmd and return the result."""
-        args = self.build_args(self.get_view_settings(inline=True))
+        args = self.build_args(self.get_view_settings())
         cmd = list(cmd)
 
         if '*' in cmd:
@@ -1141,7 +935,7 @@ class Linter(metaclass=LinterMeta):
         """Return any args the user specifies in settings as a list."""
 
         if settings is None:
-            settings = self.get_view_settings(inline=False)
+            settings = self.get_view_settings()
 
         args = settings.get('args', [])
 
@@ -1275,7 +1069,7 @@ class Linter(metaclass=LinterMeta):
 
         """
 
-        view_settings = self.get_view_settings(inline=True)
+        view_settings = self.get_view_settings()
 
         for name, info in self.args_map.items():
             value = view_settings.get(name)
@@ -1505,17 +1299,6 @@ class Linter(metaclass=LinterMeta):
             if can:
                 can = cls.can_lint_syntax(syntax)
 
-            if can:
-                settings = persist.settings
-                disabled = (
-                    settings.get('@disabled') or
-                    settings.get('linters', {}).get(cls.name, {}).get('@disable', False)
-                )
-                status = '{} activated: {}{}'.format(
-                    cls.name,
-                    cls.executable_path,
-                    ' (disabled in settings)' if disabled else ''
-                )
             elif status is None:
                 status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 

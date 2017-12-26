@@ -17,13 +17,9 @@ class RubyLinter(linter.Linter):
     Linters that check ruby using gems should inherit from this class.
     By doing so, they automatically get the following features:
 
-    - comment_re is defined correctly for ruby.
-
     - Support for rbenv and rvm (via rvm-auto-ruby).
 
     """
-
-    comment_re = r'\s*#'
 
     @classmethod
     def initialize(cls):

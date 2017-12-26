@@ -46,50 +46,6 @@ For the `flake8`_ linter plugin:
 Note how ``'*'`` is used as a placeholder for arguments built from settings, to ensure that ``'-'`` is passed as the last argument, which tells `flake8`_ to use ``stdin``.
 
 
-.. _comment_re:
-
-comment_re
-----------
-If the :ref:`inline_settings` or :ref:`inline_overrides` attribute is set, this attribute must be set to a `regex pattern`_ that matches the beginning of a comment. If you are subclassing from :doc:`PythonLinter <python_linter>` or :doc:`RubyLinter <ruby_linter>`, this attribute is set for you.
-
-For example, to specify a match for JavaScript comments, you would use the pattern ``r'\s*/[/*]'``.
-
-
-config_file
------------
-Many linters look for a config file in the linted file’s directory and in all parent directories up to the root directory. However, some of them will not do this if receiving input from ``stdin``, and others use temp files, so looking in the temp file directory doesn’t work.
-
-If this attribute is set to a tuple of a config file argument and the name of the config file, the linter will automatically try to find the config file, and if it is found, add the config file argument to the executed command.
-
-For example, if ``config_file`` is set to:
-
-.. code-block:: python
-
-    config_file = ('--config', '.jshintrc')
-
-when |sl| builds the argument list for the command line, if the file being linted has been saved to disk, |sl| will look in the file’s directory for :file:`.jshintrc` and in all parent directories up to the root. If :file:`.jshintrc` is found, |sl| adds:
-
-.. code-block:: none
-
-    --config /path/to/.jshintrc
-
-to the command line that runs the linter executable. Note that this facility works correctly when ``'*'`` is used as an argument placeholder in :ref:`cmd`.
-
-You may also pass an arbitrary number of auxiliary directories to search after the second element, and ``~`` is expanded in those paths. If the hierarchy search fails, the auxiliary directories are checked in the order they are declared.
-
-.. note::
-
-   When checking auxiliary directories, the hierarchy is **not** traversed. Only those directories are checked for the given filename.
-
-Going back to the :file:`.jshintrc` example above, to search in the file hierarchy and then in the user’s home directory for a :file:`.jshintrc` file, we would use this:
-
-.. code-block:: python
-
-    config_file = ('--config', '.jshintrc', '~')
-
-The default value for ``config_file`` is ``None``.
-
-
 default_type
 ------------
 As noted in the :ref:`regex` documentation, you use the ``error`` and ``warning`` named capture groups to classify linter errors. If the linter output does not provide information which can be captured with those groups, this attribute is used to determine how to classify the linter error. The value should be ``highlight.ERROR`` or ``highlight.WARNING``. The default value is ``highlight.ERROR``.
@@ -154,7 +110,7 @@ The user sees these settings in their user settings:
 
     {
         "flake8": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "excludes": [],
             "ignore": "",
@@ -176,7 +132,7 @@ If the user changes the settings to this:
 
     {
         "flake8": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "excludes": [],
             "ignore": "W291,W293",
@@ -222,7 +178,7 @@ The user sees these settings in their user settings:
 
     {
         "gjslint": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "disable": "",
             "excludes": [],
@@ -239,7 +195,7 @@ If the user changes the settings to this:
 
     {
         "gjslint": {
-            "@disable": false,
+            "disable": false,
             "args": [],
             "disable": "0131,02",
             "excludes": [],
@@ -264,26 +220,12 @@ Here is an example of using the ‘@’ prefix. The `phpmd`_ linter does not use
     defaults = {
         '@rulesets:,': 'cleancode,codesize,controversial,design,naming,unusedcode'
     }
-    inline_overrides = 'rulesets'
-    comment_re = r'\s*<!--'
 
 By default, the following arguments are passed to ``phpmd``:
 
 .. code-block:: none
 
     /path/to/temp/file text cleancode,codesize,controversial,design,naming,unusedcode
-
-The user can turn off individual rulesets inline, like this:
-
-.. code-block:: none
-
-    <!-- [SublimeLinter phpmd-rulesets:-controversial,-codesize] -->
-
-which results in these arguments being passed to ``phpmd``:
-
-.. code-block:: none
-
-    /path/to/temp/file text cleancode,design,naming,unusedcode
 
 
 .. _error_stream:
@@ -375,28 +317,6 @@ If the name of the executable cannot be determined by the first element of ``cmd
 .. note::
 
    If the ``cmd`` attribute is a string, list or tuple whose first element is the linter executable name, you do **not** need to define this attribute.
-
-
-.. _inline_overrides:
-
-inline_overrides
-----------------
-This attribute is exactly like :ref:`inline_settings`, but defines a tuple/list of settings that can be used as :ref:`inline overrides <inline-overrides>`.
-
-
-.. _inline_settings:
-
-inline_settings
----------------
-This attribute defines a tuple/list of settings that can be specified :ref:`inline <inline-settings>`. If an inline setting is used as an argument to the linter executable, be sure to define the setting as an argument in :ref:`defaults`. If this attribute is defined, you must define :ref:`comment_re` as well, unless you are subclassing from :doc:`PythonLinter <python_linter>` or :doc:`RubyLinter <ruby_linter>`, which does that for you.
-
-Within a file, the actual inline setting name is ``<linter>-setting``, where ``<linter>`` is the lowercase name of the linter class. For example, the ``Flake8`` linter class defines the following:
-
-.. code-block:: python
-
-    inline_settings = ('max-line-length', 'max-complexity')
-
-This means that ``flake8-max-line-length`` and ``flake8-max-complexity`` are recognized as inline settings.
 
 
 line_col_base
@@ -581,31 +501,6 @@ For example, the HTML syntax uses the scope ``source.js.embedded.html`` for embe
     selectors = {
         'html': 'source.js.embedded.html'
     }
-
-
-.. _shebang_match:
-
-shebang_match
--------------
-Some linters may want to turn a shebang into an inline setting. To do so, set this attribute to a callback which receives the first line of code and returns a tuple/list which contains the name and value for the inline setting, or ``None`` if there is no match.
-
-For example, the ``SublimeLinter.lint.PythonLinter`` class defines the following:
-
-.. code-block:: python
-
-    @staticmethod
-    def match_shebang(code):
-        """Convert and return a python shebang as a @python:<version> setting."""
-
-        match = PythonLinter.SHEBANG_RE.match(code)
-
-        if match:
-            return '@python', match.group('version')
-        else:
-            return None
-
-    shebang_match = match_shebang
-
 
 .. _syntax:
 

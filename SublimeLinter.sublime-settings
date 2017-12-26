@@ -70,10 +70,6 @@
         "windows": []
     },
 
-    // The maximum number of parent directories that are searched to find
-    // a .sublimelinterrc file.
-    "rc_search_limit": 3,
-
     // How much time we should be available for reading $PATH from the shell.
     "shell_timeout": 10,
 

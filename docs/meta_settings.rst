@@ -32,7 +32,7 @@ Because new versions of python are potentially backwards-incompatible with earli
 
 - When a linter provides a python 3-compatible API, a linter plugin will usually want to use the API directly instead of calling an external binary.
 
-The ``@python`` meta setting is a floating point number that specifies the python version that should be used when running python-based linters. This is especially useful when used in project settings or :ref:`.sublimelinterrc settings <sublimelinterrc-settings>` to specify that the files in a particular project or directory should be treated as a particular version of python.
+The ``@python`` meta setting is a floating point number that specifies the python version that should be used when running python-based linters. This is especially useful when used in project settings to specify that the files in a particular project should be treated as a particular version of python.
 
 For example, let’s say you are working on a project called “Widget” that is written in python 3, and you want to make sure it is treated as such by linters such as `flake8`_. In the project settings, you would do this:
 

@@ -1,7 +1,6 @@
 """This module provides general utility methods."""
 
 from functools import lru_cache
-import json
 import locale
 from numbers import Number
 import os
@@ -236,45 +235,6 @@ def inline_settings(comment_re, code, prefix=None, alt_prefix=None):
             settings[key] = value
 
     return settings
-
-
-def get_view_rc_settings(view, limit=None):
-    """Return the rc settings, starting at the parent directory of the given view."""
-    filename = view.file_name()
-
-    if filename:
-        return get_rc_settings(os.path.dirname(filename), limit=limit)
-    else:
-        return None
-
-
-@lru_cache(maxsize=None)
-def get_rc_settings(start_dir, limit=None):
-    """
-    Search for a file named .sublimelinterrc starting in start_dir.
-
-    From start_dir it ascends towards the root directory for a maximum
-    of limit directories (including start_dir). If the file is found,
-    it is read as JSON and the resulting object is returned. If the file
-    is not found, None is returned.
-
-    """
-
-    if not start_dir:
-        return None
-
-    path = find_file(start_dir, '.sublimelinterrc', limit=limit)
-
-    if path:
-        try:
-            with open(path, encoding='utf8') as f:
-                rc_settings = json.loads(f.read())
-
-            return rc_settings
-        except (OSError, ValueError) as ex:
-            printf('ERROR: could not load \'{}\': {}'.format(path, str(ex)))
-    else:
-        return None
 
 
 # file/directory/environment utils

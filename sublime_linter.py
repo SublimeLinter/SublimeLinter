@@ -131,18 +131,10 @@ class Listener:
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
         else:
-            # Now see if a .sublimelinterrc has changed
-            filename = os.path.basename(view.file_name())
-
-            if filename == '.sublimelinterrc':
-                # If a .sublimelinterrc has changed, to be safe
-                # clear the rc cache and relint.
-                util.get_rc_settings.cache_clear()
-                self.lint_all_views()
-
             # If a file other than one of our settings files changed,
             # check if the syntax changed or if we need to show errors.
-            elif filename != "SublimeLinter.sublime-settings":
+            filename = os.path.basename(view.file_name())
+            if filename != "SublimeLinter.sublime-settings":
                 self.file_was_saved(view)
 
     @classmethod

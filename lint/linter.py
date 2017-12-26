@@ -497,7 +497,6 @@ class Linter(metaclass=LinterMeta):
 
         # Update the linter's settings with the project settings and rc settings
         settings = self.merge_project_settings(self.settings().copy(), project_settings)
-        self.merge_rc_settings(settings)
         self.replace_settings_tokens(settings)
         return settings
 
@@ -641,25 +640,6 @@ class Linter(metaclass=LinterMeta):
         })
 
         recursive_replace(expressions, settings)
-
-    def merge_rc_settings(self, settings):
-        """
-        Merge .sublimelinterrc settings with settings.
-
-        Searches for .sublimelinterrc, starting at the directory of the linter's view.
-        The search is limited to rc_search_limit directories. If found, the meta settings
-        and settings for this linter in the rc file are merged with settings.
-
-        """
-
-        limit = persist.settings.get('rc_search_limit', None)
-        rc_settings = util.get_view_rc_settings(self.view, limit=limit)
-
-        if rc_settings:
-            meta = self.meta_settings(rc_settings)
-            rc_settings = rc_settings.get('linters', {}).get(self.name, {})
-            rc_settings.update(meta)
-            settings.update(rc_settings)
 
     def merge_inline_settings(self, view_settings, inline_settings):
         """

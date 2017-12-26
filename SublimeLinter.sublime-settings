@@ -1,8 +1,4 @@
 {
-    // Optionally specify a python version
-    // http://www.sublimelinter.com/en/latest/meta_settings.html#python-meta-setting
-    "python": null,
-
     // Set to true to print extra information in the console.
     "debug": false,
 
@@ -39,6 +35,7 @@
     //         "excludes": []
     //     },
     //     "flake8": {
+    //         "python": null,
     //         "disable": false,
     //         "args": [],
     //         "excludes": [],

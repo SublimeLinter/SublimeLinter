@@ -17,9 +17,9 @@ from .panel import panel
 
 def backup_old_settings():
     """
-        If user settings file in old format exists it is renamed to disable it
-        and back it up.
-        A message will be displayed to the user.
+    If user settings file in old format exists it is renamed to disable it
+    and back it up.
+    A message will be displayed to the user.
     """
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
@@ -40,10 +40,10 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
+    persist.debug("debug mode: on")
 
     style.StyleParser()()
 
-    persist.debug("debug mode: on")
     util.create_tempdir()
 
     persist.errors = ErrorStore()
@@ -59,7 +59,6 @@ def plugin_loaded():
 
     # This ensures we lint the active view on a fresh install
     window = sublime.active_window()
-
     if window:
         plugin.on_activated_async(window.active_view())
 
@@ -72,17 +71,13 @@ def plugin_loaded():
 
 
 class Listener:
-    """Collection of event handler methods."""
 
     def on_modified_async(self, view):
-        """Ran when view is modified."""
-
         if not util.is_lintable(view):
             return
 
         if view.id() not in persist.view_linters:
             syntax_changed = self.check_syntax(view)
-
             if not syntax_changed:
                 return
         else:
@@ -92,17 +87,13 @@ class Listener:
             self.hit(view)
 
     def on_activated_async(self, view):
-        """Ran when a view gains input focus."""
-
         if not util.is_lintable(view):
             return
 
-        # Reload the plugin settings.
         persist.settings.load()
-
         self.check_syntax(view)
-        view_id = view.id()
 
+        view_id = view.id()
         if view_id not in self.linted_views:
             if view_id not in self.loaded_views:
                 self.on_new_async(view)
@@ -114,8 +105,6 @@ class Listener:
         self.display_errors(view)
 
     def on_new_async(self, view):
-        """Ran when a new buffer is created."""
-
         if not util.is_lintable(view):
             return
 
@@ -127,19 +116,16 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        # First check to see if the project settings changed
+        # check if the project settings changed
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
         else:
-            # If a file other than one of our settings files changed,
-            # check if the syntax changed or if we need to show errors.
             filename = os.path.basename(view.file_name())
             if filename != "SublimeLinter.sublime-settings":
                 self.file_was_saved(view)
 
     @classmethod
     def on_settings_updated(cls, relint=False):
-        """Ran when the settings are updated."""
         if relint:
             cls.lint_all_views()
         else:
@@ -150,7 +136,6 @@ class Listener:
             return
 
         vid = view.id()
-
         dicts = [
             self.loaded_views, self.linted_views, self.view_syntax, persist.errors,
             persist.highlights, persist.view_linters,
@@ -169,7 +154,8 @@ class Listener:
         self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
-        """Arguments:
+        """
+        Arguments:
             view (View): The view which received the event.
             point (Point): The text position where the mouse hovered
             hover_zone (int): The context the event was triggered in
@@ -184,8 +170,6 @@ class Listener:
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
-    """The main ST3 plugin class."""
-
     shared_instance = None
 
     @classmethod
@@ -231,7 +215,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         callback is the method to call when the lint is finished. If not
         provided, it defaults to highlight().
-
         """
 
         # If the view has been modified since the lint was triggered,
@@ -261,7 +244,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         If the view has not been modified since hit_time, all of the marks and
         errors from the list of linters are aggregated and drawn, and the status is updated.
-
         """
 
         if not view:
@@ -311,7 +293,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             self.display_errors(view)
 
     def hit(self, view):
-        """Record an activity that could trigger a lint and enqueue a desire to lint."""
+        """
+        Record an activity that could trigger a lint
+        and enqueue a desire to lint.
+        """
 
         if not view:
             return
@@ -330,9 +315,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def check_syntax(self, view):
         """
         Check and return if view's syntax has changed.
-
         If the syntax has changed, a new linter is assigned.
-
         """
 
         if not view:
@@ -374,11 +357,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         Display lint errors in the statusbar of the current view
         """
 
-        if not view:  # handling of panel
+        if not view:
             return
 
         view = util.get_focused_view(view)
-        if not view:  # handling of panel
+        if not view:
             return
 
         lineno, colno = self.get_line_and_col(view)

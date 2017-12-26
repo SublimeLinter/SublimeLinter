@@ -301,8 +301,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         for view in window_views.values():
             # stop lint indicator
-            ind = persist.indicators[view.id()]
-            ind.stop()
+            indicator = persist.indicators[view.id()]
+            indicator.stop()
 
             self.display_errors(view)
 
@@ -319,8 +319,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         # add/start lint indicator
         if vid not in persist.indicators:
             persist.indicators[vid] = LintIndicator(view)
-        ind = persist.indicators[vid]
-        ind.start()
+        indicator = persist.indicators[vid]
+        indicator.start()
 
         if view.size() == 0:
             for linter in Linter.get_linters(vid):

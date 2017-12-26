@@ -25,15 +25,6 @@ STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
-
-INLINE_SETTINGS_RE = re.compile(
-    r'(?i).*?\[sublimelinter[ ]+(?P<settings>[^\]]+)\]'
-)
-INLINE_SETTING_RE = re.compile(
-    r'(?P<key>[@\w][\w\-]*)\s*:\s*(?P<value>[^\s]+)'
-)
-
-
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 # Temp directory used to store temp files for linting
@@ -170,71 +161,6 @@ def msg_count(l_dict):
 def any_key_in(target, source):
     """Performs an m:n member check between two iterables."""
     return any(key in target for key in source)
-
-
-# settings utils
-
-def inline_settings(comment_re, code, prefix=None, alt_prefix=None):
-    r"""
-    Return a dict of inline settings within the first two lines of code.
-
-    This method looks for settings in the form [SublimeLinter <name>:<value>]
-    on the first or second line of code if the lines match comment_re.
-    comment_re should be a compiled regex object whose pattern is unanchored (no ^)
-    and matches everything through the comment prefix, including leading whitespace.
-
-    For example, to specify JavaScript comments, you would use the pattern:
-
-    r'\s*/[/*]'
-
-    If prefix or alt_prefix is a non-empty string, setting names must begin with
-    the given prefix or alt_prefix to be considered as a setting.
-
-    A dict of matching name/value pairs is returned.
-
-    """
-
-    if prefix:
-        prefix = prefix.lower() + '-'
-
-    if alt_prefix:
-        alt_prefix = alt_prefix.lower() + '-'
-
-    settings = {}
-    pos = -1
-
-    for i in range(0, 2):
-        # Does this line start with a comment marker?
-        match = comment_re.match(code, pos + 1)
-
-        if match:
-            # If it's a comment, does it have inline settings?
-            match = INLINE_SETTINGS_RE.match(code, pos + len(match.group()))
-
-            if match:
-                # We have inline settings, stop looking
-                break
-
-        # Find the next line
-        pos = code.find('\n', )
-
-        if pos == -1:
-            # If no more lines, stop looking
-            break
-
-    if match:
-        for key, value in INLINE_SETTING_RE.findall(match.group('settings')):
-            if prefix and key[0] != '@':
-                if key.startswith(prefix):
-                    key = key[len(prefix):]
-                elif alt_prefix and key.startswith(alt_prefix):
-                    key = key[len(alt_prefix):]
-                else:
-                    continue
-
-            settings[key] = value
-
-    return settings
 
 
 # file/directory/environment utils

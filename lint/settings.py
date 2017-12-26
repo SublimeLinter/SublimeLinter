@@ -114,7 +114,7 @@ class Settings:
         self.plugin_settings.add_on_change('sublimelinter-persist-settings',
                                            observer or self.on_update)
 
-    def get_merged_settings(self):
+    def get_view_settings(self):
         """Returns dict of default and user settings merged."""
         res = sublime.find_resources("SublimeLinter.sublime-settings")
         merged_dict = {}
@@ -143,7 +143,7 @@ class Settings:
 
         """
 
-        self.settings = self.get_merged_settings()
+        self.settings = self.get_view_settings()
 
         self.changeset.extend(self.dict_comparer(self.settings))
 

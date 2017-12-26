@@ -13,13 +13,9 @@ When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings fr
 
 .. code-block:: none
 
-    Inline overrides
-    Inline settings
     Project settings
     User settings
     Default settings
-
-After the default, user, and project settings are merged, :ref:`tokens <settings-tokens>` are replaced within the settings. Each of the settings sources is covered in detail :ref:`below <settings-sources>`.
 
 
 Setting types

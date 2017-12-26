@@ -20,14 +20,7 @@ class ComposerLinter(linter.Linter):
       vendor/bin folder. You need to override composer_name
       variable to use this linter.
 
-    - comment_re is defined correctly for PHP. If your
-      linter can be found in the vendor/bin folder, but lints
-      a different language, you should override this with the
-      correct regular expression for the comments in the files
-      being linted.
     """
-
-    comment_re = r'\s*/[/*]'
 
     # must be overridden by the linter
     composer_name = None

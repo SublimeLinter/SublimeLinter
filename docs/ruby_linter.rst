@@ -10,8 +10,6 @@ If your linter plugin interfaces with a linter that is written in ruby, you shou
 
 By doing so, you get the following features:
 
-- :ref:`comment_re` is defined correctly for ruby.
-
 - Support for `rbenv`_ and `rvm`_ (via rvm-auto-ruby).
 
 

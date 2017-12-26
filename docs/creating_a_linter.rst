@@ -35,8 +35,6 @@ These are the minimum requirements to make a linter plugin functional. However, 
 
 - If the linter outputs errors only on ``stderr`` or ``stdout``, set :ref:`error_stream` to ``util.STREAM_STDERR`` or ``util.STREAM_STDOUT`` respectively.
 
-- If you wish to support :ref:`inline settings <inline-settings>` and/or :ref:`inline overrides <inline-overrides>`, add them to the :ref:`inline_settings` and :ref:`inline_overrides` attributes and be sure to set the :ref:`comment_re` attribute, unless you are subclassing from :doc:`PythonLinter <python_linter>` or :doc:`RubyLinter <ruby_linter>`, which do that for you.
-
 - If you wish to support embedded syntaxes, set the :ref:`selectors` attribute accordingly.
 
 - If the linter subclasses from :doc:`PythonLinter <python_linter>`, remove the :ref:`module <module>` attribute if you do not plan to use the linter’s python API. If you do, you will need to implement the :ref:`check <check-method>` method.
@@ -61,8 +59,6 @@ Updating documentation
    - If necessary, complete the linter installation instructions. Try to be as complete as possible, listing all necessary prerequisites (with links) and instructions for all platforms if they differ.
 
    - If your linter plugin does not define the :ref:`defaults` attribute, remove the two paragraphs beginning with “In addition to the standard |sl| settings”. If your linter plugin does define the :ref:`defaults` attribute, document their values.
-
-   - If any of the values in the :ref:`defaults` attribute are also used in :ref:`inline_settings` or :ref:`inline_overrides`, add a checkmark to the appropriate column in the template linter settings table. A checkmark is the html entity ``&#10003;``. If you are not using :ref:`inline_settings` or :ref:`inline_overrides`, remove those columns in the linter settings table.
 
 #. Open :file:`messages/install.txt` and change the repo URL to be the correct URL for your plugin’s repository.
 

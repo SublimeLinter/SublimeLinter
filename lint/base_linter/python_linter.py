@@ -35,7 +35,6 @@ class PythonLinter(linter.Linter):
 
     """
 
-    comment_re = r'\s*#'
 
     @classmethod
     @lru_cache(maxsize=None)

@@ -21,15 +21,7 @@ class NodeLinter(linter.Linter):
       ./node_modules/.bin/ folder. You need to override npm_name
       variable to use this linter.
 
-    - comment_re is defined correctly for JavaScript. If your
-      linter can be found in the node_modules folder, but lints
-      a different language, you should override this with the
-      correct regular expression for the comments in the files
-      being linted.
-
     """
-
-    comment_re = r'\s*/[/*]'
 
     # must be overridden by the linter
     npm_name = None
@@ -47,16 +39,16 @@ class NodeLinter(linter.Linter):
     def lint(self, hit_time):
         """Check NodeLinter options then run lint."""
 
-        view_settings = self.get_view_settings(inline=True)
+        settings = self.get_view_settings()
 
         if self.manifest_path:
             is_dep = self.is_dependency()
 
             enable_if_dependency = \
-                view_settings.get('enable_if_dependency', False)
+                settings.get('enable_if_dependency', False)
 
             disable_if_not_dependency = \
-                view_settings.get('disable_if_not_dependency', False)
+                settings.get('disable_if_not_dependency', False)
 
             if enable_if_dependency and is_dep:
                 self.disabled = False

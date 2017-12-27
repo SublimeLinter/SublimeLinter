@@ -1,6 +1,9 @@
 import sublime
 import sublime_plugin
 
+import time
+from itertools import cycle
+
 from .lint import persist, util
 from .lint.const import STATUS_KEY
 from . import events
@@ -26,11 +29,18 @@ def plugin_unloaded():
 
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(vid):
-    print('****** on_finished_linting received', vid)
     State['running'].pop(vid, None)
+
     State.update({
         'we_count': get_we_count(vid)
     })
+
+    draw(**State)
+
+
+@events.on(events.BEGIN_LINTING)
+def on_begin_linting(vid):
+    State['running'][vid] = time.time()
 
     draw(**State)
 
@@ -39,10 +49,12 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         active_view = util.get_focused_view(view)
         vid = active_view.id() if active_view else None
+
         State.update({
             'active_view': util.get_focused_view(active_view),
             'we_count': get_we_count(vid)
         })
+
         draw(**State)
 
     def on_selection_modified_async(self, view):
@@ -50,14 +62,30 @@ class UpdateState(sublime_plugin.EventListener):
         vid = active_view.id() if active_view else None
         current_pos = get_current_pos(active_view)
         errors_on_pos = persist.errors.get_region_dict(vid, *current_pos)
+
         State.update({
             'errors_on_pos': errors_on_pos
         })
+
         draw(**State)
 
 
-def draw(active_view, we_count, errors_on_pos, **kwargs):
+INITIAL_DELAY = 1
+CYCLE_TIME = 700
+TIMEOUT = 20
+
+
+def draw(active_view, we_count, errors_on_pos, running, **kwargs):
     if not active_view:
+        return
+
+    vid = active_view.id()
+    start_time = running.get(vid, None)
+    now = time.time()
+    if start_time and (INITIAL_DELAY < (now - start_time) < TIMEOUT):
+        cursor = next(phases)
+        active_view.set_status(STATUS_KEY, "W: {} E: {}".format(cursor, cursor))
+        sublime.set_timeout_async(lambda: draw(**State), CYCLE_TIME)
         return
 
     if not we_count:
@@ -89,3 +117,4 @@ def get_current_pos(view):
         return -1, -1
 
 
+phases = cycle(['.', ' '])

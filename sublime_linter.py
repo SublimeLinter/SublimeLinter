@@ -231,6 +231,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         filename = view.file_name()
         code = Linter.text(view)
         callback = callback or self.highlight
+
+        events.broadcast(events.BEGIN_LINTING, {'vid': view_id})
         Linter.lint_view(view, filename, code, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):

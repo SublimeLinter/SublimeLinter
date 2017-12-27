@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 
+BEGIN_LINTING = 'BEGIN_LINTING'
 FINISHED_LINTING = 'FINISHED_LINTING'
 
 

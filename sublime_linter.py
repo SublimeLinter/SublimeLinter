@@ -6,6 +6,7 @@ import html
 import sublime
 import sublime_plugin
 
+from . import events
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
@@ -110,8 +111,6 @@ class Listener:
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
 
-        self.display_errors(view)
-
     def on_new_async(self, view):
         if not util.is_lintable(view):
             return
@@ -155,9 +154,6 @@ class Listener:
                 d.pop(vid, None)
 
         panel.fill_panel(view.window(), update=True)
-
-    def on_selection_modified_async(self, view):
-        self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -293,8 +289,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             panel.fill_panel(window, update=True)
 
-        for view in window_views.values():
-            self.display_errors(view)
+        events.broadcast(events.FINISHED_LINTING, {'vid': vid})
+
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -351,37 +347,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             lineno, colno = -1, -1
 
         return lineno, colno
-
-    def display_errors(self, view):
-        """Display lint errors in the statusbar of the current view."""
-        if not view:
-            return
-
-        view = util.get_focused_view(view)
-        if not view:
-            return
-
-        lineno, colno = self.get_line_and_col(view)
-        vid = view.id()
-
-        view_dict = persist.errors.get_view_dict(vid)
-        if not view_dict:
-            view.erase_status(STATUS_KEY)
-            return
-
-        we_count = view_dict["we_count_view"]
-        status = "W: {warning} E: {error}".format(**we_count)
-
-        msgs = []
-        region_dict = persist.errors.get_region_dict(vid, lineno, colno)
-        for error_type, dc in region_dict.items():
-            for d in dc:
-                msgs.append(d["msg"])
-        if msgs:
-            status += " - {}".format("; ".join(msgs))
-
-        if status != view.get_status(STATUS_KEY):
-            view.set_status(STATUS_KEY, status)
 
     @classmethod
     def join_msgs(cls, line_dict, we_count, show_count=False):

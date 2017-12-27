@@ -6,7 +6,10 @@ from .const import STATUS_KEY
 
 class LintIndicator:
     busy = False
-    delay = 700
+    initial_delay = 1000
+    cycle_time = 700
+    timeout = 20000
+    run_time = 0
     phases = cycle(['.', ' '])
     view = None
 
@@ -21,14 +24,22 @@ class LintIndicator:
 
     def spinner_task(self):
         if self.busy:
-            self.view.set_status(STATUS_KEY, next(self.spinner_generator))
-            sublime.set_timeout_async(self.spinner_task, self.delay)
+            if self.run_time < self.timeout:
+                self.run_time += self.cycle_time
+                self.view.set_status(STATUS_KEY, next(self.spinner_generator))
+                sublime.set_timeout_async(self.spinner_task, self.cycle_time)
+            else:
+                self.cleanup()
+
+    def cleanup(self):
+        self.view.erase_status(STATUS_KEY)
 
     def start(self):
         """Initial delay to prevent flickering for short lint times."""
+        self.run_time = 0
         self.busy = True
-        sublime.set_timeout_async(self.spinner_task, 1000)
+        sublime.set_timeout_async(self.spinner_task, self.initial_delay)
 
     def stop(self):
         self.busy = False
-        self.view.erase_status(STATUS_KEY)
+        self.cleanup()

@@ -5,10 +5,7 @@
     },
     {
         "caption": "SublimeLinter: Lint All Views",
-        "command": "sublime_linter_lint",  "args":
-        {
-            "lint_all_views": true
-        }
+        "command": "sublime_linter_lint_all"
     },
     {
         "caption": "SublimeLinter: Show All Errors",

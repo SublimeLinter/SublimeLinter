@@ -46,7 +46,7 @@ def plugin_loaded():
 
         # Load and lint all views on startup
         if persist.settings.get("lint_all_views_on_startup"):
-            window.run_command("sublime_linter_lint", {"lint_all_views": True})
+            window.run_command("sublime_linter_lint_all")
 
 
 class Listener:

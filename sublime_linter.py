@@ -125,11 +125,8 @@ class Listener:
                 self.file_was_saved(view)
 
     @classmethod
-    def on_settings_updated(cls, relint=False):
-        if relint:
-            cls.lint_all_views()
-        else:
-            Linter.redraw_all()
+    def on_settings_updated(cls):
+        Linter.redraw_all()
 
     def on_pre_close(self, view):
         if not util.is_lintable(view):

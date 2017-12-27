@@ -56,7 +56,6 @@ class Settings:
         self.settings = {}
         self.changeset = []
         self.plugin_settings = None
-        self.on_update_callback = None
         self.dict_comparer = DictDelta()
 
     def load(self, force=False):
@@ -130,10 +129,6 @@ class Settings:
                 merged_dict.update(d)
         return merged_dict
 
-    def on_update_call(self, callback):
-        """Set a callback to call when user settings are updated."""
-        self.on_update_callback = callback
-
     def on_update(self):
         """
         Update state when the user settings change.
@@ -142,7 +137,6 @@ class Settings:
         Depending on what changes, views will either be redrawn or relinted.
 
         """
-
         self.settings = self.get_view_settings()
 
         self.changeset.extend(self.dict_comparer(self.settings))

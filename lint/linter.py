@@ -12,24 +12,24 @@ import sublime
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
 from .style import LinterStyleStore
+from .indicator import LintIndicator
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
 
 MATCH_DICT = OrderedDict(
-        (
-            ("match", None),
-            ("line", None),
-            ("col", None),
-            ("error", None),
-            ("warning", None),
-            ("message", ''),
-            ("near", None)
-        )
+    (
+        ("match", None),
+        ("line", None),
+        ("col", None),
+        ("error", None),
+        ("warning", None),
+        ("message", ''),
+        ("near", None)
     )
-
+)
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
-LintMatch.__new__.__defaults__ = tuple(tuple(MATCH_DICT.values()))
+LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
 
 
 class LinterMeta(type):
@@ -740,6 +740,9 @@ class Linter(metaclass=LinterMeta):
         if not linters:
             return
 
+        indicator = LintIndicator(view)
+        indicator.start()
+
         disabled = set()
         syntax = util.get_syntax(persist.views[vid])
 
@@ -808,6 +811,8 @@ class Linter(metaclass=LinterMeta):
 
         # Remove disabled linters
         linters = list(linters - disabled)
+
+        indicator.stop()
 
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)

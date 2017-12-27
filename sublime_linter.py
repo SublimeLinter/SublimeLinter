@@ -12,7 +12,6 @@ from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR, STATUS_KEY
-from .lint.indicator import LintIndicator
 from .panel import panel
 
 
@@ -137,8 +136,7 @@ class Listener:
             persist.highlights,
             persist.view_linters,
             persist.views,
-            persist.last_hit_times,
-            persist.indicators
+            persist.last_hit_times
         ]
 
         for d in dicts:
@@ -292,10 +290,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             panel.fill_panel(window, update=True)
 
         for view in window_views.values():
-            # stop lint indicator
-            indicator = persist.indicators[view.id()]
-            indicator.stop()
-
             self.display_errors(view)
 
     def hit(self, view):
@@ -307,12 +301,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         vid = view.id()
         self.check_syntax(view)
         self.linted_views.add(vid)
-
-        # add/start lint indicator
-        if vid not in persist.indicators:
-            persist.indicators[vid] = LintIndicator(view)
-        indicator = persist.indicators[vid]
-        indicator.start()
 
         if view.size() == 0:
             for linter in Linter.get_linters(vid):

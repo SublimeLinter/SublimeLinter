@@ -13,7 +13,7 @@ State = {
     'running': {},
     'we_count': {},
     'active_view': None,
-    'errors_on_pos': {}
+    'current_pos': (-1, -1)
 }
 
 
@@ -53,26 +53,27 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         active_view = util.get_focused_view(view)
         vid = active_view.id() if active_view else None
+
+        current_pos = get_current_pos(active_view)
         we_count = get_we_count(vid)
 
         State.update({
             'active_view': active_view,
-            'we_count': we_count
+            'we_count': we_count,
+            'current_pos': current_pos
         })
 
         draw(**State)
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
-        vid = active_view.id() if active_view else None
         current_pos = get_current_pos(active_view)
-        errors_on_pos = persist.errors.get_region_dict(vid, *current_pos)
+        if current_pos != State['current_pos']:
+            State.update({
+                'current_pos': current_pos
+            })
 
-        State.update({
-            'errors_on_pos': errors_on_pos
-        })
-
-        draw(**State)
+            draw(**State)
 
 
 INITIAL_DELAY = 1
@@ -80,7 +81,7 @@ CYCLE_TIME = 700
 TIMEOUT = 20
 
 
-def draw(active_view, we_count, errors_on_pos, running, **kwargs):
+def draw(active_view, we_count, current_pos, running, **kwargs):
     if not active_view:
         return
 
@@ -100,6 +101,7 @@ def draw(active_view, we_count, errors_on_pos, running, **kwargs):
     status = "W: {warning} E: {error}".format(**we_count)
 
     msgs = []
+    errors_on_pos = persist.errors.get_region_dict(vid, *current_pos)
     for error_type, dc in errors_on_pos.items():
         for d in dc:
             msgs.append(d["msg"])

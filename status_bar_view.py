@@ -27,6 +27,15 @@ def plugin_unloaded():
     events.off(on_finished_linting)
 
 
+@events.on(events.BEGIN_LINTING)
+def on_begin_linting(vid):
+    State['running'][vid] = time.time()
+
+    active_view = State['active_view']
+    if active_view and active_view.id() == vid:
+        draw(**State)
+
+
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(vid):
     State['running'].pop(vid, None)
@@ -37,15 +46,6 @@ def on_finished_linting(vid):
             'we_count': get_we_count(vid)
         })
 
-        draw(**State)
-
-
-@events.on(events.BEGIN_LINTING)
-def on_begin_linting(vid):
-    State['running'][vid] = time.time()
-
-    active_view = State['active_view']
-    if active_view and active_view.id() == vid:
         draw(**State)
 
 

@@ -60,12 +60,25 @@ def plugin_loaded():
     if window:
         plugin.on_activated_async(window.active_view())
 
-    # Load and lint all views on startup
+    # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
-        for window in sublime.windows():
-            for view in window.views():
-                plugin.check_syntax(view)
-        plugin.lint_all_views()
+        for view in visible_views():
+            plugin.hit(view)
+
+
+def visible_views():
+    """Yield all visible views of the active window."""
+    w = sublime.active_window()
+
+    # Priority for the active view
+    av = w.active_view()
+    yield av
+
+    ng = w.num_groups()
+    for gid in range(ng):
+        v = w.active_view_in_group(gid)
+        if v != av:
+            yield v
 
 
 class Listener:

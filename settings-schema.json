@@ -10,7 +10,6 @@
 			"type": "string",
 			"pattern": "^(background|load_save|manual)$"
 		},
-		"lint_all_views_on_startup": { "type": "boolean" },
 		"linters": {
 			"type": "object",
 			"additionalProperties": {

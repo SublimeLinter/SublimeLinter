@@ -12,7 +12,7 @@ from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
-from .lint.const import WARN_ERR, STATUS_KEY
+from .lint.const import WARN_ERR
 from .panel import panel
 
 

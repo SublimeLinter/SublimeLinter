@@ -49,10 +49,11 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         active_view = util.get_focused_view(view)
         vid = active_view.id() if active_view else None
+        we_count = get_we_count(vid)
 
         State.update({
-            'active_view': util.get_focused_view(active_view),
-            'we_count': get_we_count(vid)
+            'active_view': active_view,
+            'we_count': we_count
         })
 
         draw(**State)

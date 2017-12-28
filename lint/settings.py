@@ -4,7 +4,9 @@ from glob import glob
 
 import sublime
 from . import util
-
+from jsonschema.validators import validate
+from jsonschema.exceptions import ValidationError
+import json
 
 class DictDelta:
     """
@@ -138,6 +140,8 @@ class Settings:
 
         """
         self.settings = self.get_view_settings()
+        if not self.setting_valid():
+            return
 
         self.changeset.extend(self.dict_comparer(self.settings))
 
@@ -214,3 +218,23 @@ class Settings:
         from . import style
 
         style.GUTTER_ICONS = new_gutter_dict
+
+    def setting_valid(self):
+        """Validates merged settings against json schema.
+         If invalid message is displayed in status bar and console."""
+        schema_file = "settings-schema.json"
+        schema_path = "SublimeLinter/"
+        path = os.path.join(sublime.packages_path(), schema_path, schema_file)
+
+        with open(path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+        try:
+            validate(self.settings, schema)
+        except ValidationError as ve:
+            console_msg = "Settings invalid:\n{}".format(ve)
+            util.printf(console_msg)
+            status_msg = "SublimeLinter - Settings invalid. Check console for details."
+            sublime.active_window().status_message(status_msg)
+            return False
+        else:
+            return True

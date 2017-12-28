@@ -12,7 +12,6 @@ import sublime
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
 from .style import LinterStyleStore
-from .indicator import LintIndicator
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
@@ -740,9 +739,6 @@ class Linter(metaclass=LinterMeta):
         if not linters:
             return
 
-        indicator = LintIndicator(view)
-        indicator.start()
-
         disabled = set()
         syntax = util.get_syntax(persist.views[vid])
 
@@ -811,8 +807,6 @@ class Linter(metaclass=LinterMeta):
 
         # Remove disabled linters
         linters = list(linters - disabled)
-
-        indicator.stop()
 
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)

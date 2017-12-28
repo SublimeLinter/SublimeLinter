@@ -31,18 +31,22 @@ def plugin_unloaded():
 def on_finished_linting(vid):
     State['running'].pop(vid, None)
 
-    State.update({
-        'we_count': get_we_count(vid)
-    })
+    active_view = State['active_view']
+    if active_view and active_view.id() == vid:
+        State.update({
+            'we_count': get_we_count(vid)
+        })
 
-    draw(**State)
+        draw(**State)
 
 
 @events.on(events.BEGIN_LINTING)
 def on_begin_linting(vid):
     State['running'][vid] = time.time()
 
-    draw(**State)
+    active_view = State['active_view']
+    if active_view and active_view.id() == vid:
+        draw(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):

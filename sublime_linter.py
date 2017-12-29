@@ -432,7 +432,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return all_msgs
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
-        """ Show a tooltip containing all linting errors on a given line. """
+        """Show a tooltip containing all linting errors on a given line."""
 
         stylesheet = '''
             body {

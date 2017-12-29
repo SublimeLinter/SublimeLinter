@@ -111,7 +111,8 @@ class LinterStyleStore(StyleBaseStore):
 
     def get_default_style(self, error_type):
         """Return default style for error_type of this linter.
-        If not found returns style of SublimeLinter error_type."""
+        If not found returns style of SublimeLinter error_type.
+        """
 
         lint_def = self.traverse_dict(self.linter_styles, error_type)
         if lint_def:

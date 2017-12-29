@@ -1,12 +1,11 @@
-import sublime
-
 from . import persist
 
 import time
+import threading
 
 
-# Map from view_id to timestamp of last 'hit' (e.g. an edit)
-last_seen = {}
+# Map from view_id to threading.Timer objects
+timers = {}
 
 
 # For compatibility this is a class with unchanged API from SL3.
@@ -26,26 +25,16 @@ def queue_lint(vid, delay, callback):
     hit_time = time.monotonic()
 
     def worker():
-        last_hit = last_seen[vid]
-        del last_seen[vid]
-
-        # If we have a newer hit than this one, we debounce
-        if last_hit > hit_time:
-            queue_lint(vid, last_hit - hit_time, callback)
-            return
-
         callback(vid, hit_time)
 
-    # We cannot fire rapidly `set_timeout_async` or Sublime will miss some
-    # events eventually. So we use a membership test `vid in last_seen` to tell
-    # if we already queued an async worker or not.
-    if vid not in last_seen:
-        sublime.set_timeout_async(worker, delay * 1000)
+    try:
+        timers[vid].cancel()
+    except KeyError:
+        pass
 
-    # We store the last hit_time in any case. This will invalidate the worker
-    # if we have an old one running. The worker needs to debounce and schedule
-    # a new task with a fixed delay accordingly.
-    last_seen[vid] = hit_time
+    timers[vid] = timer = threading.Timer(delay, worker)
+    timer.start()
+
     return hit_time
 
 

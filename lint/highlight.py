@@ -90,11 +90,6 @@ class HighlightSet:
         """Clear all marks in the given view."""
         persist.region_store.del_regions(view)
 
-    def redraw(self, view):
-        """Redraw all marks in the given view."""
-        self.clear(view)
-        self.draw(view)
-
     def reset(self, view):
         """Clear all marks in the given view and reset the list of marks in our Highlights."""
         self.clear(view)

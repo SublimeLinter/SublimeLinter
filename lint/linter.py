@@ -635,26 +635,9 @@ class Linter(metaclass=LinterMeta):
                 persist.view_linters[vid].add(linter)
 
     @classmethod
-    def apply_to_all_highlights(cls, action):
-        """Apply an action to the highlights of all views."""
-        def apply(view):
-            highlights = persist.highlights.get(view.id())
-
-            if highlights:
-                getattr(highlights, action)(view)
-
-        util.apply_to_all_views(apply)
-
-    @classmethod
     def clear_all(cls):
         """Clear highlights and errors in all views."""
-        cls.apply_to_all_highlights('reset')
         persist.errors.clear()
-
-    @classmethod
-    def redraw_all(cls):
-        """Redraw all highlights in all views."""
-        cls.apply_to_all_highlights('redraw')
 
     @classmethod
     def text(cls, view):
@@ -1207,7 +1190,6 @@ class Linter(metaclass=LinterMeta):
         persist.errors.pop(view.id(), None)
 
     def clear(self):
-        """Clear marks, status and all other cached error info for the given view."""
         self.clear_view(self.view)
 
     # Helper methods

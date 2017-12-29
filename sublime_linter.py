@@ -132,10 +132,6 @@ class Listener:
             if filename != "SublimeLinter.sublime-settings":
                 self.file_was_saved(view)
 
-    @classmethod
-    def on_settings_updated(cls):
-        Linter.redraw_all()
-
     def on_pre_close(self, view):
         if not util.is_lintable(view):
             return

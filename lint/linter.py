@@ -1189,12 +1189,12 @@ class Linter(metaclass=LinterMeta):
             )
         elif m.near:
             col, length = self.highlight.near(
-                    m.line,
-                    m.near,
-                    error_type=error_type,
-                    word_re=self.word_re,
-                    style=style
-                )
+                m.line,
+                m.near,
+                error_type=error_type,
+                word_re=self.word_re,
+                style=style
+            )
         else:
             if (
                 persist.settings.get('no_column_highlights_line') or

@@ -55,11 +55,6 @@ def plugin_loaded():
     plugin = SublimeLinter.shared_plugin()
     queue.start(plugin.lint)
 
-    # This ensures we lint the active view on a fresh install
-    window = sublime.active_window()
-    if window:
-        plugin.on_activated_async(window.active_view())
-
     # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():

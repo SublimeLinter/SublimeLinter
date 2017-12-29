@@ -141,6 +141,11 @@ class Settings:
         if not self.changeset:
             return
 
+        # Reparse settings for style rules
+        if "styles" in self.changeset:
+            from . import style
+            style.StyleParser()()
+
         # Clear the path-related caches if the paths list has changed
         if "paths" in self.changeset:
             util.clear_path_caches()

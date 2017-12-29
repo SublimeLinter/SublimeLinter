@@ -29,9 +29,7 @@ class DictDelta:
         return changeset
 
     def diff_keys(self, d1, d2):
-        """
-            Diff dicts via set operations and subsequent traversing value comparison.
-        """
+        """Diff dicts via set operations and subsequent traversing value comparison."""
         changed_keys = []
         d1_keys = set(d1.keys())
         d2_keys = set(d2.keys())

@@ -16,9 +16,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         only if the view is not dirty.
 
         Otherwise it can be linted.
-
         """
-
         has_non_file_only_linter = False
 
         vid = self.view.id()

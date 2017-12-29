@@ -17,7 +17,6 @@ class DictDelta:
 
     def __call__(self, new_dict):
         """Return list of changed keys."""
-
         # explicitly check for None, prevent all keys being returned on 1st run
         if self.old_dict is None:
             self.old_dict = new_dict
@@ -176,7 +175,6 @@ class Settings:
 
     def update_gutter_icons(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
-
         new_gutter_dict = {"icons": {}}
 
         theme_path = self.settings.get('gutter_theme')

@@ -48,9 +48,7 @@ class LinterMeta(type):
         - Add '@python' as an inline setting to PythonLinter subclasses.
 
         Finally, the class is registered as a linter for its configured syntax.
-
         """
-
         if bases:
             setattr(cls, 'disabled', False)
 
@@ -145,9 +143,7 @@ class LinterMeta(type):
         For each item in defaults, the key is matched with ARG_RE. If there is a match,
         the key is stripped of meta information and the match groups are stored as a dict
         under the stripped key.
-
         """
-
         # Check if the settings specify an argument.
         # If so, add a mapping between the setting and the argument format,
         # then change the name in the defaults to the setting name.
@@ -390,7 +386,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def settings(cls):
         """Return the default settings for this linter, merged with the user settings."""
-
         if cls.lint_settings is None:
             linters = persist.settings.get('linters', {})
             cls.lint_settings = (cls.defaults or {}).copy()
@@ -409,9 +404,7 @@ class Linter(metaclass=LinterMeta):
         project settings
 
         After merging, tokens in the settings are replaced.
-
         """
-
         # Start with the overall project settings. Note that when
         # files are loaded during quick panel preview, it can happen
         # that they are linted without having a window.
@@ -574,9 +567,7 @@ class Linter(metaclass=LinterMeta):
 
         Each view has its own linters so that linters can store persistent data
         about a view.
-
         """
-
         vid = view.id()
         persist.views[vid] = view
         syntax = util.get_syntax(view)
@@ -622,7 +613,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def remove(cls, vid):
         """Remove a the mapping between a view and its set of linters."""
-
         if vid in persist.view_linters:
             for linters in persist.view_linters[vid]:
                 linters.clear()
@@ -632,7 +622,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def reload(cls):
         """Assign new instances of linters to views."""
-
         # Merge linter default settings with user settings
         for name, linter in persist.linter_classes.items():
             linter.lint_settings = None
@@ -648,7 +637,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def apply_to_all_highlights(cls, action):
         """Apply an action to the highlights of all views."""
-
         def apply(view):
             highlights = persist.highlights.get(view.id())
 
@@ -727,9 +715,7 @@ class Linter(metaclass=LinterMeta):
         the corresponding section is linted as embedded code.
 
         A list of the linters that ran is returned.
-
         """
-
         if not code:
             return
 
@@ -841,9 +827,7 @@ class Linter(metaclass=LinterMeta):
         a string, it is parsed into a list with shlex.split.
 
         Otherwise the result of build_cmd is returned.
-
         """
-
         cmd = self.cmd
         if cmd is None:
             return None
@@ -934,7 +918,6 @@ class Linter(metaclass=LinterMeta):
 
     def get_user_args(self, settings=None):
         """Return any args the user specifies in settings as a list."""
-
         if settings is None:
             settings = self.get_view_settings()
 
@@ -981,9 +964,7 @@ class Linter(metaclass=LinterMeta):
         locate the config file and if found add the config file arg.
 
         Return the arg list.
-
         """
-
         args = self.get_user_args(settings)
         args_map = getattr(self, 'args_map', {})
 
@@ -1067,9 +1048,7 @@ class Linter(metaclass=LinterMeta):
         - If transform is not None, pass the name to it and assign to the result.
 
         - Add the name/value pair to options.
-
         """
-
         view_settings = self.get_view_settings()
 
         for name, info in self.args_map.items():
@@ -1116,9 +1095,7 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
         - Highlight warnings and errors.
-
         """
-
         if self.disabled:
             return
 
@@ -1251,9 +1228,7 @@ class Linter(metaclass=LinterMeta):
         3. If there is a version requirement and the executable is available,
            its version must fulfill the requirement.
         4. can_lint_syntax must return True.
-
         """
-
         can = False
         syntax = syntax.lower()
 
@@ -1327,9 +1302,7 @@ class Linter(metaclass=LinterMeta):
         Return whether the executable fulfills version_requirement.
 
         When this is called, cls.executable_path has been set.
-
         """
-
         if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
             return True
 
@@ -1357,7 +1330,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def get_executable_version(cls):
         """Extract and return the string version of the linter executable."""
-
         args = cls.version_args
 
         if isinstance(args, str):
@@ -1386,7 +1358,6 @@ class Linter(metaclass=LinterMeta):
 
     def error(self, line, col, message, error_type, style=None, code=None, length=None):
         """Add a reference to an error/warning on the given line and column."""
-
         self.highlight.line(line, error_type, style=style)
 
         col = col or 0
@@ -1413,9 +1384,7 @@ class Linter(metaclass=LinterMeta):
         If multiline is True, split_match is called for each non-overlapping
         match of self.regex. If False, split_match is called for each line
         in output.
-
         """
-
         if self.multiline:
             errors = self.regex.finditer(output)
             if errors:

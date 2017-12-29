@@ -74,9 +74,7 @@ class HighlightSet:
         Rather than draw each Highlight object individually, the marks in each
         object are aggregated into a new Highlight object, and that object
         is then drawn for the given view.
-
         """
-
         if not self.all:
             return
 
@@ -279,9 +277,7 @@ class Highlight:
         If provided, it must have a named group called 'mark' that
         determines which part of the source line will actually be marked.
         Multiple portions of the source line may match.
-
         """
-
         offset = 0
 
         start, end = self.full_line(line)
@@ -320,9 +316,7 @@ class Highlight:
 
         The position at which near is found is returned, or zero if there
         is no match.
-
         """
-
         if not near:
             return
 
@@ -474,9 +468,7 @@ class Highlight:
 
         This method does not clear the marks, only the list.
         The next time this object is used to draw, the marks will be cleared.
-
         """
-
         self.marks = util.get_new_dict()
         self.lines = util.get_new_dict()
 

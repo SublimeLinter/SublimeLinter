@@ -61,9 +61,7 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
         1. Individual style definition.
         2. Linter error type
         3. Default error type
-
         """
-
         # 1. Individual style definition.
         y = self.styles.setdefault(style, {}).get(key)
         if y:
@@ -115,7 +113,6 @@ class LinterStyleStore(StyleBaseStore):
 
         If not found returns style of SublimeLinter error_type.
         """
-
         lint_def = self.traverse_dict(self.linter_styles, error_type)
         if lint_def:
             return lint_def

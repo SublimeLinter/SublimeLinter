@@ -18,6 +18,7 @@ from .panel import panel
 def backup_old_settings():
     """
     Backup old settings.
+
     If user settings file in old format exists it is renamed to disable it
     and back it up.
     A message will be displayed to the user.
@@ -164,6 +165,7 @@ class Listener:
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
+
         Arguments:
             view (View): The view which received the event.
             point (Point): The text position where the mouse hovered
@@ -321,6 +323,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def check_syntax(self, view):
         """
         Check and return if view's syntax has changed.
+
         If the syntax has changed, a new linter is assigned.
         """
 

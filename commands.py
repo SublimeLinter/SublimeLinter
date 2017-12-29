@@ -60,6 +60,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     def show_panel(self, name, show=True):
         """
         Change visibility of panel with given name.
+
         Panel will be shown by default.
         Pass show=False for hiding.
         """

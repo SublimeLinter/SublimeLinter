@@ -46,6 +46,7 @@ def printf(*args):
 def get_syntax(view):
     """
     Return the view's syntax.
+
     or the syntax it is mapped to in the "syntax_map" setting.
     """
     syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')

@@ -57,6 +57,7 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
     @get_icon
     def get_val(self, key, style, error_type):
         """Look up style definition in that order of precedence.
+
         1. Individual style definition.
         2. Linter error type
         3. Default error type
@@ -111,6 +112,7 @@ class LinterStyleStore(StyleBaseStore):
 
     def get_default_style(self, error_type):
         """Return default style for error_type of this linter.
+
         If not found returns style of SublimeLinter error_type.
         """
 

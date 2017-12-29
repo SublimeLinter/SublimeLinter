@@ -23,7 +23,7 @@ class ErrorStore(util.Borg):
         self.data.pop(vid, default)
 
     def clear(self):
-        """Deletes all errors and empties caches."""
+        """Delete all errors and empties caches."""
         self.data = {}
 
     def get_view_dict(self, vid):

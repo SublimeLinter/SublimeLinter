@@ -7,17 +7,16 @@ from . import util
 
 
 class DictDelta:
-    """
-        Returns a list of ḱeys, which are added, deleted or whose values have
-        been altered compared to the dict passed in the previous call.
+    """Return a list of ḱeys, which are added, deleted.
+
+    Or whose values have been altered compared to the dict passed in the previous call.
     """
 
     def __init__(self):
         self.old_dict = None
 
     def __call__(self, new_dict):
-        """Returns list of changed keys."""
-
+        """Return list of changed keys."""
         # explicitly check for None, prevent all keys being returned on 1st run
         if self.old_dict is None:
             self.old_dict = new_dict
@@ -29,9 +28,7 @@ class DictDelta:
         return changeset
 
     def diff_keys(self, d1, d2):
-        """
-            Diff dicts via set operations and subsequent traversing value comparison.
-        """
+        """Diff dicts via set operations and subsequent traversing value comparison."""
         changed_keys = []
         d1_keys = set(d1.keys())
         d2_keys = set(d2.keys())
@@ -114,7 +111,7 @@ class Settings:
                                            observer or self.on_update)
 
     def get_view_settings(self):
-        """Returns dict of default and user settings merged."""
+        """Return dict of default and user settings merged."""
         res = sublime.find_resources("SublimeLinter.sublime-settings")
         merged_dict = {}
         for r in res:
@@ -178,7 +175,6 @@ class Settings:
 
     def update_gutter_icons(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""
-
         new_gutter_dict = {"icons": {}}
 
         theme_path = self.settings.get('gutter_theme')

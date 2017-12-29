@@ -28,7 +28,6 @@ class NodeLinter(linter.Linter):
 
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""
-
         super(NodeLinter, self).__init__(view, syntax)
 
         self.manifest_path = self.get_manifest_path()
@@ -38,7 +37,6 @@ class NodeLinter(linter.Linter):
 
     def lint(self, hit_time):
         """Check NodeLinter options then run lint."""
-
         settings = self.get_view_settings()
 
         if self.manifest_path:
@@ -60,7 +58,6 @@ class NodeLinter(linter.Linter):
 
     def is_dependency(self):
         """Check package.json to see if linter is a dependency."""
-
         is_dep = False
 
         pkg = self.get_manifest()
@@ -90,9 +87,7 @@ class NodeLinter(linter.Linter):
         Searches the local node_modules/.bin folder first before
         looking in the global system node_modules folder. return
         a tuple of (have_path, path).
-
         """
-
         local_cmd = None
         global_cmd = util.which(cmd[0])
 
@@ -126,9 +121,7 @@ class NodeLinter(linter.Linter):
         Starting at the current working directory. Go up one directory
         at a time checking if that directory contains a package.json
         file. If it does, return that directory.
-
         """
-
         name = 'package.json'
         manifest_path = path.normpath(path.join(cwd, name))
 
@@ -150,9 +143,7 @@ class NodeLinter(linter.Linter):
 
         Given package.json filepath and a local binary to find,
         look in node_modules/.bin for that binary.
-
         """
-
         cwd = path.dirname(self.manifest_path)
 
         binary = self.get_pkg_bin_cmd(cmd)
@@ -164,7 +155,6 @@ class NodeLinter(linter.Linter):
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' node_modules/.bin directories."""
-
         node_modules_bin = path.normpath(path.join(cwd, 'node_modules/.bin/'))
 
         binary = path.join(node_modules_bin, cmd)
@@ -193,15 +183,12 @@ class NodeLinter(linter.Linter):
         This function checks the package.json `bin` property keys to
         see if the cmd we're looking for is defined for the current
         project.
-
         """
-
         pkg = self.get_manifest()
         return pkg['bin'][cmd] if 'bin' in pkg and cmd in pkg['bin'] else None
 
     def get_manifest(self):
         """Load manifest file (package.json)."""
-
         current_manifest_mtime = path.getmtime(self.manifest_path)
 
         if (current_manifest_mtime != self.cached_manifest_mtime and
@@ -212,14 +199,12 @@ class NodeLinter(linter.Linter):
 
     def read_manifest(self, current_manifest_mtime):
         """Read manifest and cache mtime, hash and json content."""
-
         self.cached_manifest_mtime = current_manifest_mtime
         self.cached_manifest_hash = self.hash_manifest()
         self.cached_manifest = json.load(codecs.open(self.manifest_path, 'r', 'utf-8'))
 
     def hash_manifest(self):
         """Calculate the hash of the manifest file."""
-
         f = codecs.open(self.manifest_path, 'r', 'utf-8')
         return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
 

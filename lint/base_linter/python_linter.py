@@ -296,7 +296,6 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 @lru_cache(maxsize=None)
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
-
     try:
         # Different python versions use different output streams, so check both
         output = util.communicate((path, '-V'), '', output_stream=util.STREAM_BOTH)
@@ -313,7 +312,6 @@ def get_python_version(path):
 
 def extract_major_minor_version(version):
     """Extract and return major and minor versions from a string version."""
-
     match = VERSION_RE.match(version)
 
     if match:
@@ -327,9 +325,7 @@ def version_fulfills_request(available_version, requested_version):
     Return whether available_version fulfills requested_version.
 
     Both are dicts with 'major' and 'minor' items.
-
     """
-
     # No requested major version is fulfilled by anything
     if requested_version['major'] is None:
         return True

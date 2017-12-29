@@ -24,7 +24,6 @@ class RubyLinter(linter.Linter):
     @classmethod
     def initialize(cls):
         """Perform class-level initialization."""
-
         super().initialize()
 
         if cls.executable_path is not None:
@@ -41,7 +40,6 @@ class RubyLinter(linter.Linter):
     @classmethod
     def reinitialize(cls):
         """Perform class-level initialization after plugins have been loaded at startup."""
-
         # Be sure to clear cls.executable_path so that lookup_executables will run.
         cls.executable_path = None
         cls.initialize()
@@ -65,9 +63,7 @@ class RubyLinter(linter.Linter):
         returned.
 
         Otherwise [ruby] or [gem] will be returned.
-
         """
-
         ruby = None
         rbenv = util.which('rbenv')
 

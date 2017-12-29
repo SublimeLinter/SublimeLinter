@@ -16,9 +16,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         only if the view is not dirty.
 
         Otherwise it can be linted.
-
         """
-
         has_non_file_only_linter = False
 
         vid = self.view.id()
@@ -59,7 +57,8 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
 
     def show_panel(self, name, show=True):
         """
-        Changes visibility of panel with given name.
+        Change visibility of panel with given name.
+
         Panel will be shown by default.
         Pass show=False for hiding.
         """

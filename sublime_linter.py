@@ -17,6 +17,8 @@ from .panel import panel
 
 def backup_old_settings():
     """
+    Backup old settings.
+
     If user settings file in old format exists it is renamed to disable it
     and back it up.
     A message will be displayed to the user.
@@ -162,7 +164,8 @@ class Listener:
         self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
-        """
+        """On mouse hover event hook.
+
         Arguments:
             view (View): The view which received the event.
             point (Point): The text position where the mouse hovered
@@ -202,7 +205,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     @classmethod
     def lint_all_views(cls):
         """Simulate a modification of all views, which will trigger a relint."""
-
         def apply(view):
             if view.id() in persist.view_linters:
                 cls.shared_instance.hit(view)
@@ -224,7 +226,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         callback is the method to call when the lint is finished. If not
         provided, it defaults to highlight().
         """
-
         # If the view has been modified since the lint was triggered,
         # don't lint again.
         if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
@@ -253,7 +254,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         If the view has not been modified since hit_time, all of the marks and
         errors from the list of linters are aggregated and drawn, and the status is updated.
         """
-
         if not view:
             return
 
@@ -301,11 +301,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             self.display_errors(view)
 
     def hit(self, view):
-        """
-        Record an activity that could trigger a lint
-        and enqueue a desire to lint.
-        """
-
+        """Record an activity that could trigger a lint and enqueue a desire to lint."""
         if not view:
             return
 
@@ -323,9 +319,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def check_syntax(self, view):
         """
         Check and return if view's syntax has changed.
+
         If the syntax has changed, a new linter is assigned.
         """
-
         if not view:
             return
 
@@ -361,10 +357,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return lineno, colno
 
     def display_errors(self, view):
-        """
-        Display lint errors in the statusbar of the current view
-        """
-
+        """Display lint errors in the statusbar of the current view."""
         if not view:
             return
 
@@ -436,8 +429,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return all_msgs
 
     def open_tooltip(self, active_view=None, point=None, is_inline=False):
-        """ Show a tooltip containing all linting errors on a given line. """
-
+        """Show a tooltip containing all linting errors on a given line."""
         stylesheet = '''
             body {
                 word-wrap: break-word;

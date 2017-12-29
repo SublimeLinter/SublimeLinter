@@ -171,8 +171,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
         to_render.append("\n")  # empty lines between views
 
     if to_render:
-        panel.run_command('sublime_linter_update_panel', {
-                          'text': "\n".join(to_render).strip()})
+        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
     else:
-        panel.run_command('sublime_linter_update_panel',
-                          {'text': "No lint errors.", 'clear_sel': True})
+        panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})

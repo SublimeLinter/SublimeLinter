@@ -17,6 +17,7 @@ from .panel import panel
 
 def backup_old_settings():
     """
+    Backup old settings.
     If user settings file in old format exists it is renamed to disable it
     and back it up.
     A message will be displayed to the user.
@@ -162,7 +163,7 @@ class Listener:
         self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
-        """
+        """On mouse hover event hook.
         Arguments:
             view (View): The view which received the event.
             point (Point): The text position where the mouse hovered
@@ -301,10 +302,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             self.display_errors(view)
 
     def hit(self, view):
-        """
-        Record an activity that could trigger a lint
-        and enqueue a desire to lint.
-        """
+        """Record an activity that could trigger a lint and enqueue a desire to lint."""
 
         if not view:
             return
@@ -361,9 +359,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return lineno, colno
 
     def display_errors(self, view):
-        """
-        Display lint errors in the statusbar of the current view
-        """
+        """Display lint errors in the statusbar of the current view."""
 
         if not view:
             return

@@ -7,9 +7,9 @@ from . import util
 
 
 class DictDelta:
-    """
-        Returns a list of ḱeys, which are added, deleted or whose values have
-        been altered compared to the dict passed in the previous call.
+    """Return a list of ḱeys, which are added, deleted.
+
+    Or whose values have been altered compared to the dict passed in the previous call.
     """
 
     def __init__(self):

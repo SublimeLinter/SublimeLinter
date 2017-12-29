@@ -23,7 +23,7 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 class RegionStore:
     def __init__(self):
-        """structure: {"view.id": [region_keys ... ]}"""
+        """structure: {"view.id": [region_keys ... ]}."""
         self.memory = sublime.load_settings("sl_regions.sublime-settings")
         views = self.memory.get("views")
         if not views:
@@ -58,10 +58,7 @@ class RegionStore:
 
 
 class HighlightSet:
-    """
-    This class maintains a set of Highlight objects
-    and performs bulk operations on them.
-    """
+    """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
     def __init__(self):
         self.all = set()
@@ -101,10 +98,7 @@ class HighlightSet:
         self.draw(view)
 
     def reset(self, view):
-        """
-        Clear all marks in the given view
-        and reset the list of marks in our Highlights.
-        """
+        """Clear all marks in the given view and reset the list of marks in our Highlights."""
         self.clear(view)
 
         for highlight in self.all:

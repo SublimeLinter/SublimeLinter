@@ -68,17 +68,17 @@ def plugin_loaded():
 
 def visible_views():
     """Yield all visible views of the active window."""
-    w = sublime.active_window()
+    window = sublime.active_window()
 
     # Priority for the active view
-    av = w.active_view()
-    yield av
+    active_view = window.active_view()
+    yield active_view
 
-    ng = w.num_groups()
-    for gid in range(ng):
-        v = w.active_view_in_group(gid)
-        if v != av:
-            yield v
+    num_groups = window.num_groups()
+    for group_id in range(num_groups):
+        view = window.active_view_in_group(group_id)
+        if view != active_view:
+            yield view
 
 
 class Listener:

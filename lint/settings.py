@@ -16,7 +16,7 @@ class DictDelta:
         self.old_dict = None
 
     def __call__(self, new_dict):
-        """Returns list of changed keys."""
+        """Return list of changed keys."""
 
         # explicitly check for None, prevent all keys being returned on 1st run
         if self.old_dict is None:
@@ -114,7 +114,7 @@ class Settings:
                                            observer or self.on_update)
 
     def get_view_settings(self):
-        """Returns dict of default and user settings merged."""
+        """Return dict of default and user settings merged."""
         res = sublime.find_resources("SublimeLinter.sublime-settings")
         merged_dict = {}
         for r in res:

@@ -75,7 +75,7 @@ class Borg:
 
 def is_lintable(view):
     """
-    Returns true when a view is not lintable, e.g. scratch, read_only, etc.
+    Return true when a view is not lintable, e.g. scratch, read_only, etc.
 
     There is a bug (or feature) in the current ST3 where the Find panel
     is not marked scratch but has no window.
@@ -105,7 +105,7 @@ def is_lintable(view):
 
 
 def is_none_or_zero(we_count):
-    """Function to check warning/error count of dict."""
+    """Check warning/error count of dict."""
     if not we_count:
         return True
     elif we_count[WARNING] + we_count[ERROR] == 0:
@@ -159,7 +159,7 @@ def msg_count(l_dict):
 
 
 def any_key_in(target, source):
-    """Performs an m:n member check between two iterables."""
+    """Perform an m:n member check between two iterables."""
     return any(key in target for key in source)
 
 

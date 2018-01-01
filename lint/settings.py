@@ -221,8 +221,11 @@ class Settings:
         style.GUTTER_ICONS = new_gutter_dict
 
     def setting_valid(self):
-        """Validates merged settings against json schema.
-         If invalid message is displayed in status bar and console."""
+        """
+        Validate merged settings against json schema.
+
+        If invalid, display message in status bar and console.
+        """
         schema_file = "settings-schema.json"
         schema_path = "Packages/SublimeLinter/"
         path = os.path.join(schema_path, schema_file)

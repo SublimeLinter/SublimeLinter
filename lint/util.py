@@ -688,9 +688,9 @@ class cd:
 
 def backup_old_settings():
     """
-        If user settings file in old format exists it is renamed to disable it
-        and back it up.
-        A message will be displayed to the user.
+    If user settings file in old format exists is rename it and display message to user.
+
+    Thereby it is disabled and and backef up.
     """
     usr_dir_abs = os.path.join(sublime.packages_path(), "User")
     settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")

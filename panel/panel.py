@@ -128,13 +128,23 @@ def format_header(f_path):
 
 
 def format_row(lineno, error_type, line_dict):
-    lineno = int(lineno) + 1
-    tmpl = " {LINENO:>5}:{start:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **line_dict)
+    lineno_copy = lineno + 1
+    start = line_dict["start"] + 1
 
+    tmpl = "{LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
+    return tmpl.format(
+        LINENO=lineno_copy, START=start, ERR_TYPE=error_type, **line_dict)
+
+def run_update_panel_cmd(panel, text=None):
+    cmd = "sublime_linter_update_panel"
+    clear_sel = False
+    if not text:
+        text = "No lint errors."
+        clear_sel = True
+    panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
-    errors = persist.errors.data  #.copy()
+    errors = persist.errors.data
     if not errors:
         return
 
@@ -193,11 +203,8 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         to_render.append("\n")  # empty lines between views
 
-    if to_render:
-<<<<<<< HEAD
-        panel.run_command('sublime_linter_update_panel', {'text': to_render.render()})
-    else:
-        panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})
+    rendered_text = to_render.render() if to_render else None
+    run_update_panel_cmd(panel, text=rendered_text)
 
 
 # logic for updating panel selection
@@ -206,6 +213,7 @@ def get_closest_region_dict(dic, colno):
     dics = [
         d
         for error_dict in dic.values() for d in error_dict
+        if d.get("panel_lineno")
         # if d["start"] <= colno <= d["end"]  # problematic line
     ]
     if not dics:
@@ -213,26 +221,26 @@ def get_closest_region_dict(dic, colno):
     return min(dics, key=lambda x: abs(x["start"] - colno))
 
 
-def get_neighbours(num, interval):
+def get_next_neighbour(num, interval):
     interval = set(interval)
     interval.discard(num)
     interval = list(interval)
     interval.sort()
 
     if num < interval[0] or interval[-1] < num:
-        return interval[-1], interval[0]
+        return interval[0]
 
     else:
         i = bisect.bisect_right(interval, num)
         neighbours = interval[i - 1:i + 1]
-        return neighbours
+        return neighbours[1]
 
 
 def get_next_panel_lineno(dic, lineno):
     line_nums = dic['line_dicts'].keys()
     if not line_nums:
         return
-    _, nxt = get_neighbours(lineno, line_nums)
+    nxt = get_next_neighbour(lineno, line_nums)
     line_dict = dic['line_dicts'][nxt]
     panel_linenos = [
         d["panel_lineno"]
@@ -251,9 +259,9 @@ def change_selection(panel_lineno, full_line=False, window=None):
     if full_line:
         region = panel.line(region)
 
-    if not panel.sel().contains(region):
-        panel.sel().clear()
-        panel.sel().add(region)
+    selection = panel.sel()
+    selection.clear()
+    selection.add(region)
 
     # scroll selection into panel
     if not panel.visible_region().contains(region):
@@ -265,17 +273,20 @@ def change_selection(panel_lineno, full_line=False, window=None):
 
 
 def update_panel_selection(vid, lineno=None, colno=None, window=None):
+    full_line = False
     view_dict = persist.errors.get_view_dict(vid)
     if not view_dict or util.is_none_or_zero(view_dict["we_count_view"]):
         return
 
     line_dicts = view_dict["line_dicts"]
 
-    if lineno in line_dicts:
-        full_line = True
-    else:
-        full_line = False
-        _, lineno = get_neighbours(lineno, line_dicts)
+    if lineno:
+        if lineno in line_dicts:
+            full_line = True
+        else:
+            lineno = get_next_neighbour(lineno, line_dicts)
+    if not lineno:
+        lineno = 0
 
     line_dict = line_dicts[lineno]
     region_dict = get_closest_region_dict(line_dict, colno or 0)
@@ -283,14 +294,10 @@ def update_panel_selection(vid, lineno=None, colno=None, window=None):
     if not region_dict:
         return
 
+    if full_line and colno is not None:
+        full_line = region_dict["start"] <= colno <= region_dict["end"]
+
     panel_lineno = region_dict.get("panel_lineno")
 
     if panel_lineno:
         change_selection(panel_lineno, full_line=full_line)
-
-
-=======
-        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
-    else:
-        panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})
->>>>>>> next

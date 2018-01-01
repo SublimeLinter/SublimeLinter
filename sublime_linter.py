@@ -15,31 +15,6 @@ from .lint.const import WARN_ERR, STATUS_KEY
 from .panel import panel
 
 
-<<<<<<< HEAD
-=======
-def backup_old_settings():
-    """
-    Backup old settings.
-
-    If user settings file in old format exists it is renamed to disable it
-    and back it up.
-    A message will be displayed to the user.
-    """
-    usr_dir_abs = os.path.join(sublime.packages_path(), "User")
-    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
-    if os.path.exists(settings_file):
-        path = "Packages/User/SublimeLinter.sublime-settings"
-        settings = sublime.decode_value(sublime.load_resource(path))
-
-        if "user" in settings:
-            new_name = "SublimeLinter (old).sublime-settings"
-            new_path = os.path.join(usr_dir_abs, new_name)
-            os.rename(settings_file, new_path)
-            msg = "SublimeLinter\n\nYour settings have been backed up to:\n{}\nin Packages/User/".format(new_name)  # noqa: 501
-            sublime.message_dialog(msg)
-
-
->>>>>>> next
 def plugin_loaded():
     util.backup_old_settings()
 
@@ -70,11 +45,6 @@ def visible_views():
     """Yield all visible views of the active window."""
     window = sublime.active_window()
 
-<<<<<<< HEAD
-        # Load and lint all views on startup
-        if persist.settings.get("lint_all_views_on_startup"):
-            window.run_command("sublime_linter_lint_all")
-=======
     # Priority for the active view
     active_view = window.active_view()
     yield active_view
@@ -84,7 +54,6 @@ def visible_views():
         view = window.active_view_in_group(group_id)
         if view != active_view:
             yield view
->>>>>>> next
 
 
 class Listener:
@@ -209,12 +178,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     @classmethod
     def lint_all_views(cls):
-<<<<<<< HEAD
         """Mimic a modification of all views, which will trigger a relint."""
-
-=======
-        """Simulate a modification of all views, which will trigger a relint."""
->>>>>>> next
         def apply(view):
             if view.id() in persist.view_linters:
                 cls.shared_instance.hit(view)

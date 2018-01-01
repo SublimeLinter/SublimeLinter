@@ -17,6 +17,8 @@
     // Knob/Knob - symbol.gutter-theme
     // Koloria
     // ProjectIcons
+    // Note that you may need to change the "icon" property in "styles"
+    // to an icon in the theme (they usually include "warning" and "error")
     "gutter_theme": "none",
 
     // Lints all open views on startup. Recommended only for faster systems.
@@ -92,7 +94,7 @@
     // - codes is an array which can contain error codes provided by a linter.
     // - icon can be:
     //   one of the default icons: "circle", "dot" or "bookmark"
-    //   or one provided by a gutter theme (e.g. "warning")
+    //   or one provided by a gutter theme (e.g. "warning" or "error")
     //   or a path to an icon file like (e.g. "Packages/icons/warning.png")
     //   or "none" to remove the icon
     // Note: At least one of those targets is required: types or codes.

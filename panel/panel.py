@@ -53,6 +53,7 @@ def dedupe_views(errors):
 def get_common_parent(paths):
     """
     Get the common parent directory of multiple paths.
+
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """
@@ -193,6 +194,7 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
         to_render.append("\n")  # empty lines between views
 
     if to_render:
+<<<<<<< HEAD
         panel.run_command('sublime_linter_update_panel', {'text': to_render.render()})
     else:
         panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})
@@ -287,3 +289,8 @@ def update_panel_selection(vid, lineno=None, colno=None, window=None):
         change_selection(panel_lineno, full_line=full_line)
 
 
+=======
+        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
+    else:
+        panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})
+>>>>>>> next

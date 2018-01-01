@@ -1,2 +1,13 @@
-# ignore docs/ from releases
-docs/ export-ignore
+# Handle line endings automatically for files detected as text and leave all
+# files detected as binary untouched.
+* text=auto
+
+# Files and directories with the attribute export-ignore won’t be added to
+# archive files. See http://git-scm.com/docs/gitattributes for details.
+
+/docs/              export-ignore
+/.travis.yml        export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/setup.cfg          export-ignore
+/.python-version    export-ignore

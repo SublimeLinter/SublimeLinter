@@ -1,8 +1,10 @@
 import os
 import sublime
+import bisect
 
 from ..lint.const import WARN_ERR
 from ..lint import util, persist
+
 
 PANEL_NAME = "sublime_linter_panel"
 OUTPUT_PANEL_SETTINGS = {
@@ -19,6 +21,22 @@ OUTPUT_PANEL_SETTINGS = {
     "translate_tabs_to_spaces": False,
     "word_wrap": False
 }
+
+
+class RenderLines:
+    def __init__(self):
+        self.lines = []
+        self._line_counter = 0
+
+    def append(self, str):
+        self.lines.append(str)
+        self._line_counter += 1
+
+    def current_lineno(self):
+        return self._line_counter
+
+    def render(self):
+        return "\n".join(self.lines)
 
 
 def dedupe_views(errors):
@@ -108,14 +126,14 @@ def format_header(f_path):
     return "{}:".format(f_path)
 
 
-def format_row(lineno, error_type, dic):
+def format_row(lineno, error_type, line_dict):
     lineno = int(lineno) + 1
     tmpl = " {LINENO:>5}:{start:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
+    return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **line_dict)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
-    errors = persist.errors.data.copy()
+    errors = persist.errors.data  #.copy()
     if not errors:
         return
 
@@ -140,8 +158,10 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
         settings.set("codes", codes)
         settings.set("linter", linter)
 
-    to_render = []
+    to_render = RenderLines()
     for vid, view_dict in errors.items():
+
+        view_dict["panel_lineno"] = None
 
         if util.is_none_or_zero(view_dict["we_count_view"]):
             continue
@@ -158,6 +178,7 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
                 items = sorted(err_dict, key=lambda k: k['start'])
 
                 for item in items:
+                    item["panel_lineno"] = None
                     # new filter function
                     if linter and item['linter'] not in linter:
                         continue
@@ -167,10 +188,102 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
                     line_msg = format_row(lineno, error_type, item)
                     to_render.append(line_msg)
+                    item["panel_lineno"] = to_render.current_lineno()
 
         to_render.append("\n")  # empty lines between views
 
     if to_render:
-        panel.run_command('sublime_linter_update_panel', {'text': "\n".join(to_render).strip()})
+        panel.run_command('sublime_linter_update_panel', {'text': to_render.render()})
     else:
         panel.run_command('sublime_linter_update_panel', {'text': "No lint errors.", 'clear_sel': True})
+
+
+# logic for updating panel selection
+
+def get_closest_region_dict(dic, colno):
+    dics = [
+        d
+        for error_dict in dic.values() for d in error_dict
+        # if d["start"] <= colno <= d["end"]  # problematic line
+    ]
+    if not dics:
+        return
+    return min(dics, key=lambda x: abs(x["start"] - colno))
+
+
+def get_neighbours(num, interval):
+    interval = set(interval)
+    interval.discard(num)
+    interval = list(interval)
+    interval.sort()
+
+    if num < interval[0] or interval[-1] < num:
+        return interval[-1], interval[0]
+
+    else:
+        i = bisect.bisect_right(interval, num)
+        neighbours = interval[i - 1:i + 1]
+        return neighbours
+
+
+def get_next_panel_lineno(dic, lineno):
+    line_nums = dic['line_dicts'].keys()
+    if not line_nums:
+        return
+    _, nxt = get_neighbours(lineno, line_nums)
+    line_dict = dic['line_dicts'][nxt]
+    panel_linenos = [
+        d["panel_lineno"]
+        for error_dict in line_dict.values() for d in error_dict
+        if d["panel_lineno"]
+    ]
+    return min(panel_linenos)
+
+
+def change_selection(panel_lineno, full_line=False, window=None):
+    panel = get_panel(window or sublime.active_window())
+    if not panel:
+        return
+
+    region = sublime.Region(panel.text_point(panel_lineno - 1, -1))
+    if full_line:
+        region = panel.line(region)
+
+    if not panel.sel().contains(region):
+        panel.sel().clear()
+        panel.sel().add(region)
+
+    # scroll selection into panel
+    if not panel.visible_region().contains(region):
+        panel.show(region)
+    panel.show(region, True)
+    # simulate scrolling to enforce rerendering of panel,
+    # otherwise selection is not updated (ST core bug)
+    panel.run_command("scroll_lines")
+
+
+def update_panel_selection(vid, lineno=None, colno=None, window=None):
+    view_dict = persist.errors.get_view_dict(vid)
+    if not view_dict or util.is_none_or_zero(view_dict["we_count_view"]):
+        return
+
+    line_dicts = view_dict["line_dicts"]
+
+    if lineno in line_dicts:
+        full_line = True
+    else:
+        full_line = False
+        _, lineno = get_neighbours(lineno, line_dicts)
+
+    line_dict = line_dicts[lineno]
+    region_dict = get_closest_region_dict(line_dict, colno or 0)
+
+    if not region_dict:
+        return
+
+    panel_lineno = region_dict.get("panel_lineno")
+
+    if panel_lineno:
+        change_selection(panel_lineno, full_line=full_line)
+
+

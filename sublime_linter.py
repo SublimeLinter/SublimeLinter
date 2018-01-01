@@ -170,7 +170,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     @classmethod
     def lint_all_views(cls):
-        """Simulate a modification of all views, which will trigger a relint."""
+        """Mimic a modification of all views, which will trigger a relint."""
 
         def apply(view):
             if view.id() in persist.view_linters:
@@ -352,16 +352,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         we_count = view_dict["we_count_view"]
         status = "W: {warning} E: {error}".format(**we_count)
 
-        msgs = []
         region_dict = persist.errors.get_region_dict(vid, lineno, colno)
-        for error_type, dc in region_dict.items():
-            for d in dc:
-                msgs.append(d["msg"])
+        msgs = [d["msg"]
+                for error_dict in region_dict.values()
+                for d in error_dict]
         if msgs:
             status += " - {}".format("; ".join(msgs))
 
         if status != view.get_status(STATUS_KEY):
             view.set_status(STATUS_KEY, status)
+
+        panel.update_panel_selection(vid, lineno, colno)
 
     @classmethod
     def join_msgs(cls, line_dict, we_count, show_count=False):

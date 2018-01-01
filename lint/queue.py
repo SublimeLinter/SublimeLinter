@@ -38,7 +38,6 @@ class Daemon:
 
     def loop(self):
         """Continually check the queue for new items and process them."""
-
         last_runs = {}
 
         while True:
@@ -105,9 +104,7 @@ class Daemon:
 
         If the lint mode is not background, there is no delay. Otherwise, if
         a "delay" setting is not available in any of the settings, MIN_DELAY is used.
-
         """
-
         if persist.settings.get('lint_mode') != 'background':
             return 0
 

@@ -35,6 +35,7 @@ def dedupe_views(errors):
 def get_common_parent(paths):
     """
     Get the common parent directory of multiple paths.
+
     Python 3.5+ includes os.path.commonpath which does this, however Sublime
     currently embeds Python 3.3.
     """

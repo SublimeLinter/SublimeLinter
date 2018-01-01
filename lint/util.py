@@ -45,7 +45,8 @@ def printf(*args):
 
 def get_syntax(view):
     """
-    Return the view's syntax
+    Return the view's syntax.
+
     or the syntax it is mapped to in the "syntax_map" setting.
     """
     syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
@@ -75,7 +76,7 @@ class Borg:
 
 def is_lintable(view):
     """
-    Returns true when a view is not lintable, e.g. scratch, read_only, etc.
+    Return true when a view is not lintable, e.g. scratch, read_only, etc.
 
     There is a bug (or feature) in the current ST3 where the Find panel
     is not marked scratch but has no window.
@@ -105,7 +106,7 @@ def is_lintable(view):
 
 
 def is_none_or_zero(we_count):
-    """Function to check warning/error count of dict."""
+    """Check warning/error count of dict."""
     if not we_count:
         return True
     elif we_count[WARNING] + we_count[ERROR] == 0:
@@ -159,7 +160,7 @@ def msg_count(l_dict):
 
 
 def any_key_in(target, source):
-    """Performs an m:n member check between two iterables."""
+    """Perform an m:n member check between two iterables."""
     return any(key in target for key in source)
 
 
@@ -171,9 +172,7 @@ def climb(start_dir, limit=None):
 
     If limit is None, stop at the root directory.
     Otherwise return a maximum of limit directories.
-
     """
-
     right = True
 
     while right and (limit is None or limit > 0):
@@ -197,9 +196,7 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 
     If aux_dirs is not empty and the file hierarchy search failed,
     those directories are also checked.
-
     """
-
     for d in climb(start_dir, limit=limit):
         target = os.path.join(d, name)
 
@@ -240,7 +237,6 @@ def run_shell_cmd(cmd):
 @lru_cache(maxsize=None)
 def get_environment_variable(name):
     """Return the value of the given environment variable, or None if not found."""
-
     if os.name == 'posix':
         value = None
 
@@ -274,9 +270,7 @@ def create_environment():
     Platforms paths are then added to PATH by getting the
     "paths" user settings for the current platform. If "paths"
     has a "*" item, it is added to PATH on all platforms.
-
     """
-
     from . import persist
 
     env = {}
@@ -360,9 +354,7 @@ def get_python_paths():
     Return sys.path for the system version of python 3.
 
     If python 3 cannot be found on the system, [] is returned.
-
     """
-
     from . import persist
 
     python_path = which('@python3')[0]
@@ -418,7 +410,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None):
     If env is not None, it is merged with the result of create_environment.
 
     """
-
     # On Windows, using subprocess.PIPE with Popen() is broken when not
     # sending input through stdin. So we use temp files instead of a pipe.
     if code is None and os.name == 'nt':
@@ -499,9 +490,7 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
 
     The result is a string combination of stdout and stderr.
     If env is not None, it is merged with the result of create_environment.
-
     """
-
     if not filename:
         filename = "untitled"
     else:
@@ -541,9 +530,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
 
     Returns a string combination of stdout and stderr.
     If env is not None, it is merged with the result of create_environment.
-
     """
-
     filename = os.path.basename(filename) if filename else ''
     out = None
 
@@ -584,7 +571,6 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
 
 def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, extra_env=None):
     """Open a pipe to an external process and return a Popen object."""
-
     info = None
 
     if os.name == 'nt':
@@ -648,9 +634,7 @@ def convert_type(value, type_value, sep=None, default=None):
     If the value cannot be converted to the desired type, default is returned.
     If sep is not None, strings are split by sep (plus surrounding whitespace)
     to make lists/tuples, and tuples/lists are joined by sep to make strings.
-
     """
-
     if type_value is None or isinstance(value, type(type_value)):
         return value
 

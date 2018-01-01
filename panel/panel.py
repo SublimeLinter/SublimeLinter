@@ -135,6 +135,7 @@ def format_row(lineno, error_type, line_dict):
     return tmpl.format(
         LINENO=lineno_copy, START=start, ERR_TYPE=error_type, **line_dict)
 
+
 def run_update_panel_cmd(panel, text=None):
     cmd = "sublime_linter_update_panel"
     clear_sel = False
@@ -142,6 +143,7 @@ def run_update_panel_cmd(panel, text=None):
         text = "No lint errors."
         clear_sel = True
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
+
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):
     errors = persist.errors.data
@@ -221,7 +223,7 @@ def get_closest_region_dict(dic, colno):
     return min(dics, key=lambda x: abs(x["start"] - colno))
 
 
-def get_next_neighbour(num, interval):
+def get_next_lineno(num, interval):
     interval = set(interval)
     interval.discard(num)
     interval = list(interval)
@@ -229,7 +231,6 @@ def get_next_neighbour(num, interval):
 
     if num < interval[0] or interval[-1] < num:
         return interval[0]
-
     else:
         i = bisect.bisect_right(interval, num)
         neighbours = interval[i - 1:i + 1]
@@ -240,8 +241,8 @@ def get_next_panel_lineno(dic, lineno):
     line_nums = dic['line_dicts'].keys()
     if not line_nums:
         return
-    nxt = get_next_neighbour(lineno, line_nums)
-    line_dict = dic['line_dicts'][nxt]
+    lineno = get_next_panel_lineno(lineno, line_nums)
+    line_dict = dic['line_dicts'][lineno]
     panel_linenos = [
         d["panel_lineno"]
         for error_dict in line_dict.values() for d in error_dict
@@ -266,7 +267,7 @@ def change_selection(panel_lineno, full_line=False, window=None):
     # scroll selection into panel
     if not panel.visible_region().contains(region):
         panel.show(region)
-    panel.show(region, True)
+
     # simulate scrolling to enforce rerendering of panel,
     # otherwise selection is not updated (ST core bug)
     panel.run_command("scroll_lines")
@@ -284,9 +285,9 @@ def update_panel_selection(vid, lineno=None, colno=None, window=None):
         if lineno in line_dicts:
             full_line = True
         else:
-            lineno = get_next_neighbour(lineno, line_dicts)
-    if not lineno:
-        lineno = 0
+            lineno = get_next_panel_lineno(lineno, line_dicts)
+
+    lineno = 0 if not lineno else lineno
 
     line_dict = line_dicts[lineno]
     region_dict = get_closest_region_dict(line_dict, colno or 0)

@@ -6,7 +6,7 @@ import sublime
 from . import util
 from jsonschema.validators import validate
 from jsonschema.exceptions import ValidationError
-import json
+
 
 class DictDelta:
     """Return a list of ḱeys, which are added, deleted.
@@ -196,7 +196,7 @@ class Settings:
 
         if theme_files:
             theme_file = theme_files[0]
-            opts = sublime.decode_value(sublime.load_resource(theme_file))
+            opts = util.load_json(theme_file)
             if not opts:
                 colorize = False
             else:
@@ -224,11 +224,10 @@ class Settings:
         """Validates merged settings against json schema.
          If invalid message is displayed in status bar and console."""
         schema_file = "settings-schema.json"
-        schema_path = "SublimeLinter/"
-        path = os.path.join(sublime.packages_path(), schema_path, schema_file)
+        schema_path = "Packages/SublimeLinter/"
+        path = os.path.join(schema_path, schema_file)
 
-        with open(path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
+        schema = util.load_json(path)
         try:
             validate(self.settings, schema)
         except ValidationError as ve:

@@ -49,22 +49,13 @@ def get_syntax(view):
 
     or the syntax it is mapped to in the "syntax_map" setting.
     """
-    syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
-    view_syntax = view.settings().get('syntax', '')
-    mapped_syntax = ''
-
-    if view_syntax:
-        match = syntax_re.search(view_syntax)
-
-        if match:
-            view_syntax = match.group(1).lower()
-            from .persist import settings
-            mapped_syntax = settings.get(
-                'syntax_map', {}).get(view_syntax, '').lower()
-        else:
-            view_syntax = ''
-
-    return mapped_syntax or view_syntax
+    from .persist import settings
+    syntax_map = settings.get('syntax_map')
+    for syntax, selectors in syntax_map.items():
+        for s in selectors:
+            if view.match_selector(0, s):
+                return syntax
+    return ""
 
 
 class Borg:

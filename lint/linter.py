@@ -1107,7 +1107,7 @@ class Linter(metaclass=LinterMeta):
             if not isinstance(m, LintMatch):  # ensure right type
                 m = LintMatch(*m)
 
-            if m.message and m.line:
+            if m.message and m.line is not None:
                 self.process_match(m)
 
     def process_match(self, m):

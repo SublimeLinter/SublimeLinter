@@ -704,3 +704,7 @@ def backup_old_settings():
             os.rename(settings_file, new_path)
             msg = "SublimeLinter\n\nYour settings have been backed up to:\n{}\nin Packages/User/".format(new_name)  # noqa: 501
             sublime.message_dialog(msg)
+
+
+def load_json(path):
+    return sublime.decode_value(sublime.load_resource(path))

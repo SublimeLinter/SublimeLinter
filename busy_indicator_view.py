@@ -32,20 +32,20 @@ def plugin_unloaded():
 
 
 @events.on(events.BEGIN_LINTING)
-def on_begin_linting(vid):
-    State['running'][vid] = time.time()
+def on_begin_linting(buffer_id):
+    State['running'][buffer_id] = time.time()
 
     active_view = State['active_view']
-    if active_view and active_view.id() == vid:
+    if active_view and active_view.buffer_id() == buffer_id:
         sublime.set_timeout_async(lambda: draw(**State), INITIAL_DELAY * 1000)
 
 
 @events.on(events.FINISHED_LINTING)
-def on_finished_linting(vid):
-    State['running'].pop(vid, None)
+def on_finished_linting(buffer_id):
+    State['running'].pop(buffer_id, None)
 
     active_view = State['active_view']
-    if active_view and active_view.id() == vid:
+    if active_view and active_view.buffer_id() == buffer_id:
         draw(**State)
 
 
@@ -75,8 +75,8 @@ def draw(active_view, running, **kwargs):
     if not active_view:
         return
 
-    vid = active_view.id()
-    start_time = running.get(vid, None)
+    buffer_id = active_view.buffer_id()
+    start_time = running.get(buffer_id, None)
     now = time.time()
     if start_time and (INITIAL_DELAY <= (now - start_time) < TIMEOUT):
         num = len(indicators)

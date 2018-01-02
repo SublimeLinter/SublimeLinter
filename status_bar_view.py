@@ -1,7 +1,7 @@
 import sublime
 import sublime_plugin
 
-from .lint import persist, util
+from .lint import persist
 from .lint.const import STATUS_KEY
 from .lint import events
 
@@ -24,20 +24,19 @@ def plugin_unloaded():
 
 
 @events.on(events.FINISHED_LINTING)
-def on_finished_linting(vid):
+def on_finished_linting(buffer_id):
     active_view = State['active_view']
-    if active_view and active_view.id() == vid:
+    if active_view and active_view.buffer_id() == buffer_id:
         State.update({
-            'we_count': get_we_count(vid)
+            'we_count': get_we_count(active_view.id())
         })
 
         draw(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):
-    def on_activated_async(self, view):
-        active_view = util.get_focused_view(view)
-        vid = active_view.id() if active_view else None
+    def on_activated_async(self, active_view):
+        vid = active_view.id()
 
         current_pos = get_current_pos(active_view)
         we_count = get_we_count(vid)
@@ -50,7 +49,7 @@ class UpdateState(sublime_plugin.EventListener):
 
         draw(**State)
 
-    def on_selection_modified_async(self, view):
+    def on_selection_modified_async(self, _primary_view_):
         active_view = State['active_view']
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:

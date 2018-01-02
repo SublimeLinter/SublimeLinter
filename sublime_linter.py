@@ -232,7 +232,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         code = Linter.text(view)
         callback = callback or self.highlight
 
-        events.broadcast(events.BEGIN_LINTING, {'vid': view_id})
+        events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
         Linter.lint_view(view, filename, code, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):
@@ -291,7 +291,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             panel.fill_panel(window, update=True)
 
-        events.broadcast(events.FINISHED_LINTING, {'vid': view.id()})
+        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

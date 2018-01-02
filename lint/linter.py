@@ -744,7 +744,7 @@ class Linter(metaclass=LinterMeta):
                         continue
 
             if syntax not in linter.selectors and '*' not in linter.selectors:
-                linter.reset(code, view_settings)
+                linter.reset(code)
                 linter.lint(hit_time)
 
         selectors = Linter.get_selectors(vid, syntax)
@@ -759,7 +759,7 @@ class Linter(metaclass=LinterMeta):
             for region in view.find_by_selector(selector):
                 regions.append(region)
 
-            linter.reset(code, view_settings)
+            linter.reset(code)
             errors = {}
 
             for region in regions:
@@ -780,7 +780,7 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def reset(self, code, settings):
+    def reset(self, code):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code

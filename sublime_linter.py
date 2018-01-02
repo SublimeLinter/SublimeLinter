@@ -6,7 +6,7 @@ import html
 import sublime
 import sublime_plugin
 
-from . import events
+from .lint import events
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue

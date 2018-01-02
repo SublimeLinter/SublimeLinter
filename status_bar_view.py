@@ -6,7 +6,7 @@ from itertools import cycle
 
 from .lint import persist, util
 from .lint.const import STATUS_KEY
-from . import events
+from .lint import events
 
 
 State = {

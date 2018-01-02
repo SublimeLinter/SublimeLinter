@@ -115,7 +115,24 @@ def format_row(lineno, error_type, dic):
     return tmpl.format(LINENO=lineno, ERR_TYPE=error_type, **dic)
 
 
-def fill_panel(window, types=None, codes=None, linter=None, update=False):
+def filter_ok(check_val, key, panel_filter):
+    """Check value against white- and blacklisting and return bool."""
+    # check whitelisting
+    if not panel_filter:
+        return True
+
+    if key in panel_filter and check_val not in panel_filter[key]:
+        return False
+
+    # check blacklisting
+    exclude_key = "exclude_" + key
+    if exclude_key in panel_filter and check_val in panel_filter[exclude_key]:
+        return False
+
+    return True
+
+
+def fill_panel(window, update=False, **panel_filter):
     errors = persist.errors.data.copy()
     if not errors:
         return
@@ -133,13 +150,9 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     settings.set("result_base_dir", base_dir)
 
     if update:
-        types = settings.get("types")
-        codes = settings.get("codes")
-        linter = settings.get("linter")
+        panel_filter = settings.get("sublime_linter_panel_filter")
     else:
-        settings.set("types", types)
-        settings.set("codes", codes)
-        settings.set("linter", linter)
+        settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = []
     for vid, view_dict in errors.items():
@@ -151,19 +164,19 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
         for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
             for error_type in WARN_ERR:
-                if types and error_type not in types:
+                if not filter_ok(error_type, "types", panel_filter):
                     continue
+
                 err_dict = line_dict.get(error_type)
                 if not err_dict:
                     continue
                 items = sorted(err_dict, key=lambda k: k['start'])
 
                 for item in items:
-                    # new filter function
-                    if linter and item['linter'] not in linter:
+                    if not filter_ok(item['linter'], "linter", panel_filter):
                         continue
 
-                    if codes and item['code'] not in codes:
+                    if not filter_ok(item['code'], "codes", panel_filter):
                         continue
 
                     line_msg = format_row(lineno, error_type, item)

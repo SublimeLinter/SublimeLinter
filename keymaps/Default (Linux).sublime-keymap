@@ -6,12 +6,15 @@
 
     // To display filtered results in the panel add arguments:
     // { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle", "args": {
+    // whitelist via:
     //         "types": ["error"],
     //         "codes": [],
-    //         "linter": []
+    //         "linter": [],
+    // blacklist via:
+    //          "exclude_codes": [],
+    //          "exclude_linter": []
     //     }
     // }
-
 
     // You can also trigger the line report with a keybinding:
     // { "keys": ["ctrl+k", "r"], "command": "sublime_linter_line_report" }

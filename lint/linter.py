@@ -1118,6 +1118,57 @@ class Linter(metaclass=LinterMeta):
             if m.message and m.line is not None:
                 self.process_match(m)
 
+    def find_errors(self, output):
+        """
+        Match the linter's regex against the linter output with this generator.
+
+        If multiline is True, split_match is called for each non-overlapping
+        match of self.regex. If False, split_match is called for each line
+        in output.
+        """
+        if self.multiline:
+            errors = self.regex.finditer(output)
+            if errors:
+                for error in errors:
+                    yield self.split_match(error)
+            else:
+                yield self.split_match(None)
+        else:
+            for line in output.splitlines():
+                yield self.split_match(self.regex.match(line.rstrip()))
+
+    def split_match(self, match):
+        """
+        Split a match into the standard elements of an error and return them.
+
+        If subclasses need to modify the values returned by the regex, they
+        should override this method, call super(), then modify the values
+        and return them.
+
+        """
+        match_dict = MATCH_DICT.copy()
+
+        if not match:
+            persist.debug('No match for regex: {}'.format(self.regex.pattern))
+        else:
+            match_dict.update(match.groupdict())
+            match_dict["match"] = match
+
+            # normalize line and col if necessary
+            line = match_dict["line"]
+            if line:
+                match_dict["line"] = int(line) - self.line_col_base[0]
+
+            col = match_dict["col"]
+            if col:
+                if col.isdigit():
+                    col = int(col) - self.line_col_base[1]
+                else:
+                    col = len(col)
+                match_dict["col"] = col
+
+        return LintMatch(**match_dict)
+
     def process_match(self, m):
         error_type = self.get_error_type(m.error, m.warning)
         style = self.style_store.get_style(m.error or m.warning, error_type)
@@ -1182,6 +1233,27 @@ class Linter(metaclass=LinterMeta):
             )
 
         self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
+
+    def error(self, line, col, message, error_type, style=None, code=None, length=None):
+        """Add a reference to an error/warning on the given line and column."""
+        self.highlight.line(line, error_type, style=style)
+
+        col = col or 0
+
+        if not code:
+            code = ""
+
+        payload = {
+            "start": col,
+            "end": col + (length or 0),
+            "linter": self.name,
+            "code": code,
+            "msg": message
+        }
+
+        l1 = self.errors.setdefault(line, {})
+        l2 = l1.setdefault(error_type, [])
+        l2.append(payload)
 
     @staticmethod
     def clear_view(view):
@@ -1341,82 +1413,6 @@ class Linter(metaclass=LinterMeta):
         else:
             util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
-
-    def error(self, line, col, message, error_type, style=None, code=None, length=None):
-        """Add a reference to an error/warning on the given line and column."""
-        self.highlight.line(line, error_type, style=style)
-
-        col = col or 0
-
-        if not code:
-            code = ""
-
-        payload = {
-            "start": col,
-            "end": col + (length or 0),
-            "linter": self.name,
-            "code": code,
-            "msg": message
-        }
-
-        l1 = self.errors.setdefault(line, {})
-        l2 = l1.setdefault(error_type, [])
-        l2.append(payload)
-
-    def find_errors(self, output):
-        """
-        Match the linter's regex against the linter output with this generator.
-
-        If multiline is True, split_match is called for each non-overlapping
-        match of self.regex. If False, split_match is called for each line
-        in output.
-        """
-        if self.multiline:
-            errors = self.regex.finditer(output)
-            if errors:
-                for error in errors:
-                    yield self.split_match(error)
-            else:
-                yield self.split_match(None)
-        else:
-            for line in output.splitlines():
-                yield self.split_match(self.regex.match(line.rstrip()))
-
-    def split_match(self, match):
-        """
-        Split a match into the standard elements of an error and return them.
-
-        If subclasses need to modify the values returned by the regex, they
-        should override this method, call super(), then modify the values
-        and return them.
-
-        """
-        match_dict = MATCH_DICT.copy()
-
-        if not match:
-            persist.debug('No match for regex: {}'.format(self.regex.pattern))
-        else:
-            match_dict.update({
-                k: v
-                for k, v in match.groupdict().items()
-                if k in match_dict
-            })
-            match_dict["match"] = match
-
-            # normalize line and col if necessary
-            line = match_dict["line"]
-            if line:
-                match_dict["line"] = int(line) - self.line_col_base[0]
-
-            col = match_dict["col"]
-            if col:
-                if col.isdigit():
-                    col = int(col) - self.line_col_base[1]
-                else:
-                    col = len(col)
-                match_dict["col"] = col
-
-        return LintMatch(**match_dict)
 
     def run(self, cmd, code):
         """

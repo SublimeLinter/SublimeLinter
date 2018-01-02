@@ -52,8 +52,7 @@ def get_syntax(view):
             max(view.score_selector(0, s) for s in selectors if s): syntax
             for syntax, selectors in syntax_map.items()
         }
-        max_score = max(scoring, key=scoring.get)
-        syntax = scoring[max_score]
+        syntax = scoring[max(scoring)]
     except ValueError:
         return ""
     else:

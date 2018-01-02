@@ -44,18 +44,20 @@ def printf(*args):
 
 
 def get_syntax(view):
-    """
-    Return the view's syntax.
-
-    or the syntax it is mapped to in the "syntax_map" setting.
-    """
+    """Return the view's syntax."""
     from .persist import settings
     syntax_map = settings.get('syntax_map')
-    for syntax, selectors in syntax_map.items():
-        for s in selectors:
-            if view.match_selector(0, s):
-                return syntax
-    return ""
+    try:
+        scoring = {
+            max(view.score_selector(0, s) for s in selectors if s): syntax
+            for syntax, selectors in syntax_map.items()
+        }
+        max_score = max(scoring, key=scoring.get)
+        syntax = scoring[max_score]
+    except ValueError:
+        return ""
+    else:
+        return syntax
 
 
 class Borg:

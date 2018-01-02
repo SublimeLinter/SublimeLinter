@@ -119,7 +119,7 @@
 
     // Maps variant syntaxes to the syntax that you have a linter for.
     "syntax_map": {
-        "html": [ "source.html"],
+        "html": ["source.html"],
         "javascript": ["source.js"],
         "json": ["source.json"],
         "python": ["source.python"]

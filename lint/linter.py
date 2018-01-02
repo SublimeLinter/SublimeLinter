@@ -120,7 +120,7 @@ class LinterMeta(type):
 
             # The sublime plugin API is not available until plugin_loaded is executed
             if persist.plugin_is_loaded:
-                persist.settings.load(force=True)
+                persist.settings.load()
 
                 # If the linter had previously been loaded, just reassign that linter
                 if name in persist.linter_classes:

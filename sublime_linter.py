@@ -98,7 +98,6 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        persist.settings.load()
         self.check_syntax(view)
 
         view_id = view.id()

@@ -1175,10 +1175,6 @@ class Linter(metaclass=LinterMeta):
 
         self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
 
-    def draw(self):
-        """Draw the marks from the last lint."""
-        self.highlight.draw(self.view)
-
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""

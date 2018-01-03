@@ -34,7 +34,6 @@ tempdir = os.path.join(
 )
 
 
-# Code migrated from 'lint/persist.py'
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
     print('SublimeLinter: ', end='')
@@ -676,3 +675,7 @@ class cd:
     def __exit__(self, etype, value, traceback):
         """Go back to the old wd."""
         os.chdir(self.savedPath)
+
+
+def load_json(rel_path):
+    return sublime.decode_value(sublime.load_resource(rel_path))

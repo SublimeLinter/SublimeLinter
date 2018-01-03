@@ -55,12 +55,11 @@ class Settings:
         self.plugin_settings = None
         self.dict_comparer = DictDelta()
 
-    def load(self, force=False):
+    def load(self):
         """Load the plugin settings."""
-        if force or not self.settings:
-            self.observe()
-            self.on_update()
-            self.observe_prefs()
+        self.observe()
+        self.on_update()
+        self.observe_prefs()
         self.update_gutter_icons()
 
     def has(self, setting):

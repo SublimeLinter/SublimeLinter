@@ -173,9 +173,6 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
 
     to_render = RenderLines()
     for vid, view_dict in errors.items():
-
-        view_dict["panel_lineno"] = None
-
         if util.is_none_or_zero(view_dict["we_count_view"]):
             continue
 

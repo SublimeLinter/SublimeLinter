@@ -27,6 +27,7 @@ def broadcast(topic, message=None):
 
 map_fn_to_topic = {}
 
+
 def on(topic):
     def inner(fn):
         subscribe(topic, fn)

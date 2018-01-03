@@ -685,5 +685,7 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def load_json(rel_path):
-    return sublime.decode_value(sublime.load_resource(rel_path))
+def load_json(*segments, from_sl_dir=False):
+    base_path = "Packages/SublimeLinter" if from_sl_dir else ""
+    full_path = os.path.join(base_path, *segments)
+    return sublime.decode_value(sublime.load_resource(full_path))

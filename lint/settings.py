@@ -226,11 +226,9 @@ class Settings:
 
         If invalid, display message in status bar and console.
         """
-        schema_file = "settings-schema.json"
-        schema_path = "Packages/SublimeLinter/"
-        path = os.path.join(schema_path, schema_file)
+        schema_file = "resources/settings-schema.json"
+        schema = util.load_json(schema_file, from_sl_dir=True)
 
-        schema = util.load_json(path)
         try:
             validate(self.settings, schema)
         except ValidationError as ve:

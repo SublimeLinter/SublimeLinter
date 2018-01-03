@@ -6,12 +6,13 @@ import html
 import sublime
 import sublime_plugin
 
+from .lint import events
 from .lint.linter import Linter
 from .lint.highlight import HighlightSet, RegionStore
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
-from .lint.const import WARN_ERR, STATUS_KEY
+from .lint.const import WARN_ERR
 from .panel import panel
 
 
@@ -62,6 +63,12 @@ def plugin_loaded():
         for view in visible_views():
             plugin.hit(view)
 
+    # Sublime will fall asleep, and not execute our queued tasks until the
+    # user 'does' something. If we enqueue two empty tasks in a nested way,
+    # everything is fine.
+    sublime.set_timeout_async(
+        lambda: sublime.set_timeout_async(lambda: ..., 10), 10)
+
 
 def visible_views():
     """Yield all visible views of the active window."""
@@ -98,7 +105,6 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        persist.settings.load()
         self.check_syntax(view)
 
         view_id = view.id()
@@ -109,8 +115,6 @@ class Listener:
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
-
-        self.display_errors(view)
 
     def on_new_async(self, view):
         if not util.is_lintable(view):
@@ -155,9 +159,6 @@ class Listener:
                 d.pop(vid, None)
 
         panel.fill_panel(view.window(), update=True)
-
-    def on_selection_modified_async(self, view):
-        self.display_errors(view)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -208,8 +209,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         util.apply_to_all_views(apply)
 
     def lint(self, view_id, hit_time=None, callback=None):
-        """
-        Lint the view with the given id.
+        """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
         request is pulled off the queue.
@@ -222,11 +222,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         callback is the method to call when the lint is finished. If not
         provided, it defaults to highlight().
         """
-        # If the view has been modified since the lint was triggered,
-        # don't lint again.
-        if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
-            return
-
         view = Linter.get_view(view_id)
 
         if not view:
@@ -235,6 +230,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         filename = view.file_name()
         code = Linter.text(view)
         callback = callback or self.highlight
+
+        events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
         Linter.lint_view(view, filename, code, hit_time, callback)
 
     def highlight(self, view, linters, hit_time):
@@ -293,8 +290,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             panel.fill_panel(window, update=True)
 
-        for view in window_views.values():
-            self.display_errors(view)
+        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -351,37 +347,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             lineno, colno = -1, -1
 
         return lineno, colno
-
-    def display_errors(self, view):
-        """Display lint errors in the statusbar of the current view."""
-        if not view:
-            return
-
-        view = util.get_focused_view(view)
-        if not view:
-            return
-
-        lineno, colno = self.get_line_and_col(view)
-        vid = view.id()
-
-        view_dict = persist.errors.get_view_dict(vid)
-        if not view_dict:
-            view.erase_status(STATUS_KEY)
-            return
-
-        we_count = view_dict["we_count_view"]
-        status = "W: {warning} E: {error}".format(**we_count)
-
-        msgs = []
-        region_dict = persist.errors.get_region_dict(vid, lineno, colno)
-        for error_type, dc in region_dict.items():
-            for d in dc:
-                msgs.append(d["msg"])
-        if msgs:
-            status += " - {}".format("; ".join(msgs))
-
-        if status != view.get_status(STATUS_KEY):
-            view.set_status(STATUS_KEY, status)
 
     @classmethod
     def join_msgs(cls, line_dict, we_count, show_count=False):

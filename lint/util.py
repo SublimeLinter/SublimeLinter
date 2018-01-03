@@ -34,7 +34,6 @@ tempdir = os.path.join(
 )
 
 
-# Code migrated from 'lint/persist.py'
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
     print('SublimeLinter: ', end='')

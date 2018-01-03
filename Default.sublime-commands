@@ -4,10 +4,6 @@
         "command": "sublime_linter_lint"
     },
     {
-        "caption": "SublimeLinter: Lint All Views",
-        "command": "sublime_linter_lint_all"
-    },
-    {
         "caption": "SublimeLinter: Show All Errors",
         "command": "sublime_linter_panel_toggle"
     },

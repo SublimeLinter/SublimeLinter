@@ -137,7 +137,7 @@ class Settings:
 
         """
         self.settings = self.get_view_settings()
-        if not self.setting_valid():
+        if not self.settings_valid():
             return
 
         self.changeset.extend(self.dict_comparer(self.settings))
@@ -221,7 +221,7 @@ class Settings:
 
         style.GUTTER_ICONS = new_gutter_dict
 
-    def setting_valid(self):
+    def settings_valid(self):
         """
         Validate merged settings against json schema.
 

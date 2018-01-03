@@ -117,14 +117,6 @@
         }
     ],
 
-    // Maps variant syntaxes to the syntax that you have a linter for.
-    "syntax_map": {
-        "html": ["source.html"],
-        "javascript": ["source.js"],
-        "json": ["source.json"],
-        "python": ["source.python"]
-    },
-
     // Should "next/previous error" wrap around at the end of a file.
     "wrap_find": true
 }

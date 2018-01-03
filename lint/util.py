@@ -42,22 +42,6 @@ def printf(*args):
     print()
 
 
-def get_syntax(view):
-    """Return the view's syntax."""
-    from .persist import settings
-    syntax_map = settings.get('syntax_map')
-    try:
-        scoring = {
-            max(view.score_selector(0, s) for s in selectors if s): syntax
-            for syntax, selectors in syntax_map.items()
-        }
-        syntax = scoring[max(scoring)]
-    except ValueError:
-        return ""
-    else:
-        return syntax
-
-
 class Borg:
     _shared_state = {}
 
@@ -681,3 +665,49 @@ def load_json(*segments, from_sl_dir=False):
     base_path = "Packages/SublimeLinter" if from_sl_dir else ""
     full_path = os.path.join(base_path, *segments)
     return sublime.decode_value(sublime.load_resource(full_path))
+
+
+# syntax functions
+
+def yield_subscopes(scope, start):
+    while scope:
+        yield scope
+        dot_index = scope.rfind('.', start + 1)
+        scope = None if dot_index < 0 else scope[:dot_index]
+
+
+def max_selector_score(view, selectors):
+    return max((view.score_selector(0, s) for s in selectors if s) or [0])
+
+
+def get_syntax_by_score(view, syntax_map):
+    try:
+        scoring = {
+            max_selector_score(view, selectors): syntax
+            for syntax, selectors in syntax_map.items()
+            if selectors
+        }
+        syntax = scoring[max(scoring)]
+    except ValueError:
+        return
+    else:
+        return syntax
+
+
+def get_syntax(view):
+    """Return the view's syntax."""
+    syntax_map = load_json('resources/syntax_map.json', from_sl_dir=True)
+    main_scope = view.scope_name(0).split()[0]
+    base_scope, sub_scope = main_scope.split('.', 1)
+
+    # lazy syntax lookup
+    if sub_scope in syntax_map:
+        return sub_scope
+
+    # more elaborate lookup via scoring mechanism
+    for scope in yield_subscopes(main_scope, start=len(base_scope)):
+        syntax = get_syntax_by_score(view, syntax_map)
+        if syntax:
+            return syntax
+
+    return ""

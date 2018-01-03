@@ -1,0 +1,6 @@
+{
+    "javascript": ["source.js"],
+    "json": ["source.json"],
+    "markdown": [],
+    "python": ["source.python"]
+}

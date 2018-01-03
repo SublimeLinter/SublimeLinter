@@ -60,15 +60,13 @@ class UpdateState(sublime_plugin.EventListener):
         draw(**State)
 
 
-
-# indicators = [
-#     'Linting .. ',
-#     'Linting  ..',
-#     'Linting . .',
-# ]
-
-# indicators = ['( .)', '(. )']
-indicators = ['(\)', '(|)', '(/)', '(-)']
+indicators = [
+    'Linting.  ',
+    'Linting.. ',
+    'Linting. .',
+    'Linting ..',
+    'Linting  .',
+]
 
 
 def draw(active_view, running, **kwargs):

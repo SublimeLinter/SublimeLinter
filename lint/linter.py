@@ -1182,7 +1182,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         view.erase_status(STATUS_KEY)
-        highlight.Highlight.clear(view)
+        highlight.clear_view(view)
         persist.errors.pop(view.id(), None)
 
     def clear(self):

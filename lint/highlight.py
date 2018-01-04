@@ -22,12 +22,19 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
 class RegionStore:
-    def __init__(self):
+    _memory = None
+
+    @property
+    def memory(self):
         """structure: {"view.id": [region_keys ... ]}."""
-        self.memory = sublime.load_settings("sl_regions.sublime-settings")
-        views = self.memory.get("views")
-        if not views:
-            self.memory.set("views", {})
+        memory = self._memory
+        if not memory:
+            memory = sublime.load_settings("sl_regions.sublime-settings")
+            views = memory.get("views")
+            if not views:
+                memory.set("views", {})
+            self._memory = memory
+        return memory
 
     def add_region_keys(self, view, new_keys):
         view_id = view.id()
@@ -57,6 +64,14 @@ class RegionStore:
         self.memory.set("views", views)
 
 
+region_store = RegionStore()
+
+
+def clear_view(view):
+    """Clear all marks in the given view."""
+    region_store.del_regions(view)
+
+
 class HighlightSet:
     """This class maintains a set of Highlight objects and performs bulk operations on them."""
 
@@ -84,18 +99,6 @@ class HighlightSet:
             all.update(highlight)
 
         all.draw(view)
-
-    @staticmethod
-    def clear(view):
-        """Clear all marks in the given view."""
-        persist.region_store.del_regions(view)
-
-    def reset(self, view):
-        """Clear all marks in the given view and reset the list of marks in our Highlights."""
-        self.clear(view)
-
-        for highlight in self.all:
-            highlight.reset()
 
     def line_type(self, line):
         """Return the primary error type for the given line number."""
@@ -450,22 +453,7 @@ class Highlight:
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
         # persisting region keys for later clearance
-        persist.region_store.add_region_keys(view, drawn_regions)
-
-    @staticmethod
-    def clear(view):
-        """Clear all marks in the given view."""
-        persist.region_store.del_regions(view)
-
-    def reset(self):
-        """
-        Clear the list of marks maintained by this object.
-
-        This method does not clear the marks, only the list.
-        The next time this object is used to draw, the marks will be cleared.
-        """
-        self.marks = util.get_new_dict()
-        self.lines = util.get_new_dict()
+        region_store.add_region_keys(view, drawn_regions)
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""

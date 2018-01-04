@@ -1,4 +1,5 @@
 from collections import defaultdict
+import traceback
 
 
 BEGIN_LINTING = 'BEGIN_LINTING'
@@ -21,8 +22,8 @@ def broadcast(topic, message=None):
     for fn in listeners.get(topic, []):
         try:
             fn(**payload)
-        except:
-            pass
+        except Exception:
+            traceback.print_exc()
 
 
 map_fn_to_topic = {}

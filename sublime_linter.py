@@ -63,12 +63,6 @@ def plugin_loaded():
         for view in visible_views():
             plugin.hit(view)
 
-    # Sublime will fall asleep, and not execute our queued tasks until the
-    # user 'does' something. If we enqueue two empty tasks in a nested way,
-    # everything is fine.
-    sublime.set_timeout_async(
-        lambda: sublime.set_timeout_async(lambda: ..., 10), 10)
-
 
 def visible_views():
     """Yield all visible views of the active window."""

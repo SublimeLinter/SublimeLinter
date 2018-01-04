@@ -146,7 +146,6 @@ class Listener:
             self.linted_views,
             self.view_syntax,
             persist.errors,
-            persist.highlights,
             persist.view_linters,
             persist.views,
             persist.last_hit_times
@@ -258,7 +257,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         errors = {}
-        highlights = persist.highlights[vid] = HighlightSet()
+        highlights = HighlightSet()
 
         for linter in linters:
             if linter.highlight:
@@ -280,7 +279,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             for other_view in window.views():
                 if other_view.buffer_id() == buffer_id:
                     vid = other_view.id()
-                    persist.highlights[vid] = highlights
                     highlight.clear_view(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors

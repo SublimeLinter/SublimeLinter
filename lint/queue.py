@@ -38,9 +38,6 @@ def queue_lint(vid, delay, callback):
     return hit_time
 
 
-MIN_DELAY = 0.1
-
-
 def get_delay():
     """Return the delay between a lint request and when it will be processed.
 
@@ -50,7 +47,7 @@ def get_delay():
     if persist.settings.get('lint_mode') != 'background':
         return 0
 
-    return persist.settings.get('delay', MIN_DELAY)
+    return persist.settings.get('delay')
 
 
 queue = Daemon()

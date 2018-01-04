@@ -96,9 +96,6 @@
         "syntax_map":{
             "type":"object"
         },
-        "wrap_find":{
-            "type":"boolean"
-        },
         "styles":{
             "type":"array",
             "items":{

@@ -202,7 +202,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
-    def lint(self, view_id, hit_time=None, callback=None):
+    def lint(self, view_id, hit_time=None):
         """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
@@ -212,9 +212,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         to the queue. It is used to determine if the view has been modified
         since the lint request was queued. If so, the lint is aborted, since
         another lint request is already in the queue.
-
-        callback is the method to call when the lint is finished. If not
-        provided, it defaults to highlight().
         """
         # If this is not the latest 'hit' we're processing abort early.
         if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
@@ -227,10 +224,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         filename = view.file_name()
         code = Linter.text(view)
-        callback = callback or self.highlight
 
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        Linter.lint_view(view, filename, code, hit_time, callback)
+        Linter.lint_view(view, filename, code, hit_time, self.highlight)
 
     def highlight(self, view, linters, hit_time):
         """

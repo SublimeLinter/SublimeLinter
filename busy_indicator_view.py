@@ -3,7 +3,6 @@ import sublime_plugin
 
 import time
 
-from .lint import util
 from .lint.const import STATUS_BUSY_KEY
 from .lint import events
 
@@ -49,9 +48,7 @@ def on_finished_linting(buffer_id):
 
 
 class UpdateState(sublime_plugin.EventListener):
-    def on_activated_async(self, view):
-        active_view = util.get_focused_view(view)
-
+    def on_activated_async(self, active_view):
         State.update({
             'active_view': active_view
         })

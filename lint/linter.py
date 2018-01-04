@@ -1388,9 +1388,11 @@ class Linter(metaclass=LinterMeta):
         if not match:
             persist.debug('No match for regex: {}'.format(self.regex.pattern))
         else:
-            match_dict.update({key: value
-                for key, value in match.groupdict().items()
-                if key in match_dict})
+            match_dict.update({
+                k: v
+                for k, v in match.groupdict().items()
+                if k in match_dict
+            })
             match_dict["match"] = match
 
             # normalize line and col if necessary

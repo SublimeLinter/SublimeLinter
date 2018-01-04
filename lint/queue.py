@@ -1,11 +1,15 @@
 from . import persist
 
+from collections import defaultdict
 import time
 import threading
 
+# TODO: Both `timers` and `running` herein grow unbounded. T.i. a proper
+# cleanup must be implemented.
 
 # Map from view_id to threading.Timer objects
 timers = {}
+running = defaultdict(threading.Lock)
 
 
 # For compatibility this is a class with unchanged API from SL3.
@@ -21,11 +25,13 @@ class Daemon:
         return queue_lint(vid, delay, self._callback)
 
 
-def queue_lint(vid, delay, callback):
+def queue_lint(vid, delay, callback):  # <-serial execution
     hit_time = time.monotonic()
 
-    def worker():
-        callback(vid, hit_time)
+    def worker():                      # <-concurrent execution
+        with running[vid]:  # <- If worker runs long enough
+                            #    multiple tasks can wait here!
+            callback(vid, hit_time)
 
     try:
         timers[vid].cancel()

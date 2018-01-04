@@ -268,16 +268,14 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     for err_t in WARN_ERR:
                         l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
 
-        buffer_id = view.buffer_id()
+        for view in all_views_into_buffer(view):
+            highlight.clear_view(view)
+            highlights.draw(view)
+
+            vid = view.id()
+            persist.errors[vid] = errors
 
         for window in sublime.windows():
-            for other_view in window.views():
-                if other_view.buffer_id() == buffer_id:
-                    vid = other_view.id()
-                    highlight.clear_view(other_view)
-                    highlights.draw(other_view)
-                    persist.errors[vid] = errors
-
             panel.fill_panel(window, update=True)
 
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
@@ -460,3 +458,13 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
+
+
+def all_views_into_buffer(view):
+    """Yield all views with the same underlying buffer."""
+    buffer_id = view.buffer_id()
+
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() == buffer_id:
+                yield view

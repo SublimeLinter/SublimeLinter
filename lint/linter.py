@@ -711,6 +711,7 @@ class Linter(metaclass=LinterMeta):
         disabled = set()
         syntax = util.get_syntax(persist.views[vid])
 
+        all_errors = []
         for linter in linters:
             # First check to see if the linter can run in the current lint mode.
             if linter.tempfile_suffix == '-' and view.is_dirty():
@@ -745,7 +746,11 @@ class Linter(metaclass=LinterMeta):
 
             if syntax not in linter.selectors and '*' not in linter.selectors:
                 linter.reset(code)
-                linter.lint(hit_time)
+                errors = linter.lint(hit_time)
+                if errors is None:
+                    return  # ABORT
+
+                all_errors.extend(errors)
 
         selectors = Linter.get_selectors(vid, syntax)
 
@@ -760,37 +765,35 @@ class Linter(metaclass=LinterMeta):
                 regions.append(region)
 
             linter.reset(code)
-            errors = {}
 
             for region in regions:
                 line_offset, col_offset = view.rowcol(region.begin())
                 linter.highlight.move_to(line_offset, col_offset)
                 linter.code = code[region.begin():region.end()]
-                linter.errors = {}
-                linter.lint(hit_time)
+                errors = linter.lint(hit_time)
+                if errors is None:
+                    return  # ABORT
 
-                for line, errors_by_type in linter.errors.items():
-                    errors[line + line_offset] = errors_by_type
+                for error in errors:
+                    line = error['line']
+                    error['line'] = line + line_offset
 
                     if line == 0:
-                        for error_type, line_errors in errors_by_type.items():
-                            for error in line_errors:
-                                error.update({
-                                    'start': error['start'] + col_offset,
-                                    'end': error['end'] + col_offset
-                                })
+                        error.update({
+                            'start': error['start'] + col_offset,
+                            'end': error['end'] + col_offset
+                        })
 
-            linter.errors = errors
+                all_errors.extend(errors)
 
         # Remove disabled linters
         linters = list(linters - disabled)
 
         # Merge our result back to the main thread
-        callback(cls.get_view(vid), linters, hit_time)
+        callback(cls.get_view(vid), linters, all_errors, hit_time)
 
     def reset(self, code):
         """Reset a linter to work on the given code and filename."""
-        self.errors = {}
         self.code = code
         self.highlight = highlight.Highlight(self.code)
 
@@ -1088,7 +1091,7 @@ class Linter(metaclass=LinterMeta):
         - Highlight warnings and errors.
         """
         if self.disabled:
-            return
+            return []
 
         cmd = self.get_cmd()
         settings = self.get_view_settings()
@@ -1098,16 +1101,17 @@ class Linter(metaclass=LinterMeta):
             output = self.run(cmd, self.code)
 
         if not output:
-            return
+            return []
 
         # If the view has been modified since the lint was triggered, no point in continuing.
         if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
-            return
+            return None  # ABORT
 
         if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
+        errors = []
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -1116,7 +1120,10 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                self.process_match(m)
+                error = self.process_match(m)
+                errors.append(error)
+
+        return errors
 
     def find_errors(self, output):
         """
@@ -1232,28 +1239,22 @@ class Linter(metaclass=LinterMeta):
                 style=style
             )
 
-        self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
+        return self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
 
-    def error(self, line, col, message, error_type, style=None, code=None, length=None):
+    def error(self, line, col, message, error_type, style=None, code="", length=None):
         """Add a reference to an error/warning on the given line and column."""
         self.highlight.line(line, error_type, style=style)
 
         col = col or 0
-
-        if not code:
-            code = ""
-
-        payload = {
+        return {
+            "line": line,
             "start": col,
             "end": col + (length or 0),
             "linter": self.name,
+            "error_type": error_type,
             "code": code,
             "msg": message
         }
-
-        l1 = self.errors.setdefault(line, {})
-        l2 = l1.setdefault(error_type, [])
-        l2.append(payload)
 
     @staticmethod
     def clear_view(view):

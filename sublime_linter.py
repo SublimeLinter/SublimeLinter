@@ -1,5 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from collections import defaultdict
 import os
 import html
 
@@ -228,7 +229,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
         Linter.lint_view(view, filename, code, hit_time, self.highlight)
 
-    def highlight(self, view, linters, hit_time):
+    def highlight(self, view, linters, errors, hit_time):
         """
         Highlight any errors found during a lint of the given view.
 
@@ -251,25 +252,24 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
-        errors = {}
+        errors_by_line = defaultdict(lambda: defaultdict(list))
+        for error in errors:
+            line = error['line']
+            error_type = error['error_type']
+            errors_by_line[line][error_type].append(error)
+
         highlights = HighlightSet()
 
         for linter in linters:
             if linter.highlight:
                 highlights.add(linter.highlight)
 
-            if linter.errors:
-                for line, errs in linter.errors.items():
-                    l_err = errors.setdefault(line, {})
-                    for err_t in WARN_ERR:
-                        l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
-
         for view in all_views_into_buffer(view):
             highlight.clear_view(view)
             highlights.draw(view)
 
             vid = view.id()
-            persist.errors[vid] = errors
+            persist.errors[vid] = errors_by_line
 
         for window in sublime.windows():
             panel.fill_panel(window, update=True)

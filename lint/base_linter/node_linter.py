@@ -54,7 +54,7 @@ class NodeLinter(linter.Linter):
             if disable_if_not_dependency and not is_dep:
                 self.disabled = True
 
-        super(NodeLinter, self).lint(hit_time)
+        return super(NodeLinter, self).lint(hit_time)
 
     def is_dependency(self):
         """Check package.json to see if linter is a dependency."""

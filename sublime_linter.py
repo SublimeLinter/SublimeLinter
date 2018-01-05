@@ -169,6 +169,15 @@ class Listener:
             if persist.settings.get('show_hover_region_report'):
                 SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
+    def on_selection_modified_async(self, view):
+        if not view:
+            return
+
+        lineno, colno = self.get_line_and_col(view)
+        vid = view.id()
+
+        panel.update_panel_selection(vid, lineno, colno)
+
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
     shared_instance = None
@@ -336,20 +345,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             lineno, colno = -1, -1
 
         return lineno, colno
-
-    def display_errors(self, view):
-        """Display lint errors in the statusbar of the current view."""
-        if not view:
-            return
-
-        view = util.get_focused_view(view)
-        if not view:
-            return
-
-        lineno, colno = self.get_line_and_col(view)
-        vid = view.id()
-
-        panel.update_panel_selection(vid, lineno, colno)
 
     @classmethod
     def join_msgs(cls, line_dict, we_count, show_count=False):

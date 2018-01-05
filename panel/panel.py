@@ -135,7 +135,7 @@ def run_update_panel_cmd(panel, text=None):
         clear_sel = True
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 
-    
+
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
     start = dic['start'] + 1
@@ -232,20 +232,6 @@ def get_next_lineno(num, interval):
         return neighbours[1]
 
 
-def get_next_panel_lineno(dic, lineno):
-    line_nums = dic['line_dicts'].keys()
-    if not line_nums:
-        return
-    lineno = get_next_panel_lineno(lineno, line_nums)
-    line_dict = dic['line_dicts'][lineno]
-    panel_linenos = [
-        d["panel_lineno"]
-        for error_dict in line_dict.values() for d in error_dict
-        if d["panel_lineno"]
-    ]
-    return min(panel_linenos)
-
-
 def change_selection(panel_lineno, full_line=False, window=None):
     panel = get_panel(window or sublime.active_window())
     if not panel:
@@ -269,6 +255,11 @@ def change_selection(panel_lineno, full_line=False, window=None):
 
 
 def update_panel_selection(vid, lineno=None, colno=None, window=None):
+    if lineno < 0:
+        lineno = None
+    if colno <= 0:
+        colno = None
+
     full_line = False
     view_dict = persist.errors.get_view_dict(vid)
     if not view_dict or util.is_none_or_zero(view_dict["we_count_view"]):
@@ -280,9 +271,9 @@ def update_panel_selection(vid, lineno=None, colno=None, window=None):
         if lineno in line_dicts:
             full_line = True
         else:
-            lineno = get_next_panel_lineno(lineno, line_dicts)
+            lineno = get_next_lineno(lineno, line_dicts)
 
-    lineno = 0 if not lineno else lineno
+    lineno = 0 if lineno is None else lineno
 
     line_dict = line_dicts[lineno]
     region_dict = get_closest_region_dict(line_dict, colno or 0)

@@ -1,7 +1,0 @@
-SublimeLinter 3.0.30
----------------------
-- When module import fails, the log message is more specific about
-  the consequences of that failure.
-
-- Fixed the case where non-version-sensitive python linters would fail
-  to lint when a python 3 module was not available.

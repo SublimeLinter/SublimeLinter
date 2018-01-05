@@ -1,44 +1,131 @@
 {
-    "default": {
-        "debug": false,
-        "delay": 0.25,
-        "error_color": "D02000",
-        "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
-        "gutter_theme_excludes": [],
-        "lint_mode": "background",
-        "use_current_shell_path": false,
-        "mark_style": "outline",
-        "no_column_highlights_line": false,
-        "passive_warnings": false,
-        "paths": {
-            "linux": [],
-            "osx": [],
-            "windows": []
+    // Set to true to print extra information in the console.
+    "debug": false,
+
+    // When in the "background" lint mode, this value determines
+    // a delay before a request is send to the linter
+    "delay": 0.3,
+
+    // Available gutter themes:
+    // Blueberry/Blueberry - cross.gutter-theme
+    // Blueberry/Blueberry - round.gutter-theme
+    // Circle
+    // Danish Royalty
+    // Default
+    // Hands
+    // Knob/Knob - simple.gutter-theme
+    // Knob/Knob - symbol.gutter-theme
+    // Koloria
+    // ProjectIcons
+    // Note that you may need to change the "icon" property in "styles"
+    // to an icon in the theme (they usually include "warning" and "error")
+    "gutter_theme": "none",
+
+    // Lint Modes determine when the linter is run
+    // background: asynchronously on every change
+    // load_save: when a file is opened and every time it's saved
+    // manual: only when calling the Lint This View command
+    "lint_mode": "background",
+
+    // Example of linter specific settings.
+    // What settings are available is documented in the readme of the
+    // specific linter plugin.
+    // "linters": {
+    //     "csslint": {
+    //         "disable": false,
+    //         "args": [],
+    //         "excludes": []
+    //     },
+    //     "flake8": {
+    //         "python": null,
+    //         "disable": false,
+    //         "args": [],
+    //         "excludes": [],
+    //         "ignore": "",
+    //         "max-complexity": -1,
+    //         "max-line-length": null,
+    //         "select": ""
+    //     }
+    // }
+    "linters": {},
+
+    // Determines what happens when a linter reports an error without column.
+    // By default, a mark is put in the gutter but no text is highlighted.
+    // If this setting is ``true``, the entire line is also highlighted.
+    "no_column_highlights_line": false,
+
+    // Provide extra paths to be searched when locating system executables.
+    "paths": {
+        "linux": [],
+        "osx": [],
+        "windows": []
+    },
+    "python_paths": {
+        "linux": [],
+        "osx": [],
+        "windows": []
+    },
+
+    // How much time we should be available for reading $PATH from the shell.
+    "shell_timeout": 10,
+
+    // Show a report for errors on a line by hovering over the gutter.
+    "show_hover_line_report": true,
+
+    // Show a report for errors on a region by hovering over it.
+    "show_hover_region_report": true,
+
+    // Highlight errors in the minimap.
+    "show_marks_in_minimap": true,
+
+    // Global styles for all linters.
+    // - mark_style options:
+    //   "fill", "outline",
+    //   "solid_underline", "squiggly_underline", "stippled_underline"
+    //   "none"
+    // - priority determines which mark is show in the gutter;
+    //   error marks will still always overwrite warning marks.
+    // - scope is used to determine the color;
+    //   region.<colorish> are automatically generated scopes in ST > 3148.
+    // - types is an array which can contain "warning" and/or "error".
+    // - codes is an array which can contain error codes provided by a linter.
+    // - icon can be:
+    //   one of the default icons: "circle", "dot" or "bookmark"
+    //   or one provided by a gutter theme (e.g. "warning" or "error")
+    //   or a path to an icon file like (e.g. "Packages/icons/warning.png")
+    //   or "none" to remove the icon
+    // Note: At least one of those targets is required: types or codes.
+    // Styles can also be specified per linter.
+    "styles": [
+        {
+            "mark_style": "outline",
+            "priority": 1,
+            "scope": "region.yellowish markup.changed.sublime_linter markup.warning.sublime_linter",
+            "icon": "dot",
+            "types": [
+                "warning"
+            ]
         },
-        "python_paths": {
-            "linux": [],
-            "osx": [],
-            "windows": []
-        },
-        "rc_search_limit": 3,
-        "shell_timeout": 10,
-        "show_errors_on_save": false,
-        "show_marks_in_minimap": true,
-        "syntax_map": {
-            "python django": "python",
-            "pythonimproved": "python",
-            "magicpython": "python",
-            "html 5": "html",
-            "html (django)": "html",
-            "html (rails)": "html",
-            "javascript (babel)": "javascript",
-            "php": "html"
-        },
-        "tooltip_fontsize": "1rem",
-        "tooltip_theme": "Packages/SublimeLinter/tooltip-themes/Default/Default.tooltip-theme",
-        "tooltip_theme_excludes": [],
-        "tooltips": false,
-        "warning_color": "DDB700",
-        "wrap_find": true
+        {
+            "mark_style": "outline",
+            "priority": 1,
+            "scope": "region.redish markup.deleted.sublime_linter markup.error.sublime_linter",
+            "icon": "dot",
+            "types": [
+                "error"
+            ]
+        }
+    ],
+
+    // Maps variant syntaxes to the syntax that you have a linter for.
+    "syntax_map": {
+        "html (django)": "html",
+        "html (rails)": "html",
+        "html 5": "html",
+        "javascript (babel)": "javascript",
+        "magicpython": "python",
+        "php": "html",
+        "python django": "python",
+        "pythonimproved": "python"
     }
 }

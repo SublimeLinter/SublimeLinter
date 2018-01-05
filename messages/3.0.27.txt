@@ -1,5 +1,0 @@
-SublimeLinter 3.0.27
----------------------
-- Added fixed HTML (Rails) syntax to correctly support ERB files.
-
-- Fixed the path for the Default gutter theme.

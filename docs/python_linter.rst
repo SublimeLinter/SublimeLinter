@@ -10,12 +10,6 @@ If your linter plugin interfaces with a linter that is written in python, you sh
 
 By doing so, you get the following features:
 
-- :ref:`comment_re` is defined correctly for python.
-
-- :ref:`@python <python-meta-setting>` is added to :ref:`inline_settings`.
-
-- :ref:`shebang_match` is set to a method that returns a python shebang as the ``@python:<version>`` meta setting.
-
 -  Execution directly via a python module method or via an external executable.
 
 `SublimeLinter-flake8`_, `SublimeLinter-pep8`_, and `SublimeLinter-pyflakes`_ are good examples of python-based linters.
@@ -60,7 +54,7 @@ This method should perform linting and return a string with one more lines per e
         self.build_options(options, type_map, transform=lambda s: s.replace('-', '_'))
 
         if persist.settings.get('debug'):
-            persist.printf('{} options: {}'.format(self.name, options))
+            util.printf('{} options: {}'.format(self.name, options))
 
         checker = self.module.get_style_guide(**options)
 

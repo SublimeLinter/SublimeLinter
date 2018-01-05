@@ -1,0 +1,99 @@
+SublimeLinter 4.0 Pre-Release
+===========================================
+
+You can find this text at
+https://github.com/SublimeLinter/SublimeLinter3/blob/next/messages/4.0.0-rc.1.txt
+
+Please restart Sublime Text before continuing.
+
+
+New features
+-------------------------------------------
+
+- Hover over an error to view the message.
+- Hover over the gutter to view all error messages for that line.
+- The statusbar now shows error (E) and warning (W) counts if there are any.
+- The statusbar shows the error for your cursor position instead of all errors
+  for that line.
+- A panel displays errors in all open files.
+- The panel can be filtered to just show specific types or severity level.
+- Built-in next/prev_results can be used to navigate to all errors.
+- The filtering also applies to these navigation commands.
+- A new "styles" setting to configure error highlighting.
+- Each linter setting now accepts such a "styles" setting, so colors, icons and
+  highlight style can be differentiated per linter.
+- Styles also have a "priority" which decides what icon to show in the gutter.
+- Gutter themes can now be set using just their name.
+- No "(SL)" color scheme files are generated, in stead relying on common scopes.
+- It's possible to use a color by specifying any scope that's in your color
+  scheme (e.g. "entity.name")
+- If you're using ST dev builds you can change colors by specifying
+  "region.<colorish>" in the scope option. Colors:
+  redish, orangish, yellowish, greenish, bluish, purplish, pinkish
+
+
+Changes to commands, menus and key bindings
+-------------------------------------------
+
+The context menu now only lists the Lint This View command.
+The tools menu has been removed.
+Commands are now named sublime_linter_* to comply with naming conventions.
+The built-in "next_result" and "prev_result" commands can be used to navigate
+to errors, so the SublimeLinter-specific key bindings have been dropped.
+
+Commands to change settings or toggle linters have been removed.
+- Settings can be changed by modifying your user settings.
+- Linters may be disabled in the user settings, or in your project
+  configuration. Or you can disable each specific plugin with Package Control.
+
+
+Changes to settings
+-------------------------------------------
+
+Default settings now have documentation in line.
+Default settings can no longer be edited.
+Default settings are no longer copied to the user settings.
+- Learn about the configuration options for each linter in the docs and
+  in the README of the linter plugin.
+
+The "user" node has been removed from settings.
+
+The settings "ignore_matches" and "demote_to_warning_matches" have been removed.
+Your linter should have settings to modify the rules or severity levels.
+
+The new output panel and filtering have supplanted the "make_warnings_passive"
+and "show_errors_on_save" features.
+
+Settings can be specified in your user settings, or in project configuration
+(*.sublime-project files). Inline settings, inline overrides, shebang settings
+and .sublimelinterrc files are no longer supported.
+
+A python version can no longer be set globally.
+
+
+How to upgrade
+-------------------------------
+
+Your old settings will be backed up to SublimeLinter old.sublime-settings.
+You may want to compare them to the new settings and check if you want to
+migrate anything.
+
+To migrate your settings, first remove the "user" level and un-indent/flatten
+everything a level. Check the default settings to remove settings that don't
+exist anymore:
+
+- mark_style
+- error_color
+- gutter_theme_excludes
+- mark_style
+- passive_warnings
+- show_errors_on_save
+- tooltip_fontsize, tooltip_theme, tooltip_theme_excludes, tooltips
+- warning_color
+
+You can keep the "linters" settings block if it contains customizations that
+you need. It's also safe to remove it otherwise.
+
+You can now change your color scheme to one without the (SL) suffix. After
+doing so you can remove the Packages/User/SublimeLinter directory. It holds
+augmented color schemes that are no longer needed.

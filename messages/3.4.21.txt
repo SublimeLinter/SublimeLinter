@@ -1,8 +1,0 @@
-SublimeLinter 3.4.21
---------------------
-
-The "passive_warnings" setting has been added. When set to true, only
-errors will be displayed in the "Show All Errors" quick panel. This
-setting, by default, is set to false.
-
-Thank you so much for your support!

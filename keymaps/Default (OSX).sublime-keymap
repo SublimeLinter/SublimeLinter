@@ -1,7 +1,24 @@
 [
-    { "keys": ["ctrl+super+l"], "command": "sublimelinter_lint" },
-    { "keys": ["ctrl+super+e"], "command": "sublimelinter_goto_error", "args": {"direction": "next"} },
-    { "keys": ["ctrl+super+shift+e"], "command": "sublimelinter_goto_error", "args": {"direction": "previous"} },
-    { "keys": ["ctrl+super+a"], "command": "sublimelinter_show_all_errors" },
-    { "keys": ["ctrl+super+t"], "command": "sublimelinter_toggle_linter", "args": {"which": "all"}}
+	// Lint this view
+    { "keys": ["ctrl+super+l"], "command": "sublime_linter_lint" },
+    // Show all errors
+    { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" }
+
+    // To display filtered results in the panel add arguments:
+    // { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle", "args": {
+    //         "types": ["error"],
+    //         "codes": [],
+    //         "linter": []
+    //     }
+    // }
+
+
+    // You can also trigger the line report with a keybinding:
+    // { "keys": ["ctrl+super+r"], "command": "sublime_linter_line_report" }
+
+
+    // Goto next/previous error uses these built-in commands:
+    // { "keys": ["f4"], "command": "next_result" },
+    // { "keys": ["shift+f4"], "command": "prev_result" }
 ]
+

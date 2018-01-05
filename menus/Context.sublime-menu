@@ -1,0 +1,7 @@
+[
+    {
+        "id": "sublimelinter",
+        "caption": "Lint This View",
+        "command": "sublime_linter_lint"
+    }
+]

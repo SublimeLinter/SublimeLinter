@@ -4,6 +4,7 @@
 coverage.xml
 *.pyc
 *.sublime-project
-/menus/Context.sublime-menu
-/menus/Main.sublime-menu
+*.sublime-workspace
 _build/
+.mypy_cache/
+.ropeproject/

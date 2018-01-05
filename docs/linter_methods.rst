@@ -62,7 +62,7 @@ For example, the `coffeelint`_ linter plugin does the following:
 
         result = [self.executable_path, '--jslint', '--stdin']
 
-        if persist.get_syntax(self.view) == 'coffeescript_literate':
+        if util.get_syntax(self.view) == 'coffeescript_literate':
             result.append('--literate')
 
         return result
@@ -77,15 +77,6 @@ communicate
 This method runs an external executable using the command line specified by the tuple/list *cmd*, passing *code* using ``stdin``. The output of the command is returned.
 
 Normally there is no need to call this method, as it called automatically if the linter plugin does not define a value for :ref:`tempfile_suffix`. If you override the :ref:`run` method you can use this method to execute an external linter that accepts input via ``stdin``.
-
-
-get_view_settings
------------------
-.. code-block:: python
-
-   get_view_settings(self, inline=True)
-
-If you need to get the :ref:`merged settings <settings-stack>` for a view, use this method. If *inline* is ``False``, inline settings will not be included with the merged settings.
 
 
 .. _run:

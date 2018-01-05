@@ -18,21 +18,7 @@ Debug mode
 ----------
 If you are having trouble installing or configuring SublimeLinter, or it doesn’t seem to be working, and none of the error messages in the console are indicating why, you can turn on **debug mode**. In debug mode, SublimeLinter prints copious amounts of information about what is happening internally to the |st| console.
 
-To turn on debug mode, follow these steps:
-
-#. Click on ``Tools > SublimeLinter`` in the main menu bar.
-
-#. At the bottom of the ``SublimeLinter`` menu, you will see a ``Debug Mode`` item. If it is unchecked, select the item.
-
-#. Restart |st|.
-
-#. Press :kbd:`Control+\`` to open the |st| console.
-
-#. Look for messages that begin with :samp:`SublimeLinter:`, especially ones that begin with :samp:`SublimeLinter: WARNING:` or :samp:`SublimeLinter: ERROR:`.
-
-#. Go to the |_group| and report the problem along with any :samp:`SublimeLinter:` console output.
-
-Among the information dumped to the console in debug mode:
+Other information that might be valuable for debugging:
 
 - The |path| detected from your system plus whatever you put in the :ref:`"paths" global setting <paths-setting>`, used to locate executables.
 
@@ -72,15 +58,6 @@ Here are the most common reasons why a linter does not work:
 - A python-based linter binary is installed, but it does not work with python 2 or python 3 code. In that case, follow the steps in :ref:`debugging-python-based-linters` below.
 
 
-Use the group, Luke
--------------------
-Please do **not** open a ticket on Github issues until you have verified there isn't already a ticket in the |_group| or the now deprecated `SublimeLinter google group`_.
-
-Once you are confident the problem is solved, you can turn debug mode off using the steps above to uncheck the ``Debug Mode`` menu item.
-
-.. _SublimeLinter google group: https://groups.google.com/forum/#!forum/sublimelinter
-
-----
 
 .. _debugging-path-problems:
 
@@ -300,8 +277,6 @@ If your changes were correct, it will print the path to the linter executable. I
     # Windows
     > path
 
-At this point you should double-check that you followed the instructions above correctly, and if you still cannot figure out what is going wrong, post a message on the |_group|. Be sure to outline the steps you took and include the contents of your shell startup file.
-
 
 .. _debugging-python-based-linters:
 
@@ -311,7 +286,7 @@ When using python-based linters, there are more possibilities for configuration 
 
 - The version of python or the python script specified in the linter plugin may not be available.
 
-- The version of python you specify for your source code with the :ref:`@python meta setting <python-meta-setting>` or a :ref:`shebang <shebangs>` may not be available.
+- The version of python specified in your settings may not be available.
 
 - The specified version of python may be available, but the linter module for that version may not be installed.
 

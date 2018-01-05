@@ -34,7 +34,6 @@ tempdir = os.path.join(
 )
 
 
-# Code migrated from 'lint/persist.py'
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
     print('SublimeLinter: ', end='')
@@ -123,30 +122,6 @@ def get_active_view(view=None):
         return window.active_view()
 
     return sublime.active_window().active_view()
-
-
-def get_focused_view(view):
-    """
-    Return the focused view which shares view's buffer.
-
-    When updating the status, we want to make sure we get
-    the selection of the focused view, since multiple views
-    into the same buffer may be open.
-
-    """
-    active_view = get_active_view(view)
-    if not active_view:
-        return
-
-    if not is_lintable(view):
-        return
-
-    if not view.window():
-        return
-
-    for view in view.window().views():
-        if view == active_view:
-            return view
 
 
 def get_new_dict():

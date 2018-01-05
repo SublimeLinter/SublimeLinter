@@ -16,9 +16,6 @@ if 'plugin_is_loaded' not in globals():
     # A mapping between view ids and errors, which are line:(col, message) dicts
     errors = None
 
-    highlights = {}
-    region_store = None
-
     # A mapping between linter class names and linter classes
     linter_classes = {}
 

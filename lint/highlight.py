@@ -1,3 +1,4 @@
+from collections import defaultdict
 import re
 import sublime
 
@@ -21,40 +22,22 @@ WORD_RE = re.compile(r'^([-\w]+)')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
-class RegionStore:
-    def __init__(self):
-        """structure: {"view.id": [region_keys ... ]}."""
-        self.memory = sublime.load_settings("sl_regions.sublime-settings")
-        views = self.memory.get("views")
-        if not views:
-            self.memory.set("views", {})
+# Dict[view_id, region_keys]
+regions = defaultdict(set)
 
-    def add_region_keys(self, view, new_keys):
-        view_id = view.id()
-        saved_keys = self._get_views(view_id)
-        saved_keys.extend(new_keys)
-        self._set_views(view_id, saved_keys)
 
-    def del_regions(self, view):
-        view_id = view.id()
-        saved_keys = self._get_views(view_id)
-        for key in saved_keys:
-            view.erase_regions(key)
-        self._set_views(view_id)
+def remember_drawn_regions(view, regions_keys):
+    """Remember draw regions for later clearance."""
+    view_id = view.id()
+    regions[view_id].update(regions_keys)
 
-    def _get_views(self, view_id):
-        return self.memory.get("views").get(str(view_id), [])
 
-    def _set_views(self, view_id, region_keys=None):
-        view_id = str(view_id)
-        views = self.memory.get("views")
-
-        if not region_keys:
-            if view_id in views:
-                del views[view_id]
-        else:
-            views[view_id] = region_keys
-        self.memory.set("views", views)
+def clear_view(view):
+    """Clear all marks in the given view."""
+    view_id = view.id()
+    region_keys = regions.pop(view_id, [])
+    for key in region_keys:
+        view.erase_regions(key)
 
 
 class HighlightSet:
@@ -84,18 +67,6 @@ class HighlightSet:
             all.update(highlight)
 
         all.draw(view)
-
-    @staticmethod
-    def clear(view):
-        """Clear all marks in the given view."""
-        persist.region_store.del_regions(view)
-
-    def reset(self, view):
-        """Clear all marks in the given view and reset the list of marks in our Highlights."""
-        self.clear(view)
-
-        for highlight in self.all:
-            highlight.reset()
 
     def line_type(self, line):
         """Return the primary error type for the given line number."""
@@ -378,6 +349,8 @@ class Highlight:
         """
         from .style import GUTTER_ICONS
 
+        # `drawn_regions` should be a `set`. We use a list here to
+        # assert if we can actually hold this promise
         drawn_regions = []
         protected_regions = []
 
@@ -439,9 +412,10 @@ class Highlight:
                 drawn_regions.append(gutter_key)
                 protected_regions.extend(regions)
 
-            # overlaying all gutter regions with common invisible one,
-            # to create unified handle for GitGutter and other plugins
-            # flag might not be neccessary
+        # overlaying all gutter regions with common invisible one,
+        # to create unified handle for GitGutter and other plugins
+        # flag might not be neccessary
+        if protected_regions:
             view.add_regions(
                 PROTECTED_REGIONS_KEY,
                 protected_regions,
@@ -449,23 +423,11 @@ class Highlight:
             )
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
+        assert len(drawn_regions) == len(set(drawn_regions)), \
+            "region keys not unique {}".format(drawn_regions)
+
         # persisting region keys for later clearance
-        persist.region_store.add_region_keys(view, drawn_regions)
-
-    @staticmethod
-    def clear(view):
-        """Clear all marks in the given view."""
-        persist.region_store.del_regions(view)
-
-    def reset(self):
-        """
-        Clear the list of marks maintained by this object.
-
-        This method does not clear the marks, only the list.
-        The next time this object is used to draw, the marks will be cleared.
-        """
-        self.marks = util.get_new_dict()
-        self.lines = util.get_new_dict()
+        remember_drawn_regions(view, drawn_regions)
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""

@@ -127,15 +127,6 @@ def format_header(f_path):
     return "{}:".format(f_path)
 
 
-def format_row(lineno, error_type, line_dict):
-    lineno_copy = lineno + 1
-    start = line_dict["start"] + 1
-
-    tmpl = "{LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(
-        LINENO=lineno_copy, START=start, ERR_TYPE=error_type, **line_dict)
-
-
 def run_update_panel_cmd(panel, text=None):
     cmd = "sublime_linter_update_panel"
     clear_sel = False
@@ -143,6 +134,13 @@ def run_update_panel_cmd(panel, text=None):
         text = "No lint errors."
         clear_sel = True
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
+
+    
+def format_row(lineno, error_type, dic):
+    lineno = int(lineno) + 1
+    start = dic['start'] + 1
+    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
+    return tmpl.format(LINENO=lineno, START=start, ERR_TYPE=error_type, **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):

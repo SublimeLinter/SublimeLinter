@@ -120,7 +120,7 @@ class LinterMeta(type):
 
             # The sublime plugin API is not available until plugin_loaded is executed
             if persist.plugin_is_loaded:
-                persist.settings.load(force=True)
+                persist.settings.load()
 
                 # If the linter had previously been loaded, just reassign that linter
                 if name in persist.linter_classes:
@@ -744,7 +744,7 @@ class Linter(metaclass=LinterMeta):
                         continue
 
             if syntax not in linter.selectors and '*' not in linter.selectors:
-                linter.reset(code, view_settings)
+                linter.reset(code)
                 linter.lint(hit_time)
 
         selectors = Linter.get_selectors(vid, syntax)
@@ -759,18 +759,26 @@ class Linter(metaclass=LinterMeta):
             for region in view.find_by_selector(selector):
                 regions.append(region)
 
-            linter.reset(code, view_settings)
+            linter.reset(code)
             errors = {}
 
             for region in regions:
-                line_offset, col = view.rowcol(region.begin())
-                linter.highlight.move_to(line_offset, col)
+                line_offset, col_offset = view.rowcol(region.begin())
+                linter.highlight.move_to(line_offset, col_offset)
                 linter.code = code[region.begin():region.end()]
                 linter.errors = {}
                 linter.lint(hit_time)
 
-                for line, line_errors in linter.errors.items():
-                    errors[line + line_offset] = line_errors
+                for line, errors_by_type in linter.errors.items():
+                    errors[line + line_offset] = errors_by_type
+
+                    if line == 0:
+                        for error_type, line_errors in errors_by_type.items():
+                            for error in line_errors:
+                                error.update({
+                                    'start': error['start'] + col_offset,
+                                    'end': error['end'] + col_offset
+                                })
 
             linter.errors = errors
 
@@ -780,7 +788,7 @@ class Linter(metaclass=LinterMeta):
         # Merge our result back to the main thread
         callback(cls.get_view(vid), linters, hit_time)
 
-    def reset(self, code, settings):
+    def reset(self, code):
         """Reset a linter to work on the given code and filename."""
         self.errors = {}
         self.code = code
@@ -1118,7 +1126,7 @@ class Linter(metaclass=LinterMeta):
 
         col = m.col
 
-        if col:
+        if col is not None:
             start, end = self.highlight.full_line(m.line)
 
             # Adjust column numbers to match the linter's tabs if necessary
@@ -1138,7 +1146,7 @@ class Linter(metaclass=LinterMeta):
             col = max(min(col, (end - start) - 1), 0)
 
         length = None
-        if col:
+        if col is not None:
             length = self.highlight.range(
                 m.line,
                 col,
@@ -1175,10 +1183,6 @@ class Linter(metaclass=LinterMeta):
 
         self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
 
-    def draw(self):
-        """Draw the marks from the last lint."""
-        self.highlight.draw(self.view)
-
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""
@@ -1186,7 +1190,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         view.erase_status(STATUS_KEY)
-        highlight.Highlight.clear(view)
+        highlight.clear_view(view)
         persist.errors.pop(view.id(), None)
 
     def clear(self):
@@ -1392,7 +1396,11 @@ class Linter(metaclass=LinterMeta):
         if not match:
             persist.debug('No match for regex: {}'.format(self.regex.pattern))
         else:
-            match_dict.update(match.groupdict())
+            match_dict.update({
+                k: v
+                for k, v in match.groupdict().items()
+                if k in match_dict
+            })
             match_dict["match"] = match
 
             # normalize line and col if necessary

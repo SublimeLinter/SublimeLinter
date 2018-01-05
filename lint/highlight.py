@@ -23,13 +23,13 @@ NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
 # Dict[view_id, region_keys]
-regions = defaultdict(list)
+regions = defaultdict(set)
 
 
 def remember_drawn_regions(view, regions_keys):
     """Remember draw regions for later clearance."""
     view_id = view.id()
-    regions[view_id].extend(regions_keys)
+    regions[view_id].update(regions_keys)
 
 
 def clear_view(view):
@@ -349,6 +349,8 @@ class Highlight:
         """
         from .style import GUTTER_ICONS
 
+        # `drawn_regions` should be a `set`. We use a list here to
+        # assert if we can actually hold this promise
         drawn_regions = []
         protected_regions = []
 
@@ -410,15 +412,19 @@ class Highlight:
                 drawn_regions.append(gutter_key)
                 protected_regions.extend(regions)
 
-            # overlaying all gutter regions with common invisible one,
-            # to create unified handle for GitGutter and other plugins
-            # flag might not be neccessary
+        # overlaying all gutter regions with common invisible one,
+        # to create unified handle for GitGutter and other plugins
+        # flag might not be neccessary
+        if protected_regions:
             view.add_regions(
                 PROTECTED_REGIONS_KEY,
                 protected_regions,
                 flags=sublime.HIDDEN
             )
             drawn_regions.append(PROTECTED_REGIONS_KEY)
+
+        assert len(drawn_regions) == len(set(drawn_regions)), \
+            "region keys not unique {}".format(drawn_regions)
 
         # persisting region keys for later clearance
         remember_drawn_regions(view, drawn_regions)

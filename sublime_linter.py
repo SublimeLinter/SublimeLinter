@@ -8,7 +8,8 @@ import sublime_plugin
 
 from .lint import events
 from .lint.linter import Linter
-from .lint.highlight import HighlightSet, RegionStore
+from .lint import highlight
+from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
@@ -50,7 +51,6 @@ def plugin_loaded():
     util.create_tempdir()
 
     persist.errors = ErrorStore()
-    persist.region_store = RegionStore()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
@@ -140,7 +140,6 @@ class Listener:
             self.linted_views,
             self.view_syntax,
             persist.errors,
-            persist.highlights,
             persist.view_linters,
             persist.views,
             persist.last_hit_times
@@ -256,7 +255,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         errors = {}
-        highlights = persist.highlights[vid] = HighlightSet()
+        highlights = HighlightSet()
 
         for linter in linters:
             if linter.highlight:
@@ -274,8 +273,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             for other_view in window.views():
                 if other_view.buffer_id() == buffer_id:
                     vid = other_view.id()
-                    persist.highlights[vid] = highlights
-                    highlights.clear(other_view)
+                    highlight.clear_view(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors
 

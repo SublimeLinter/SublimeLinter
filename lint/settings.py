@@ -226,15 +226,15 @@ class Settings:
 
         If invalid, display message in status bar and console.
         """
+        status_msg = "SublimeLinter - Settings invalid. Details in console."
         schema_file = "resources/settings-schema.json"
         schema = util.load_json(schema_file, from_sl_dir=True)
 
         try:
             validate(self.settings, schema)
         except ValidationError as ve:
-            console_msg = "Settings invalid:\n{}".format(ve)
-            util.printf(console_msg)
-            status_msg = "SublimeLinter - Settings invalid. Check console for details."
+            ve_msg = ve.message.split("\n")[0]  # reduce verbosity
+            util.printf("Settings invalid:\n{}".format(ve_msg))
             sublime.active_window().status_message(status_msg)
             return False
         else:

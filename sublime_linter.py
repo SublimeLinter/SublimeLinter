@@ -151,6 +151,7 @@ class Listener:
             else:
                 d.pop(vid, None)
 
+        queue.cleanup(vid)
         panel.fill_panel(view.window(), update=True)
 
     def on_hover(self, view, point, hover_zone):

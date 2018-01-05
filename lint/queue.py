@@ -4,8 +4,6 @@ from collections import defaultdict
 import time
 import threading
 
-# TODO: Both `timers` and `running` herein grow unbounded. T.i. a proper
-# cleanup must be implemented.
 
 # Map from view_id to threading.Timer objects
 timers = {}
@@ -23,6 +21,9 @@ class Daemon:
         vid = view.id()
         delay = get_delay()  # [seconds]
         return queue_lint(vid, delay, self._callback)
+
+    def cleanup(self, vid):
+        cleanup(vid)
 
 
 def queue_lint(vid, delay, callback):  # <-serial execution
@@ -42,6 +43,15 @@ def queue_lint(vid, delay, callback):  # <-serial execution
     timer.start()
 
     return hit_time
+
+
+def cleanup(vid):
+    try:
+        timers.pop(vid).cancel()
+    except KeyError:
+        pass
+
+    running.pop(vid, None)
 
 
 def get_delay():

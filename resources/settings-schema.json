@@ -2,9 +2,6 @@
     "$schema":"http://json-schema.org/draft-04/schema#",
     "type":"object",
     "properties":{
-        "@disable":{
-            "type":"boolean"
-        },
         "debug":{
             "type":"boolean"
         },
@@ -78,9 +75,6 @@
         "python_paths":{
             "type":"object"
         },
-        "rc_search_limit":{
-            "type":"number"
-        },
         "shell_timeout":{
             "type":"number"
         },
@@ -95,9 +89,6 @@
         },
         "syntax_map":{
             "type":"object"
-        },
-        "wrap_find":{
-            "type":"boolean"
         },
         "styles":{
             "type":"array",

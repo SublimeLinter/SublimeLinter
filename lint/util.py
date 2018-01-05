@@ -687,3 +687,4 @@ def get_syntax(view):
             return syntax
 
     return ""
+

@@ -1118,7 +1118,7 @@ class Linter(metaclass=LinterMeta):
 
         col = m.col
 
-        if col:
+        if col is not None:
             start, end = self.highlight.full_line(m.line)
 
             # Adjust column numbers to match the linter's tabs if necessary
@@ -1138,7 +1138,7 @@ class Linter(metaclass=LinterMeta):
             col = max(min(col, (end - start) - 1), 0)
 
         length = None
-        if col:
+        if col is not None:
             length = self.highlight.range(
                 m.line,
                 col,

@@ -763,14 +763,22 @@ class Linter(metaclass=LinterMeta):
             errors = {}
 
             for region in regions:
-                line_offset, col = view.rowcol(region.begin())
-                linter.highlight.move_to(line_offset, col)
+                line_offset, col_offset = view.rowcol(region.begin())
+                linter.highlight.move_to(line_offset, col_offset)
                 linter.code = code[region.begin():region.end()]
                 linter.errors = {}
                 linter.lint(hit_time)
 
-                for line, line_errors in linter.errors.items():
-                    errors[line + line_offset] = line_errors
+                for line, errors_by_type in linter.errors.items():
+                    errors[line + line_offset] = errors_by_type
+
+                    if line == 0:
+                        for error_type, line_errors in errors_by_type.items():
+                            for error in line_errors:
+                                error.update({
+                                    'start': error['start'] + col_offset,
+                                    'end': error['end'] + col_offset
+                                })
 
             linter.errors = errors
 

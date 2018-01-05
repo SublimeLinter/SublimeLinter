@@ -1,3 +1,4 @@
+from collections import defaultdict
 import re
 import sublime
 
@@ -21,55 +22,22 @@ WORD_RE = re.compile(r'^([-\w]+)')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
-class RegionStore:
-    _memory = None
-
-    @property
-    def memory(self):
-        """structure: {"view.id": [region_keys ... ]}."""
-        memory = self._memory
-        if not memory:
-            memory = sublime.load_settings("sl_regions.sublime-settings")
-            views = memory.get("views")
-            if not views:
-                memory.set("views", {})
-            self._memory = memory
-        return memory
-
-    def add_region_keys(self, view, new_keys):
-        view_id = view.id()
-        saved_keys = self._get_views(view_id)
-        saved_keys.extend(new_keys)
-        self._set_views(view_id, saved_keys)
-
-    def del_regions(self, view):
-        view_id = view.id()
-        saved_keys = self._get_views(view_id)
-        for key in saved_keys:
-            view.erase_regions(key)
-        self._set_views(view_id)
-
-    def _get_views(self, view_id):
-        return self.memory.get("views").get(str(view_id), [])
-
-    def _set_views(self, view_id, region_keys=None):
-        view_id = str(view_id)
-        views = self.memory.get("views")
-
-        if not region_keys:
-            if view_id in views:
-                del views[view_id]
-        else:
-            views[view_id] = region_keys
-        self.memory.set("views", views)
+# Dict[view_id, region_keys]
+regions = defaultdict(list)
 
 
-region_store = RegionStore()
+def remember_drawn_regions(view, regions_keys):
+    """Remember draw regions for later clearance."""
+    view_id = view.id()
+    regions[view_id].extend(regions_keys)
 
 
 def clear_view(view):
     """Clear all marks in the given view."""
-    region_store.del_regions(view)
+    view_id = view.id()
+    region_keys = regions.pop(view_id, [])
+    for key in region_keys:
+        view.erase_regions(key)
 
 
 class HighlightSet:
@@ -453,7 +421,7 @@ class Highlight:
             drawn_regions.append(PROTECTED_REGIONS_KEY)
 
         # persisting region keys for later clearance
-        region_store.add_region_keys(view, drawn_regions)
+        remember_drawn_regions(view, drawn_regions)
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""

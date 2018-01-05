@@ -115,8 +115,5 @@
                 "error"
             ]
         }
-    ],
-
-    // Should "next/previous error" wrap around at the end of a file.
-    "wrap_find": true
+    ]
 }

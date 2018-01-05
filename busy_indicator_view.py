@@ -3,7 +3,6 @@ import sublime_plugin
 
 import time
 
-from .lint import util
 from .lint.const import STATUS_BUSY_KEY
 from .lint import events
 
@@ -35,7 +34,7 @@ def on_begin_linting(buffer_id):
     State['running'][buffer_id] = time.time()
 
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
+    if active_view.buffer_id() == buffer_id:
         sublime.set_timeout_async(lambda: draw(**State), INITIAL_DELAY * 1000)
 
 
@@ -44,14 +43,12 @@ def on_finished_linting(buffer_id):
     State['running'].pop(buffer_id, None)
 
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
+    if active_view.buffer_id() == buffer_id:
         draw(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):
-    def on_activated_async(self, view):
-        active_view = util.get_focused_view(view)
-
+    def on_activated_async(self, active_view):
         State.update({
             'active_view': active_view
         })
@@ -69,9 +66,6 @@ indicators = [
 
 
 def draw(active_view, running, **kwargs):
-    if not active_view:
-        return
-
     buffer_id = active_view.buffer_id()
     start_time = running.get(buffer_id, None)
     now = time.time()

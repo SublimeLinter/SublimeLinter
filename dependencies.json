@@ -1,7 +1,7 @@
 {
     "*": {
         "*": [
-            "jsonschema"
+            "sublime-jsonschema"
         ]
     }
 }

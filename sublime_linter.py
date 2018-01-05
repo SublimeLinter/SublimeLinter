@@ -63,12 +63,6 @@ def plugin_loaded():
         for view in visible_views():
             plugin.hit(view)
 
-    # Sublime will fall asleep, and not execute our queued tasks until the
-    # user 'does' something. If we enqueue two empty tasks in a nested way,
-    # everything is fine.
-    sublime.set_timeout_async(
-        lambda: sublime.set_timeout_async(lambda: ..., 10), 10)
-
 
 def visible_views():
     """Yield all visible views of the active window."""
@@ -222,6 +216,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         callback is the method to call when the lint is finished. If not
         provided, it defaults to highlight().
         """
+        # If this is not the latest 'hit' we're processing abort early.
+        if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
+            return
+
         view = Linter.get_view(view_id)
 
         if not view:

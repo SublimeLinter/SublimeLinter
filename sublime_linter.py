@@ -270,13 +270,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     for err_t in WARN_ERR:
                         l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
 
-        # Keep track of one view in each window that shares view's buffer
-        window_views = {}
         buffer_id = view.buffer_id()
 
         for window in sublime.windows():
-            wid = window.id()
-
             for other_view in window.views():
                 if other_view.buffer_id() == buffer_id:
                     vid = other_view.id()
@@ -284,9 +280,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     highlights.clear(other_view)
                     highlights.draw(other_view)
                     persist.errors[vid] = errors
-
-                    if not window_views.get(wid):
-                        window_views[wid] = other_view
 
             panel.fill_panel(window, update=True)
 

@@ -26,7 +26,7 @@ def plugin_unloaded():
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(buffer_id):
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
+    if active_view.buffer_id() == buffer_id:
         State.update({
             'we_count': get_we_count(active_view.id())
         })
@@ -49,8 +49,11 @@ class UpdateState(sublime_plugin.EventListener):
 
         draw(**State)
 
-    def on_selection_modified_async(self, _primary_view_):
+    def on_selection_modified_async(self, primary_view):
         active_view = State['active_view']
+        if active_view != primary_view:
+            return
+
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
@@ -61,9 +64,6 @@ class UpdateState(sublime_plugin.EventListener):
 
 
 def draw(active_view, we_count, current_pos, **kwargs):
-    if not active_view:
-        return
-
     vid = active_view.id()
 
     if not we_count:

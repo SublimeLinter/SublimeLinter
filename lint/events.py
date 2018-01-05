@@ -14,7 +14,10 @@ def subscribe(topic, fn):
 
 
 def unsubscribe(topic, fn):
-    listeners[topic].remove(fn)
+    try:
+        listeners[topic].remove(fn)
+    except KeyError:
+        pass
 
 
 def broadcast(topic, message=None):

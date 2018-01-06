@@ -258,8 +258,13 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             error_type = error['error_type']
             errors_by_line[line][error_type].append(error)
 
-        highlights = HighlightSet()
+        for view in all_views_into_buffer(view):
+            vid = view.id()
+            persist.errors[vid] = errors_by_line
 
+        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
+
+        highlights = HighlightSet()
         for linter in linters:
             if linter.highlight:
                 highlights.add(linter.highlight)
@@ -268,13 +273,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             highlight.clear_view(view)
             highlights.draw(view)
 
-            vid = view.id()
-            persist.errors[vid] = errors_by_line
-
         for window in sublime.windows():
             panel.fill_panel(window, update=True)
-
-        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

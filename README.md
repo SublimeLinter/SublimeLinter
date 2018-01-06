@@ -1,7 +1,7 @@
 SublimeLinter
 =============
 
-[![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter3/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter3)
+[![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter)
 
 
 ## About SublimeLinter

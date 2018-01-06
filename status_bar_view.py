@@ -49,11 +49,8 @@ class UpdateState(sublime_plugin.EventListener):
 
         draw(**State)
 
-    def on_selection_modified_async(self, primary_view):
+    def on_selection_modified_async(self, _primary_view_):
         active_view = State['active_view']
-        if active_view != primary_view:
-            return
-
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({

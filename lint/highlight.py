@@ -2,7 +2,7 @@ from collections import defaultdict
 import re
 import sublime
 
-from . import persist, util
+from . import persist
 from .style import HighlightStyleStore
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
@@ -89,13 +89,14 @@ class Highlight:
 
     def __init__(self, code=''):
         self.code = code
-        self.marks = util.get_new_dict()
-        self.mark_style = 'outline'
+        # Dict[error_type, Dict[style, List[region]]]
+        self.marks = defaultdict(lambda: defaultdict(list))
         self.style_store = HighlightStyleStore()
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
-        self.lines = util.get_new_dict()
+        # Dict[error_type, Dict[lineno, style]]
+        self.lines = defaultdict(dict)
 
         # These are used when highlighting embedded code
         # The embedded code is linted as if it begins
@@ -232,7 +233,7 @@ class Highlight:
                         self.marks[other_type][scope].pop(i - i_offset)
                         i_offset += 1
 
-        self.marks[error_type].setdefault(style, []).append(region)
+        self.marks[error_type][style].append(region)
 
     def near(self, line, near, error_type=ERROR, word_re=None, style=None):
         """

@@ -227,48 +227,6 @@ class Highlight:
         self.marks[error_type].setdefault(style, []).append(region)
         return length
 
-    def regex(self, line, regex, error_type=ERROR,
-              line_match=None, word_match=None, word_re=None):
-        """
-        Mark a range of text that matches a regex.
-
-        line, error_type and word_re are the same as in range().
-
-        line_match may be a string pattern or a compiled regex.
-        If provided, it must have a named group called 'match' that
-        determines which part of the source line will be considered
-        for marking.
-
-        word_match may be a string pattern or a compiled regex.
-        If provided, it must have a named group called 'mark' that
-        determines which part of the source line will actually be marked.
-        Multiple portions of the source line may match.
-        """
-        offset = 0
-
-        start, end = self.full_line(line)
-        line_text = self.code[start:end]
-
-        if line_match:
-            match = re.match(line_match, line_text)
-
-            if match:
-                line_text = match.group('match')
-                offset = match.start('match')
-            else:
-                return
-
-        it = re.finditer(regex, line_text)
-        results = [
-            result.span('mark')
-            for result in it
-            if word_match is None or result.group('mark') == word_match
-        ]
-
-        for start, end in results:
-            self.range(line, start + offset, end -
-                       start, error_type=error_type)
-
     def near(self, line, near, error_type=ERROR, word_re=None, style=None):
         """
         Mark a range of text near a given word.

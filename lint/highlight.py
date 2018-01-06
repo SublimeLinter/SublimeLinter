@@ -210,12 +210,13 @@ class Highlight:
             else:
                 length = 1
 
-        pos += start
-        region = sublime.Region(pos, pos + length)
-
+        region = self.get_region_at(pos + start, length)
         self.add_mark(error_type, style, region)
 
         return length
+
+    def get_region_at(self, pos, length):
+        return sublime.Region(pos, pos + length)
 
     def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING
@@ -262,16 +263,13 @@ class Highlight:
         match = re.search(pattern, text)
 
         if match:
-            start = match.start(1)
-            self.range(
-                line,
-                start,
-                length=len(near),
-                error_type=error_type,
-                word_re=word_re,
-                style=style
-            )
-            return start, len(near)
+            col = match.start(1)
+            length = len(near)
+
+            region = self.get_region_at(col + start, length)
+            self.add_mark(error_type, style, region)
+
+            return col, length
         else:
             return 0, 0  # Probably a bug. Why should we fall through here?
 

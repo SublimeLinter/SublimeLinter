@@ -241,15 +241,9 @@ class Highlight:
         The position at which near is found is returned, or zero if there
         is no match.
         """
-        if not near:
-            return
-
         start, end = self.full_line(line)
         text = self.code[start:end]
         near = self.strip_quotes(near)
-
-        if near == '':
-            return 0
 
         # Add \b fences around the text if it begins/ends with a word character
         fence = ['', '']

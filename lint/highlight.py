@@ -212,6 +212,12 @@ class Highlight:
 
         pos += start
         region = sublime.Region(pos, pos + length)
+
+        self.add_mark(error_type, style, region)
+
+        return length
+
+    def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING
 
         for scope, marks in self.marks[other_type].items():
@@ -219,13 +225,13 @@ class Highlight:
             for i, mark in enumerate(marks):
                 if (mark.a, mark.b) == (region.a, region.b):
                     if error_type == WARNING:
-                        return length
+                        # ABORT! We found an error on the exact same position
+                        return
                     else:
                         self.marks[other_type][scope].pop(i - i_offset)
                         i_offset += 1
 
         self.marks[error_type].setdefault(style, []).append(region)
-        return length
 
     def near(self, line, near, error_type=ERROR, word_re=None, style=None):
         """

@@ -257,21 +257,17 @@ class Highlight:
 
         if match:
             start = match.start(1)
-        else:
-            start = -1
-
-        if start != -1:
-            length = self.range(
+            self.range(
                 line,
                 start,
-                len(near),
+                length=len(near),
                 error_type=error_type,
                 word_re=word_re,
                 style=style
             )
-            return start, length
+            return start, len(near)
         else:
-            return 0, 0
+            return 0, 0  # Probably a bug. Why should we fall through here?
 
     def update(self, other):
         """

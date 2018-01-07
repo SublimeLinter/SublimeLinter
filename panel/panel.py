@@ -4,7 +4,7 @@ import sublime
 from ..lint.const import WARN_ERR
 from ..lint import util, persist
 
-PANEL_NAME = "sublime_linter_panel"
+PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,

@@ -168,9 +168,6 @@ class Highlight:
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
-        self.overwrite_line(line, error_type, style)
-
-    def overwrite_line(self, line, error_type, style):
         # Errors override warnings on the same line
         if error_type == WARNING:
             if line in self.lines[ERROR]:

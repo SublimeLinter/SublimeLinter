@@ -369,7 +369,6 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
-        self.code = ''
         self.style_store = LinterStyleStore(self.name)
 
     @property
@@ -745,7 +744,7 @@ class Linter(metaclass=LinterMeta):
 
             if syntax not in linter.selectors and '*' not in linter.selectors:
                 linter.reset(code)
-                errors = linter.lint(hit_time)
+                errors = linter.lint(code, hit_time)
                 if errors is None:
                     return  # ABORT
 
@@ -766,8 +765,7 @@ class Linter(metaclass=LinterMeta):
 
             for region in regions:
                 line_offset, col_offset = view.rowcol(region.begin())
-                linter.code = code[region.begin():region.end()]
-                errors = linter.lint(hit_time)
+                errors = linter.lint(view.substr(region), hit_time)
                 if errors is None:
                     return  # ABORT
 
@@ -798,7 +796,6 @@ class Linter(metaclass=LinterMeta):
 
     def reset(self, code):
         """Reset a linter to work on the given code and filename."""
-        self.code = code
 
     @classmethod
     def which(cls, cmd):
@@ -1081,7 +1078,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, hit_time):
+    def lint(self, code, hit_time):
         """
         Perform the lint, retrieve the results, and add marks to the view.
 
@@ -1101,7 +1098,7 @@ class Linter(metaclass=LinterMeta):
         chdir = self.get_chdir(settings)
 
         with util.cd(chdir):
-            output = self.run(cmd, self.code)
+            output = self.run(cmd, code)
 
         if not output:
             return []
@@ -1115,7 +1112,7 @@ class Linter(metaclass=LinterMeta):
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         errors = []
-        vv = highlight.VirtualView(self.code)
+        vv = highlight.VirtualView(code)
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -1193,7 +1190,7 @@ class Linter(metaclass=LinterMeta):
 
             # Adjust column numbers to match the linter's tabs if necessary
             if self.tab_width > 1:
-                code_line = self.code[start:end]
+                code_line = vv.select_line(m.line)
                 diff = 0
 
                 for i in range(len(code_line)):

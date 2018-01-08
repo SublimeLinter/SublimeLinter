@@ -205,24 +205,6 @@ class Highlight:
 
         self.lines[error_type][line] = style
 
-    def update(self, other):
-        """
-        Update this object with another Highlight.
-
-        It is assumed that other.code == self.code.
-
-        other's marks and error positions are merged, and this
-        object takes the newlines array from other.
-
-        """
-        for error_type in WARN_ERR:
-            self.marks[error_type].update(other.marks[error_type])
-
-            for line, style in other.lines[error_type].items():
-                self.overwrite_line(line, error_type, style)
-
-        self.newlines = other.newlines
-
     def draw(self, view):
         """
         Draw code and gutter marks in the given view.

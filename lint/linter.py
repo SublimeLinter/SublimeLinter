@@ -1112,6 +1112,7 @@ class Linter(metaclass=LinterMeta):
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         errors = []
+        vv = highlight.VirtualView(self.code)
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -1120,7 +1121,7 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                error = self.process_match(m)
+                error = self.process_match(m, vv)
                 errors.append(error)
 
         return errors
@@ -1176,7 +1177,7 @@ class Linter(metaclass=LinterMeta):
 
         return LintMatch(**match_dict)
 
-    def process_match(self, m):
+    def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)
         style = self.style_store.get_style(m.error or m.warning, error_type)
 
@@ -1185,7 +1186,7 @@ class Linter(metaclass=LinterMeta):
         col = m.col
 
         if col is not None:
-            start, end = self.highlight.full_line(m.line)
+            start, end = vv.full_line(m.line)
 
             # Adjust column numbers to match the linter's tabs if necessary
             if self.tab_width > 1:
@@ -1205,7 +1206,7 @@ class Linter(metaclass=LinterMeta):
 
         # print('===')
         # print('old: ', m.line, m.col, (m.col or 0) + length)
-        start, end = self.find_good_columns_for_match(m)
+        start, end = self.find_good_columns_for_match(m, vv)
         # print('new: ', m.line, start, end)
         self.highlight.add_error(m.line, start, end, error_type, style)
         return {
@@ -1218,14 +1219,13 @@ class Linter(metaclass=LinterMeta):
             "msg": m.message
         }
 
-    def find_good_columns_for_match(self, m):
+    def find_good_columns_for_match(self, m, vv):
         col = m.col
 
         if col is None:
             if m.near:
-                start, end = self.highlight.full_line(m.line)
-                text = self.highlight.code[start:end]
-                near = self.highlight.strip_quotes(m.near)
+                text = vv.select_line(m.line)
+                near = highlight.Highlight.strip_quotes(m.near)
 
                 # Add \b fences around the text if it begins/ends with a word character
                 fence = ['', '']
@@ -1247,7 +1247,7 @@ class Linter(metaclass=LinterMeta):
                 persist.settings.get('no_column_highlights_line') or
                 not persist.settings.has('gutter_theme')
             ):
-                start, end = self.highlight.full_line(m.line)
+                start, end = vv.full_line(m.line)
                 length = end - start - 1
                 return 0, length
             else:
@@ -1255,15 +1255,14 @@ class Linter(metaclass=LinterMeta):
 
         else:
             if m.near:
-                length = len(self.highlight.strip_quotes(m.mear))
+                near = highlight.Highlight.strip_quotes(m.mear)
+                length = len(near)
                 return col, col + length
             else:
-                start, end = self.highlight.full_line(m.line)
-                code = self.highlight.code[start:end][col:]
-                match = (self.word_re or highlight.WORD_RE).search(code)
+                text = vv.select_line(m.line)[col:]
+                match = (self.word_re or highlight.WORD_RE).search(text)
 
                 length = len(match.group()) if match else 1
-
                 return col, col + length
 
     def error(self, line, col, message, error_type, style=None, code="", length=None):

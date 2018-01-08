@@ -40,50 +40,6 @@ def clear_view(view):
         view.erase_regions(key)
 
 
-class HighlightSet:
-    """This class maintains a set of Highlight objects and performs bulk operations on them."""
-
-    def __init__(self):
-        self.all = set()
-
-    def add(self, highlight):
-        """Add a Highlight to the set."""
-        self.all.add(highlight)
-
-    def draw(self, view):
-        """
-        Draw all of the Highlight objects in our set.
-
-        Rather than draw each Highlight object individually, the marks in each
-        object are aggregated into a new Highlight object, and that object
-        is then drawn for the given view.
-        """
-        if not self.all:
-            return
-
-        all = Highlight()
-
-        for highlight in self.all:
-            all.update(highlight)
-
-        all.draw(view)
-
-    def line_type(self, line):
-        """Return the primary error type for the given line number."""
-        if not self.all:
-            return None
-
-        line_type = None
-        for highlight in self.all:
-            if line_type == ERROR:
-                continue
-            _line_type = highlight.lines.get(line)
-            if _line_type != WARNING and line_type == WARNING:
-                continue
-            line_type = _line_type
-        return line_type
-
-
 class VirtualView:
     def __init__(self, code=''):
         self._code = code

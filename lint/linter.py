@@ -370,7 +370,6 @@ class Linter(metaclass=LinterMeta):
         self.view = view
         self.syntax = syntax
         self.code = ''
-        self.highlight = highlight.Highlight()
         self.style_store = LinterStyleStore(self.name)
 
     @property
@@ -768,7 +767,6 @@ class Linter(metaclass=LinterMeta):
 
             for region in regions:
                 line_offset, col_offset = view.rowcol(region.begin())
-                linter.highlight.move_to(line_offset, col_offset)
                 linter.code = code[region.begin():region.end()]
                 errors = linter.lint(hit_time)
                 if errors is None:
@@ -786,16 +784,25 @@ class Linter(metaclass=LinterMeta):
 
                 all_errors.extend(errors)
 
+        highlights = highlight.Highlight(code)
+        for error in all_errors:
+            highlights.add_error(
+                error['line'],
+                error['start'],
+                error['end'],
+                error['error_type'],
+                error['style']
+            )
+
         # Remove disabled linters
         linters = list(linters - disabled)
 
         # Merge our result back to the main thread
-        callback(cls.get_view(vid), linters, all_errors, hit_time)
+        callback(cls.get_view(vid), linters, (all_errors, highlights), hit_time)
 
     def reset(self, code):
         """Reset a linter to work on the given code and filename."""
         self.code = code
-        self.highlight = highlight.Highlight(self.code)
 
     @classmethod
     def which(cls, cmd):
@@ -1185,7 +1192,7 @@ class Linter(metaclass=LinterMeta):
 
         col = m.col
 
-        if col is not None:
+        if col is not None:  # TODO: Not implemented yet bc col is not used below
             start, end = vv.full_line(m.line)
 
             # Adjust column numbers to match the linter's tabs if necessary
@@ -1204,11 +1211,7 @@ class Linter(metaclass=LinterMeta):
             # Pin the column to the start/end line offsets
             col = max(min(col, (end - start) - 1), 0)
 
-        # print('===')
-        # print('old: ', m.line, m.col, (m.col or 0) + length)
         start, end = self.find_good_columns_for_match(m, vv)
-        # print('new: ', m.line, start, end)
-        self.highlight.add_error(m.line, start, end, error_type, style)
         return {
             "line": m.line,
             "start": start,
@@ -1216,7 +1219,8 @@ class Linter(metaclass=LinterMeta):
             "linter": self.name,
             "error_type": error_type,
             "code": m.warning or m.error or '',
-            "msg": m.message
+            "msg": m.message,
+            "style": style
         }
 
     def find_good_columns_for_match(self, m, vv):

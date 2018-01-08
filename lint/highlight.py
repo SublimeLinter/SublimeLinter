@@ -80,7 +80,8 @@ class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
     def __init__(self, code=''):
-        self.code = code
+        self.vv = VirtualView(code)
+
         # Dict[error_type, Dict[style, List[region]]]
         self.marks = defaultdict(lambda: defaultdict(list))
         self.style_store = HighlightStyleStore()
@@ -89,28 +90,6 @@ class Highlight:
         # lines to mark in the gutter.
         # Dict[error_type, Dict[lineno, style]]
         self.lines = defaultdict(dict)
-
-        # Linting runs asynchronously on a snapshot of the code.
-        # Marks are added to the code during that asynchronous linting,
-        # and the markup code needs to calculate character positions given
-        # a line + column. By the time marks are added, the actual buffer
-        # may have changed, so we can't reliably use the plugin API to
-        # calculate character positions.
-        # The solution is to calculate and store the character positions for
-        # every line when this object is created, then reference that
-        # when needed.
-        self.newlines = newlines = [0]
-        last = -1
-
-        while True:
-            last = code.find('\n', last + 1)
-
-            if last == -1:
-                break
-
-            newlines.append(last + 1)
-
-        newlines.append(len(code))
 
     @staticmethod
     def strip_quotes(text):
@@ -122,18 +101,6 @@ class Highlight:
 
         return text
 
-    def full_line(self, line):
-        """
-        Return the start/end character positions for the given line.
-
-        This returns *real* character positions (relative to the beginning
-        of self.code) base on the *virtual* line number.
-        """
-        start = self.newlines[line]
-        end = self.newlines[min(line + 1, len(self.newlines) - 1)]
-
-        return start, end
-
     def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
         """Mark a range of text."""
         raise Exception('`range` has been removed')
@@ -143,9 +110,8 @@ class Highlight:
         raise Exception('`near` has been removed')
 
     def add_error(self, line, start, end, error_type, style):
-        a, b = self.full_line(line)
+        a, b = self.vv.full_line(line)
         region = sublime.Region(a + start, a + end)
-        print('new: ', region)
         self.add_mark(error_type, style, region)
         self.line(line, error_type, style)
         return region
@@ -232,7 +198,7 @@ class Highlight:
             for line, style in self.lines[error_type].items():
                 if not self.style_store.has_style(style):
                     continue
-                pos = self.newlines[line]
+                pos, _ = self.vv.full_line(line)
                 region = sublime.Region(pos, pos)
                 gutter_regions.setdefault(style, []).append(region)
 

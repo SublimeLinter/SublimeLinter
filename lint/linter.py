@@ -707,7 +707,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         disabled = set()
-        syntax = util.get_syntax(persist.views[vid])
+        syntax = util.get_syntax(view)
 
         all_errors = []
         for linter in linters:

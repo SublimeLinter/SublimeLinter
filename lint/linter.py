@@ -1225,7 +1225,7 @@ class Linter(metaclass=LinterMeta):
         if col is None:
             if m.near:
                 text = vv.select_line(m.line)
-                near = highlight.Highlight.strip_quotes(m.near)
+                near = self.strip_quotes(m.near)
 
                 # Add \b fences around the text if it begins/ends with a word character
                 fence = ['', '']
@@ -1255,7 +1255,7 @@ class Linter(metaclass=LinterMeta):
 
         else:
             if m.near:
-                near = highlight.Highlight.strip_quotes(m.mear)
+                near = self.strip_quotes(m.mear)
                 length = len(near)
                 return col, col + length
             else:
@@ -1264,6 +1264,16 @@ class Linter(metaclass=LinterMeta):
 
                 length = len(match.group()) if match else 1
                 return col, col + length
+
+    @staticmethod
+    def strip_quotes(text):
+        """Return text stripped of enclosing single/double quotes."""
+        first = text[0]
+
+        if first in ('\'', '"') and text[-1] == first:
+            text = text[1:-1]
+
+        return text
 
     def error(self, line, col, message, error_type, style=None, code="", length=None):
         """Add a reference to an error/warning on the given line and column."""

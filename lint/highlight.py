@@ -91,16 +91,6 @@ class Highlight:
         # Dict[error_type, Dict[lineno, style]]
         self.lines = defaultdict(dict)
 
-    @staticmethod
-    def strip_quotes(text):
-        """Return text stripped of enclosing single/double quotes."""
-        first = text[0]
-
-        if first in ('\'', '"') and text[-1] == first:
-            text = text[1:-1]
-
-        return text
-
     def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
         """Mark a range of text."""
         raise Exception('`range` has been removed')

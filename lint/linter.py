@@ -1239,7 +1239,59 @@ class Linter(metaclass=LinterMeta):
                 style=style
             )
 
+        print('===')
+        print('old: ', m.line, m.col, (m.col or 0) + length)
+        start, end = self.find_good_columns_for_match(m)
+        print('new: ', m.line, start, end)
         return self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
+
+    def find_good_columns_for_match(self, m):
+        col = m.col
+
+        if col is None:
+            if m.near:
+                start, end = self.highlight.full_line(m.line)
+                text = self.highlight.code[start:end]
+                near = self.highlight.strip_quotes(m.near)
+
+                # Add \b fences around the text if it begins/ends with a word character
+                fence = ['', '']
+
+                for i, pos in enumerate((0, -1)):
+                    if near[pos].isalnum() or near[pos] == '_':
+                        fence[i] = r'\b'
+
+                pattern = highlight.NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                match = re.search(pattern, text)
+
+                if match:
+                    col = match.start(1)
+                    length = len(near)
+                    return col, col + length
+                # else fall through and mark the line
+
+            if (
+                persist.settings.get('no_column_highlights_line') or
+                not persist.settings.has('gutter_theme')
+            ):
+                start, end = self.highlight.full_line(m.line)
+                length = end - start - 1
+                return 0, length
+            else:
+                return 0, 0
+
+        else:
+            if m.near:
+                length = len(self.highlight.strip_quotes(m.mear))
+                return col, col + length
+            else:
+                start, end = self.highlight.full_line(m.line)
+                code = self.highlight.code[start:end][col:]
+                match = (self.word_re or highlight.WORD_RE).search(code)
+
+                length = len(match.group()) if match else 1
+
+                return col, col + length
 
     def error(self, line, col, message, error_type, style=None, code="", length=None):
         """Add a reference to an error/warning on the given line and column."""

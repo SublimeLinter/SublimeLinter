@@ -676,7 +676,7 @@ class Linter(metaclass=LinterMeta):
         return selectors
 
     @classmethod
-    def lint_view(cls, view, filename, code, hit_time, callback):
+    def lint_view(cls, view, hit_time, callback):
         """
         Lint the given view.
 
@@ -697,8 +697,13 @@ class Linter(metaclass=LinterMeta):
 
         A list of the linters that ran is returned.
         """
+        code = Linter.text(view)
         if not code:
             return
+
+        filename = view.file_name()
+        if filename:
+            filename = os.path.realpath(filename)
 
         vid = view.id()
         linters = persist.view_linters.get(vid)

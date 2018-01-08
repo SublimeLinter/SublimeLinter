@@ -222,11 +222,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not view:
             return
 
-        filename = view.file_name()
-        code = Linter.text(view)
-
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        Linter.lint_view(view, filename, code, hit_time, self.highlight)
+        Linter.lint_view(view, hit_time, self.highlight)
 
     def highlight(self, view, result, hit_time):
         """

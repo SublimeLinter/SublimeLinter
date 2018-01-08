@@ -2,7 +2,7 @@ SublimeLinter 4.0 Pre-Release
 ===========================================
 
 You can find this text at
-https://github.com/SublimeLinter/SublimeLinter3/blob/next/messages/4.0.0-rc.1.txt
+https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt
 
 Please restart Sublime Text before continuing.
 

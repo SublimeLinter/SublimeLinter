@@ -90,13 +90,6 @@ class Highlight:
         # Dict[error_type, Dict[lineno, style]]
         self.lines = defaultdict(dict)
 
-        # These are used when highlighting embedded code
-        # The embedded code is linted as if it begins
-        # at (0, 0), but we need to keep track of where
-        # the actual start is within the source.
-        self.line_offset = 0
-        self.char_offset = 0
-
         # Linting runs asynchronously on a snapshot of the code.
         # Marks are added to the code during that asynchronous linting,
         # and the markup code needs to calculate character positions given
@@ -134,17 +127,9 @@ class Highlight:
         Return the start/end character positions for the given line.
 
         This returns *real* character positions (relative to the beginning
-        of self.code) base on the *virtual* line number (adjusted by the
-        self.line_offset).
+        of self.code) base on the *virtual* line number.
         """
-        if line == 0:
-            char_offset = self.char_offset
-        else:
-            char_offset = 0
-
-        line += self.line_offset
-        start = self.newlines[line] + char_offset
-
+        start = self.newlines[line]
         end = self.newlines[min(line + 1, len(self.newlines) - 1)]
 
         return start, end
@@ -183,7 +168,6 @@ class Highlight:
 
     def line(self, line, error_type, style=None):
         """Record the given line as having the given error type."""
-        line += self.line_offset
         self.overwrite_line(line, error_type, style)
 
     def overwrite_line(self, line, error_type, style):

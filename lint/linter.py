@@ -757,7 +757,6 @@ class Linter(metaclass=LinterMeta):
             if linter in disabled:
                 continue
 
-            linters.add(linter)
             regions = []
 
             for region in view.find_by_selector(selector):
@@ -794,11 +793,8 @@ class Linter(metaclass=LinterMeta):
                 error['style']
             )
 
-        # Remove disabled linters
-        linters = list(linters - disabled)
-
         # Merge our result back to the main thread
-        callback(cls.get_view(vid), linters, (all_errors, highlights), hit_time)
+        callback(cls.get_view(vid), (all_errors, highlights), hit_time)
 
     def reset(self, code):
         """Reset a linter to work on the given code and filename."""

@@ -228,18 +228,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
         Linter.lint_view(view, filename, code, hit_time, self.highlight)
 
-    def highlight(self, view, linters, result, hit_time):
+    def highlight(self, view, result, hit_time):
         """
         Highlight any errors found during a lint of the given view.
 
         This method is called by Linter.lint_view after linting is finished.
-
-        linters is a list of the linters that ran. hit_time has the same meaning
-        as in lint(), and if the view was modified since the lint request was
-        made, this method aborts drawing marks.
-
-        If the view has not been modified since hit_time, all of the marks and
-        errors from the list of linters are aggregated and drawn, and the status is updated.
         """
         if not view:
             return

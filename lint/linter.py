@@ -789,7 +789,7 @@ class Linter(metaclass=LinterMeta):
             )
 
         # Merge our result back to the main thread
-        callback(cls.get_view(vid), (all_errors, highlights), hit_time)
+        callback(view, (all_errors, highlights), hit_time)
 
     @classmethod
     def which(cls, cmd):

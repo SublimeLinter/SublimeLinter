@@ -294,15 +294,3 @@ class Highlight:
 
         # persisting region keys for later clearance
         remember_drawn_regions(view, drawn_regions)
-
-    def move_to(self, line, char_offset):
-        """
-        Move the highlight to the given line and character offset.
-
-        The character offset is relative to the start of the line.
-        This method is used to create virtual line numbers
-        and character positions when linting embedded code.
-
-        """
-        self.line_offset = line
-        self.char_offset = char_offset

@@ -1203,47 +1203,20 @@ class Linter(metaclass=LinterMeta):
             # Pin the column to the start/end line offsets
             col = max(min(col, (end - start) - 1), 0)
 
-        length = None
-        if col is not None:
-            length = self.highlight.range(
-                m.line,
-                col,
-                near=m.near,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
-        elif m.near:
-            col, length = self.highlight.near(
-                m.line,
-                m.near,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
-        else:
-            if (
-                persist.settings.get('no_column_highlights_line') or
-                not persist.settings.has('gutter_theme')
-            ):
-                pos = -1
-            else:
-                pos = 0
-
-            length = self.highlight.range(
-                m.line,
-                pos,
-                length=0,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
-
-        print('===')
-        print('old: ', m.line, m.col, (m.col or 0) + length)
+        # print('===')
+        # print('old: ', m.line, m.col, (m.col or 0) + length)
         start, end = self.find_good_columns_for_match(m)
-        print('new: ', m.line, start, end)
-        return self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
+        # print('new: ', m.line, start, end)
+        self.highlight.add_error(m.line, start, end, error_type, style)
+        return {
+            "line": m.line,
+            "start": start,
+            "end": end,
+            "linter": self.name,
+            "error_type": error_type,
+            "code": m.warning or m.error or '',
+            "msg": m.message
+        }
 
     def find_good_columns_for_match(self, m):
         col = m.col
@@ -1295,18 +1268,7 @@ class Linter(metaclass=LinterMeta):
 
     def error(self, line, col, message, error_type, style=None, code="", length=None):
         """Add a reference to an error/warning on the given line and column."""
-        self.highlight.line(line, error_type, style=style)
-
-        col = col or 0
-        return {
-            "line": line,
-            "start": col,
-            "end": col + (length or 0),
-            "linter": self.name,
-            "error_type": error_type,
-            "code": code,
-            "msg": message
-        }
+        raise Exception('`error` has been removed')
 
     @staticmethod
     def clear_view(view):

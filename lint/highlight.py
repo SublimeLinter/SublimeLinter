@@ -157,67 +157,21 @@ class Highlight:
 
         return start, end
 
-    def range(
-        self,
-        line,
-        pos,
-        length=-1,
-        near=None,
-        error_type=ERROR,
-        word_re=None,
-        style=None
-    ):
-        """
-        Mark a range of text.
+    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
+        """Mark a range of text."""
+        raise Exception('`range` has been removed')
 
-        line and pos should be zero-based. The pos and length argument can be
-        used to control marking:
+    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
+        """Mark a range of text near a given word."""
+        raise Exception('`near` has been removed')
 
-        - If pos < 0, the entire line is marked and length is ignored.
-
-        - If near is not None, it is stripped of quotes and length = len(near)
-
-        - If length < 0, the nearest word starting at pos is marked, and if
-          no word is matched, the character at pos is marked.
-
-        - If length == 0, no text is marked,
-          but a gutter mark will appear on that line.
-
-        error_type determines what type mark will be drawn (ERROR or WARNING).
-
-        When length < 0, this method attempts to mark the closest word at
-        pos on the given line.
-        If you want to customize the word matching regex, pass it in word_re.
-
-        If the error_type is WARNING and an identical ERROR region exists,
-        it is not added.
-        If the error_type is ERROR and an identical WARNING region exists,
-        the warning region is removed and the error region is added.
-        """
-        start, end = self.full_line(line)
-
-        if pos < 0:
-            pos = 0
-            length = (end - start) - 1
-        elif near:
-            near = self.strip_quotes(near)
-            length = len(near)
-        elif length < 0:
-            code = self.code[start:end][pos:]
-            match = (word_re or WORD_RE).search(code)
-
-            if match:
-                length = len(match.group())
-            else:
-                length = 1
-
-        region = self.get_region_at(pos + start, length)
+    def add_error(self, line, start, end, error_type, style):
+        a, b = self.full_line(line)
+        region = sublime.Region(a + start, a + end)
+        print('new: ', region)
         self.add_mark(error_type, style, region)
-
-        return length
-
-    def get_region_at(self, pos, length):
-        return sublime.Region(pos, pos + length)
+        self.line(line, error_type, style)
+        return region
 
     def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING
@@ -235,44 +189,29 @@ class Highlight:
 
         self.marks[error_type][style].append(region)
 
-    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
-        """
-        Mark a range of text near a given word.
+    def line(self, line, error_type, style=None):
+        """Record the given line as having the given error type."""
+        line += self.line_offset
+        self.overwrite_line(line, error_type, style)
 
-        line, error_type and word_re are the same as in range().
+    def overwrite_line(self, line, error_type, style):
+        # Errors override warnings on the same line
+        if error_type == WARNING:
+            if line in self.lines[ERROR]:
+                return
+        else:  # ensure no warning icons on same line as error
+            self.lines[WARNING].pop(line, None)
 
-        If near is enclosed by quotes, they are stripped. The first occurrence
-        of near in the given line of code is matched. If the first and last
-        characters of near are word characters, a match occurs only if near
-        is a complete word.
+        # Styles with higher priority override those of lower one
+        # on the same line
+        existing = self.lines[error_type].get(line)
+        if existing:
+            scope_ex = self.style_store.get(existing).get("priority", 0)
+            scope_new = self.style_store.get(style).get("priority", 0)
+            if scope_ex > scope_new:
+                return
 
-        The position at which near is found is returned, or zero if there
-        is no match.
-        """
-        start, end = self.full_line(line)
-        text = self.code[start:end]
-        near = self.strip_quotes(near)
-
-        # Add \b fences around the text if it begins/ends with a word character
-        fence = ['', '']
-
-        for i, pos in enumerate((0, -1)):
-            if near[pos].isalnum() or near[pos] == '_':
-                fence[i] = r'\b'
-
-        pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
-        match = re.search(pattern, text)
-
-        if match:
-            col = match.start(1)
-            length = len(near)
-
-            region = self.get_region_at(col + start, length)
-            self.add_mark(error_type, style, region)
-
-            return col, length
-        else:
-            return 0, 0  # Probably a bug. Why should we fall through here?
+        self.lines[error_type][line] = style
 
     def update(self, other):
         """
@@ -381,30 +320,6 @@ class Highlight:
 
         # persisting region keys for later clearance
         remember_drawn_regions(view, drawn_regions)
-
-    def line(self, line, error_type, style=None):
-        """Record the given line as having the given error type."""
-        line += self.line_offset
-        self.overwrite_line(line, error_type, style)
-
-    def overwrite_line(self, line, error_type, style):
-        # Errors override warnings on the same line
-        if error_type == WARNING:
-            if line in self.lines[ERROR]:
-                return
-        else:  # ensure no warning icons on same line as error
-            self.lines[WARNING].pop(line, None)
-
-        # Styles with higher priority override those of lower one
-        # on the same line
-        existing = self.lines[error_type].get(line)
-        if existing:
-            scope_ex = self.style_store.get(existing).get("priority", 0)
-            scope_new = self.style_store.get(style).get("priority", 0)
-            if scope_ex > scope_new:
-                return
-
-        self.lines[error_type][line] = style
 
     def move_to(self, line, char_offset):
         """

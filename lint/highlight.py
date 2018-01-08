@@ -99,9 +99,9 @@ class Highlight:
         """Mark a range of text near a given word."""
         raise Exception('`near` has been removed')
 
-    def add_error(self, line, start, end, error_type, style):
-        a, b = self.vv.full_line(line)
-        region = sublime.Region(a + start, a + end)
+    def add_error(self, line, start, end, error_type, style, **kwargs):
+        line_start, _ = self.vv.full_line(line)
+        region = sublime.Region(line_start + start, line_start + end)
         self.add_mark(error_type, style, region)
         self.line(line, error_type, style)
         return region

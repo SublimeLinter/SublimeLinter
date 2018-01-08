@@ -785,13 +785,7 @@ class Linter(metaclass=LinterMeta):
 
         highlights = highlight.Highlight(code)
         for error in all_errors:
-            highlights.add_error(
-                error['line'],
-                error['start'],
-                error['end'],
-                error['error_type'],
-                error['style']
-            )
+            highlights.add_error(**error)
 
         # Merge our result back to the main thread
         callback(view, (all_errors, highlights), hit_time)

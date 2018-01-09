@@ -1,5 +1,4 @@
 from collections import defaultdict
-import re
 import sublime
 
 from . import persist
@@ -18,9 +17,6 @@ MARK_STYLES = {
     'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'none': sublime.HIDDEN
 }
-
-WORD_RE = re.compile(r'^([-\w]+)')
-NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 
 
 # Dict[view_id, region_keys]

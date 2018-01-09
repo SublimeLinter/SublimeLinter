@@ -13,6 +13,8 @@ from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
+WORD_RE = re.compile(r'^([-\w]+)')
 BASE_CLASSES = ('PythonLinter',)
 
 MATCH_DICT = OrderedDict(
@@ -1261,7 +1263,7 @@ class Linter(metaclass=LinterMeta):
                     if near[pos].isalnum() or near[pos] == '_':
                         fence[i] = r'\b'
 
-                pattern = highlight.NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
                 match = re.search(pattern, text)
 
                 if match:
@@ -1287,7 +1289,7 @@ class Linter(metaclass=LinterMeta):
                 return line, col, col + length
             else:
                 text = vv.select_line(m.line)[col:]
-                match = (self.word_re or highlight.WORD_RE).search(text)
+                match = (self.word_re or WORD_RE).search(text)
 
                 length = len(match.group()) if match else 1
                 return line, col, col + length

@@ -1200,7 +1200,7 @@ class Linter(metaclass=LinterMeta):
             "end": end,
             "linter": self.name,
             "error_type": error_type,
-            "code": m.warning or m.error or '',
+            "code": m.error or m.warning or '',
             "msg": m.message,
             "style": style
         }

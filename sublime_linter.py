@@ -14,6 +14,7 @@ from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
+from .lint import backend_async as backend
 from .panel import panel
 
 
@@ -223,7 +224,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        Linter.lint_view(view, hit_time, self.highlight)
+        backend.lint_view(view, hit_time, self.highlight)
 
     def highlight(self, view, errors, hit_time):
         """
@@ -274,7 +275,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.linted_views.add(vid)
 
         if view.size() == 0:
-            for linter in Linter.get_linters(vid):
+            for linter in persist.view_linters[vid]:
                 linter.clear()
             return
 

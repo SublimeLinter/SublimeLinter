@@ -783,12 +783,8 @@ class Linter(metaclass=LinterMeta):
 
                 all_errors.extend(errors)
 
-        highlights = highlight.Highlight(view)
-        for error in all_errors:
-            highlights.add_error(**error)
-
         # Merge our result back to the main thread
-        callback(view, (all_errors, highlights), hit_time)
+        callback(view, all_errors, hit_time)
 
     @classmethod
     def which(cls, cmd):

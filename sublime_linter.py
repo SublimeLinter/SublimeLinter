@@ -225,7 +225,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
         Linter.lint_view(view, hit_time, self.highlight)
 
-    def highlight(self, view, result, hit_time):
+    def highlight(self, view, errors, hit_time):
         """
         Highlight any errors found during a lint of the given view.
 
@@ -241,8 +241,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
-        errors, highlights = result
-
         errors_by_line = defaultdict(lambda: defaultdict(list))
         for error in errors:
             line = error['line']
@@ -254,6 +252,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             persist.errors[vid] = errors_by_line
 
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
+
+        highlights = highlight.Highlight(view)
+        for error in errors:
+            highlights.add_error(**error)
 
         for view in all_views_into_buffer(view):
             highlight.clear_view(view)

@@ -3,6 +3,7 @@ import re
 import sublime
 
 from . import persist
+from . import style as style_stores
 from .style import HighlightStyleStore
 from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
@@ -103,12 +104,15 @@ class Highlight:
         """Mark a range of text near a given word."""
         raise Exception('`near` has been removed')
 
-    def add_error(self, line, start, end, error_type, style, **kwargs):
+    def add_error(self, line, start, end, error_type, code, linter, **kwargs):
         line_start = get_line_start(self.view, line)
         region = sublime.Region(line_start + start, line_start + end)
+
+        store = style_stores.get_linter_style_store(linter)
+        style = store.get_style(code, error_type)
+
         self.add_mark(error_type, style, region)
         self.line(line, error_type, style)
-        return region
 
     def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING

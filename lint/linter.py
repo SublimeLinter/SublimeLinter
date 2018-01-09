@@ -11,7 +11,6 @@ import sublime
 
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
-from .style import LinterStyleStore
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 BASE_CLASSES = ('PythonLinter',)
@@ -367,7 +366,6 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
-        self.style_store = LinterStyleStore(self.name)
 
     @property
     def filename(self):
@@ -1166,9 +1164,6 @@ class Linter(metaclass=LinterMeta):
 
     def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)
-        style = self.style_store.get_style(m.error or m.warning, error_type)
-
-        assert style
 
         col = m.col
 
@@ -1200,7 +1195,6 @@ class Linter(metaclass=LinterMeta):
             "error_type": error_type,
             "code": m.error or m.warning or '',
             "msg": m.message,
-            "style": style
         }
 
     def find_good_columns_for_match(self, m, vv):

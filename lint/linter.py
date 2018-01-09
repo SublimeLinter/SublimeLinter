@@ -337,8 +337,6 @@ class Linter(metaclass=LinterMeta):
     #
     # Internal class storage, do not set
     #
-    errors = None
-    highlight = None
     lint_settings = None
     env = None
     disabled = False

@@ -783,7 +783,7 @@ class Linter(metaclass=LinterMeta):
 
                 all_errors.extend(errors)
 
-        highlights = highlight.Highlight(code)
+        highlights = highlight.Highlight(view)
         for error in all_errors:
             highlights.add_error(**error)
 

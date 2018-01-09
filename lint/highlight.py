@@ -76,11 +76,15 @@ class VirtualView:
     # def rowcol(self, point) => (row, col)
 
 
+def get_line_start(view, line):
+    return view.text_point(line, 0)
+
+
 class Highlight:
     """This class maintains error marks and knows how to draw them."""
 
-    def __init__(self, code=''):
-        self.vv = VirtualView(code)
+    def __init__(self, view):
+        self.view = view
 
         # Dict[error_type, Dict[style, List[region]]]
         self.marks = defaultdict(lambda: defaultdict(list))
@@ -100,7 +104,7 @@ class Highlight:
         raise Exception('`near` has been removed')
 
     def add_error(self, line, start, end, error_type, style, **kwargs):
-        line_start, _ = self.vv.full_line(line)
+        line_start = get_line_start(self.view, line)
         region = sublime.Region(line_start + start, line_start + end)
         self.add_mark(error_type, style, region)
         self.line(line, error_type, style)
@@ -188,7 +192,7 @@ class Highlight:
             for line, style in self.lines[error_type].items():
                 if not self.style_store.has_style(style):
                     continue
-                pos, _ = self.vv.full_line(line)
+                pos = get_line_start(self.view, line)
                 region = sublime.Region(pos, pos)
                 gutter_regions.setdefault(style, []).append(region)
 

@@ -30,6 +30,45 @@ LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
 
 
+# SublimeLinter can lint partial buffers, e.g. `<script>` tags inside a
+# HTML-file. The tiny `VirtualView` is just enough code, so we can get the
+# source code of a line, the linter reported to be problematic.
+class VirtualView:
+    def __init__(self, code=''):
+        self._code = code
+        self._newlines = newlines = [0]
+        last = -1
+
+        while True:
+            last = code.find('\n', last + 1)
+
+            if last == -1:
+                break
+
+            newlines.append(last + 1)
+
+        newlines.append(len(code))
+
+    def full_line(self, line):
+        """Return the start/end character positions for the given line."""
+        start = self._newlines[line]
+        end = self._newlines[min(line + 1, len(self._newlines) - 1)]
+
+        return start, end
+
+    def select_line(self, line):
+        """Return code for the given line."""
+        start, end = self.full_line(line)
+        return self._code[start:end]
+
+    # Actual Sublime API would look like:
+    # def full_line(self, region)
+    # def full_line(self, point) => Region
+    # def substr(self, region)
+    # def text_point(self, row, col) => Point
+    # def rowcol(self, point) => (row, col)
+
+
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 
@@ -1097,7 +1136,7 @@ class Linter(metaclass=LinterMeta):
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
         errors = []
-        vv = highlight.VirtualView(code)
+        vv = VirtualView(code)
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue

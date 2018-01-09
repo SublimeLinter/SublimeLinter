@@ -41,42 +41,6 @@ def clear_view(view):
         view.erase_regions(key)
 
 
-class VirtualView:
-    def __init__(self, code=''):
-        self._code = code
-        self._newlines = newlines = [0]
-        last = -1
-
-        while True:
-            last = code.find('\n', last + 1)
-
-            if last == -1:
-                break
-
-            newlines.append(last + 1)
-
-        newlines.append(len(code))
-
-    def full_line(self, line):
-        """Return the start/end character positions for the given line."""
-        start = self._newlines[line]
-        end = self._newlines[min(line + 1, len(self._newlines) - 1)]
-
-        return start, end
-
-    def select_line(self, line):
-        """Return code for the given line."""
-        start, end = self.full_line(line)
-        return self._code[start:end]
-
-    # Actual Sublime API would look like:
-    # def full_line(self, region)
-    # def full_line(self, point) => Region
-    # def substr(self, region)
-    # def text_point(self, row, col) => Point
-    # def rowcol(self, point) => (row, col)
-
-
 def get_line_start(view, line):
     return view.text_point(line, 0)
 

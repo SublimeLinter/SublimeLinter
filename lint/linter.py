@@ -14,7 +14,6 @@ from .const import STATUS_KEY, WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
-WORD_RE = re.compile(r'^([-\w]+)')
 BASE_CLASSES = ('PythonLinter',)
 
 MATCH_DICT = OrderedDict(
@@ -349,7 +348,7 @@ class Linter(metaclass=LinterMeta):
     # If a linter reports a column position, SublimeLinter highlights the nearest
     # word at that point. You can customize the regex used to highlight words
     # by setting this to a pattern string or a compiled regex.
-    word_re = None
+    word_re = re.compile(r'^([-\w]+)')
 
     # If you want to provide default settings for the linter, set this attribute.
     # If a setting will be passed as an argument to the linter executable,
@@ -1289,7 +1288,7 @@ class Linter(metaclass=LinterMeta):
                 return line, col, col + length
             else:
                 text = vv.select_line(m.line)[col:]
-                match = (self.word_re or WORD_RE).search(text)
+                match = self.word_re.search(text)
 
                 length = len(match.group()) if match else 1
                 return line, col, col + length

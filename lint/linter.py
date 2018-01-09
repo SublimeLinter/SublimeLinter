@@ -1167,28 +1167,16 @@ class Linter(metaclass=LinterMeta):
 
         col = m.col
 
-        if col is not None:  # TODO: Not implemented yet bc col is not used below
-            start, end = vv.full_line(m.line)
-
-            # Adjust column numbers to match the linter's tabs if necessary
-            if self.tab_width > 1:
-                code_line = vv.select_line(m.line)
-                diff = 0
-
-                for i in range(len(code_line)):
-                    if code_line[i] == '\t':
-                        diff += (self.tab_width - 1)
-
-                    if col - diff <= i:
-                        col = i
-                        break
+        if col is not None:
+            col = self.maybe_fix_tab_width(m.line, col, vv)
 
             # Pin the column to the start/end line offsets
+            start, end = vv.full_line(m.line)
             col = max(min(col, (end - start) - 1), 0)
 
-        start, end = self.find_good_columns_for_match(m, vv)
+        line, start, end = self.reposition_match(m.line, col, m, vv)
         return {
-            "line": m.line,
+            "line": line,
             "start": start,
             "end": end,
             "linter": self.name,
@@ -1197,9 +1185,31 @@ class Linter(metaclass=LinterMeta):
             "msg": m.message,
         }
 
-    def find_good_columns_for_match(self, m, vv):
-        col = m.col
+    def maybe_fix_tab_width(self, line, col, vv):
+        # Adjust column numbers to match the linter's tabs if necessary
+        if self.tab_width > 1:
+            code_line = vv.select_line(line)
+            diff = 0
 
+            for i in range(len(code_line)):
+                if code_line[i] == '\t':
+                    diff += (self.tab_width - 1)
+
+                if col - diff <= i:
+                    col = i
+                    break
+        return col
+
+    def reposition_match(self, line, col, m, vv):
+        """Chance to reposition the error.
+
+        Must return a tuple (line, start, end)
+
+        The default implementation just finds a good `end` or range for the
+        given match. E.g. it uses `self.word_re` to select the whole word
+        beginning at the `col`. If `m.near` is given, it selects the first
+        occurrence of that word on the give `line`.
+        """
         if col is None:
             if m.near:
                 text = vv.select_line(m.line)
@@ -1218,7 +1228,7 @@ class Linter(metaclass=LinterMeta):
                 if match:
                     col = match.start(1)
                     length = len(near)
-                    return col, col + length
+                    return line, col, col + length
                 # else fall through and mark the line
 
             if (
@@ -1226,22 +1236,22 @@ class Linter(metaclass=LinterMeta):
                 not persist.settings.has('gutter_theme')
             ):
                 start, end = vv.full_line(m.line)
-                length = end - start - 1
-                return 0, length
+                length = end - start - 1  # -1 for the trailing '\n'
+                return line, 0, length
             else:
-                return 0, 0
+                return line, 0, 0
 
         else:
             if m.near:
                 near = self.strip_quotes(m.mear)
                 length = len(near)
-                return col, col + length
+                return line, col, col + length
             else:
                 text = vv.select_line(m.line)[col:]
                 match = (self.word_re or highlight.WORD_RE).search(text)
 
                 length = len(match.group()) if match else 1
-                return col, col + length
+                return line, col, col + length
 
     @staticmethod
     def strip_quotes(text):

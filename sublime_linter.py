@@ -241,6 +241,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
+        bid = view.buffer_id()
+        persist.raw_errors[bid] = errors
+
+        # For compatibility we store the errors SL3 style as well.
         errors_by_line = defaultdict(lambda: defaultdict(list))
         for error in errors:
             line = error['line']
@@ -251,8 +255,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             vid = view.id()
             persist.errors[vid] = errors_by_line
 
-        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
+        events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
 
+        # TODO: These should go to their own modules.
         highlights = highlight.Highlight(view)
         for error in errors:
             highlights.add_error(**error)

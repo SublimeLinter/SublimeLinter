@@ -1292,7 +1292,7 @@ class Linter(metaclass=LinterMeta):
                 return line, col, col + length
             else:
                 text = vv.select_line(m.line)[col:]
-                match = self.word_re.search(text)
+                match = self.word_re.search(text) if self.word_re else None
 
                 length = len(match.group()) if match else 1
                 return line, col, col + length

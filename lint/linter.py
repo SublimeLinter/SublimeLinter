@@ -678,6 +678,14 @@ class Linter(metaclass=LinterMeta):
             util.printf('WARNING: {} cannot locate \'{}\''.format(self.name, which))
             return None
 
+        # TOAST error example
+        from . import events
+        import random
+        if random.randrange(0, 3, 1) == 0:
+            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, path)
+            events.broadcast(
+                events.TOAST, {'message': msg, 'type': 'error', 'timeout': 5000})
+
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
 

@@ -2,7 +2,7 @@ import sublime
 import sublime_plugin
 
 from itertools import dropwhile, takewhile
-from .lint import persist
+from .lint import persist, events
 
 
 """
@@ -100,3 +100,5 @@ def get_current_pos(view):
 def flash(view, msg):
     window = view.window() or sublime.active_window()
     window.status_message(msg)
+
+    events.broadcast(events.TOAST, {'message': msg})

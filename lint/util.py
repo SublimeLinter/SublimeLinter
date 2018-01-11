@@ -235,6 +235,11 @@ def get_environment_variable(name):
     return value
 
 
+@lru_cache(maxsize=1)  # print once every time the path changes
+def debug_print_env(path):
+    printf('PATH:\n{}\n'.format(path.replace(os.pathsep, '\n')))
+
+
 def create_environment():
     """Return a dict with os.environ augmented with a better PATH.
 
@@ -258,7 +263,7 @@ def create_environment():
         env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
     if persist.debug_mode() and env['PATH']:
-        printf('PATH:\n{}\n'.format(env['PATH'].replace(os.pathsep, '\n')))
+        debug_print_env(env['PATH'])
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin

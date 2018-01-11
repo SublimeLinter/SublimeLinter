@@ -112,8 +112,10 @@ def format_header(f_path):
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
     start = dic['start'] + 1
-    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, START=start, ERR_TYPE=error_type, **dic)
+    msg = dic['msg'].rstrip()
+    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {MSG}"
+    return tmpl.format(
+        LINENO=lineno, START=start, ERR_TYPE=error_type, MSG=msg, **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):

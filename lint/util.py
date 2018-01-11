@@ -235,16 +235,11 @@ def get_environment_variable(name):
     return value
 
 
-@lru_cache(maxsize=None)
 def create_environment():
-    """
-    Return a dict with os.environ augmented with a better PATH.
+    """Return a dict with os.environ augmented with a better PATH.
 
-    On Posix systems, the user's shell PATH is added to PATH.
-
-    Platforms paths are then added to PATH by getting the
-    "paths" user settings for the current platform. If "paths"
-    has a "*" item, it is added to PATH on all platforms.
+    Platforms paths are added to PATH by getting the "paths" user settings
+    for the current platform.
     """
     from . import persist
 
@@ -262,20 +257,8 @@ def create_environment():
     if paths:
         env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
-    from . import persist
-
-    if persist.debug_mode():
-        if os.name == 'posix':
-            if 'SHELL' in env:
-                shell = 'using ' + env['SHELL']
-            else:
-                shell = 'using standard paths'
-        else:
-            shell = 'from system'
-
-        if env['PATH']:
-            printf('computed PATH {}:\n{}\n'.format(
-                shell, env['PATH'].replace(os.pathsep, '\n')))
+    if persist.debug_mode() and env['PATH']:
+        printf('PATH:\n{}\n'.format(env['PATH'].replace(os.pathsep, '\n')))
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin

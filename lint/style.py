@@ -8,6 +8,17 @@ import os
 GUTTER_ICONS = {}
 
 
+linter_style_stores = {}
+
+
+def get_linter_style_store(name):
+    try:
+        return linter_style_stores[name]
+    except KeyError:
+        linter_style_stores[name] = store = LinterStyleStore(name)
+        return store
+
+
 class StyleBaseStore(metaclass=ABCMeta):
     @abstractmethod
     def update(cls):

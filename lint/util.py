@@ -192,49 +192,6 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
             return target
 
 
-def run_shell_cmd(cmd):
-    """Run a shell command and return stdout."""
-    proc = popen(cmd, env=os.environ)
-    from . import persist
-
-    try:
-        timeout = persist.settings.get('shell_timeout', 10)
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out = b''
-        printf(
-            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
-
-    return out
-
-
-@lru_cache(maxsize=None)
-def get_environment_variable(name):
-    """Return the value of the given environment variable, or None if not found."""
-    if os.name == 'posix':
-        value = None
-
-        if 'SHELL' in os.environ:
-            shell_path = os.environ['SHELL']
-
-            # We have to delimit the output with markers because
-            # text might be output during shell startup.
-            out = run_shell_cmd(
-                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
-
-            if out:
-                value = out.decode().split('__SUBL_VAR__', 2)[
-                    1].strip() or None
-    else:
-        value = os.environ.get(name, None)
-
-    from . import persist
-    persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
-
-    return value
-
-
 @lru_cache(maxsize=None)
 def create_environment():
     """

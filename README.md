@@ -18,6 +18,8 @@ Participate in the beta right now by editing your Package Control preferences an
 ]
 ```
 
+<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
+
 
 ## Key Bindings
 

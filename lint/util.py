@@ -1,7 +1,6 @@
 """This module provides general utility methods."""
 
 from functools import lru_cache
-import locale
 from numbers import Number
 import os
 import getpass
@@ -308,27 +307,10 @@ def get_python_paths():
 
 # popen utils
 
-def decode(bytes):
-    """
-    Decode and return a byte string using utf8, falling back to system's encoding if that fails.
-
-    So far we only have to do this because javac is so utterly hopeless it uses CP1252
-    for its output on Windows instead of UTF8, even if the input encoding is specified as UTF8.
-    Brilliant! But then what else would you expect from Oracle?
-
-    """
-    if not bytes:
-        return ''
-
-    try:
-        return bytes.decode('utf8')
-    except UnicodeError:
-        return bytes.decode(locale.getpreferredencoding(), errors='replace')
-
 
 def combine_output(out, sep=''):
     """Return stdout and/or stderr combined into a string, stripped of ANSI colors."""
-    output = sep.join((decode(out[0]), decode(out[1])))
+    output = sep.join((out[0], out[1]))
 
     return ANSI_COLOR_RE.sub('', output)
 
@@ -361,9 +343,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None):
                 output_stream=output_stream, extra_env=env)
 
     if out is not None:
-        if code is not None:
-            code = code.encode('utf8')
-
         out = out.communicate(code)
 
         if code is None and os.name == 'nt':
@@ -533,7 +512,8 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, ex
             stdout=stdout,
             stderr=stderr,
             startupinfo=info,
-            env=env
+            env=env,
+            universal_newlines=True
         )
     except Exception as err:
         printf('ERROR: could not launch', repr(cmd))

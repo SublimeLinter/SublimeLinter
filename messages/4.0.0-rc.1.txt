@@ -24,6 +24,8 @@ New features
   highlight style can be differentiated per linter.
 - Styles also have a "priority" which decides what icon to show in the gutter.
 - Gutter themes can now be set using just their name.
+- Gutter themes can now have multiple icons, selectable by just their name.
+  In the "Default" theme: diamond, heart, square, star, triangle and more!
 - No "(SL)" color scheme files are generated, in stead relying on common scopes.
 - It's possible to use a color by specifying any scope that's in your color
   scheme (e.g. "entity.name")

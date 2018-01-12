@@ -199,7 +199,7 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
                     to_render.append(line_msg)
                     item["panel_lineno"] = to_render.current_lineno()
 
-        to_render.append("\n")  # empty lines between views
+        to_render.append("")  # empty lines between views
 
     rendered_text = to_render.render() if to_render else None
     run_update_panel_cmd(panel, text=rendered_text)

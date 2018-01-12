@@ -4,7 +4,7 @@
 
 
     // Show all errors
-    { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle" }
+    { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle" },
     // To display filtered results in the panel add arguments:
     // { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle", "args": {
     //         "types": ["error"],

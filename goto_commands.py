@@ -6,27 +6,7 @@ from .lint import persist
 
 
 """
-Implement typical Goto Next Previous Error Commands. If you will, add
-the following to your key bindings.
-
-```
-  { "keys": ["ctrl+k", "n"],
-    "command": "sublime_linter_goto_error",
-    "args": {"direction": "next"}
-  },
-  { "keys": ["ctrl+k", "p"],
-    "command": "sublime_linter_goto_error",
-    "args": {"direction": "previous"}
-  },
-```
-
-Supported args:
-
-* `direction`: 'previous' | 'next'
-* `count`: How wide you will jump. Defaults to 1.
-* `wrap`: Set to True, to jump to the top if you're on the last error and
-          vice versa. Defaults to False
-
+Implement typical Goto Next Previous Error Commands.
 """
 
 

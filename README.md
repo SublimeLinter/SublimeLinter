@@ -29,6 +29,8 @@ SublimeLinter comes with some pre-defined keyboard shortcuts. You can customize 
 |-----------------|------------------|------------------------|
 | Lint this view  | CTRL + K, L      | CTRL + CMD + L         |
 | Show all errors | CTRL + K, A      | CTRL + CMD + A         |
+| Goto next error | CTRL + K, N      | CTRL + CMD + E         |
+| Goto prev error | CTRL + K, P      | CTRL + CMD + SHIFT + E |
 
 Navigating to the next/previous error is done using the `next_result` and `prev_result` commands already built into Sublime Text.
 

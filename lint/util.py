@@ -645,11 +645,11 @@ def load_json(*segments, from_sl_dir=False):
 
 # syntax functions
 
-def yield_subscopes(scope, start):
-    while scope:
-        yield scope
-        dot_index = scope.rfind('.', start + 1)
-        scope = None if dot_index < 0 else scope[:dot_index]
+
+def yield_tail_scopes(scope):
+    while "." in scope:
+        scope, tail = scope.rsplit(".", 1)
+        yield tail
 
 
 def max_selector_score(view, selectors):
@@ -660,30 +660,26 @@ def get_syntax_by_score(view, syntax_map):
     try:
         scoring = {
             max_selector_score(view, selectors): syntax
-            for syntax, selectors in syntax_map.items()
-            if selectors
+            for syntax, selectors in syntax_map.items() if selectors
         }
-        syntax = scoring[max(scoring)]
     except ValueError:
         return
     else:
-        return syntax
+        max_score = max(scoring)
+        if max_score > 0:
+            return scoring[max_score]
 
 
 def get_syntax(view):
     """Return the view's syntax."""
     syntax_map = load_json('resources/syntax_map.json', from_sl_dir=True)
     main_scope = view.scope_name(0).split()[0]
-    base_scope, sub_scope = main_scope.split('.', 1)
 
     # lazy syntax lookup
-    if sub_scope in syntax_map:
-        return sub_scope
+    for tail in yield_tail_scopes(main_scope):
+        if tail in syntax_map:
+            return tail
 
     # more elaborate lookup via scoring mechanism
-    for scope in yield_subscopes(main_scope, start=len(base_scope)):
-        syntax = get_syntax_by_score(view, syntax_map)
-        if syntax:
-            return syntax
-
-    return ""
+    # or last tail as fallback, e.g. `python` from `source.python`
+    return get_syntax_by_score(view, syntax_map) or tail

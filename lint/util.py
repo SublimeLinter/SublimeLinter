@@ -34,7 +34,6 @@ tempdir = os.path.join(
 )
 
 
-# Code migrated from 'lint/persist.py'
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
     print('SublimeLinter: ', end='')
@@ -125,30 +124,6 @@ def get_active_view(view=None):
     return sublime.active_window().active_view()
 
 
-def get_focused_view(view):
-    """
-    Return the focused view which shares view's buffer.
-
-    When updating the status, we want to make sure we get
-    the selection of the focused view, since multiple views
-    into the same buffer may be open.
-
-    """
-    active_view = get_active_view(view)
-    if not active_view:
-        return
-
-    if not is_lintable(view):
-        return
-
-    if not view.window():
-        return
-
-    for view in view.window().views():
-        if view == active_view:
-            return view
-
-
 def get_new_dict():
     return deepcopy({WARNING: {}, ERROR: {}})
 
@@ -217,59 +192,16 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
             return target
 
 
-def run_shell_cmd(cmd):
-    """Run a shell command and return stdout."""
-    proc = popen(cmd, env=os.environ)
-    from . import persist
-
-    try:
-        timeout = persist.settings.get('shell_timeout', 10)
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out = b''
-        printf(
-            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
-
-    return out
+@lru_cache(maxsize=1)  # print once every time the path changes
+def debug_print_env(path):
+    printf('PATH:\n{}\n'.format(path.replace(os.pathsep, '\n')))
 
 
-@lru_cache(maxsize=None)
-def get_environment_variable(name):
-    """Return the value of the given environment variable, or None if not found."""
-    if os.name == 'posix':
-        value = None
-
-        if 'SHELL' in os.environ:
-            shell_path = os.environ['SHELL']
-
-            # We have to delimit the output with markers because
-            # text might be output during shell startup.
-            out = run_shell_cmd(
-                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
-
-            if out:
-                value = out.decode().split('__SUBL_VAR__', 2)[
-                    1].strip() or None
-    else:
-        value = os.environ.get(name, None)
-
-    from . import persist
-    persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
-
-    return value
-
-
-@lru_cache(maxsize=None)
 def create_environment():
-    """
-    Return a dict with os.environ augmented with a better PATH.
+    """Return a dict with os.environ augmented with a better PATH.
 
-    On Posix systems, the user's shell PATH is added to PATH.
-
-    Platforms paths are then added to PATH by getting the
-    "paths" user settings for the current platform. If "paths"
-    has a "*" item, it is added to PATH on all platforms.
+    Platforms paths are added to PATH by getting the "paths" user settings
+    for the current platform.
     """
     from . import persist
 
@@ -287,20 +219,8 @@ def create_environment():
     if paths:
         env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
-    from . import persist
-
-    if persist.debug_mode():
-        if os.name == 'posix':
-            if 'SHELL' in env:
-                shell = 'using ' + env['SHELL']
-            else:
-                shell = 'using standard paths'
-        else:
-            shell = 'from system'
-
-        if env['PATH']:
-            printf('computed PATH {}:\n{}\n'.format(
-                shell, env['PATH'].replace(os.pathsep, '\n')))
+    if persist.debug_mode() and env['PATH']:
+        debug_print_env(env['PATH'])
 
     # Many linters use stdin, and we convert text to utf-8
     # before sending to stdin, so we have to make sure stdin
@@ -684,3 +604,9 @@ class cd:
     def __exit__(self, etype, value, traceback):
         """Go back to the old wd."""
         os.chdir(self.savedPath)
+
+
+def load_json(*segments, from_sl_dir=False):
+    base_path = "Packages/SublimeLinter/" if from_sl_dir else ""
+    full_path = base_path + "/".join(segments)
+    return sublime.decode_value(sublime.load_resource(full_path))

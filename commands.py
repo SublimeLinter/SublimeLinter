@@ -88,5 +88,4 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
             if new_selected_region:
                 sel.add(new_selected_region)
                 return
-
         sel.add(0)

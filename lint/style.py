@@ -1,12 +1,22 @@
 import sublime
 from . import persist, util
-import json
 from abc import ABCMeta, abstractmethod
 from .const import INBUILT_ICONS
 
 import os
 
 GUTTER_ICONS = {}
+
+
+linter_style_stores = {}
+
+
+def get_linter_style_store(name):
+    try:
+        return linter_style_stores[name]
+    except KeyError:
+        linter_style_stores[name] = store = LinterStyleStore(name)
+        return store
 
 
 class StyleBaseStore(metaclass=ABCMeta):
@@ -163,11 +173,6 @@ class StyleParser:
         for i, node in enumerate(custom_styles):
             style_dict = {}
 
-            # 0 - check node
-            if not self.is_node_valid(node, linter_name):
-                all_rules_valid = False
-                continue
-
             # 1 - define style
             # scopes => scheme.py
             rule_name = rule_name_tmpl.format(i + 1)
@@ -200,22 +205,3 @@ class StyleParser:
         LinterStyleStore.update(linter_name, lint_dict)
 
         return all_rules_valid
-
-    def is_node_valid(self, node, linter_name):
-        errors = []
-
-        if "scope" not in node:
-            errors.append("No 'scope' declared.")
-        if not util.any_key_in(node, ("mark_style", "icon")):
-            errors.append("Neither 'mark_style' nor 'icon' declared.")
-        if not util.any_key_in(node, ("types", "codes")):
-            errors.append("Neither 'types' nor 'codes' declared.")
-
-        if errors:
-            msg = "Style rule is corrupt for: {}\n".format(linter_name)
-            msg += "\n".join(errors)
-            msg += json.dumps(node, indent=4, sort_keys=True)
-            util.printf(msg)
-            return False
-
-        return True

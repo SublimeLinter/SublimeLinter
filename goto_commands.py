@@ -104,30 +104,10 @@ def goto(view, direction, count, wrap):
 
 
 def move_to(view, line, col):
-    loc = view.text_point(line, col)
-    region = sublime.Region(loc, loc)
-    view.sel().clear()
-    view.sel().add(region)
-    center_region_in_view(view, region)
-
-
-def center_region_in_view(view, region):
-    """Center the given region in view.
-
-    There is a bug in ST3 that prevents a selection change
-    from being drawn when a quick panel is open unless the
-    viewport moves. So we get the current viewport position,
-    move it down 1.0, center the region, see if the viewport
-    moved, and if not, move it up 1.0 and center again.
-    """
-    x1, y1 = view.viewport_position()
-    view.set_viewport_position((x1, y1 + 1.0))
-    view.show_at_center(region)
-    x2, y2 = view.viewport_position()
-
-    if y2 == y1:
-        view.set_viewport_position((x1, y1 - 1.0))
-        view.show_at_center(region)
+    window = view.window()
+    filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
+    target = "{}:{}:{}".format(filename, line + 1, col + 1)
+    window.open_file(target, sublime.ENCODED_POSITION)
 
 
 def get_current_pos(view):

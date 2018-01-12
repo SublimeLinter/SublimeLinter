@@ -14,7 +14,7 @@ from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
-from .lint import backend_async as backend
+from .lint import backend
 from .panel import panel
 
 

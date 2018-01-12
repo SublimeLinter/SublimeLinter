@@ -1,7 +1,10 @@
 import sublime
 
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from fnmatch import fnmatch
+from itertools import chain
 import os
+import traceback
 
 from . import persist, util
 
@@ -9,7 +12,7 @@ from . import persist, util
 WILDCARD_SYNTAX = '*'
 
 
-def lint_view(cls, view, hit_time, callback):
+def lint_view(view, hit_time, callback):
     """
     Lint the given view.
 
@@ -28,21 +31,47 @@ def lint_view(cls, view, hit_time, callback):
     aggregated, and for each selector, if it occurs in sections,
     the corresponding section is linted as embedded code.
     """
-    all_errors = []
-
     linters = get_linters(view)
     lint_tasks = get_lint_tasks(linters, view)
 
-    for (linter, code, offset) in lint_tasks:
-        errors = linter.lint(code, hit_time)
-        if errors is None:
-            return  # ABORT
+    run = run_concurrently(max_workers=5)
+    results = run(
+        lambda: execute_lint_task(*task, hit_time=hit_time)
+        for task in lint_tasks)
 
-        translate_lineno_and_column(errors, offset)
+    all_errors = chain.from_iterable(results)
 
-        all_errors.extend(errors)
+    callback(view, list(all_errors), hit_time)
 
-    callback(view, all_errors, hit_time)
+
+def run_concurrently(max_workers=2):
+    def run(tasks):
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            work = [executor.submit(task) for task in tasks]
+            yield from await_futures(work)
+
+    return run
+
+
+def await_futures(fs, ordered=False):
+    if ordered:
+        done, _ = wait(fs)
+    else:
+        done = as_completed(fs)
+
+    for future in done:
+        try:
+            yield future.result()
+        except Exception:
+            ...
+            traceback.print_exc()
+
+
+def execute_lint_task(linter, code, offset, hit_time):
+    errors = linter.lint(code, hit_time) or []
+    translate_lineno_and_column(errors, offset)
+
+    return errors
 
 
 def translate_lineno_and_column(errors, offset):

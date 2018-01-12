@@ -80,6 +80,8 @@ def goto(view, direction, count, wrap):
 
     reverse = direction == 'previous'
     jump_positions = list(previous_positions if reverse else next_positions)
+    if reverse:
+        jump_positions = list(reversed(jump_positions))
 
     if not jump_positions:
         if wrap:
@@ -91,14 +93,11 @@ def goto(view, direction, count, wrap):
             )
             return
     elif len(jump_positions) <= count:
-        # If we cannot jump wide enough, pin to top/bottom to reduce
-        # disorientation.
-        error = errors[0] if reverse else errors[-1]
+        # If we cannot jump wide enough, do not wrap, but jump as wide as
+        # possible to reduce disorientation.
+        error = jump_positions[-1]
     else:
-        # This is a bit hard to read, but note that for any list we get the
-        # *first* item via `list[0]`, but going reverse, we get the *last*
-        # item via `list[-1]` (not via `list[-0]`).
-        error = jump_positions[-count] if reverse else jump_positions[count - 1]
+        error = jump_positions[count - 1]
 
     line, start = error
     move_to(view, line, start)

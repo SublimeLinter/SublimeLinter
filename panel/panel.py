@@ -285,5 +285,5 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
 
     panel_lineno = region_dict.get("panel_lineno")
 
-    if panel_lineno:
+    if panel_lineno is not None:
         change_selection(panel_lineno, full_line=full_line)

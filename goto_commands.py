@@ -60,6 +60,13 @@ def goto(view, direction, count, wrap):
                      error['start'] <= current_col <= error['end'])}
     errors = sorted(errors)
 
+    # Edge case: Since we filtered, it is possible we get here with nothing
+    # left. That is the case if we sit on the last remaining error, where we
+    # don't have anything to jump to and even `wrap` becomes a no-op.
+    if len(errors) == 0:
+        flash(view, 'No more problems.')
+        return
+
     def before_current_pos(error):
         line, start = error
         return (

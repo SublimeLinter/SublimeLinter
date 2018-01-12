@@ -56,14 +56,6 @@ class Highlight:
         # Dict[error_type, Dict[lineno, style]]
         self.lines = defaultdict(dict)
 
-    def range(self, line, pos, length=-1, near=None, error_type=ERROR, word_re=None, style=None):
-        """Mark a range of text."""
-        raise Exception('`range` has been removed')
-
-    def near(self, line, near, error_type=ERROR, word_re=None, style=None):
-        """Mark a range of text near a given word."""
-        raise Exception('`near` has been removed')
-
     def add_error(self, line, start, end, error_type, code, linter, **kwargs):
         line_start = get_line_start(self.view, line)
         region = sublime.Region(line_start + start, line_start + end)

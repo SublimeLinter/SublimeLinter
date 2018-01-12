@@ -1313,10 +1313,6 @@ class Linter(metaclass=LinterMeta):
 
         return text
 
-    def error(self, line, col, message, error_type, style=None, code="", length=None):
-        """Add a reference to an error/warning on the given line and column."""
-        raise Exception('`error` has been removed')
-
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""

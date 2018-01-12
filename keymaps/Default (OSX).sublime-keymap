@@ -1,12 +1,13 @@
 [
 	// Lint this view
     { "keys": ["ctrl+super+l"], "command": "sublime_linter_lint" },
-    // Show all errors
-    { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" }
 
+
+    // Show all errors
+    { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" },
     // To display filtered results in the panel add arguments:
     // { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle", "args": {
-    //         "types": ["error"],
+    //         "types": ["error", "warning"],
     //         "codes": [],
     //         "linter": []
     //     }
@@ -17,8 +18,21 @@
     // { "keys": ["ctrl+super+r"], "command": "sublime_linter_line_report" }
 
 
-    // Goto next/previous error uses these built-in commands:
+    // Goto next/previous errors via the panel uses these built-in commands:
     // { "keys": ["f4"], "command": "next_result" },
     // { "keys": ["shift+f4"], "command": "prev_result" }
-]
 
+
+    // Goto next/previous errors from your position, in the current file:
+    { "keys": ["ctrl+super+e"], "command": "sublime_linter_goto_error",
+      "args": { "direction": "next" }
+    },
+    { "keys": ["ctrl+super+shift+e"], "command": "sublime_linter_goto_error",
+      "args": { "direction": "previous" }
+    }
+    // Supported args:
+    // * direction: "previous" or "next"
+    // * count:     How many errors to jump. Defaults to 1.
+    // * wrap:      If true will jump to the top if you're on the last error
+    //              and vice versa. Defaults to False
+]

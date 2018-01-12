@@ -5,8 +5,7 @@ import bisect
 from ..lint.const import WARN_ERR
 from ..lint import util, persist
 
-
-PANEL_NAME = "sublime_linter_panel"
+PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,
@@ -139,8 +138,10 @@ def run_update_panel_cmd(panel, text=None):
 def format_row(lineno, error_type, dic):
     lineno = int(lineno) + 1
     start = dic['start'] + 1
-    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, START=start, ERR_TYPE=error_type, **dic)
+    msg = dic['msg'].rstrip()
+    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {MSG}"
+    return tmpl.format(
+        LINENO=lineno, START=start, ERR_TYPE=error_type, MSG=msg, **dic)
 
 
 def fill_panel(window, types=None, codes=None, linter=None, update=False):

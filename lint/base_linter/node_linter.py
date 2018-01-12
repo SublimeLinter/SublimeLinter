@@ -35,7 +35,7 @@ class NodeLinter(linter.Linter):
         if self.manifest_path:
             self.read_manifest(path.getmtime(self.manifest_path))
 
-    def lint(self, hit_time):
+    def lint(self, code, hit_time):
         """Check NodeLinter options then run lint."""
         settings = self.get_view_settings()
 
@@ -54,7 +54,7 @@ class NodeLinter(linter.Linter):
             if disable_if_not_dependency and not is_dep:
                 self.disabled = True
 
-        super(NodeLinter, self).lint(hit_time)
+        return super(NodeLinter, self).lint(code, hit_time)
 
     def is_dependency(self):
         """Check package.json to see if linter is a dependency."""

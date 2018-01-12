@@ -4,8 +4,11 @@ import os
 import re
 import shlex
 import sublime
+import subprocess
 
-from .. import linter, util
+from functools import lru_cache
+
+from .. import linter, util, persist
 
 CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
 
@@ -129,3 +132,44 @@ class RubyLinter(linter.Linter):
                     cls.env = {}
 
         return ruby_cmd
+
+
+@lru_cache(maxsize=None)
+def get_environment_variable(name):
+    """Return the value of the given environment variable, or None if not found."""
+    if os.name == 'posix':
+        value = None
+
+        if 'SHELL' in os.environ:
+            shell_path = os.environ['SHELL']
+
+            # We have to delimit the output with markers because
+            # text might be output during shell startup.
+            out = run_shell_cmd(
+                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
+
+            if out:
+                value = out.decode().split('__SUBL_VAR__', 2)[
+                    1].strip() or None
+    else:
+        value = os.environ.get(name, None)
+
+    persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
+
+    return value
+
+
+def run_shell_cmd(cmd):
+    """Run a shell command and return stdout."""
+    proc = util.popen(cmd, env=os.environ)
+
+    try:
+        timeout = persist.settings.get('shell_timeout', 10)
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out = b''
+        persist.printf(
+            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
+
+    return out

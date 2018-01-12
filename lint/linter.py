@@ -1,6 +1,5 @@
 from collections import namedtuple, OrderedDict
 from distutils.versionpredicate import VersionPredicate
-from fnmatch import fnmatch
 from functools import lru_cache
 from numbers import Number
 
@@ -11,9 +10,9 @@ import sublime
 
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
-from .style import LinterStyleStore
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter',)
 
 MATCH_DICT = OrderedDict(
@@ -29,6 +28,45 @@ MATCH_DICT = OrderedDict(
 )
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
+
+
+# SublimeLinter can lint partial buffers, e.g. `<script>` tags inside a
+# HTML-file. The tiny `VirtualView` is just enough code, so we can get the
+# source code of a line, the linter reported to be problematic.
+class VirtualView:
+    def __init__(self, code=''):
+        self._code = code
+        self._newlines = newlines = [0]
+        last = -1
+
+        while True:
+            last = code.find('\n', last + 1)
+
+            if last == -1:
+                break
+
+            newlines.append(last + 1)
+
+        newlines.append(len(code))
+
+    def full_line(self, line):
+        """Return the start/end character positions for the given line."""
+        start = self._newlines[line]
+        end = self._newlines[min(line + 1, len(self._newlines) - 1)]
+
+        return start, end
+
+    def select_line(self, line):
+        """Return code for the given line."""
+        start, end = self.full_line(line)
+        return self._code[start:end]
+
+    # Actual Sublime API would look like:
+    # def full_line(self, region)
+    # def full_line(self, point) => Region
+    # def substr(self, region)
+    # def text_point(self, row, col) => Point
+    # def rowcol(self, point) => (row, col)
 
 
 class LinterMeta(type):
@@ -309,7 +347,7 @@ class Linter(metaclass=LinterMeta):
     # If a linter reports a column position, SublimeLinter highlights the nearest
     # word at that point. You can customize the regex used to highlight words
     # by setting this to a pattern string or a compiled regex.
-    word_re = None
+    word_re = re.compile(r'^([-\w]+)')
 
     # If you want to provide default settings for the linter, set this attribute.
     # If a setting will be passed as an argument to the linter executable,
@@ -337,8 +375,6 @@ class Linter(metaclass=LinterMeta):
     #
     # Internal class storage, do not set
     #
-    errors = None
-    highlight = None
     lint_settings = None
     env = None
     disabled = False
@@ -369,9 +405,6 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
-        self.code = ''
-        self.highlight = highlight.Highlight()
-        self.style_store = LinterStyleStore(self.name)
 
     @property
     def filename(self):
@@ -482,6 +515,10 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             view = window.active_view()
+            window_vars = window.extract_variables()
+            directory = (
+                os.path.dirname(view.file_name()).replace('\\', '/') if
+                view and view.file_name() else "FILE NOT ON DISK")
 
             if not view or not view.file_name():
                 return
@@ -515,10 +552,12 @@ class Linter(metaclass=LinterMeta):
 
             expressions.append({
                 'token': '${directory}',
-                'value': (
-                    os.path.dirname(view.file_name()).replace('\\', '/') if
-                    view and view.file_name() else "FILE NOT ON DISK"
-                )
+                'value': directory
+            })
+
+            expressions.append({
+                'token': '${root}',
+                'value': window_vars.get('folder', None) or directory
             })
 
         expressions.append({
@@ -648,151 +687,6 @@ class Linter(metaclass=LinterMeta):
     def get_view(cls, vid):
         """Return the view object with the given id."""
         return persist.views.get(vid)
-
-    @classmethod
-    def get_linters(cls, vid):
-        """Return a tuple of linters for the view with the given id."""
-        if vid in persist.view_linters:
-            return tuple(persist.view_linters[vid])
-
-        return ()
-
-    @classmethod
-    def get_selectors(cls, vid, syntax):
-        """
-        Return scope selectors and linters for the view with the given id.
-
-        For each linter assigned to the view with the given id, if it
-        has selectors, return a tuple of the selector and the linter.
-
-        """
-        selectors = []
-
-        for linter in cls.get_linters(vid):
-            if syntax in linter.selectors:
-                selectors.append((linter.selectors[syntax], linter))
-
-            if '*' in linter.selectors:
-                selectors.append((linter.selectors['*'], linter))
-
-        return selectors
-
-    @classmethod
-    def lint_view(cls, view, filename, code, hit_time, callback):
-        """
-        Lint the given view.
-
-        This is the top level lint dispatcher. It is called
-        asynchronously. The following checks are done for each linter
-        assigned to the view:
-
-        - Check if the linter has been disabled in settings.
-        - Check if the filename matches any patterns in the "excludes" setting.
-
-        If a linter fails the checks, it is disabled for this run.
-        Otherwise, if the mapped syntax is not in the linter's selectors,
-        the linter is run on the entirety of code.
-
-        Then the set of selectors for all linters assigned to the view is
-        aggregated, and for each selector, if it occurs in sections,
-        the corresponding section is linted as embedded code.
-
-        A list of the linters that ran is returned.
-        """
-        if not code:
-            return
-
-        vid = view.id()
-        linters = persist.view_linters.get(vid)
-
-        if not linters:
-            return
-
-        disabled = set()
-        syntax = util.get_syntax(persist.views[vid])
-
-        for linter in linters:
-            # First check to see if the linter can run in the current lint mode.
-            if linter.tempfile_suffix == '-' and view.is_dirty():
-                disabled.add(linter)
-                continue
-
-            view_settings = linter.get_view_settings()
-
-            if view_settings.get('disable'):
-                disabled.add(linter)
-                continue
-
-            if filename:
-                filename = os.path.realpath(filename)
-                excludes = util.convert_type(view_settings.get('excludes', []), [])
-
-                if excludes:
-                    matched = False
-
-                    for pattern in excludes:
-                        if fnmatch(filename, pattern):
-                            persist.debug(
-                                '{} skipped \'{}\', excluded by \'{}\''
-                                .format(linter.name, filename, pattern)
-                            )
-                            matched = True
-                            break
-
-                    if matched:
-                        disabled.add(linter)
-                        continue
-
-            if syntax not in linter.selectors and '*' not in linter.selectors:
-                linter.reset(code)
-                linter.lint(hit_time)
-
-        selectors = Linter.get_selectors(vid, syntax)
-
-        for selector, linter in selectors:
-            if linter in disabled:
-                continue
-
-            linters.add(linter)
-            regions = []
-
-            for region in view.find_by_selector(selector):
-                regions.append(region)
-
-            linter.reset(code)
-            errors = {}
-
-            for region in regions:
-                line_offset, col_offset = view.rowcol(region.begin())
-                linter.highlight.move_to(line_offset, col_offset)
-                linter.code = code[region.begin():region.end()]
-                linter.errors = {}
-                linter.lint(hit_time)
-
-                for line, errors_by_type in linter.errors.items():
-                    errors[line + line_offset] = errors_by_type
-
-                    if line == 0:
-                        for error_type, line_errors in errors_by_type.items():
-                            for error in line_errors:
-                                error.update({
-                                    'start': error['start'] + col_offset,
-                                    'end': error['end'] + col_offset
-                                })
-
-            linter.errors = errors
-
-        # Remove disabled linters
-        linters = list(linters - disabled)
-
-        # Merge our result back to the main thread
-        callback(cls.get_view(vid), linters, hit_time)
-
-    def reset(self, code):
-        """Reset a linter to work on the given code and filename."""
-        self.errors = {}
-        self.code = code
-        self.highlight = highlight.Highlight(self.code)
 
     @classmethod
     def which(cls, cmd):
@@ -1075,7 +969,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, hit_time):
+    def lint(self, code, hit_time):
         """
         Perform the lint, retrieve the results, and add marks to the view.
 
@@ -1088,26 +982,28 @@ class Linter(metaclass=LinterMeta):
         - Highlight warnings and errors.
         """
         if self.disabled:
-            return
+            return []
 
         cmd = self.get_cmd()
         settings = self.get_view_settings()
         chdir = self.get_chdir(settings)
 
         with util.cd(chdir):
-            output = self.run(cmd, self.code)
+            output = self.run(cmd, code)
 
         if not output:
-            return
+            return []
 
         # If the view has been modified since the lint was triggered, no point in continuing.
         if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
-            return
+            return None  # ABORT
 
         if persist.debug_mode():
             stripped_output = output.replace('\r', '').rstrip()
             util.printf('{} output:\n{}'.format(self.name, stripped_output))
 
+        errors = []
+        vv = VirtualView(code)
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -1116,72 +1012,166 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                self.process_match(m)
+                error = self.process_match(m, vv)
+                errors.append(error)
 
-    def process_match(self, m):
+        return errors
+
+    def find_errors(self, output):
+        """
+        Match the linter's regex against the linter output with this generator.
+
+        If multiline is True, split_match is called for each non-overlapping
+        match of self.regex. If False, split_match is called for each line
+        in output.
+        """
+        if self.multiline:
+            errors = self.regex.finditer(output)
+            if errors:
+                for error in errors:
+                    yield self.split_match(error)
+            else:
+                yield self.split_match(None)
+        else:
+            for line in output.splitlines():
+                yield self.split_match(self.regex.match(line.rstrip()))
+
+    def split_match(self, match):
+        """
+        Split a match into the standard elements of an error and return them.
+
+        If subclasses need to modify the values returned by the regex, they
+        should override this method, call super(), then modify the values
+        and return them.
+
+        """
+        match_dict = MATCH_DICT.copy()
+
+        if not match:
+            persist.debug('No match for regex: {}'.format(self.regex.pattern))
+        else:
+            match_dict.update({
+                k: v
+                for k, v in match.groupdict().items()
+                if k in match_dict
+            })
+            match_dict["match"] = match
+
+            # normalize line and col if necessary
+            line = match_dict["line"]
+            if line:
+                match_dict["line"] = int(line) - self.line_col_base[0]
+
+            col = match_dict["col"]
+            if col:
+                if col.isdigit():
+                    col = int(col) - self.line_col_base[1]
+                else:
+                    col = len(col)
+                match_dict["col"] = col
+
+        return LintMatch(**match_dict)
+
+    def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)
-        style = self.style_store.get_style(m.error or m.warning, error_type)
-
-        assert style
 
         col = m.col
 
         if col is not None:
-            start, end = self.highlight.full_line(m.line)
-
-            # Adjust column numbers to match the linter's tabs if necessary
-            if self.tab_width > 1:
-                code_line = self.code[start:end]
-                diff = 0
-
-                for i in range(len(code_line)):
-                    if code_line[i] == '\t':
-                        diff += (self.tab_width - 1)
-
-                    if col - diff <= i:
-                        col = i
-                        break
+            col = self.maybe_fix_tab_width(m.line, col, vv)
 
             # Pin the column to the start/end line offsets
+            start, end = vv.full_line(m.line)
             col = max(min(col, (end - start) - 1), 0)
 
-        length = None
-        if col is not None:
-            length = self.highlight.range(
-                m.line,
-                col,
-                near=m.near,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
-        elif m.near:
-            col, length = self.highlight.near(
-                m.line,
-                m.near,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
-        else:
+        line, start, end = self.reposition_match(m.line, col, m, vv)
+        return {
+            "line": line,
+            "start": start,
+            "end": end,
+            "linter": self.name,
+            "error_type": error_type,
+            "code": m.error or m.warning or '',
+            "msg": m.message,
+        }
+
+    def maybe_fix_tab_width(self, line, col, vv):
+        # Adjust column numbers to match the linter's tabs if necessary
+        if self.tab_width > 1:
+            code_line = vv.select_line(line)
+            diff = 0
+
+            for i in range(len(code_line)):
+                if code_line[i] == '\t':
+                    diff += (self.tab_width - 1)
+
+                if col - diff <= i:
+                    col = i
+                    break
+        return col
+
+    def reposition_match(self, line, col, m, vv):
+        """Chance to reposition the error.
+
+        Must return a tuple (line, start, end)
+
+        The default implementation just finds a good `end` or range for the
+        given match. E.g. it uses `self.word_re` to select the whole word
+        beginning at the `col`. If `m.near` is given, it selects the first
+        occurrence of that word on the give `line`.
+        """
+        if col is None:
+            if m.near:
+                text = vv.select_line(m.line)
+                near = self.strip_quotes(m.near)
+
+                # Add \b fences around the text if it begins/ends with a word character
+                fence = ['', '']
+
+                for i, pos in enumerate((0, -1)):
+                    if near[pos].isalnum() or near[pos] == '_':
+                        fence[i] = r'\b'
+
+                pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                match = re.search(pattern, text)
+
+                if match:
+                    col = match.start(1)
+                    length = len(near)
+                    return line, col, col + length
+                # else fall through and mark the line
+
             if (
                 persist.settings.get('no_column_highlights_line') or
                 not persist.settings.has('gutter_theme')
             ):
-                pos = -1
+                start, end = vv.full_line(m.line)
+                length = end - start - 1  # -1 for the trailing '\n'
+                return line, 0, length
             else:
-                pos = 0
+                return line, 0, 0
 
-            length = self.highlight.range(
-                m.line,
-                pos,
-                length=0,
-                error_type=error_type,
-                word_re=self.word_re,
-                style=style
-            )
+        else:
+            if m.near:
+                near = self.strip_quotes(m.mear)
+                length = len(near)
+                return line, col, col + length
+            else:
+                text = vv.select_line(m.line)[col:]
+                match = self.word_re.search(text) if self.word_re else None
 
-        self.error(m.line, col, m.message, error_type, style=style, code=m.warning or m.error, length=length)
+                length = len(match.group()) if match else 1
+                return line, col, col + length
+
+    @staticmethod
+    def strip_quotes(text):
+        """Return text stripped of enclosing single/double quotes."""
+        first = text[0]
+
+        if first in ('\'', '"') and text[-1] == first:
+            text = text[1:-1]
+
+        return text
 
     @staticmethod
     def clear_view(view):
@@ -1341,82 +1331,6 @@ class Linter(metaclass=LinterMeta):
         else:
             util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
-
-    def error(self, line, col, message, error_type, style=None, code=None, length=None):
-        """Add a reference to an error/warning on the given line and column."""
-        self.highlight.line(line, error_type, style=style)
-
-        col = col or 0
-
-        if not code:
-            code = ""
-
-        payload = {
-            "start": col,
-            "end": col + (length or 0),
-            "linter": self.name,
-            "code": code,
-            "msg": message
-        }
-
-        l1 = self.errors.setdefault(line, {})
-        l2 = l1.setdefault(error_type, [])
-        l2.append(payload)
-
-    def find_errors(self, output):
-        """
-        Match the linter's regex against the linter output with this generator.
-
-        If multiline is True, split_match is called for each non-overlapping
-        match of self.regex. If False, split_match is called for each line
-        in output.
-        """
-        if self.multiline:
-            errors = self.regex.finditer(output)
-            if errors:
-                for error in errors:
-                    yield self.split_match(error)
-            else:
-                yield self.split_match(None)
-        else:
-            for line in output.splitlines():
-                yield self.split_match(self.regex.match(line.rstrip()))
-
-    def split_match(self, match):
-        """
-        Split a match into the standard elements of an error and return them.
-
-        If subclasses need to modify the values returned by the regex, they
-        should override this method, call super(), then modify the values
-        and return them.
-
-        """
-        match_dict = MATCH_DICT.copy()
-
-        if not match:
-            persist.debug('No match for regex: {}'.format(self.regex.pattern))
-        else:
-            match_dict.update({
-                k: v
-                for k, v in match.groupdict().items()
-                if k in match_dict
-            })
-            match_dict["match"] = match
-
-            # normalize line and col if necessary
-            line = match_dict["line"]
-            if line:
-                match_dict["line"] = int(line) - self.line_col_base[0]
-
-            col = match_dict["col"]
-            if col:
-                if col.isdigit():
-                    col = int(col) - self.line_col_base[1]
-                else:
-                    col = len(col)
-                match_dict["col"] = col
-
-        return LintMatch(**match_dict)
 
     def run(self, cmd, code):
         """

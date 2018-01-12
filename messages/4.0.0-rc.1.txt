@@ -2,7 +2,7 @@ SublimeLinter 4.0 Pre-Release
 ===========================================
 
 You can find this text at
-https://github.com/SublimeLinter/SublimeLinter3/blob/next/messages/4.0.0-rc.1.txt
+https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt
 
 Please restart Sublime Text before continuing.
 
@@ -24,12 +24,18 @@ New features
   highlight style can be differentiated per linter.
 - Styles also have a "priority" which decides what icon to show in the gutter.
 - Gutter themes can now be set using just their name.
+- Gutter themes can now have multiple icons, selectable by just their name.
+  In the "Default" theme: diamond, heart, square, star, triangle and more!
 - No "(SL)" color scheme files are generated, in stead relying on common scopes.
 - It's possible to use a color by specifying any scope that's in your color
   scheme (e.g. "entity.name")
 - If you're using ST dev builds you can change colors by specifying
   "region.<colorish>" in the scope option. Colors:
   redish, orangish, yellowish, greenish, bluish, purplish, pinkish
+- SublimeLinter will no longer be visible under Packages/SublimeLinter, so you
+  cannot edit its code directly. If you want to make changes you can clone the
+  repo into Packages. If you fix a bug, please share it with the world with a
+  pull request!
 
 
 Changes to commands, menus and key bindings
@@ -85,11 +91,11 @@ exist anymore:
 - mark_style
 - error_color
 - gutter_theme_excludes
-- mark_style
 - passive_warnings
 - show_errors_on_save
 - tooltip_fontsize, tooltip_theme, tooltip_theme_excludes, tooltips
 - warning_color
+- wrap_find
 
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.

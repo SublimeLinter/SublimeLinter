@@ -1,6 +1,6 @@
 .. include:: defines.inc
 
-Welcome to SublimeLinter 3
+Welcome to SublimeLinter
 ==========================
 |_sl| is a plugin for |_st| that provides a framework for linting code. Whatever language you code in, |sl| can help you write cleaner, better, more bug-free code. |sl| has been designed to provide maximum flexibility and usability for users and maximum simplicity for linter authors.
 

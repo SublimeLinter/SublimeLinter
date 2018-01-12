@@ -12,6 +12,14 @@
         "command": "sublime_linter_line_report"
     },
     {
+        "caption": "SublimeLinter: Goto Error",
+        "command": "sublime_linter_goto_error", "args":
+        {
+            "direction": "next",
+            "wrap": true
+        }
+    },
+    {
         "caption": "Preferences: SublimeLinter Settings",
         "command": "edit_settings", "args":
         {

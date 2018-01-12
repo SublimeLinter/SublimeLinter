@@ -1,5 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from collections import defaultdict
 import os
 import html
 
@@ -9,11 +10,11 @@ import sublime_plugin
 from .lint import events
 from .lint.linter import Linter
 from .lint import highlight
-from .lint.highlight import HighlightSet
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
+from .lint import backend
 from .panel import panel
 
 
@@ -151,6 +152,7 @@ class Listener:
             else:
                 d.pop(vid, None)
 
+        queue.cleanup(vid)
         panel.fill_panel(view.window(), update=True)
 
     def on_hover(self, view, point, hover_zone):
@@ -210,7 +212,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
-    def lint(self, view_id, hit_time=None, callback=None):
+    def lint(self, view_id, hit_time=None):
         """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
@@ -220,9 +222,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         to the queue. It is used to determine if the view has been modified
         since the lint request was queued. If so, the lint is aborted, since
         another lint request is already in the queue.
-
-        callback is the method to call when the lint is finished. If not
-        provided, it defaults to highlight().
         """
         # If this is not the latest 'hit' we're processing abort early.
         if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
@@ -233,25 +232,14 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not view:
             return
 
-        filename = view.file_name()
-        code = Linter.text(view)
-        callback = callback or self.highlight
-
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        Linter.lint_view(view, filename, code, hit_time, callback)
+        backend.lint_view(view, hit_time, self.highlight)
 
-    def highlight(self, view, linters, hit_time):
+    def highlight(self, view, errors, hit_time):
         """
         Highlight any errors found during a lint of the given view.
 
         This method is called by Linter.lint_view after linting is finished.
-
-        linters is a list of the linters that ran. hit_time has the same meaning
-        as in lint(), and if the view was modified since the lint request was
-        made, this method aborts drawing marks.
-
-        If the view has not been modified since hit_time, all of the marks and
-        errors from the list of linters are aggregated and drawn, and the status is updated.
         """
         if not view:
             return
@@ -263,32 +251,32 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
             return
 
-        errors = {}
-        highlights = HighlightSet()
+        bid = view.buffer_id()
+        persist.raw_errors[bid] = errors
 
-        for linter in linters:
-            if linter.highlight:
-                highlights.add(linter.highlight)
+        # For compatibility we store the errors SL3 style as well.
+        errors_by_line = defaultdict(lambda: defaultdict(list))
+        for error in errors:
+            line = error['line']
+            error_type = error['error_type']
+            errors_by_line[line][error_type].append(error)
 
-            if linter.errors:
-                for line, errs in linter.errors.items():
-                    l_err = errors.setdefault(line, {})
-                    for err_t in WARN_ERR:
-                        l_err.setdefault(err_t, []).extend(errs.get(err_t, []))
+        for view in all_views_into_buffer(view):
+            vid = view.id()
+            persist.errors[vid] = errors_by_line
 
-        buffer_id = view.buffer_id()
+        events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
+
+        highlights = highlight.Highlight(view)
+        for error in errors:
+            highlights.add_error(**error)
+
+        for view in all_views_into_buffer(view):
+            highlight.clear_view(view)
+            highlights.draw(view)
 
         for window in sublime.windows():
-            for other_view in window.views():
-                if other_view.buffer_id() == buffer_id:
-                    vid = other_view.id()
-                    highlight.clear_view(other_view)
-                    highlights.draw(other_view)
-                    persist.errors[vid] = errors
-
             panel.fill_panel(window, update=True)
-
-        events.broadcast(events.FINISHED_LINTING, {'buffer_id': view.buffer_id()})
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -300,7 +288,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.linted_views.add(vid)
 
         if view.size() == 0:
-            for linter in Linter.get_linters(vid):
+            for linter in persist.view_linters[vid]:
                 linter.clear()
             return
 
@@ -468,3 +456,13 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
+
+
+def all_views_into_buffer(view):
+    """Yield all views with the same underlying buffer."""
+    buffer_id = view.buffer_id()
+
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() == buffer_id:
+                yield view

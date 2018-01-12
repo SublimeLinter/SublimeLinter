@@ -255,24 +255,22 @@ def change_selection(panel_lineno, full_line=False, window=None):
     panel.run_command("scroll_lines")
 
 
-def update_panel_selection(vid, lineno=None, colno=None, window=None):
-    if lineno < 0:
-        lineno = None
-    if colno <= 0:
-        colno = None
-
-    full_line = False
-    view_dict = persist.errors.get_view_dict(vid)
-    if not view_dict or util.is_none_or_zero(view_dict["we_count_view"]):
+def update_panel_selection(active_view, we_count, current_pos, **kwargs):
+    if current_pos == (-1, -1):
         return
 
+    full_line = False
+    view_dict = persist.errors.get_view_dict(active_view.id())
+    if not view_dict or util.is_none_or_zero(we_count):
+        return
+
+    (lineno, colno) = current_pos
     line_dicts = view_dict["line_dicts"]
 
-    if lineno:
-        if lineno in line_dicts:
-            full_line = True
-        else:
-            lineno = get_next_lineno(lineno, line_dicts)
+    if lineno in line_dicts:
+        full_line = True
+    else:
+        lineno = get_next_lineno(lineno, line_dicts)
 
     lineno = 0 if lineno is None else lineno
 
@@ -282,7 +280,7 @@ def update_panel_selection(vid, lineno=None, colno=None, window=None):
     if not region_dict:
         return
 
-    if full_line and colno is not None:
+    if full_line:
         full_line = region_dict["start"] <= colno <= region_dict["end"]
 
     panel_lineno = region_dict.get("panel_lineno")

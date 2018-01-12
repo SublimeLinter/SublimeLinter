@@ -171,15 +171,6 @@ class Listener:
             if persist.settings.get('show_hover_region_report'):
                 SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
-    def on_selection_modified_async(self, view):
-        if not view:
-            return
-
-        lineno, colno = self.get_line_and_col(view)
-        vid = view.id()
-
-        panel.update_panel_selection(vid, lineno, colno)
-
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
     shared_instance = None

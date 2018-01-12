@@ -257,7 +257,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
 
-        # TODO: These should go to their own modules.
         highlights = highlight.Highlight(view)
         for error in errors:
             highlights.add_error(**error)

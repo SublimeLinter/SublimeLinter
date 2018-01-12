@@ -68,11 +68,11 @@ def goto(view, direction, count, wrap):
             # filtered errors directly under cursor (!)
             line == current_line and start < current_col)
 
-    next = dropwhile(before_current_pos, errors)
-    previous = takewhile(before_current_pos, errors)
+    next_positions = dropwhile(before_current_pos, errors)
+    previous_positions = takewhile(before_current_pos, errors)
 
     reverse = direction == 'previous'
-    jump_positions = list(previous if reverse else next)
+    jump_positions = list(previous_positions if reverse else next_positions)
 
     if not jump_positions:
         if wrap:

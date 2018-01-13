@@ -7,9 +7,13 @@
     { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" },
     // To display filtered results in the panel add arguments:
     // { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle", "args": {
+    // whitelist via:
     //         "types": ["error", "warning"],
     //         "codes": [],
-    //         "linter": []
+    //         "linter": [],
+    // blacklist via:
+    //          "exclude_codes": [],
+    //          "exclude_linter": []
     //     }
     // }
 

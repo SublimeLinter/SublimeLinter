@@ -4,6 +4,7 @@ import sublime_plugin
 from .lint import persist
 from .lint.const import STATUS_KEY
 from .lint import events
+from .panel import panel
 
 
 State = {
@@ -46,7 +47,7 @@ class UpdateState(sublime_plugin.EventListener):
             'we_count': we_count,
             'current_pos': current_pos
         })
-
+        panel.update_panel_selection(**State)
         draw(**State)
 
     def on_selection_modified_async(self, _primary_view_):
@@ -56,7 +57,7 @@ class UpdateState(sublime_plugin.EventListener):
             State.update({
                 'current_pos': current_pos
             })
-
+            panel.update_panel_selection(**State)
             draw(**State)
 
 

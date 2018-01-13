@@ -1,0 +1,7 @@
+{
+    "coffeescript": ["source.coffee"],
+    "javascript": ["source.js"],
+    "markdown": [],
+    "pug": ["text.jade", "source.pyjade"],
+    "typescript": ["source.ts"]
+}

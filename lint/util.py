@@ -42,30 +42,6 @@ def printf(*args):
     print()
 
 
-def get_syntax(view):
-    """
-    Return the view's syntax.
-
-    or the syntax it is mapped to in the "syntax_map" setting.
-    """
-    syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
-    view_syntax = view.settings().get('syntax', '')
-    mapped_syntax = ''
-
-    if view_syntax:
-        match = syntax_re.search(view_syntax)
-
-        if match:
-            view_syntax = match.group(1).lower()
-            from .persist import settings
-            mapped_syntax = settings.get(
-                'syntax_map', {}).get(view_syntax, '').lower()
-        else:
-            view_syntax = ''
-
-    return mapped_syntax or view_syntax
-
-
 class Borg:
     _shared_state = {}
 
@@ -610,3 +586,45 @@ def load_json(*segments, from_sl_dir=False):
     base_path = "Packages/SublimeLinter/" if from_sl_dir else ""
     full_path = base_path + "/".join(segments)
     return sublime.decode_value(sublime.load_resource(full_path))
+
+
+# syntax functions
+
+
+def yield_tail_scopes(scope):
+    while "." in scope:
+        scope, tail = scope.rsplit(".", 1)
+        yield tail
+
+
+def max_selector_score(view, selectors):
+    return max((view.score_selector(0, s) for s in selectors if s) or [0])
+
+
+def get_syntax_by_score(view, syntax_map):
+    try:
+        scoring = {
+            max_selector_score(view, selectors): syntax
+            for syntax, selectors in syntax_map.items() if selectors
+        }
+    except ValueError:
+        return
+    else:
+        max_score = max(scoring)
+        if max_score > 0:
+            return scoring[max_score]
+
+
+def get_syntax(view):
+    """Return the view's syntax."""
+    syntax_map = load_json('resources/syntax_map.json', from_sl_dir=True)
+    main_scope = view.scope_name(0).split()[0]
+
+    # lazy syntax lookup
+    for tail in yield_tail_scopes(main_scope):
+        if tail in syntax_map:
+            return tail
+
+    # more elaborate lookup via scoring mechanism
+    # or last tail as fallback, e.g. `python` from `source.python`
+    return get_syntax_by_score(view, syntax_map) or tail

@@ -6,14 +6,9 @@
     // Show all errors
     { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" },
     // To display filtered results in the panel add arguments:
-<<<<<<< HEAD
-    // { "keys": ["ctrl+k", "a"], "command": "sublime_linter_panel_toggle", "args": {
-    // whitelist via:
-    //         "types": ["error"],
-=======
     // { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle", "args": {
+    // whitelist via:
     //         "types": ["error", "warning"],
->>>>>>> panel_select
     //         "codes": [],
     //         "linter": [],
     // blacklist via:

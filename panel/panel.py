@@ -144,7 +144,47 @@ def format_row(lineno, error_type, dic):
         LINENO=lineno, START=start, ERR_TYPE=error_type, MSG=msg, **dic)
 
 
-def fill_panel(window, types=None, codes=None, linter=None, update=False):
+def filter_ok(check_val, key, panel_filter):
+    """Check value against white- and blacklisting and return bool."""
+    # check whitelisting
+    if not panel_filter:
+        return True
+
+    if key in panel_filter and check_val not in panel_filter[key]:
+        return False
+
+    # check blacklisting
+    exclude_key = "exclude_" + key
+    if exclude_key in panel_filter and check_val in panel_filter[exclude_key]:
+        return False
+
+    return True
+
+
+def get_view_lines(view_dict, panel_filter):
+    view_lines = []
+    for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+        for error_type in WARN_ERR:
+            if not filter_ok(error_type, "types", panel_filter):
+                continue
+
+            err_dict = line_dict.get(error_type)
+            if not err_dict:
+                continue
+            items = sorted(err_dict, key=lambda k: k['start'])
+
+            items = [
+                item for item in items
+                if filter_ok(item['linter'], "linter", panel_filter) and
+                filter_ok(item['code'], "codes", panel_filter)
+            ]
+            for item in items:
+                view_lines.append((lineno, error_type, item))
+
+    return view_lines
+
+
+def fill_panel(window, update=False, **panel_filter):
     errors = persist.errors.data
     if not errors:
         return
@@ -162,44 +202,27 @@ def fill_panel(window, types=None, codes=None, linter=None, update=False):
     settings.set("result_base_dir", base_dir)
 
     if update:
-        types = settings.get("types")
-        codes = settings.get("codes")
-        linter = settings.get("linter")
+        panel_filter = settings.get("sublime_linter_panel_filter")
     else:
-        settings.set("types", types)
-        settings.set("codes", codes)
-        settings.set("linter", linter)
+        settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = RenderLines()
     for vid, view_dict in errors.items():
         if util.is_none_or_zero(view_dict["we_count_view"]):
             continue
 
-        to_render.append(format_header(path_dict[vid]))
+        view_lines = get_view_lines(view_dict, panel_filter)
+        if view_lines:
+            # append header
+            to_render.append(format_header(path_dict[vid]))
 
-        for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-            for error_type in WARN_ERR:
-                if types and error_type not in types:
-                    continue
-                err_dict = line_dict.get(error_type)
-                if not err_dict:
-                    continue
-                items = sorted(err_dict, key=lambda k: k['start'])
+            # append lines
+            for lineno, error_type, item in view_lines:
+                to_render.append(format_row(lineno, error_type, item))
+                item["panel_lineno"] = to_render.current_lineno()
 
-                for item in items:
-                    item["panel_lineno"] = None
-                    # new filter function
-                    if linter and item['linter'] not in linter:
-                        continue
-
-                    if codes and item['code'] not in codes:
-                        continue
-
-                    line_msg = format_row(lineno, error_type, item)
-                    to_render.append(line_msg)
-                    item["panel_lineno"] = to_render.current_lineno()
-
-        to_render.append("")  # empty lines between views
+            # insert empty line between views sections
+            to_render.append("")
 
     rendered_text = to_render.render() if to_render else None
     run_update_panel_cmd(panel, text=rendered_text)

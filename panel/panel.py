@@ -31,6 +31,10 @@ class RenderLines:
         self.lines.append(str)
         self._line_counter += 1
 
+    def extend(self, lst):
+        self.lines.extend(lst)
+        self._line_counter += len(lst)
+
     def current_lineno(self):
         return self._line_counter
 
@@ -161,6 +165,26 @@ def filter_ok(check_val, key, panel_filter):
     return True
 
 
+def yield_lines(view_dict, panel_filter):
+    for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+        for error_type in WARN_ERR:
+            if not filter_ok(error_type, "types", panel_filter):
+                continue
+
+            err_dict = line_dict.get(error_type)
+            if not err_dict:
+                continue
+            items = sorted(err_dict, key=lambda k: k['start'])
+
+            items = [
+                item for item in items
+                if filter_ok(item['linter'], "linter", panel_filter) and
+                filter_ok(item['code'], "codes", panel_filter)
+            ]
+            for item in items:
+                yield lineno, error_type, item
+
+
 def fill_panel(window, update=False, **panel_filter):
     errors = persist.errors.data.copy()
     if not errors:
@@ -188,30 +212,16 @@ def fill_panel(window, update=False, **panel_filter):
         if util.is_none_or_zero(view_dict["we_count_view"]):
             continue
 
-        to_render.append(format_header(path_dict[vid]))
+        has_header = False
+        for lineno, error_type, item in yield_lines(view_dict, panel_filter):
+            if not has_header:
+                to_render.append(format_header(path_dict[vid]))
+                has_header = True
+            to_render.append(format_row(lineno, error_type, item))
+            item["panel_lineno"] = to_render.current_lineno()
 
-        for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-            for error_type in WARN_ERR:
-                if not filter_ok(error_type, "types", panel_filter):
-                    continue
-
-                err_dict = line_dict.get(error_type)
-                if not err_dict:
-                    continue
-                items = sorted(err_dict, key=lambda k: k['start'])
-
-                for item in items:
-                    if not filter_ok(item['linter'], "linter", panel_filter):
-                        continue
-
-                    if not filter_ok(item['code'], "codes", panel_filter):
-                        continue
-
-                    line_msg = format_row(lineno, error_type, item)
-                    to_render.append(line_msg)
-                    item["panel_lineno"] = to_render.current_lineno()
-
-        to_render.append("")  # empty lines between views
+        if has_header:
+            to_render.append("")  # empty lines between views sections
 
     rendered_text = to_render.render() if to_render else None
     run_update_panel_cmd(panel, text=rendered_text)

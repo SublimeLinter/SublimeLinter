@@ -17,8 +17,9 @@ New features
   for that line.
 - A panel displays errors in all open files.
 - The panel can be filtered to just show specific types or severity level.
-- Built-in next/prev_results can be used to navigate to all errors.
+- Built-in next/prev_results commands can be used to navigate to all errors.
 - The filtering also applies to these navigation commands.
+- Jump between all errors in the current file with sublime_linter_goto_error.
 - A new "styles" setting to configure error highlighting.
 - Each linter setting now accepts such a "styles" setting, so colors, icons and
   highlight style can be differentiated per linter.

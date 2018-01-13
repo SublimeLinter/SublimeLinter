@@ -118,17 +118,5 @@
                 "error"
             ]
         }
-    ],
-
-    // Maps variant syntaxes to the syntax that you have a linter for.
-    "syntax_map": {
-        "html (django)": "html",
-        "html (rails)": "html",
-        "html 5": "html",
-        "javascript (babel)": "javascript",
-        "magicpython": "python",
-        "php": "html",
-        "python django": "python",
-        "pythonimproved": "python"
-    }
+    ]
 }

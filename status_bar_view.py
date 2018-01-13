@@ -47,7 +47,7 @@ class UpdateState(sublime_plugin.EventListener):
             'we_count': we_count,
             'current_pos': current_pos
         })
-
+        panel.update_panel_selection(**State)
         draw(**State)
 
     def on_selection_modified_async(self, _primary_view_):

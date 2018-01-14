@@ -125,7 +125,7 @@ def get_linters(view):
     filename = view.file_name()
     vid = view.id()
 
-    for linter in persist.view_linters.get(vid):
+    for linter in persist.view_linters.get(vid, []):
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
             continue

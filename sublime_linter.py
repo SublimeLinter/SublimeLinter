@@ -279,7 +279,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.linted_views.add(vid)
 
         if view.size() == 0:
-            for linter in persist.view_linters[vid]:
+            for linter in persist.view_linters.get(vid, []):
                 linter.clear()
             return
 

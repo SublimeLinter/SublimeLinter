@@ -21,11 +21,11 @@ def goto(view, direction, count, wrap):
     try:
         errors = persist.raw_errors[bid]
     except KeyError:
-        flash(view, 'No errors/problems')
+        flash(view, 'No lint')
         return
 
     if len(errors) == 0:
-        flash(view, 'No errors/problems')
+        flash(view, 'No lint')
         return
 
     current_line, current_col = get_current_pos(view)
@@ -44,7 +44,7 @@ def goto(view, direction, count, wrap):
     # left. That is the case if we sit on the last remaining error, where we
     # don't have anything to jump to and even `wrap` becomes a no-op.
     if len(errors) == 0:
-        flash(view, 'No more problems.')
+        flash(view, 'No more lint')
         return
 
     def before_current_pos(error):
@@ -69,7 +69,7 @@ def goto(view, direction, count, wrap):
         else:
             flash(
                 view,
-                'No more problems {}.'.format('above' if reverse else 'below')
+                'No more lint {}'.format('above' if reverse else 'below')
             )
             return
     elif len(jump_positions) <= count:

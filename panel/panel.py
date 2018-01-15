@@ -13,7 +13,6 @@ OUTPUT_PANEL_SETTINGS = {
     "gutter": False,
     "is_widget": True,
     "line_numbers": False,
-    "margin": 3,
     "match_brackets": False,
     "rulers": False,
     "scroll_past_end": False,

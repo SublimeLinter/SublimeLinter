@@ -15,7 +15,7 @@ By doing so, you get the following features:
 
 rbenv and rvm support
 ----------------------
-During class construction, |sl| attempts to locate the gem and ruby specified in :ref:`cmd`.
+During class construction, SublimeLinter attempts to locate the gem and ruby specified in :ref:`cmd`.
 
 The following forms are valid for the first argument of ``cmd``:
 

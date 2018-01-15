@@ -1,10 +1,9 @@
-.. include:: defines.inc
-
-.. _settings-stack:
+Settings
+========
 
 Settings stack
 --------------
-When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings from several sources to calculate the value.
+SublimeLinter merges settings from several sources to calculate the value.
 
 .. code-block:: none
 
@@ -13,21 +12,9 @@ When |sl| (or a linter plugin) asks for a setting value, |sl| merges settings fr
     Project settings
 
 
-Setting types
--------------
-There are three distinct types of settings:
-
-Global
-~~~~~~
-Global settings control |sl|’s behavior and apply to all views. Defaults for all global settings are defined in the |sl| default settings and may be modified with the user settings.
-
-Linter
-~~~~~~
-Linter settings apply only to a specific named linter. Linter settings are always defined within a ``"linters"`` object whose subobjects are named according to the lowercase class name of the linter. For an example, see the `user settings`_ sample below.
-
 Project settings
 ~~~~~~~~~~~~~~~~
-|sl| project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. Here you can change linter settings for a project.
+SublimeLinter project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. Here you can change linter settings for a project.
 
 Project settings are opened from the ``Project > Edit Project`` menu. Here is an example project settings file where the flake8 linter has been disabled:
 

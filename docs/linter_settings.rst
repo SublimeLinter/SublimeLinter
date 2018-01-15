@@ -1,11 +1,7 @@
-.. include:: defines.inc
-
 Linter Settings
 ===============
-Each linter plugin is responsible for providing its own settings. In addition to the linter-provided settings, |sl| adds the following settings to every linter:
+Each linter plugin is can provide its own settings. SublimeLinter already provides these for every linter:
 
-
-.. _disable-linter-setting:
 
 disable
 --------
@@ -13,7 +9,7 @@ Disables the linter.
 
 args
 ----
-This setting specifies extra arguments to pass to an external binary. This is useful when a linter binary supports an option that is not part of the linter’s settings.
+Specifies extra arguments to pass to an external binary.
 
 The value may be a string or an array. If it is a string, it will be parsed as if it were passed on a command line. For example, these values are equivalent:
 
@@ -33,10 +29,6 @@ The value may be a string or an array. If it is a string, it will be parsed as i
 
 The default value is an empty array.
 
-.. note::
-
-   If a linter runs python code directly, without calling an external binary, it is up to the linter to decide what to do with this setting.
-
 
 chdir
 -----
@@ -47,7 +39,7 @@ The value must be a string, corresponding to a valid directory path.
 .. code-block:: json
 
     {
-        "chdir": "${project}",
+        "chdir": "${project}"
     }
 
 With the above example, the linter will get invoked from the ``${project}`` directory (see :ref:`Setting Tokens <settings-tokens>` for more info on using tokens).

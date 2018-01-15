@@ -31,7 +31,7 @@ This method is called if:
 
 -  The named module is successfully imported.
 
--  :ref:`Version matching <resolving-python-versions>` allows the use of |st|’s built-in python.
+-  :ref:`Version matching <resolving-python-versions>` allows the use of SublimeText’s built-in python.
 
 This method should perform linting and return a string with one more lines per error, an array of strings, or an array of objects that can be converted to strings. Here is the ``check`` method from the ``Flake8`` class, which is a good template for your own ``check`` implementations:
 
@@ -93,9 +93,9 @@ For example, the `SublimeLinter-pyflakes`_ linter plugin defines ``cmd`` as:
 
     cmd = 'pyflakes@python'
 
-This tells |sl| to locate the ``pyflakes`` script and run it on the system python or the version of python configured in settings.
+This tells SublimeLinter to locate the ``pyflakes`` script and run it on the system python or the version of python configured in settings.
 
-When using the ``script@python`` form, |sl| does the following:
+When using the ``script@python`` form, SublimeLinter does the following:
 
 -  Locates *script* in a cross-platform way. Python scripts are installed differently on Windows than they are on Mac OS X and Linux.
 
@@ -112,7 +112,7 @@ If you want to import a python module and run a method directly in order to lint
 
 .. note::
 
-   Because the module is going to run within |st|, it must be compatible with python 3.3 or later. If not, do not define this attribute.
+   Because the module is going to run within SublimeText, it must be compatible with python 3.3 or later. If not, do not define this attribute.
 
 For example, the ``Flake8`` linter class defines:
 
@@ -130,9 +130,9 @@ If the module attribute is defined and is successfully imported, whether it is u
 
 - If the :ref:`check_version <check_version>` attribute is ``False``, the module will be used because the module is not version-sensitive.
 
-- If the :ref:`"@python" <python-meta-setting>` setting is set and |st|’s built-in python satisfies that version, the module will be used.
+- If the :ref:`"@python" <python-meta-setting>` setting is set and SublimeText’s built-in python satisfies that version, the module will be used.
 
-- If the :ref:`cmd` attribute specifies ``@python`` and |st|’s built-in python satisfies that version, the module will be used. Note that this check is done during class construction.
+- If the :ref:`cmd` attribute specifies ``@python`` and SublimeText’s built-in python satisfies that version, the module will be used. Note that this check is done during class construction.
 
 - Otherwise the external linter executable will be used with the python specified in the :ref:`"@python" <python-meta-setting>` setting, the :ref:`cmd` attribute, or the default system python.
 

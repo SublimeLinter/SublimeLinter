@@ -40,6 +40,10 @@ Navigating to the next/previous error is done using the `next_result` and `prev_
 Please use the debug mode and include all console output, and your settings in your bug report. If your issue is specific to a particular linter, please report it on that linter's repository instead.
 
 
+## Creating a linter plugin
+
+Use the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin. It contains a howto with all the information you need.
+
 ---------------------------
 
 

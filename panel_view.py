@@ -2,9 +2,9 @@ import sublime
 import sublime_plugin
 
 from .lint import persist
-from .lint.const import STATUS_KEY
-from .lint import events
 from .lint import util
+from .lint import events
+from .panel import panel
 
 
 State = {
@@ -34,7 +34,7 @@ def on_finished_linting(buffer_id):
             'we_count': persist.errors.get_view_we_count(vid)
         })
 
-        draw(**State)
+        panel.update_panel_selection(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -47,7 +47,7 @@ class UpdateState(sublime_plugin.EventListener):
             'current_pos': util.get_current_pos(active_view)
         })
 
-        draw(**State)
+        panel.update_panel_selection(**State)
 
     def on_selection_modified_async(self, _primary_view_):
         active_view = State['active_view']
@@ -57,25 +57,4 @@ class UpdateState(sublime_plugin.EventListener):
                 'current_pos': current_pos
             })
 
-            draw(**State)
-
-
-def draw(active_view, we_count, current_pos, **kwargs):
-    vid = active_view.id()
-
-    if not we_count:
-        active_view.erase_status(STATUS_KEY)
-        return
-
-    status = "W: {warning} E: {error}".format(**we_count)
-
-    msgs = []
-    errors_on_pos = persist.errors.get_region_dict(vid, *current_pos)
-    for error_type, dc in errors_on_pos.items():
-        for d in dc:
-            msgs.append(d["msg"])
-    if msgs:
-        status += " - {}".format("; ".join(msgs))
-
-    if status != active_view.get_status(STATUS_KEY):
-        active_view.set_status(STATUS_KEY, status)
+            panel.update_panel_selection(**State)

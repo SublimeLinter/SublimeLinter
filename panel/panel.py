@@ -256,8 +256,8 @@ def get_next_lineno(num, interval):
         return neighbours[1]
 
 
-def change_selection(panel_lineno, full_line=False, window=None):
-    panel = get_panel(window or sublime.active_window())
+def change_selection(panel_lineno, full_line=False):
+    panel = get_panel(sublime.active_window())
     if not panel:
         return
 

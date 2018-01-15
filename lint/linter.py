@@ -1153,7 +1153,7 @@ class Linter(metaclass=LinterMeta):
 
         else:
             if m.near:
-                near = self.strip_quotes(m.mear)
+                near = self.strip_quotes(m.near)
                 length = len(near)
                 return line, col, col + length
             else:

@@ -15,7 +15,9 @@ OUTPUT_PANEL_SETTINGS = {
     "line_numbers": False,
     "margin": 3,
     "match_brackets": False,
+    "rulers": False,
     "scroll_past_end": False,
+    "spell_check": False,
     "tab_size": 4,
     "translate_tabs_to_spaces": False,
     "word_wrap": False

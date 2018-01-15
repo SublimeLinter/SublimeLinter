@@ -4,11 +4,10 @@ import os
 import re
 import shlex
 import sublime
-import subprocess
 
 from functools import lru_cache
 
-from .. import linter, util, persist
+from .. import linter, util
 
 CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
 
@@ -25,30 +24,25 @@ class RubyLinter(linter.Linter):
     """
 
     @classmethod
-    def initialize(cls):
-        """Perform class-level initialization."""
-        super().initialize()
+    @lru_cache(maxsize=None)
+    def can_lint(cls, syntax):
+        """Determine optimistically if the linter can handle the provided syntax."""
+        can = False
+        syntax = syntax.lower()
 
-        if cls.executable_path is not None:
-            return
+        if cls.syntax:
+            if isinstance(cls.syntax, (tuple, list)):
+                can = syntax in cls.syntax
+            elif cls.syntax == '*':
+                can = True
+            elif isinstance(cls.syntax, str):
+                can = syntax == cls.syntax
+            else:
+                can = cls.syntax.match(syntax) is not None
 
-        if not callable(cls.cmd) and cls.cmd:
-            cls.executable_path = cls.lookup_executables(cls.cmd)
-        elif cls.executable:
-            cls.executable_path = cls.lookup_executables(cls.executable)
+        return can
 
-        if not cls.executable_path:
-            cls.disabled = True
-
-    @classmethod
-    def reinitialize(cls):
-        """Perform class-level initialization after plugins have been loaded at startup."""
-        # Be sure to clear cls.executable_path so that lookup_executables will run.
-        cls.executable_path = None
-        cls.initialize()
-
-    @classmethod
-    def lookup_executables(cls, cmd):
+    def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the gem and ruby specified in cmd, return new cmd list.
 
@@ -82,9 +76,9 @@ class RubyLinter(linter.Linter):
         if not rbenv and not ruby:
             util.printf(
                 'WARNING: {} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby'
-                .format(cls.name, cmd[0])
+                .format(self.name, cmd[0])
             )
-            return []
+            return True, None
 
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
@@ -106,70 +100,31 @@ class RubyLinter(linter.Linter):
                     ('{0}.rbenv{0}shims{0}'.format(os.sep) in gem_path or
                      (os.altsep and '{0}.rbenv{0}shims{0}'.format(os.altsep in gem_path)))):
                     ruby_cmd = [gem_path]
-                elif (sublime.platform() == 'windows'):
+                elif sublime.platform() == 'windows':
                     ruby_cmd = [gem_path]
                 else:
                     ruby_cmd = [ruby, gem_path]
             else:
                 util.printf(
                     'WARNING: {} deactivated, cannot locate the gem \'{}\''
-                    .format(cls.name, gem)
+                    .format(self.name, gem)
                 )
-                return []
+                return True, None
         else:
             ruby_cmd = [ruby]
 
-        if cls.env is None:
-            # Don't use GEM_HOME with rbenv, it prevents it from using gem shims
-            if rbenv:
-                cls.env = {}
+        # Attention readers! All self mutations can have surprising
+        # side-effects for concurrent/async linting.
+
+        # Don't use GEM_HOME with rbenv, it prevents it from using gem shims
+        if rbenv:
+            self.env = {}
+        else:
+            gem_home = os.environ.get('GEM_HOME', None)
+
+            if gem_home:
+                self.env = {'GEM_HOME': gem_home}
             else:
-                gem_home = util.get_environment_variable('GEM_HOME')
+                self.env = {}
 
-                if gem_home:
-                    cls.env = {'GEM_HOME': gem_home}
-                else:
-                    cls.env = {}
-
-        return ruby_cmd
-
-
-@lru_cache(maxsize=None)
-def get_environment_variable(name):
-    """Return the value of the given environment variable, or None if not found."""
-    if os.name == 'posix':
-        value = None
-
-        if 'SHELL' in os.environ:
-            shell_path = os.environ['SHELL']
-
-            # We have to delimit the output with markers because
-            # text might be output during shell startup.
-            out = run_shell_cmd(
-                (shell_path, '-l', '-c', 'echo "__SUBL_VAR__${{{}}}__SUBL_VAR__"'.format(name))).strip()
-
-            if out:
-                value = out.decode().split('__SUBL_VAR__', 2)[
-                    1].strip() or None
-    else:
-        value = os.environ.get(name, None)
-
-    persist.debug('ENV[\'{}\'] = \'{}\''.format(name, value))
-
-    return value
-
-
-def run_shell_cmd(cmd):
-    """Run a shell command and return stdout."""
-    proc = util.popen(cmd, env=os.environ)
-
-    try:
-        timeout = persist.settings.get('shell_timeout', 10)
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out = b''
-        persist.printf(
-            'shell timed out after {} seconds, executing {}'.format(timeout, cmd))
-
-    return out
+        return True, ruby_cmd

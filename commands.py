@@ -2,7 +2,7 @@ import sublime
 import sublime_plugin
 
 from .lint import persist
-from .panel.panel import fill_panel, PANEL_NAME
+from . import panel_view
 
 
 class SublimeLinterLintCommand(sublime_plugin.TextCommand):
@@ -47,13 +47,13 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     def run(self, force_show=False, **kwargs):
         active_panel = self.window.active_panel()
-        is_active_panel = (active_panel == "output." + PANEL_NAME)
+        is_active_panel = (active_panel == "output." + panel_view.PANEL_NAME)
 
         if is_active_panel and not force_show:
-            self.show_panel(PANEL_NAME, show=False)
+            self.show_panel(panel_view.PANEL_NAME, show=False)
         else:
-            fill_panel(self.window, **kwargs)
-            self.show_panel(PANEL_NAME)
+            panel_view.fill_panel(self.window, **kwargs)
+            self.show_panel(panel_view.PANEL_NAME)
 
     def show_panel(self, name, show=True):
         """

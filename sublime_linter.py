@@ -7,6 +7,7 @@ import html
 import sublime
 import sublime_plugin
 
+from . import panel_view
 from .lint import events
 from .lint.linter import Linter
 from .lint import highlight
@@ -15,7 +16,6 @@ from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
 from .lint import backend
-from .panel import panel
 
 
 def backup_old_settings():
@@ -153,7 +153,7 @@ class Listener:
                 d.pop(vid, None)
 
         queue.cleanup(vid)
-        panel.fill_panel(view.window(), update=True)
+        panel_view.fill_panel(view.window(), update=True)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.

@@ -496,47 +496,25 @@ class Linter(metaclass=LinterMeta):
         expressions = []
         window = self.view.window()
         if window:
-            view = window.active_view()
-            window_vars = window.extract_variables()
-            directory = (
-                os.path.dirname(view.file_name()).replace('\\', '/') if
-                view and view.file_name() else "FILE NOT ON DISK")
+            filename = self.view.file_name()
 
-            if not view or not view.file_name():
-                return
-
-            # window.project_data delivers the root folder(s) of the view,
-            # even without any project file! more flexible that way:
-            #
-            # 1) have your folder open with no project settings
-            # 2) have more than one folder opened with no project settings
-            # 3) project settings file inside your folder structure
-            # 4) project settings file outside your folder structure
-
-            if window.project_file_name():
-                project = os.path.dirname(window.project_file_name()).replace('\\', '/')
-
+            project = self._guess_project_path(window, filename)
+            if project:
                 expressions.append({
                     'token': '${project}',
-                    'value': project
+                    'value': project.replace('\\', '/')
                 })
-            else:
-                data = window.project_data() or {}
-                folders = data.get('folders', [])
-                for folder in folders:
-                    # extract the root folder of the currently watched file
-                    filename = view.file_name() or 'FILE NOT ON DISK'
-                    if folder['path'] in filename:
-                        expressions.append({
-                            'token': '${project}',
-                            'value': folder['path']
-                        })
+
+            directory = (
+                os.path.dirname(filename).replace('\\', '/') if
+                filename else "FILE NOT ON DISK")
 
             expressions.append({
                 'token': '${directory}',
                 'value': directory
             })
 
+            window_vars = window.extract_variables()
             expressions.append({
                 'token': '${root}',
                 'value': window_vars.get('folder', None) or directory
@@ -560,7 +538,32 @@ class Linter(metaclass=LinterMeta):
                 "%s NOT SET" % m.group('variable'))
         })
 
+        persist.debug('Available expressions: {}'.format(expressions))
         recursive_replace(expressions, settings)
+
+    @staticmethod
+    def _guess_project_path(window, filename):
+        data = window.project_data()
+        if not data:
+            return
+
+        folders = data.get('folders')
+        if not folders:
+            return
+
+        folders = [folder['path'] for folder in folders]
+
+        if folders[0] == '.':
+            window_vars = window.extract_variables()
+            folders[0] = window_vars['folder']
+
+        if not filename:
+            return folders[0]
+
+        for folder in folders:
+            # Take the first one; should we take the deepest one? The shortest?
+            if folder in filename:
+                return folder
 
     @classmethod
     def assign(cls, view, linter_name=None, reset=False):

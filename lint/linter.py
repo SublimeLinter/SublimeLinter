@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, ChainMap
 from distutils.versionpredicate import VersionPredicate
 from functools import lru_cache
 from numbers import Number
@@ -151,10 +151,6 @@ class LinterMeta(type):
         if name:
             name = name.lower()
             persist.linter_classes[name] = cls
-
-            # By setting the lint_settings to None, they will be set the next
-            # time linter_class.settings() is called.
-            cls.lint_settings = None
 
             # The sublime plugin API is not available until plugin_loaded is executed
             if persist.plugin_is_loaded:
@@ -375,7 +371,6 @@ class Linter(metaclass=LinterMeta):
     #
     # Internal class storage, do not set
     #
-    lint_settings = None
     env = None
     disabled = False
     executable_version = None
@@ -416,19 +411,21 @@ class Linter(metaclass=LinterMeta):
         """Return the class name lowercased."""
         return self.__class__.__name__.lower()
 
-    @classmethod
-    def settings(cls):
-        """Return the default settings for this linter, merged with the user settings."""
-        if cls.lint_settings is None:
-            linters = persist.settings.get('linters', {})
-            cls.lint_settings = (cls.defaults or {}).copy()
-            cls.lint_settings.update(linters.get(cls.name, {}))
+    @staticmethod
+    def _get_settings(linter, window=None):
+        defaults = linter.defaults or {}
+        user_settings = persist.settings.get('linters', {}).get(linter.name, {})
 
-        return cls.lint_settings
+        if window:
+            data = window.project_data() or {}
+            project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
+        else:
+            project_settings = {}
+
+        return ChainMap({}, project_settings, user_settings, defaults)
 
     def get_view_settings(self):
-        """
-        Return a union of all non-inline settings specific to this view's linter.
+        """Return a union of all settings specific to this view's linter.
 
         The settings are merged in the following order:
 
@@ -438,21 +435,10 @@ class Linter(metaclass=LinterMeta):
 
         After merging, tokens in the settings are replaced.
         """
-        # Start with the overall project settings. Note that when
-        # files are loaded during quick panel preview, it can happen
-        # that they are linted without having a window.
+        # Note that when files are loaded during quick panel preview,
+        # it can happen that they are linted without having a window.
         window = self.view.window()
-
-        if window:
-            data = window.project_data() or {}
-            project_settings = data.get('SublimeLinter', {})
-        else:
-            project_settings = {}
-
-        project_settings = project_settings.get('linters', {}).get(self.name, {})
-
-        # Update the linter's settings with the project settings and rc settings
-        settings = self.merge_project_settings(self.settings().copy(), project_settings)
+        settings = self._get_settings(self, window)
         self.replace_settings_tokens(settings)
         return settings
 
@@ -580,18 +566,6 @@ class Linter(metaclass=LinterMeta):
 
         recursive_replace(expressions, settings)
 
-    def merge_project_settings(self, view_settings, project_settings):
-        """
-        Return this linter's view settings merged with the current project settings.
-
-        Subclasses may override this if they wish to do something more than
-        replace view settings with inline settings of the same name.
-        The settings object may be changed in place.
-
-        """
-        view_settings.update(project_settings)
-        return view_settings
-
     @classmethod
     def assign(cls, view, linter_name=None, reset=False):
         """
@@ -661,10 +635,6 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def reload(cls):
         """Assign new instances of linters to views."""
-        # Merge linter default settings with user settings
-        for name, linter in persist.linter_classes.items():
-            linter.lint_settings = None
-
         for vid, linters in persist.view_linters.items():
             for linter in linters:
                 linter.clear()

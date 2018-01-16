@@ -520,6 +520,13 @@ class Linter(metaclass=LinterMeta):
                 'value': window_vars.get('folder', None) or directory
             })
 
+            project_base_name = window_vars.get('project_base_name', None)
+            if project_base_name:
+                expressions.append({
+                    'token': '${project_name}',
+                    'value': project_base_name
+                })
+
         expressions.append({
             'token': '${home}',
             'value': os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep).replace('\\', '/') or 'HOME NOT SET'

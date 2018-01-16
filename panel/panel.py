@@ -165,6 +165,7 @@ def filter_ok(check_val, key, panel_filter):
 def get_view_lines(view_dict, panel_filter):
     view_lines = []
     for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+        items = []
         for error_type in WARN_ERR:
             if not filter_ok(error_type, "types", panel_filter):
                 continue
@@ -172,15 +173,19 @@ def get_view_lines(view_dict, panel_filter):
             err_dict = line_dict.get(error_type)
             if not err_dict:
                 continue
-            items = sorted(err_dict, key=lambda k: k['start'])
 
-            items = [
-                item for item in items
+            items += [
+                item for item in err_dict
                 if filter_ok(item['linter'], "linter", panel_filter) and
                 filter_ok(item['code'], "codes", panel_filter)
             ]
-            for item in items:
-                view_lines.append((lineno, error_type, item))
+
+        # sort items by start col, then by end col
+        items.sort(key=lambda item: (item['start'], item['end']))
+
+        # return a flat list here for easier processing
+        for item in items:
+            view_lines.append((lineno, error_type, item))
 
     return view_lines
 

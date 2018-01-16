@@ -249,9 +249,11 @@ def get_next_lineno(num, interval):
     interval = list(interval)
     interval.sort()
 
-    if num < interval[0] or interval[-1] < num:
+    if num < interval[0]:     # you're before the first error
         return interval[0]
-    else:
+    elif num > interval[-1]:  # you're after the last error
+        return interval[-1] + 1
+    else:                     # you're in between errors
         i = bisect.bisect_right(interval, num)
         neighbours = interval[i - 1:i + 1]
         return neighbours[1]

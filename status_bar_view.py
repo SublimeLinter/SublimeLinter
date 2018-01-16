@@ -4,7 +4,7 @@ import sublime_plugin
 from .lint import persist
 from .lint.const import STATUS_KEY
 from .lint import events
-from .panel import panel
+from .lint import util
 
 
 State = {
@@ -27,9 +27,11 @@ def plugin_unloaded():
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(buffer_id):
     active_view = State['active_view']
+    vid = active_view.id()
+
     if active_view.buffer_id() == buffer_id:
         State.update({
-            'we_count': get_we_count(active_view.id())
+            'we_count': persist.errors.get_view_we_count(vid)
         })
 
         draw(**State)
@@ -39,25 +41,22 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         vid = active_view.id()
 
-        current_pos = get_current_pos(active_view)
-        we_count = get_we_count(vid)
-
         State.update({
             'active_view': active_view,
-            'we_count': we_count,
-            'current_pos': current_pos
+            'we_count': persist.errors.get_view_we_count(vid),
+            'current_pos': util.get_current_pos(active_view)
         })
-        panel.update_panel_selection(**State)
+
         draw(**State)
 
     def on_selection_modified_async(self, _primary_view_):
         active_view = State['active_view']
-        current_pos = get_current_pos(active_view)
+        current_pos = util.get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
                 'current_pos': current_pos
             })
-            panel.update_panel_selection(**State)
+
             draw(**State)
 
 
@@ -80,15 +79,3 @@ def draw(active_view, we_count, current_pos, **kwargs):
 
     if status != active_view.get_status(STATUS_KEY):
         active_view.set_status(STATUS_KEY, status)
-
-
-def get_we_count(vid):
-    view_errors = persist.errors.get_view_dict(vid) if vid else {}
-    return view_errors.get('we_count_view', {})
-
-
-def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1

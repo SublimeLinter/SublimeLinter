@@ -1,9 +1,11 @@
 import os
-import sublime
 import bisect
 
-from ..lint.const import WARN_ERR
-from ..lint import util, persist
+import sublime
+import sublime_plugin
+
+from .lint.const import WARN_ERR
+from .lint import util, persist, events
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
@@ -21,6 +23,58 @@ OUTPUT_PANEL_SETTINGS = {
     "translate_tabs_to_spaces": False,
     "word_wrap": False
 }
+
+State = {
+    'we_count': {},
+    'active_view': None,
+    'current_pos': (-1, -1)
+}
+
+
+def plugin_loaded():
+    State.update({
+        'active_view': sublime.active_window().active_view()
+    })
+
+
+def plugin_unloaded():
+    events.off(on_finished_linting)
+
+
+@events.on(events.FINISHED_LINTING)
+def on_finished_linting(buffer_id):
+    active_view = State['active_view']
+    vid = active_view.id()
+
+    if active_view.buffer_id() == buffer_id:
+        State.update({
+            'we_count': persist.errors.get_view_we_count(vid)
+        })
+
+        update_panel_selection(**State)
+
+
+class UpdateState(sublime_plugin.EventListener):
+    def on_activated_async(self, active_view):
+        vid = active_view.id()
+
+        State.update({
+            'active_view': active_view,
+            'we_count': persist.errors.get_view_we_count(vid),
+            'current_pos': util.get_current_pos(active_view)
+        })
+
+        update_panel_selection(**State)
+
+    def on_selection_modified_async(self, _primary_view_):
+        active_view = State['active_view']
+        current_pos = util.get_current_pos(active_view)
+        if current_pos != State['current_pos']:
+            State.update({
+                'current_pos': current_pos
+            })
+
+            update_panel_selection(**State)
 
 
 class RenderLines:
@@ -102,7 +156,7 @@ def create_panel(window):
     # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
     panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
-    syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
+    syntax_path = "Packages/SublimeLinter/resources/panel.sublime-syntax"
     panel.assign_syntax(syntax_path)
     # Call create_output_panel a second time after assigning the above
     # settings, so that it'll be picked up as a result buffer

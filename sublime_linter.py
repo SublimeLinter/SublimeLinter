@@ -7,6 +7,7 @@ import html
 import sublime
 import sublime_plugin
 
+from . import panel_view
 from .lint import events
 from .lint.linter import Linter
 from .lint import highlight
@@ -15,7 +16,6 @@ from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
 from .lint import backend
-from .panel import panel
 
 
 def backup_old_settings():
@@ -153,7 +153,7 @@ class Listener:
                 d.pop(vid, None)
 
         queue.cleanup(vid)
-        panel.fill_panel(view.window(), update=True)
+        panel_view.fill_panel(view.window(), update=True)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -266,9 +266,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             highlight.clear_view(view)
             highlights.draw(view)
 
-        for window in sublime.windows():
-            panel.fill_panel(window, update=True)
-
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
         if not view:
@@ -316,14 +313,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 return True
 
         return False
-
-    def get_line_and_col(self, view):
-        try:
-            lineno, colno = view.rowcol(view.sel()[0].begin())
-        except IndexError:
-            lineno, colno = -1, -1
-
-        return lineno, colno
 
     @classmethod
     def join_msgs(cls, line_dict, we_count, show_count=False):
@@ -417,7 +406,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not line_dict:
             return
 
-        we_count = persist.errors.get_we_count_line(vid, lineno)
+        we_count = persist.errors.get_line_we_count(vid, lineno)
 
         if util.is_none_or_zero(we_count):
             return

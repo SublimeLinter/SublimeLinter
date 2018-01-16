@@ -46,8 +46,11 @@ class ErrorStore(util.Borg):
 
         return filtered_dict
 
-    def get_we_count_line(self, vid, line_no):
-        return self.data.get(vid, {}).get("we_count_lines", {}).get(line_no)
+    def get_view_we_count(self, vid):
+        return self.get_view_dict(vid).get('we_count_view', {})
+
+    def get_line_we_count(self, vid, line_no):
+        return self.get_view_dict(vid).get("we_count_lines", {}).get(line_no)
 
     def _msg_count(self, l_dict):
         return len(l_dict.get(WARNING, [])), len(l_dict.get(ERROR, []))

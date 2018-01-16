@@ -476,11 +476,13 @@ class Linter(metaclass=LinterMeta):
 
 
         """
-        def recursive_replace_value(expressions, value):
+        def recursive_replace(expressions, value):
             if isinstance(value, dict):
-                value = recursive_replace(expressions, value, nested=True)
+                value = {key: recursive_replace(expressions, val)
+                         for key, val in value.items()}
             elif isinstance(value, list):
-                value = [recursive_replace_value(expressions, item) for item in value]
+                value = [recursive_replace(expressions, item)
+                         for item in value]
             elif isinstance(value, str):
                 for exp in expressions:
                     if isinstance(exp['value'], str):
@@ -489,12 +491,6 @@ class Linter(metaclass=LinterMeta):
                         value = exp['token'].sub(exp['value'], value)
 
             return value
-
-        def recursive_replace(expressions, mutable_input, nested=False):
-            for key, value in mutable_input.items():
-                mutable_input[key] = recursive_replace_value(expressions, value)
-            if nested:
-                return mutable_input
 
         # Expressions are evaluated in list order.
         expressions = []

@@ -51,4 +51,3 @@ If you use SublimeLinter and feel it is making your coding life better and easie
 
 Donate via: 
 * [**Paypal**](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU)
-* [**Bitcoin (Coinbase)**](https://www.coinbase.com/groteworld)

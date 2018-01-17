@@ -165,6 +165,7 @@ def filter_ok(check_val, key, panel_filter):
 def get_view_lines(view_dict, panel_filter):
     view_lines = []
     for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
+        items = []
         for error_type in WARN_ERR:
             if not filter_ok(error_type, "types", panel_filter):
                 continue
@@ -172,15 +173,19 @@ def get_view_lines(view_dict, panel_filter):
             err_dict = line_dict.get(error_type)
             if not err_dict:
                 continue
-            items = sorted(err_dict, key=lambda k: k['start'])
 
-            items = [
-                item for item in items
+            items += [
+                item for item in err_dict
                 if filter_ok(item['linter'], "linter", panel_filter) and
                 filter_ok(item['code'], "codes", panel_filter)
             ]
-            for item in items:
-                view_lines.append((lineno, error_type, item))
+
+        # sort items by start col, then by end col
+        items.sort(key=lambda item: (item['start'], item['end']))
+
+        # return a flat list here for easier processing
+        for item in items:
+            view_lines.append((lineno, error_type, item))
 
     return view_lines
 
@@ -231,19 +236,24 @@ def fill_panel(window, update=False, **panel_filter):
 
 # logic for updating panel selection
 
-def get_closest_region_dict(dic, colno):
-    dics = [
-        d
-        for error_dict in dic.values() for d in error_dict
+def get_current_panel_linenos(dic, colno, is_full_line):
+    line_dicts = [
+        d for error_dict in dic.values() for d in error_dict
         if d.get("panel_lineno")
-        # if d["start"] <= colno <= d["end"]  # problematic line
     ]
-    if not dics:
-        return
-    return min(dics, key=lambda x: abs(x["start"] - colno))
+
+    linenos = [
+        d["panel_lineno"] for d in line_dicts
+        if d["start"] <= colno <= d["end"]
+    ]
+    if not linenos:
+        lineno = min([d["panel_lineno"] for d in line_dicts])
+        return (lineno, lineno), False
+
+    return (min(linenos), max(linenos)), is_full_line
 
 
-def get_next_lineno(num, interval):
+def get_next_view_lineno(num, interval):
     interval = set(interval)
     interval.discard(num)
     interval = list(interval)
@@ -257,14 +267,22 @@ def get_next_lineno(num, interval):
         return neighbours[1]
 
 
-def change_selection(panel_lineno, full_line=False):
+def get_panel_region(row, panel, is_full_line=False):
+    region = sublime.Region(panel.text_point(row - 1, -1))
+    if is_full_line:
+        region = panel.line(region)
+    return region
+
+
+def change_selection(panel_linenos, is_full_line=False):
     panel = get_panel(sublime.active_window())
     if not panel:
         return
 
-    region = sublime.Region(panel.text_point(panel_lineno - 1, -1))
-    if full_line:
-        region = panel.line(region)
+    region = get_panel_region(panel_linenos[0], panel, is_full_line)
+    if panel_linenos[0] != panel_linenos[1]:
+        region_b = get_panel_region(panel_linenos[1], panel, is_full_line=True)
+        region = region.cover(region_b)
 
     selection = panel.sel()
     selection.clear()
@@ -283,7 +301,6 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     if current_pos == (-1, -1):
         return
 
-    full_line = False
     view_dict = persist.errors.get_view_dict(active_view.id())
     if not view_dict or util.is_none_or_zero(we_count):
         return
@@ -292,22 +309,13 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     line_dicts = view_dict["line_dicts"]
 
     if lineno in line_dicts:
-        full_line = True
+        is_full_line = True
     else:
-        lineno = get_next_lineno(lineno, line_dicts)
-
-    lineno = 0 if lineno is None else lineno
+        is_full_line = False
+        lineno = get_next_view_lineno(lineno, line_dicts)
 
     line_dict = line_dicts[lineno]
-    region_dict = get_closest_region_dict(line_dict, colno or 0)
 
-    if not region_dict:
-        return
+    *panel_linenos, is_full_line = get_current_panel_linenos(line_dict, colno, is_full_line)
 
-    if full_line:
-        full_line = region_dict["start"] <= colno <= region_dict["end"]
-
-    panel_lineno = region_dict.get("panel_lineno")
-
-    if panel_lineno is not None:
-        change_selection(panel_lineno, full_line=full_line)
+    change_selection(*panel_linenos, is_full_line=is_full_line)

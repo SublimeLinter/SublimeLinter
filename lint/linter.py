@@ -519,13 +519,6 @@ class Linter(metaclass=LinterMeta):
                 })
 
             window_vars = window.extract_variables()
-            root = window_vars.get('folder', None) or file_path
-            if root:
-                expressions.append({
-                    'token': '${root}',
-                    'value': root.replace('\\', '/')
-                })
-
             project_base_name = window_vars.get('project_base_name', None)
             if project_base_name:
                 expressions.append({

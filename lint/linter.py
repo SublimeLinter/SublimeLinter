@@ -503,11 +503,11 @@ class Linter(metaclass=LinterMeta):
                 'value': filename.replace('\\', '/')
             })
 
-        directory = os.path.dirname(filename) if filename else None
-        if directory:
+        file_path = os.path.dirname(filename) if filename else None
+        if file_path:
             expressions.append({
-                'token': '${directory}',
-                'value': directory.replace('\\', '/')
+                'token': '${file_path}',
+                'value': file_path.replace('\\', '/')
             })
 
         if window:
@@ -519,7 +519,7 @@ class Linter(metaclass=LinterMeta):
                 })
 
             window_vars = window.extract_variables()
-            root = window_vars.get('folder', None) or directory
+            root = window_vars.get('folder', None) or file_path
             if root:
                 expressions.append({
                     'token': '${root}',

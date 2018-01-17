@@ -2,7 +2,6 @@ import os
 import sublime
 import bisect
 
-from ..lint.const import WARN_ERR
 from ..lint import util, persist
 
 PANEL_NAME = "SublimeLinter"
@@ -163,30 +162,18 @@ def filter_ok(check_val, key, panel_filter):
 
 
 def get_view_lines(view_dict, panel_filter):
-    view_lines = []
-    for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-        items = []
-        for error_type in WARN_ERR:
-            if not filter_ok(error_type, "types", panel_filter):
-                continue
+    return sorted(
+        (item
+         for lineno, line_dict in view_dict["line_dicts"].items()
+         for error_type, items in line_dict.items()
+         for item in items
 
-            err_dict = line_dict.get(error_type)
-            if not err_dict:
-                continue
+         if (filter_ok(item['error_type'], 'types', panel_filter) and
+             filter_ok(item['linter'], 'linter', panel_filter) and
+             filter_ok(item['code'], 'codes', panel_filter))
 
-            items += [
-                (lineno, error_type, item)
-                for item in err_dict
-                if filter_ok(item['linter'], "linter", panel_filter) and
-                filter_ok(item['code'], "codes", panel_filter)
-            ]
-
-        # sort items by start col, then by end col
-        items.sort(key=lambda x: (x[2]['start'], x[2]['end']))
-
-        view_lines.extend(items)
-
-    return view_lines
+         ), key=lambda item: (item['line'], item['start'], item['end'])
+    )
 
 
 def fill_panel(window, update=False, **panel_filter):
@@ -222,8 +209,8 @@ def fill_panel(window, update=False, **panel_filter):
             to_render.append(format_header(path_dict[vid]))
 
             # append lines
-            for lineno, error_type, item in view_lines:
-                to_render.append(format_row(lineno, error_type, item))
+            for item in view_lines:
+                to_render.append(format_row(item['line'], item['error_type'], item))
                 item["panel_lineno"] = to_render.current_lineno()
 
             # insert empty line between views sections

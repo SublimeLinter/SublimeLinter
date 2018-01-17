@@ -495,9 +495,22 @@ class Linter(metaclass=LinterMeta):
         # Expressions are evaluated in list order.
         expressions = []
         window = self.view.window()
-        if window:
-            filename = self.view.file_name()
+        filename = self.view.file_name()
 
+        if filename:
+            expressions.append({
+                'token': '${file}',
+                'value': filename.replace('\\', '/')
+            })
+
+        directory = os.path.dirname(filename) if filename else None
+        if directory:
+            expressions.append({
+                'token': '${directory}',
+                'value': directory.replace('\\', '/')
+            })
+
+        if window:
             project = self._guess_project_path(window, filename)
             if project:
                 expressions.append({
@@ -505,20 +518,13 @@ class Linter(metaclass=LinterMeta):
                     'value': project.replace('\\', '/')
                 })
 
-            directory = (
-                os.path.dirname(filename).replace('\\', '/') if
-                filename else "FILE NOT ON DISK")
-
-            expressions.append({
-                'token': '${directory}',
-                'value': directory
-            })
-
             window_vars = window.extract_variables()
-            expressions.append({
-                'token': '${root}',
-                'value': window_vars.get('folder', None) or directory
-            })
+            root = window_vars.get('folder', None) or directory
+            if root:
+                expressions.append({
+                    'token': '${root}',
+                    'value': root.replace('\\', '/')
+                })
 
             project_base_name = window_vars.get('project_base_name', None)
             if project_base_name:
@@ -527,10 +533,12 @@ class Linter(metaclass=LinterMeta):
                     'value': project_base_name
                 })
 
-        expressions.append({
-            'token': '${home}',
-            'value': os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep).replace('\\', '/') or 'HOME NOT SET'
-        })
+        home = os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep)
+        if home:
+            expressions.append({
+                'token': '${home}',
+                'value': home.replace('\\', '/')
+            })
 
         expressions.append({
             'token': '${sublime}',

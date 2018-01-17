@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict, ChainMap
+from collections import namedtuple, OrderedDict, ChainMap, Mapping
 from distutils.versionpredicate import VersionPredicate
 from functools import lru_cache
 from numbers import Number
@@ -439,118 +439,55 @@ class Linter(metaclass=LinterMeta):
         # it can happen that they are linted without having a window.
         window = self.view.window()
         settings = self._get_settings(self, window)
-        self.replace_settings_tokens(settings)
-        return settings
+        return self.replace_settings_tokens(settings)
 
     def replace_settings_tokens(self, settings):
-        """
-        Replace tokens with values in settings.
+        """Replace tokens with values in settings.
 
-        Supported tokens, in the order they are expanded:
-        drive
-            sandbox
-                project 1
-                    path to file
-                        file to lint
-                project 2
-                    path to file
-                        file to lint
-                project 3
-                    path to file
-                        file to lint
+        Generally, we support all variables Sublime Text provides:
+        "packages", "platform", "file", "file_path", file_name",
+        "file_base_name", "file_extension, "folder", "project", project_path",
+        "project_name", "project_base_name, "project_extension".
 
-        ${project}:
-            full path of the project root directory
-            -> "/drive/sandbox/project 1"
+        Note that we ship a enhanced version for 'folder' if you have multiple
+        folders open in a window. See `_guess_project_path`.
 
-        ${directory}:
-            full path the current view's parent directory
-            -> "/drive/sandbox/project 1/path to file"
+        Additionally we expand user variables using `os.path.expanduser`.
+        See: https://docs.python.org/3/library/os.path.html#os.path.expanduser
 
-        ${project} and ${directory} expansion are dependent on
-        having a window. Paths do not contain trailing directory separators.
-
-        ${home}: the user's $HOME directory.
-        ${sublime}: sublime text settings directory.
-        ${env:x}: the environment variable 'x'.
-
+        And environment variables using `os.path.expandvars`.
+        See https://docs.python.org/3/library/os.path.html#os.path.expandvars
 
         """
-        def recursive_replace(expressions, value):
-            if isinstance(value, dict):
-                value = {key: recursive_replace(expressions, val)
-                         for key, val in value.items()}
+        def recursive_replace(vars, value):
+            if isinstance(value, Mapping):
+                return {key: recursive_replace(vars, val)
+                        for key, val in value.items()}
             elif isinstance(value, list):
-                value = [recursive_replace(expressions, item)
-                         for item in value]
+                return [recursive_replace(vars, item)
+                        for item in value]
             elif isinstance(value, str):
-                for exp in expressions:
-                    if isinstance(exp['value'], str):
-                        value = value.replace(exp['token'], exp['value'])
-                    else:
-                        value = exp['token'].sub(exp['value'], value)
+                value = os.path.expanduser(value)
+                value = os.path.expandvars(value)
+                value = sublime.expand_variables(value, vars)
+                return value
 
-            return value
-
-        # Expressions are evaluated in list order.
-        expressions = []
         window = self.view.window()
+        vars = window.extract_variables() if window else {}
+
         filename = self.view.file_name()
+        project_folder = self._guess_project_path(window, filename)
+        if project_folder:
+            vars['folder'] = project_folder
 
-        if filename:
-            expressions.append({
-                'token': '${file}',
-                'value': filename.replace('\\', '/')
-            })
-
-        file_path = os.path.dirname(filename) if filename else None
-        if file_path:
-            expressions.append({
-                'token': '${file_path}',
-                'value': file_path.replace('\\', '/')
-            })
-
-        if window:
-            project = self._guess_project_path(window, filename)
-            if project:
-                expressions.append({
-                    'token': '${project}',
-                    'value': project.replace('\\', '/')
-                })
-
-            window_vars = window.extract_variables()
-            project_base_name = window_vars.get('project_base_name', None)
-            if project_base_name:
-                expressions.append({
-                    'token': '${project_name}',
-                    'value': project_base_name
-                })
-
-        home = os.path.expanduser('~').rstrip(os.sep).rstrip(os.altsep)
-        if home:
-            expressions.append({
-                'token': '${home}',
-                'value': home.replace('\\', '/')
-            })
-
-        expressions.append({
-            'token': '${sublime}',
-            'value': sublime.packages_path()
-        })
-
-        expressions.append({
-            'token': re.compile(r'\${env:(?P<variable>[^}]+)}'),
-            'value': (
-                lambda m: os.getenv(m.group('variable')) if
-                os.getenv(m.group('variable')) else
-                "%s NOT SET" % m.group('variable'))
-        })
-
-        persist.debug('Available expressions: {}'.format(expressions))
-        recursive_replace(expressions, settings)
+        persist.debug('Available variables: {}'.format(vars))
+        return recursive_replace(vars, settings)
 
     @staticmethod
     def _guess_project_path(window, filename):
+        if not window:
+            return
+
         folders = window.folders()
         if not folders:
             return

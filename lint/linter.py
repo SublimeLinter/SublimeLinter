@@ -550,19 +550,9 @@ class Linter(metaclass=LinterMeta):
 
     @staticmethod
     def _guess_project_path(window, filename):
-        data = window.project_data()
-        if not data:
-            return
-
-        folders = data.get('folders')
+        folders = window.folders()
         if not folders:
             return
-
-        folders = [folder['path'] for folder in folders]
-
-        if folders[0] == '.':
-            window_vars = window.extract_variables()
-            folders[0] = window_vars['folder']
 
         if not filename:
             return folders[0]

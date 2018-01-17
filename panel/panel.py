@@ -101,7 +101,7 @@ def ensure_panel(window: sublime.Window):
 
 
 def get_window_raw_errors(window, errors):
-    bids = [v.buffer_id() for v in window.views()]
+    bids = {v.buffer_id() for v in window.views()}
     return {bid: d for bid, d in errors.items() if bid in bids}
 
 
@@ -119,11 +119,10 @@ def run_update_panel_cmd(panel, text=None):
 
 
 def format_row(item):
-    lineno = int(item["lineno"]) + 1
+    line = int(item["line"]) + 1
     start = item['start'] + 1
-    msg = item['msg'].rstrip()
-    tmpl = " {LINENO:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINENO=lineno, START=start, **item)
+    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
+    return tmpl.format(LINE=line, START=start, **item)
 
 
 def passes_listing(buf_d, panel_filter):
@@ -151,8 +150,7 @@ def passes_listing(buf_d, panel_filter):
 
 def get_buf_lines(buf_dicts, panel_filter):
     buf_dicts = [d for d in buf_dicts if passes_listing(d, panel_filter)]
-    buf_dicts.sort(key=lambda x: (x["line"], x["start"], x["end"]))
-    return buf_dicts
+    return sorted(buf_dicts, key=lambda x: (x["line"], x["start"], x["end"]))
 
 
 def fill_panel(window, update=False, **panel_filter):

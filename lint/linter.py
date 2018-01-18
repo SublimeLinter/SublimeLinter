@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict, ChainMap, Mapping
+from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
 from distutils.versionpredicate import VersionPredicate
 from functools import lru_cache
 from numbers import Number
@@ -462,21 +462,19 @@ class Linter(metaclass=LinterMeta):
 
         Additionally, we expand the `~` home prefix using `os.path.expanduser`.
         See: https://docs.python.org/3/library/os.path.html#os.path.expanduser
-
-        And environment variables using `os.path.expandvars`.
-        See https://docs.python.org/3/library/os.path.html#os.path.expandvars
-
         """
         def recursive_replace(variables, value):
             if isinstance(value, Mapping):
                 return {key: recursive_replace(variables, val)
                         for key, val in value.items()}
-            elif isinstance(value, list):
+            elif isinstance(value, Sequence):
                 return [recursive_replace(variables, item)
                         for item in value]
             elif isinstance(value, str):
                 value = sublime.expand_variables(value, variables)
                 value = os.path.expanduser(value)
+                return value
+            else:
                 return value
 
         window = self.view.window()

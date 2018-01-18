@@ -860,7 +860,6 @@ class Linter(metaclass=LinterMeta):
         chdir = settings.get('chdir', None)
 
         if chdir and os.path.isdir(chdir):
-            persist.debug('chdir has been set to: {0}'.format(chdir))
             return chdir
         else:
             if self.filename:
@@ -892,11 +891,7 @@ class Linter(metaclass=LinterMeta):
             return []
 
         cmd = self.get_cmd()
-        settings = self.get_view_settings()
-        chdir = self.get_chdir(settings)
-
-        with util.cd(chdir):
-            output = self.run(cmd, code)
+        output = self.run(cmd, code)
 
         if not output:
             return []
@@ -1289,21 +1284,29 @@ class Linter(metaclass=LinterMeta):
         elif not code:
             cmd.append(self.filename)
 
+        settings = self.get_view_settings()
+        cwd = self.get_chdir(settings)
+
         return util.communicate(
             cmd,
             code,
             output_stream=self.error_stream,
-            env=self.env)
+            env=self.env,
+            cwd=cwd)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
+        settings = self.get_view_settings()
+        cwd = self.get_chdir(settings)
+
         return util.tmpfile(
             cmd,
             code,
             self.filename,
             suffix or self.get_tempfile_suffix(),
             output_stream=self.error_stream,
-            env=self.env)
+            env=self.env,
+            cwd=cwd)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""

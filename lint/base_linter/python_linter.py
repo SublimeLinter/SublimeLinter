@@ -259,8 +259,7 @@ def ask_pipenv(linter_name, chdir):
 @lru_cache(maxsize=None)
 def _ask_pipenv(linter_name, chdir):
     cmd = ['pipenv', '--venv']
-    with util.cd(chdir):
-        venv = _communicate(cmd).strip().split('\n')[-1]
+    venv = _communicate(cmd, cwd=chdir).strip().split('\n')[-1]
 
     if not venv:
         return
@@ -268,7 +267,7 @@ def _ask_pipenv(linter_name, chdir):
     return find_script_by_python_env(venv, linter_name)
 
 
-def _communicate(cmd):
+def _communicate(cmd, cwd):
     """Short wrapper around subprocess.check_output to eat all errors."""
     env = util.create_environment()
     info = None
@@ -281,7 +280,7 @@ def _communicate(cmd):
 
     try:
         return subprocess.check_output(
-            cmd, env=env, startupinfo=info, universal_newlines=True
+            cmd, env=env, startupinfo=info, universal_newlines=True, cwd=cwd
         )
     except Exception as err:
         persist.debug(

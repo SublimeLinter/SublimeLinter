@@ -3,13 +3,11 @@ Settings
 
 Settings stack
 --------------
-SublimeLinter merges settings from several sources to calculate the value.
+SublimeLinter merges settings from several sources to calculate the value. Settings are merged in the following order:
 
-.. code-block:: none
-
-    Default settings
-    User settings
-    Project settings
+1. Default settings
+1. User settings
+1. Project settings
 
 
 Project settings
@@ -44,28 +42,34 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
     Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document.
 
 
-.. _settings-tokens:
+.. _settings-expansion:
 
-Setting tokens
---------------
-After the default, user and project settings are merged, SublimeLinter iterates over all settings values and replaces the  tokens with their current values. This uses Sublime Text's `expand_variables` API, which uses the `${varname}` syntax and supports placeholders (`${varname:placeholder}`):
+Settings Expansion
+------------------
+After the settings have been merged, SublimeLinter iterates over all settings values and expands any strings.
+This uses Sublime Text's `expand_variables` API, which uses the ``${varname}`` syntax and supports placeholders (``${varname:placeholder}``), where placeholders are resolved recursively (e.g. ``${XDG_CONFIG_HOME:$HOME/.config}``).
+To insert a literal ``$`` character, use ``\$`` (in JSON: ``\\$``).
 
-- packages
-- platform
-- file
-- file_path
-- file_name
-- file_base_name
-- file_extension
-- folder
-- project
-- project_path
-- project_name
-- project_base_name
-- project_extension
-- as well as all environment variables
+The following case-sensitive variables are provided:
 
-We enhanced the expansion for 'folder' that attempts to guess the correct folder if you have multiple folders open in a window.
+- ``packages``
+- ``platform``
+- ``file``
+- ``file_path``
+- ``file_name``
+- ``file_base_name``
+- ``file_extension``
+- ``folder``
+- ``project``
+- ``project_path``
+- ``project_name``
+- ``project_base_name``
+- ``project_extension``
+- all environment variables
 
-Additionally `~` will get expanded using `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
+See the `documentation on build systems <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_ for an explanation of what each variable contains.
+
+We enhanced the expansion for ``folder`` that attempts to guess the correct folder if you have multiple folders open in a window.
+
+Additionally, ``~`` will get expanded using `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
 

@@ -188,8 +188,6 @@ def fill_panel(window, update=False, **panel_filter):
             # insert empty line between views sections
             to_render.append("")
 
-        import json
-        print(json.dumps(buf_lines, indent=2, sort_keys=True))
     run_update_panel_cmd(panel, text="\n".join(to_render))
 
 

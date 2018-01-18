@@ -477,9 +477,8 @@ class Linter(metaclass=LinterMeta):
                 return value
 
         window = self.view.window()
-        variables = os.environ.copy()
-        if window:
-            variables.update(window.extract_variables())
+        variables = ChainMap(
+            {}, window.extract_variables() if window else {}, os.environ)
 
         filename = self.view.file_name()
         project_folder = self._guess_project_path(window, filename)

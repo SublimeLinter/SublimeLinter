@@ -7,7 +7,7 @@ The Linter class is designed to allow interfacing with most linter executables/l
 
 cmd
 ---
-**Mandatory.** A string, list, tuple or :ref:`callable <cmd-method>` that returns a string, list or tuple, containing the command line (with arguments) used to lint. If a string, it should be as if it were entered on a command line, and is parsed by `shlex.split`_.
+**Mandatory.** A string, list, tuple or callable that returns a string, list or tuple, containing the command line (with arguments) used to lint. If a string, it should be as if it were entered on a command line, and is parsed by `shlex.split <https://docs.python.org/2/library/shlex.html>`_.
 
 If ``cmd`` is ``None``, it is assumed the plugin overrides the :ref:`run` method.
 
@@ -79,14 +79,14 @@ multiline
 ---------
 This attribute determines whether the :ref:`regex` attribute parses multiple lines. The linter may output multiline error messages, but if :ref:`regex` only parses single lines, this attribute should be ``False`` (the default). It is important that you set this attribute correctly; it does more than just add the ``re.MULTILINE`` flag when it compiles the :ref:`regex` pattern.
 
-If ``multiline`` is ``False``, the linter output is split into lines (using `str.splitlines`_ and each line is matched against :ref:`regex` pattern.
+If ``multiline`` is ``False``, the linter output is split into lines (using ``str.splitlines`` and each line is matched against :ref:`regex` pattern.
 
-If ``multiline`` is ``True``, the linter output is iterated over using `re.finditer`_ until no more matches are found.
+If ``multiline`` is ``True``, the linter output is iterated over using ``re.finditer`` until no more matches are found.
 
 
 re_flags
 --------
-If you wish to add custom `re flags`_ that are used when compiling the ``regex`` pattern, you may specify them here.
+If you wish to add custom ``re flags`` that are used when compiling the ``regex`` pattern, you may specify them here.
 
 For example, if you want the pattern to be case-insensitive, you could do this:
 
@@ -99,7 +99,7 @@ As noted in the :ref:`examples <re-flags-example>`, these flags can also be incl
 
 regex
 -----
-**Mandatory.** A `python regular expression`_ pattern used to extract information from the linter’s output. The pattern must contain at least the following named capture groups:
+**Mandatory.** A python regular expression pattern used to extract information from the linter’s output. The pattern must contain at least the following named capture groups:
 
 ======= ===========================================
 Name    Description
@@ -137,7 +137,7 @@ In addition to the above capture groups, the pattern should contain the followin
 
 selectors
 ---------
-If a linter can be used with embedded code, you need to tell SublimeLinter which portions of the source code contain the embedded code by specifying the embedded `scope selectors`_. This attribute maps syntax names to embedded scope selectors.
+If a linter can be used with embedded code, you need to tell SublimeLinter which portions of the source code contain the embedded code by specifying the embedded scope selectors. This attribute maps syntax names to embedded scope selectors.
 
 
 syntax
@@ -186,7 +186,7 @@ This attribute should be a regex pattern or compiled regex used to match the num
 
 version_requirement
 --------------------
-This attribute should be a string which describes the version requirements, suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor`_.
+This attribute should be a string which describes the version requirements, suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor <http://epydoc.sourceforge.net/stdlib/distutils.versionpredicate.VersionPredicate-class.html>`_.
 
 
 word_re

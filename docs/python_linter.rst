@@ -1,5 +1,3 @@
-.. include:: defines.inc
-
 PythonLinter class
 ==================
 If your linter plugin interfaces with a linter that is written in python, you should subclass from ``SublimeLinter.lint.PythonLinter``.

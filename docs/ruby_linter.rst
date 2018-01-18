@@ -1,5 +1,3 @@
-.. include:: defines.inc
-
 RubyLinter class
 ======================
 If your linter plugin interfaces with a linter that is written in ruby, you should subclass from ``SublimeLinter.lint.RubyLinter``.

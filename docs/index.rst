@@ -8,6 +8,7 @@ User Documentation
     :maxdepth: 3
 
     settings
+    linter_settings
     troubleshooting
 
 Developer Documentation

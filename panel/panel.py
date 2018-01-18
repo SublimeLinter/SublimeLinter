@@ -101,6 +101,7 @@ def ensure_panel(window: sublime.Window):
 def get_window_raw_errors(window, errors):
     bids = {v.buffer_id() for v in window.views()}
     return {bid: d for bid, d in errors.items() if bid in bids}
+    errors.sort(key=lambda x: (x["line"], x["start"], x["end"]))
 
 
 def format_header(f_path):
@@ -147,7 +148,9 @@ def passes_listing(buf_d, panel_filter):
 
 
 def get_buf_lines(buf_dicts, panel_filter):
-    return [d for d in buf_dicts if passes_listing(d, panel_filter)]
+    """Filter raw_errors through white- and blacklisting, then sort them."""
+    buf_dicts = [d for d in buf_dicts if passes_listing(d, panel_filter)]
+    return sorted(buf_dicts, key=lambda x: (x["line"], x["start"], x["end"]))
 
 
 def fill_panel(window, update=False, **panel_filter):

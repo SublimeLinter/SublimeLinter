@@ -2,7 +2,6 @@ import os
 import sublime
 import bisect
 
-from ..lint.const import WARN_ERR
 from ..lint import util, persist
 
 PANEL_NAME = "SublimeLinter"
@@ -23,33 +22,6 @@ OUTPUT_PANEL_SETTINGS = {
 }
 
 
-class RenderLines:
-    def __init__(self):
-        self.lines = []
-        self._line_counter = 0
-
-    def append(self, str):
-        self.lines.append(str)
-        self._line_counter += 1
-
-    def current_lineno(self):
-        return self._line_counter
-
-    def render(self):
-        return "\n".join(self.lines)
-
-
-def dedupe_views(errors):
-    if len(errors) == 1:
-        return errors
-    else:
-        return {
-            vid: dic
-            for vid, dic in errors.items()
-            if sublime.View(vid).is_primary()
-        }
-
-
 def get_common_parent(paths):
     """
     Get the common parent directory of multiple paths.
@@ -63,15 +35,23 @@ def get_common_parent(paths):
     return common_path.rstrip('/\\')
 
 
-def create_path_dict(x):
-    abs_dict = {}
+def get_filenames(window, bids):
+    """Return dict of buffer_id: file_name for all views in window.
+
+       Untitled buffers are file names are substituded by:
+       <untitled buffer_id>
+    """
+
+    return {
+        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
+        for v in window.views()
+        if v.buffer_id() in bids
+    }
+
+
+def create_path_dict(window, bids):
     base_dir = ""
-    for vid in x:
-        view = sublime.View(vid)
-        if view.file_name():
-            abs_dict[vid] = view.file_name()
-        else:
-            abs_dict[vid] = "<untitled " + str(view.buffer_id()) + ">"
+    abs_dict = get_filenames(window, bids)
 
     if len(abs_dict) == 1:
         for vid, path in abs_dict.items():
@@ -118,9 +98,9 @@ def ensure_panel(window: sublime.Window):
     return get_panel(window) or create_panel(window)
 
 
-def filter_errors(window, errors):
-    vids = [v.id() for v in window.views()]
-    return {vid: d for vid, d in errors.items() if vid in vids}
+def get_window_raw_errors(window, errors):
+    bids = {v.buffer_id() for v in window.views()}
+    return {bid: d for bid, d in errors.items() if bid in bids}
 
 
 def format_header(f_path):
@@ -136,68 +116,49 @@ def run_update_panel_cmd(panel, text=None):
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 
 
-def format_row(lineno, error_type, dic):
-    lineno = int(lineno) + 1
-    start = dic['start'] + 1
-    msg = dic['msg'].rstrip()
-    tmpl = " {LINENO:>5}:{START:<4} {ERR_TYPE:7} {linter:>12}: {code:12} {MSG}"
-    return tmpl.format(
-        LINENO=lineno, START=start, ERR_TYPE=error_type, MSG=msg, **dic)
+def format_row(item):
+    line = int(item["line"]) + 1
+    start = item['start'] + 1
+    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
+    return tmpl.format(LINE=line, START=start, **item)
 
 
-def filter_ok(check_val, key, panel_filter):
+def passes_listing(buf_d, panel_filter):
     """Check value against white- and blacklisting and return bool."""
     # check whitelisting
     if not panel_filter:
         return True
 
-    if key in panel_filter and check_val not in panel_filter[key]:
-        return False
+    x = {"types": "error_type", "codes": "code", "linter": "linter"}
+    for key, check_val in x.items():
+        # check whitelisting
+        if key in panel_filter:
+            if buf_d[check_val] not in panel_filter[key]:
+                return False
 
-    # check blacklisting
-    exclude_key = "exclude_" + key
-    if exclude_key in panel_filter and check_val in panel_filter[exclude_key]:
-        return False
+        # check blacklisting
+        exclude_key = "exclude_" + key
+        if exclude_key in panel_filter:
+            if buf_d[check_val] in panel_filter[exclude_key]:
+                return False
 
+    # if all checks passed return True
     return True
 
 
-def get_view_lines(view_dict, panel_filter):
-    view_lines = []
-    for lineno, line_dict in sorted(view_dict["line_dicts"].items()):
-        items = []
-        for error_type in WARN_ERR:
-            if not filter_ok(error_type, "types", panel_filter):
-                continue
-
-            err_dict = line_dict.get(error_type)
-            if not err_dict:
-                continue
-
-            items += [
-                (lineno, error_type, item)
-                for item in err_dict
-                if filter_ok(item['linter'], "linter", panel_filter) and
-                filter_ok(item['code'], "codes", panel_filter)
-            ]
-
-        # sort items by start col, then by end col
-        items.sort(key=lambda x: (x[2]['start'], x[2]['end']))
-
-        view_lines.extend(items)
-
-    return view_lines
+def get_buf_lines(buf_dicts, panel_filter):
+    return [d for d in buf_dicts if passes_listing(d, panel_filter)]
 
 
 def fill_panel(window, update=False, **panel_filter):
-    errors = persist.errors.data
+
+    errors = persist.raw_errors
     if not errors:
         return
 
-    errors = filter_errors(window, errors)
-    errors = dedupe_views(errors)
+    errors = get_window_raw_errors(window, errors)
 
-    path_dict, base_dir = create_path_dict(errors)
+    path_dict, base_dir = create_path_dict(window, errors)
     assert window, "missing window!"
 
     panel = ensure_panel(window)
@@ -211,26 +172,25 @@ def fill_panel(window, update=False, **panel_filter):
     else:
         settings.set("sublime_linter_panel_filter", panel_filter)
 
-    to_render = RenderLines()
-    for vid, view_dict in errors.items():
-        if util.is_none_or_zero(view_dict["we_count_view"]):
-            continue
-
-        view_lines = get_view_lines(view_dict, panel_filter)
-        if view_lines:
+    to_render = []
+    for bid, buf_dict in errors.items():
+        buf_lines = get_buf_lines(buf_dict, panel_filter)
+        if buf_lines:
             # append header
-            to_render.append(format_header(path_dict[vid]))
+            to_render.append(format_header(path_dict[bid]))
 
             # append lines
-            for lineno, error_type, item in view_lines:
-                to_render.append(format_row(lineno, error_type, item))
-                item["panel_lineno"] = to_render.current_lineno()
+            base_lineno = len(to_render)
+            for i, item in enumerate(buf_lines):
+                to_render.append(format_row(item))
+                item["panel_lineno"] = base_lineno + i
 
             # insert empty line between views sections
             to_render.append("")
 
-    rendered_text = to_render.render() if to_render else None
-    run_update_panel_cmd(panel, text=rendered_text)
+        import json
+        print(json.dumps(buf_lines, indent=2, sort_keys=True))
+    run_update_panel_cmd(panel, text="\n".join(to_render))
 
 
 # logic for updating panel selection

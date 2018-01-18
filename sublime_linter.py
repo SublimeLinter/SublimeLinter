@@ -243,6 +243,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         bid = view.buffer_id()
+        errors.sort(key=lambda x: (x["line"], x["start"], x["end"]))
         persist.raw_errors[bid] = errors
 
         # For compatibility we store the errors SL3 style as well.

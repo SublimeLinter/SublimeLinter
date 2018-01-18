@@ -459,29 +459,29 @@ class Linter(metaclass=LinterMeta):
         See https://docs.python.org/3/library/os.path.html#os.path.expandvars
 
         """
-        def recursive_replace(vars, value):
+        def recursive_replace(variables, value):
             if isinstance(value, Mapping):
-                return {key: recursive_replace(vars, val)
+                return {key: recursive_replace(variables, val)
                         for key, val in value.items()}
             elif isinstance(value, list):
-                return [recursive_replace(vars, item)
+                return [recursive_replace(variables, item)
                         for item in value]
             elif isinstance(value, str):
                 value = os.path.expanduser(value)
                 value = os.path.expandvars(value)
-                value = sublime.expand_variables(value, vars)
+                value = sublime.expand_variables(value, variables)
                 return value
 
         window = self.view.window()
-        vars = window.extract_variables() if window else {}
+        variables = window.extract_variables() if window else {}
 
         filename = self.view.file_name()
         project_folder = self._guess_project_path(window, filename)
         if project_folder:
-            vars['folder'] = project_folder
+            variables['folder'] = project_folder
 
-        persist.debug('Available variables: {}'.format(vars))
-        return recursive_replace(vars, settings)
+        persist.debug('Available variables: {}'.format(variables))
+        return recursive_replace(variables, settings)
 
     @staticmethod
     def _guess_project_path(window, filename):

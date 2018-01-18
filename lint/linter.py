@@ -444,15 +444,23 @@ class Linter(metaclass=LinterMeta):
     def replace_settings_tokens(self, settings):
         """Replace tokens with values in settings.
 
-        Generally, we support all variables Sublime Text provides:
+        Settings can be a string, a mapping or a sequence,
+        and replacement is recursive.
+
+        Utilizes Sublime Text's `expand_variables` API,
+        which uses the `${varname}` syntax
+        and supports placeholders (`${varname:placeholder}`).
+
+        Support all variables Sublime Text provides:
         "packages", "platform", "file", "file_path", file_name",
         "file_base_name", "file_extension, "folder", "project", project_path",
-        "project_name", "project_base_name, "project_extension".
+        "project_name", "project_base_name, "project_extension",
+        as well as all environment variables.
 
         Note that we ship a enhanced version for 'folder' if you have multiple
         folders open in a window. See `_guess_project_path`.
 
-        Additionally we expand user variables using `os.path.expanduser`.
+        Additionally, we expand the `~` home prefix using `os.path.expanduser`.
         See: https://docs.python.org/3/library/os.path.html#os.path.expanduser
 
         And environment variables using `os.path.expandvars`.
@@ -467,13 +475,14 @@ class Linter(metaclass=LinterMeta):
                 return [recursive_replace(variables, item)
                         for item in value]
             elif isinstance(value, str):
-                value = os.path.expanduser(value)
-                value = os.path.expandvars(value)
                 value = sublime.expand_variables(value, variables)
+                value = os.path.expanduser(value)
                 return value
 
         window = self.view.window()
-        variables = window.extract_variables() if window else {}
+        variables = os.environ.copy()
+        if window:
+            variables.update(window.extract_variables())
 
         filename = self.view.file_name()
         project_folder = self._guess_project_path(window, filename)

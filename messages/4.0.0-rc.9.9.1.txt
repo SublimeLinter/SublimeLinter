@@ -1,0 +1,7 @@
+SublimeLinter 4.0 Pre-Release 9.9.1
+===========================================
+
+View settings have been refactored, breaking the ${project} token.
+You should now user ${folder}.
+
+Read more about it here: https://github.com/SublimeLinter/SublimeLinter/pull/825

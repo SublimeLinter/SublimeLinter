@@ -451,17 +451,8 @@ class Linter(metaclass=LinterMeta):
         which uses the `${varname}` syntax
         and supports placeholders (`${varname:placeholder}`).
 
-        Support all variables Sublime Text provides:
-        "packages", "platform", "file", "file_path", file_name",
-        "file_base_name", "file_extension, "folder", "project", project_path",
-        "project_name", "project_base_name, "project_extension",
-        as well as all environment variables.
-
         Note that we ship a enhanced version for 'folder' if you have multiple
         folders open in a window. See `_guess_project_path`.
-
-        Additionally, we expand the `~` home prefix using `os.path.expanduser`.
-        See: https://docs.python.org/3/library/os.path.html#os.path.expanduser
         """
         def recursive_replace(variables, value):
             if isinstance(value, str):

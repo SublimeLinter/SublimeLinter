@@ -48,66 +48,24 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
 
 Setting tokens
 --------------
-After the default, user and project settings are merged, SublimeLinter iterates over all settings values and replaces the following tokens with their current values:
+After the default, user and project settings are merged, SublimeLinter iterates over all settings values and replaces the  tokens with their current values. This uses Sublime Text's `expand_variables` API, which uses the `${varname}` syntax and supports placeholders (`${varname:placeholder}`):
 
-=================== =========================================================================
-Token               Value
-=================== =========================================================================
-${sublime}          The full path to the Sublime Text packages directory.
-${project}          The full path to the project file's parent directory, if available.
-${root}             The full path to the root folder of the current view in project or folder mode. Falls back to `${directory}` in single file mode.
-${directory}        The full path to the parent directory of the current view’s file.
-${home}             The full path to the current user’s home directory.
-${env:x}            The environment variable 'x'.
-=================== =========================================================================
+- packages
+- platform
+- file
+- file_path
+- file_name
+- file_base_name
+- file_extension
+- folder
+- project
+- project_path
+- project_name
+- project_base_name
+- project_extension
+- as well as all environment variables
 
-Please note:
+We enhanced the expansion for 'folder' that attempts to guess the correct folder if you have multiple folders open in a window.
 
-- Directory paths do **not** include a trailing directory separator.
+Additionally `~` will get expanded using `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
 
-- ``${project}``, ``${root}`` and ``${directory}`` expansions are dependent on a file being open in a window, and thus may not work when running lint reports.
-
-- The environment variables available to the ``${env:x}`` token are those available within the Sublime Text python context, which is a very limited subset of those available within a command line shell.
-
-Project, root and parent directory paths are especially useful if you want to load specific configuration files for a linter.
-For example, you could use the ``${project}`` and ``${home}`` tokens in your project settings:
-
-.. code-block:: json
-
-    {
-        "folders":
-        [
-            {
-                "follow_symlinks": true,
-                "path": "/Users/tinytim/Projects/Tulips"
-            }
-        ],
-        "SublimeLinter":
-        {
-            "linters":
-            {
-                "phpcs": {
-                    "standard": "${project}/build/phpcs/MyPHPCS"
-                },
-                "phpmd": {
-                    "args": ["${home}/phpmd-ruleset.xml"]
-                }
-            }
-        }
-    }
-
-After token replacement, SublimeLinter sees the linter settings as:
-
-.. code-block:: json
-
-    {
-        "linters":
-        {
-            "phpcs": {
-                "standard": "/Users/tinytim/Projects/Tulips/build/phpcs/MyPHPCS"
-            },
-            "phpmd": {
-                "args": ["/Users/tinytim/phpmd-ruleset.xml"]
-            }
-        }
-    }

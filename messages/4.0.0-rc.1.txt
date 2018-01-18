@@ -77,6 +77,9 @@ and .sublimelinterrc files are no longer supported.
 
 A python version can no longer be set globally.
 
+Settings tokens (e.g. ${folder}) are now expanded using SublimeText features,
+so there are more tokens you can use. The docs covers this in more detail.
+
 
 How to upgrade
 -------------------------------
@@ -100,6 +103,8 @@ exist anymore:
 
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.
+
+If you use the ${project} settings token you should change that to ${folder}.
 
 You can now change your color scheme to one without the (SL) suffix. After
 doing so you can remove the Packages/User/SublimeLinter directory. It holds

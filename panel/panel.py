@@ -183,7 +183,7 @@ def fill_panel(window, update=False, **panel_filter):
             base_lineno = len(to_render)
             for i, item in enumerate(buf_lines):
                 to_render.append(format_row(item))
-                item["panel_lineno"] = base_lineno + i
+                item["panel_line"] = base_lineno + i
 
             # insert empty line between views sections
             to_render.append("")
@@ -193,44 +193,77 @@ def fill_panel(window, update=False, **panel_filter):
 
 # logic for updating panel selection
 
-def get_closest_region_dict(dic, colno):
-    dics = [
-        d
-        for error_dict in dic.values() for d in error_dict
-        if d.get("panel_lineno")
-        # if d["start"] <= colno <= d["end"]  # problematic line
-    ]
-    if not dics:
-        return
-    return min(dics, key=lambda x: abs(x["start"] - colno))
+def get_next_panel_line(buf_line, buf_dict):
+    """Get panel line for next error in buffer.
 
-
-def get_next_lineno(num, interval):
-    interval = set(interval)
-    interval.discard(num)
-    interval = list(interval)
-    interval.sort()
-
-    if num < interval[0] or interval[-1] < num:
-        return interval[0]
+    If not found this means the current line is past last error's buffer line.
+    In that case return last error's panel line incremented by one, which will
+    place panel selection in empty space between buffer sections.
+    """
+    for d in buf_dict:
+        if d["line"] > buf_line:
+            panel_line = d["panel_line"]
+            break
     else:
-        i = bisect.bisect_right(interval, num)
-        neighbours = interval[i - 1:i + 1]
-        return neighbours[1]
+        panel_line = buf_dict[-1]["panel_line"] + 1
+
+    return panel_line, panel_line
 
 
-def change_selection(panel_lineno, full_line=False):
+def update_selection(panel, region=None):
+    selection = panel.sel()
+    selection.clear()
+    if region is not None:
+        selection.add(region)
+
+
+def get_panel_region(row, panel, is_full_line=False):
+    region = sublime.Region(panel.text_point(row - 1, -1))
+    if is_full_line:
+        region = panel.line(region)
+    return region
+
+
+def update_panel_selection(active_view, we_count, current_pos, **kwargs):
+    if current_pos == (-1, -1):
+        return
+
+    buf_dicts = persist.raw_errors.get(active_view.buffer_id())
+    if not buf_dicts:  # None type error with default dict??
+        return
+    buf_dicts = [d for d in buf_dicts if "panel_line" in d]
+    if not buf_dicts:
+        return
+
+    (buf_line, col) = current_pos
+    line_dicts = [d for d in buf_dicts if d["line"] == buf_line]
+
+    is_full_line = False
+    if line_dicts:
+        region_panel_lines = [
+            d["panel_line"]
+            for d in line_dicts
+            if d["start"] <= col <= d["end"]
+        ]
+        if region_panel_lines:
+            panel_lines = min(region_panel_lines), max(region_panel_lines)
+            is_full_line = True
+
+    panel_lines = get_next_panel_line(buf_line, line_dicts or buf_dicts)
+
+    # logic for actually changing panel
     panel = get_panel(sublime.active_window())
     if not panel:
         return
 
-    region = sublime.Region(panel.text_point(panel_lineno - 1, -1))
-    if full_line:
-        region = panel.line(region)
+    if panel_lines[0] == panel_lines[1]:
+        region = get_panel_region(panel_lines[0], panel, is_full_line)
+    else:
+        region_a = get_panel_region(panel_lines[0], panel)
+        region_b = get_panel_region(panel_lines[1], panel, is_full_line=True)
+        region = sublime.Region(region_a.begin(), region_b.end())
 
-    selection = panel.sel()
-    selection.clear()
-    selection.add(region)
+    update_selection(panel, region)
 
     # scroll selection into panel
     if not panel.visible_region().contains(region):
@@ -239,37 +272,3 @@ def change_selection(panel_lineno, full_line=False):
     # simulate scrolling to enforce rerendering of panel,
     # otherwise selection is not updated (ST core bug)
     panel.run_command("scroll_lines")
-
-
-def update_panel_selection(active_view, we_count, current_pos, **kwargs):
-    if current_pos == (-1, -1):
-        return
-
-    full_line = False
-    view_dict = persist.errors.get_view_dict(active_view.id())
-    if not view_dict or util.is_none_or_zero(we_count):
-        return
-
-    (lineno, colno) = current_pos
-    line_dicts = view_dict["line_dicts"]
-
-    if lineno in line_dicts:
-        full_line = True
-    else:
-        lineno = get_next_lineno(lineno, line_dicts)
-
-    lineno = 0 if lineno is None else lineno
-
-    line_dict = line_dicts[lineno]
-    region_dict = get_closest_region_dict(line_dict, colno or 0)
-
-    if not region_dict:
-        return
-
-    if full_line:
-        full_line = region_dict["start"] <= colno <= region_dict["end"]
-
-    panel_lineno = region_dict.get("panel_lineno")
-
-    if panel_lineno is not None:
-        change_selection(panel_lineno, full_line=full_line)

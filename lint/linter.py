@@ -485,8 +485,15 @@ class Linter(metaclass=LinterMeta):
         if project_folder:
             variables['folder'] = project_folder
 
-        persist.debug('Available variables: {}'.format(variables))
+        if persist.debug_mode():
+            import pprint
+            self._debug_print_available_variables(pprint.pformat(dict(variables), indent=2))
         return recursive_replace(variables, settings)
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _debug_print_available_variables(variables):
+        persist.debug('Available variables: {}'.format(variables))
 
     @staticmethod
     def _guess_project_path(window, filename):

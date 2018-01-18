@@ -464,16 +464,15 @@ class Linter(metaclass=LinterMeta):
         See: https://docs.python.org/3/library/os.path.html#os.path.expanduser
         """
         def recursive_replace(variables, value):
-            if isinstance(value, Mapping):
+            if isinstance(value, str):
+                value = sublime.expand_variables(value, variables)
+                return os.path.expanduser(value)
+            elif isinstance(value, Mapping):
                 return {key: recursive_replace(variables, val)
                         for key, val in value.items()}
             elif isinstance(value, Sequence):
                 return [recursive_replace(variables, item)
                         for item in value]
-            elif isinstance(value, str):
-                value = sublime.expand_variables(value, variables)
-                value = os.path.expanduser(value)
-                return value
             else:
                 return value
 

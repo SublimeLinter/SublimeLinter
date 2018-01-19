@@ -101,9 +101,15 @@ def sort_errors(errors):
     return sorted(errors, key=lambda x: (x["line"], x["start"], x["end"]))
 
 
-def get_window_raw_errors(window, errors):
+def get_filter_and_sort(buf_errors, panel_filter):
+    """Filter raw_errors through white- and blacklisting, then sort them."""
+    buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
+    return sort_errors(buf_errors)
+
+
+def get_window_raw_errors(window, errors, panel_filter):
     return {
-        bid: sort_errors(errors[bid])
+        bid: get_filter_and_sort(errors[bid], panel_filter)
         for bid in {v.buffer_id()
                     for v in window.views()}
     }
@@ -157,21 +163,15 @@ def passes_listing(error, panel_filter):
     return True
 
 
-def get_buf_lines(buf_errors, panel_filter):
-    """Filter raw_errors through white- and blacklisting, then sort them."""
-    buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
-    return sorted(buf_errors, key=lambda x: (x["line"], x["start"], x["end"]))
-
-
 def fill_panel(window, update=False, **panel_filter):
 
     errors = persist.raw_errors
     if not errors:
         return
 
-    errors = get_window_raw_errors(window, errors)
+    errors_by_bid = get_window_raw_errors(window, errors, panel_filter)
 
-    path_dict, base_dir = create_path_dict(window, errors)
+    path_dict, base_dir = create_path_dict(window, errors_by_bid)
     assert window, "missing window!"
 
     panel = ensure_panel(window)
@@ -186,20 +186,22 @@ def fill_panel(window, update=False, **panel_filter):
         settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = []
-    for bid, buf_errors in errors.items():
-        buf_lines = get_buf_lines(buf_errors, panel_filter)
-        if buf_lines:
-            # append header
-            to_render.append(format_header(path_dict[bid]))
+    for bid, buf_errors in errors_by_bid.items():
+        # do not show headers without errors
+        if not buf_errors:
+            continue
 
-            # append lines
-            base_lineno = len(to_render)
-            for i, item in enumerate(buf_lines):
-                to_render.append(format_row(item))
-                item["panel_line"] = base_lineno + i
+        # append header
+        to_render.append(format_header(path_dict[bid]))
 
-            # insert empty line between views sections
-            to_render.append("")
+        # append lines
+        base_lineno = len(to_render)
+        for i, item in enumerate(buf_errors):
+            to_render.append(format_row(item))
+            item["panel_line"] = base_lineno + i
+
+        # insert empty line between views sections
+        to_render.append("")
 
     run_update_panel_cmd(panel, text="\n".join(to_render))
 
@@ -248,15 +250,15 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     if current_pos == (-1, -1):
         return
 
-    buf_errorss = persist.raw_errors.get(active_view.buffer_id())
-    if not buf_errorss:  # None type error with default dict??
+    buf_errors = persist.raw_errors.get(active_view.buffer_id())
+    if not buf_errors:  # None type error with default dict??
         return
-    buf_errorss = [d for d in buf_errorss if "panel_line" in d]
-    if not buf_errorss:
+    buf_errors = [d for d in buf_errors if "panel_line" in d]
+    if not buf_errors:
         return
 
     (buf_line, col) = current_pos
-    line_dicts = [d for d in buf_errorss if d["line"] == buf_line]
+    line_dicts = [d for d in buf_errors if d["line"] == buf_line]
 
     panel_lines = None
     is_full_line = False
@@ -273,7 +275,7 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
             is_full_line = True
 
     if not panel_lines:   # fallback: take next panel line
-        panel_lines = get_next_panel_line(buf_line, line_dicts or buf_errorss)
+        panel_lines = get_next_panel_line(buf_line, line_dicts or buf_errors)
 
     # logic for actually changing panel
     panel = get_panel(sublime.active_window())

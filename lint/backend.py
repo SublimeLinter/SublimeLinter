@@ -41,7 +41,8 @@ def lint_view(view, hit_time, callback):
 
     all_errors = chain.from_iterable(results)
 
-    callback(view, list(all_errors), hit_time)
+    sublime.set_timeout_async(
+        lambda: callback(view, list(all_errors), hit_time))
 
 
 def run_concurrently(max_workers=2):

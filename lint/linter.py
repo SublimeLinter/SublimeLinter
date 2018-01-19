@@ -874,16 +874,14 @@ class Linter(metaclass=LinterMeta):
             return self.default_type
 
     def lint(self, code, hit_time):
-        """
-        Perform the lint, retrieve the results, and add marks to the view.
+        """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
 
-        - Get the command line. If it is an empty string, bail.
+        - Get the command line.
         - Run the linter.
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
-        - Highlight warnings and errors.
         """
         if self.disabled:
             return []

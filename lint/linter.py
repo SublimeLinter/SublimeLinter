@@ -603,7 +603,7 @@ class Linter(metaclass=LinterMeta):
         override this method.
 
         Note that this method will be called statically as well as per
-        instance. So you can rely on `get_view_settings` to be available.
+        instance. So you *can't* rely on `get_view_settings` to be available.
 
         `context_sensitive_executable_path` is guaranteed to be called per
         instance and might be the better override point.

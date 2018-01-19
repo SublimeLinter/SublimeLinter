@@ -928,15 +928,22 @@ class Linter(metaclass=LinterMeta):
         in output.
         """
         if self.multiline:
-            errors = self.regex.finditer(output)
-            if errors:
-                for error in errors:
-                    yield self.split_match(error)
-            else:
-                yield self.split_match(None)
+            matches = list(self.regex.finditer(output))
+            if not matches:
+                persist.debug(
+                    '{}: No matches for regex: {}'.format(self.name, self.regex.pattern))
+                return
+
+            for match in matches:
+                yield self.split_match(match)
         else:
             for line in output.splitlines():
-                yield self.split_match(self.regex.match(line.rstrip()))
+                match = self.regex.match(line.rstrip())
+                if match:
+                    yield self.split_match(match)
+                else:
+                    persist.debug(
+                        "{}: No match for line: '{}'".format(self.name, line))
 
     def split_match(self, match):
         """
@@ -949,28 +956,25 @@ class Linter(metaclass=LinterMeta):
         """
         match_dict = MATCH_DICT.copy()
 
-        if not match:
-            persist.debug('No match for regex: {}'.format(self.regex.pattern))
-        else:
-            match_dict.update({
-                k: v
-                for k, v in match.groupdict().items()
-                if k in match_dict
-            })
-            match_dict["match"] = match
+        match_dict.update({
+            k: v
+            for k, v in match.groupdict().items()
+            if k in match_dict
+        })
+        match_dict["match"] = match
 
-            # normalize line and col if necessary
-            line = match_dict["line"]
-            if line:
-                match_dict["line"] = int(line) - self.line_col_base[0]
+        # normalize line and col if necessary
+        line = match_dict["line"]
+        if line:
+            match_dict["line"] = int(line) - self.line_col_base[0]
 
-            col = match_dict["col"]
-            if col:
-                if col.isdigit():
-                    col = int(col) - self.line_col_base[1]
-                else:
-                    col = len(col)
-                match_dict["col"] = col
+        col = match_dict["col"]
+        if col:
+            if col.isdigit():
+                col = int(col) - self.line_col_base[1]
+            else:
+                col = len(col)
+            match_dict["col"] = col
 
         return LintMatch(**match_dict)
 

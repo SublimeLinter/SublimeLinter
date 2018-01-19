@@ -48,29 +48,6 @@ def lint_view(view, hit_time, callback):
         lambda: callback(view, list(all_errors), hit_time))
 
 
-def run_concurrently(max_workers=2):
-    def run(tasks):
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            work = [executor.submit(task) for task in tasks]
-            yield from await_futures(work)
-
-    return run
-
-
-def await_futures(fs, ordered=False):
-    if ordered:
-        done, _ = wait(fs)
-    else:
-        done = as_completed(fs)
-
-    for future in done:
-        try:
-            yield future.result()
-        except Exception:
-            ...
-            traceback.print_exc()
-
-
 def execute_lint_task(linter, code, offset, hit_time):
     errors = linter.lint(code, hit_time) or []
     translate_lineno_and_column(errors, offset)
@@ -159,3 +136,26 @@ def get_linters(view):
                     continue
 
         yield linter
+
+
+def run_concurrently(max_workers=2):
+    def run(tasks):
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            work = [executor.submit(task) for task in tasks]
+            yield from await_futures(work)
+
+    return run
+
+
+def await_futures(fs, ordered=False):
+    if ordered:
+        done, _ = wait(fs)
+    else:
+        done = as_completed(fs)
+
+    for future in done:
+        try:
+            yield future.result()
+        except Exception:
+            ...
+            traceback.print_exc()

@@ -603,7 +603,7 @@ class Linter(metaclass=LinterMeta):
         override this method.
 
         Note that this method will be called statically as well as per
-        instance. So you can rely on `get_view_settings` to be available.
+        instance. So you *can't* rely on `get_view_settings` to be available.
 
         `context_sensitive_executable_path` is guaranteed to be called per
         instance and might be the better override point.
@@ -621,8 +621,6 @@ class Linter(metaclass=LinterMeta):
         Otherwise the result of build_cmd is returned.
         """
         cmd = self.cmd
-        if cmd is None:
-            return None
 
         if callable(cmd):
             cmd = cmd()
@@ -672,7 +670,7 @@ class Linter(metaclass=LinterMeta):
 
         if not path:
             util.printf('WARNING: {} cannot locate \'{}\''.format(self.name, which))
-            return ''
+            return None
 
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
@@ -876,22 +874,27 @@ class Linter(metaclass=LinterMeta):
             return self.default_type
 
     def lint(self, code, hit_time):
-        """
-        Perform the lint, retrieve the results, and add marks to the view.
+        """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
 
-        - Get the command line. If it is an empty string, bail.
+        - Get the command line.
         - Run the linter.
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
-        - Highlight warnings and errors.
         """
         if self.disabled:
             return []
 
-        cmd = self.get_cmd()
-        output = self.run(cmd, code)
+        # `cmd = None` is a special API signal, that the plugin author
+        # implemented its own `run`
+        if self.cmd is None:
+            output = self.run(None, code)
+        else:
+            cmd = self.get_cmd()
+            if not cmd:  # We couldn't find a executable
+                return []
+            output = self.run(cmd, code)
 
         if not output:
             return []

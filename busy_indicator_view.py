@@ -56,13 +56,10 @@ class UpdateState(sublime_plugin.EventListener):
         draw(**State)
 
 
-indicators = [
-    'Linting.  ',
-    'Linting.. ',
-    'Linting. .',
-    'Linting ..',
-    'Linting  .',
-]
+def tick():
+    while True:
+        for phase in ('.  ', '.. ', '. .' ' ..', '  .'):
+            yield "Linting" + phase
 
 
 def draw(active_view, running, **kwargs):
@@ -70,9 +67,7 @@ def draw(active_view, running, **kwargs):
     start_time = running.get(buffer_id, None)
     now = time.time()
     if start_time and (INITIAL_DELAY <= (now - start_time) < TIMEOUT):
-        num = len(indicators)
-        text = indicators[int((now - start_time) * 1000 / CYCLE_TIME) % num]
-        active_view.set_status(STATUS_BUSY_KEY, text)
+        active_view.set_status(STATUS_BUSY_KEY, next(tick()))
         sublime.set_timeout_async(lambda: draw(**State), CYCLE_TIME)
     else:
         active_view.erase_status(STATUS_BUSY_KEY)

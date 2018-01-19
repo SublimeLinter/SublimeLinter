@@ -1253,13 +1253,6 @@ class Linter(metaclass=LinterMeta):
         method, it will need to override this method.
 
         """
-        if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
-
         if self.tempfile_suffix:
             if self.tempfile_suffix != '-':
                 return self.tmpfile(cmd, code)
@@ -1295,6 +1288,15 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         cwd = self.get_chdir(settings)
 
+        if persist.debug_mode():
+            util.printf('{}: {} {}'.format(
+                self.name,
+                os.path.basename(self.filename or '<unsaved>'),
+                cmd)
+            )
+            if cwd:
+                util.printf('{}: cwd: {}'.format(self.name, cwd))
+
         return util.communicate(
             cmd,
             code,
@@ -1306,6 +1308,15 @@ class Linter(metaclass=LinterMeta):
         """Run an external executable using a temp file to pass code and return its output."""
         settings = self.get_view_settings()
         cwd = self.get_chdir(settings)
+
+        if persist.debug_mode():
+            util.printf('{}: {} {}'.format(
+                self.name,
+                os.path.basename(self.filename or '<unsaved>'),
+                cmd)
+            )
+            if cwd:
+                util.printf('{}: cwd: {}'.format(self.name, cwd))
 
         return util.tmpfile(
             cmd,

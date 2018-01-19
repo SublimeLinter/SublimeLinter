@@ -856,16 +856,20 @@ class Linter(metaclass=LinterMeta):
                     options[name] = value
 
     def get_chdir(self, settings):
-        """Find the chdir to use with the linter."""
+        """Return the working dir for this lint."""
         chdir = settings.get('chdir', None)
 
         if chdir and os.path.isdir(chdir):
-            return chdir
-        else:
-            if self.filename:
-                return os.path.dirname(self.filename)
+            if os.path.isdir(chdir):
+                return chdir
             else:
-                return os.path.realpath('.')
+                persist.printf(
+                    "{}: WARNING: wanted working_dir '{}' is not a dir"
+                    "".format(self.name, chdir)
+                )
+                return None
+
+        return self._guess_project_path(self.view.window(), self.view.file_name())
 
     def get_error_type(self, error, warning):  # noqa:D102
         if error:

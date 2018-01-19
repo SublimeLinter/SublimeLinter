@@ -543,7 +543,6 @@ def apply_to_all_views(callback):
 
 def clear_path_caches():
     """Clear the caches of all path-related methods in this module that use an lru_cache."""
-    create_environment.cache_clear()
     which.cache_clear()
     get_python_paths.cache_clear()
 

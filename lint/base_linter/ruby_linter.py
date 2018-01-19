@@ -61,6 +61,12 @@ class RubyLinter(linter.Linter):
 
         Otherwise [ruby] or [gem] will be returned.
         """
+        # The default implementation will look for a user defined `executable`
+        # setting.
+        success, executable = super().context_sensitive_executable_path(cmd)
+        if success:
+            return success, executable
+
         ruby = None
         rbenv = util.which('rbenv')
 

@@ -621,8 +621,6 @@ class Linter(metaclass=LinterMeta):
         Otherwise the result of build_cmd is returned.
         """
         cmd = self.cmd
-        if cmd is None:
-            return None
 
         if callable(cmd):
             cmd = cmd()
@@ -672,7 +670,7 @@ class Linter(metaclass=LinterMeta):
 
         if not path:
             util.printf('WARNING: {} cannot locate \'{}\''.format(self.name, which))
-            return ''
+            return None
 
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)
@@ -890,8 +888,15 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return []
 
-        cmd = self.get_cmd()
-        output = self.run(cmd, code)
+        # `cmd = None` is a special API signal, that the plugin author
+        # implemented its own `run`
+        if self.cmd is None:
+            output = self.run(None, code)
+        else:
+            cmd = self.get_cmd()
+            if not cmd:  # We couldn't find a executable
+                return []
+            output = self.run(cmd, code)
 
         if not output:
             return []

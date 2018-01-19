@@ -35,12 +35,12 @@ def get_common_parent(paths):
 
 
 def get_filenames(window, bids):
-    """Return dict of buffer_id: file_name for all views in window.
-
-       Untitled buffers are file names are substituded by:
-       <untitled buffer_id>
     """
+    Return dict of buffer_id: file_name for all views in window.
 
+    Untitled buffers are file names are substituded by:
+    <untitled buffer_id>
+    """
     return {
         v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
         for v in window.views()

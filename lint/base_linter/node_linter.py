@@ -88,6 +88,12 @@ class NodeLinter(linter.Linter):
         looking in the global system node_modules folder. return
         a tuple of (have_path, path).
         """
+        # The default implementation will look for a user defined `executable`
+        # setting.
+        success, executable = super().context_sensitive_executable_path(cmd)
+        if success:
+            return success, executable
+
         local_cmd = None
         global_cmd = util.which(cmd[0])
 

@@ -676,17 +676,38 @@ class Linter(metaclass=LinterMeta):
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):
-        """
-        Calculate the context-sensitive executable path, return a tuple of (have_path, path).
+        """Calculate the context-sensitive executable path.
 
-        Subclasses may override this to return a special path.
+        Subclasses may override this to return a special path. The default
+        implementation looks for a setting `executable` and if set will use
+        that.
 
         Return (True, '<path>') if you can resolve the executable given at cmd[0]
         Return (True, None) if you want to skip the linter
         Return (False, None) if you want to kick in the default implementation
             of SublimeLinter
 
+        Notable: `<path>` can be a list/tuple or str
+
         """
+        settings = self.get_view_settings()
+        executable = settings.get('executable', None)
+        if executable:
+            persist.debug(
+                "{}: wanted executable is '{}'".format(self.name, executable)
+            )
+
+            # If `executable` is an iterable, we can only assume it will work.
+            if isinstance(executable, str) and not util.can_exec(executable):
+                persist.printf(
+                    "ERROR: {} deactivated, cannot locate '{}' "
+                    .format(self.name, executable)
+                )
+                # no fallback, the user specified something, so we err
+                return True, None
+
+            return True, executable
+
         return False, None
 
     def insert_args(self, cmd):

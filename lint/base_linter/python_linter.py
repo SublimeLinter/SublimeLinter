@@ -56,24 +56,13 @@ class PythonLinter(linter.Linter):
 
     def context_sensitive_executable_path(self, cmd):
         """Try to find an executable for a given cmd."""
+        # The default implementation will look for a user defined `executable`
+        # setting.
+        success, executable = super().context_sensitive_executable_path(cmd)
+        if success:
+            return success, executable
+
         settings = self.get_view_settings()
-
-        # If the user explicitly set an executable, it takes precedence.
-        executable = settings.get('executable', '')
-        if executable:
-            persist.debug(
-                "{}: wanted executable is '{}'".format(self.name, executable)
-            )
-
-            if util.can_exec(executable):
-                return True, executable
-
-            persist.printf(
-                "ERROR: {} deactivated, cannot locate '{}' "
-                .format(self.name, executable)
-            )
-            # no fallback, the user specified something, so we err
-            return True, None
 
         # `python` can be number or a string. If it is a string it should
         # point to a python environment, NOT a python binary.

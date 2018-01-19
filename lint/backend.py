@@ -41,6 +41,9 @@ def lint_view(view, hit_time, callback):
 
     all_errors = chain.from_iterable(results)
 
+    # We don't want to guarantee that our consumers/views are thread aware.
+    # So we merge here into Sublime's shared worker thread. Sublime guarantees
+    # here to execute all scheduled tasks ordered and sequentially.
     sublime.set_timeout_async(
         lambda: callback(view, list(all_errors), hit_time))
 

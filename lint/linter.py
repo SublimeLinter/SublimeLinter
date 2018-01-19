@@ -1092,7 +1092,7 @@ class Linter(metaclass=LinterMeta):
             "linter": self.name,
             "error_type": error_type,
             "code": m.error or m.warning or '',
-            "msg": m.message,
+            "msg": m.message.strip(),
         }
 
     def maybe_fix_tab_width(self, line, col, vv):

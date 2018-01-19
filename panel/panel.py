@@ -102,8 +102,11 @@ def sort_errors(errors):
 
 
 def get_window_raw_errors(window, errors):
-    bids = {v.buffer_id() for v in window.views()}
-    return {bid: sort_errors(d) for bid, d in errors.items() if bid in bids}
+    return {
+        bid: sort_errors(errors[bid])
+        for bid in {v.buffer_id()
+                    for v in window.views()}
+    }
 
 
 def format_header(f_path):
@@ -120,39 +123,44 @@ def run_update_panel_cmd(panel, text=None):
 
 
 def format_row(item):
-    line = int(item["line"]) + 1
-    start = item['start'] + 1
+    line = item["line"] + 1
+    start = item["start"] + 1
     tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
     return tmpl.format(LINE=line, START=start, **item)
 
 
-def passes_listing(buf_d, panel_filter):
+def passes_listing(error, panel_filter):
     """Check value against white- and blacklisting and return bool."""
     # check whitelisting
     if not panel_filter:
         return True
 
-    x = {"types": "error_type", "codes": "code", "linter": "linter"}
-    for key, check_val in x.items():
+    COMMAND_ARG_TO_ERROR_KEY = {
+        "types": "error_type",
+        "codes": "code",
+        "linter": "linter"
+    }
+
+    for key, check_val in COMMAND_ARG_TO_ERROR_KEY.items():
         # check whitelisting
         if key in panel_filter:
-            if buf_d[check_val] not in panel_filter[key]:
+            if error[check_val] not in panel_filter[key]:
                 return False
 
         # check blacklisting
         exclude_key = "exclude_" + key
         if exclude_key in panel_filter:
-            if buf_d[check_val] in panel_filter[exclude_key]:
+            if error[check_val] in panel_filter[exclude_key]:
                 return False
 
     # if all checks passed return True
     return True
 
 
-def get_buf_lines(buf_dicts, panel_filter):
+def get_buf_lines(buf_errors, panel_filter):
     """Filter raw_errors through white- and blacklisting, then sort them."""
-    buf_dicts = [d for d in buf_dicts if passes_listing(d, panel_filter)]
-    return sorted(buf_dicts, key=lambda x: (x["line"], x["start"], x["end"]))
+    buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
+    return sorted(buf_errors, key=lambda x: (x["line"], x["start"], x["end"]))
 
 
 def fill_panel(window, update=False, **panel_filter):
@@ -178,8 +186,8 @@ def fill_panel(window, update=False, **panel_filter):
         settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = []
-    for bid, buf_dict in errors.items():
-        buf_lines = get_buf_lines(buf_dict, panel_filter)
+    for bid, buf_errors in errors.items():
+        buf_lines = get_buf_lines(buf_errors, panel_filter)
         if buf_lines:
             # append header
             to_render.append(format_header(path_dict[bid]))
@@ -198,19 +206,19 @@ def fill_panel(window, update=False, **panel_filter):
 
 # logic for updating panel selection
 
-def get_next_panel_line(buf_line, buf_dict):
+def get_next_panel_line(buf_line, buf_errors):
     """Get panel line for next error in buffer.
 
     If not found this means the current line is past last error's buffer line.
     In that case return last error's panel line incremented by one, which will
     place panel selection in empty space between buffer sections.
     """
-    for d in buf_dict:
+    for d in buf_errors:
         if d["line"] > buf_line:
             panel_line = d["panel_line"]
             break
     else:
-        panel_line = buf_dict[-1]["panel_line"] + 1
+        panel_line = buf_errors[-1]["panel_line"] + 1
 
     return panel_line, panel_line
 
@@ -240,15 +248,15 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     if current_pos == (-1, -1):
         return
 
-    buf_dicts = persist.raw_errors.get(active_view.buffer_id())
-    if not buf_dicts:  # None type error with default dict??
+    buf_errorss = persist.raw_errors.get(active_view.buffer_id())
+    if not buf_errorss:  # None type error with default dict??
         return
-    buf_dicts = [d for d in buf_dicts if "panel_line" in d]
-    if not buf_dicts:
+    buf_errorss = [d for d in buf_errorss if "panel_line" in d]
+    if not buf_errorss:
         return
 
     (buf_line, col) = current_pos
-    line_dicts = [d for d in buf_dicts if d["line"] == buf_line]
+    line_dicts = [d for d in buf_errorss if d["line"] == buf_line]
 
     panel_lines = None
     is_full_line = False
@@ -265,7 +273,7 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
             is_full_line = True
 
     if not panel_lines:   # fallback: take next panel line
-        panel_lines = get_next_panel_line(buf_line, line_dicts or buf_dicts)
+        panel_lines = get_next_panel_line(buf_line, line_dicts or buf_errorss)
 
     # logic for actually changing panel
     panel = get_panel(sublime.active_window())

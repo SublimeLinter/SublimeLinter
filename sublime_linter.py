@@ -12,7 +12,6 @@ from .lint.linter import Linter
 from .lint import highlight
 from .lint.queue import queue
 from .lint import persist, util, style
-from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
 from .lint import backend
 from .panel import panel
@@ -50,8 +49,6 @@ def plugin_loaded():
     style.StyleParser()()
 
     util.create_tempdir()
-
-    persist.errors = ErrorStore()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
@@ -140,7 +137,6 @@ class Listener:
             self.loaded_views,
             self.linted_views,
             self.view_syntax,
-            persist.errors,
             persist.view_linters,
             persist.views,
             persist.last_hit_times
@@ -165,11 +161,11 @@ class Listener:
         """
         if hover_zone == sublime.HOVER_GUTTER:
             if persist.settings.get('show_hover_line_report'):
-                SublimeLinter.shared_plugin().open_tooltip(view, point)
+                SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
         elif hover_zone == sublime.HOVER_TEXT:
             if persist.settings.get('show_hover_region_report'):
-                SublimeLinter.shared_plugin().open_tooltip(view, point, True)
+                SublimeLinter.shared_plugin().open_tooltip(view, point)
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
@@ -245,17 +241,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         bid = view.buffer_id()
         persist.raw_errors[bid] = errors
 
-        # For compatibility we store the errors SL3 style as well.
-        errors_by_line = defaultdict(lambda: defaultdict(list))
-        for error in errors:
-            line = error['line']
-            error_type = error['error_type']
-            errors_by_line[line][error_type].append(error)
-
-        for view in all_views_into_buffer(view):
-            vid = view.id()
-            persist.errors[vid] = errors_by_line
-
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
 
         highlights = highlight.Highlight(view)
@@ -326,7 +311,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return lineno, colno
 
     @classmethod
-    def join_msgs(cls, line_dict, we_count, show_count=False):
+    def join_msgs(cls, errors, we_count, show_count=False):
 
         if show_count:
             part = '''
@@ -366,7 +351,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             )
         return all_msgs
 
-    def open_tooltip(self, active_view=None, point=None, is_inline=False):
+    def open_tooltip(self, active_view=None, point=None, is_gutter=False):
         """Show a tooltip containing all linting errors on a given line."""
         stylesheet = '''
             body {
@@ -398,31 +383,27 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         if point:  # provided from hover
-            lineno, colno = active_view.rowcol(point)
+            line, col = active_view.rowcol(point)
         else:
-            lineno, colno = self.get_line_and_col(active_view)
+            line, col = self.get_line_and_col(active_view)
 
-        vid = active_view.id()
-
-        line_dict = persist.errors.get_line_dict(vid, lineno)
-        if not line_dict:
+        bid = active_view.buffer_id()
+        errors = persist.raw_errors[bid]
+        if not errors:
             return
 
-        if is_inline:  # do not show tooltip on hovering empty gutter
-            line_dict = persist.errors.get_region_dict(vid, lineno, colno)
-            show_count = False
-        else:
-            show_count = True
+        if not is_gutter:  # do not show tooltip on hovering empty gutter
+            errors = [e for e in errors if e["start"] <= col <= e["end"]]
 
-        if not line_dict:
+        if not errors:
             return
 
-        we_count = persist.errors.get_we_count_line(vid, lineno)
+        we_count =  # where to get those from?
 
-        if util.is_none_or_zero(we_count):
+        if util.is_none_or_zero(we_count):  # Is this func redundant
             return
 
-        tooltip_message = self.join_msgs(line_dict, we_count, show_count)
+        tooltip_message = self.join_msgs(errors, we_count, is_gutter)
         if not tooltip_message:
             return
 

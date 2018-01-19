@@ -275,14 +275,15 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     if panel_lines[0] == panel_lines[1]:
         region = get_panel_region(panel_lines[0], panel, is_full_line)
     else:  # multiple panel lines
+        is_full_line = True
         region_a = get_panel_region(panel_lines[0], panel)
-        region_b = get_panel_region(panel_lines[1], panel, is_full_line=True)
+        region_b = get_panel_region(panel_lines[1], panel, is_full_line)
         region = sublime.Region(region_a.begin(), region_b.end())
 
     update_selection(panel, region)
 
-    # scroll selection into panel
-    if not panel.visible_region().contains(region):
+    # scroll non-empty selection into panel if ot visible
+    if not panel.visible_region().contains(region) and is_full_line:
         panel.show(region)
 
     # simulate scrolling to enforce rerendering of panel,

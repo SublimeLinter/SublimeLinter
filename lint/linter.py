@@ -7,6 +7,7 @@ import os
 import re
 import shlex
 import sublime
+import tempfile
 
 from . import highlight, persist, util
 from .const import STATUS_KEY, WARNING, ERROR
@@ -880,11 +881,10 @@ class Linter(metaclass=LinterMeta):
 
         if chdir and os.path.isdir(chdir):
             return chdir
+        elif self.filename:
+            return os.path.dirname(self.filename)
         else:
-            if self.filename:
-                return os.path.dirname(self.filename)
-            else:
-                return os.path.realpath('.')
+            return tempfile.gettempdir()
 
     def get_error_type(self, error, warning):  # noqa:D102
         if error:

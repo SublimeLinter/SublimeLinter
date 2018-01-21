@@ -38,8 +38,7 @@ def get_filenames(window, bids):
     """
     Return dict of buffer_id: file_name for all views in window.
 
-    Untitled buffers are file names are substituded by:
-    <untitled buffer_id>
+    Assign a substitute name to untitled buffers: <untitled buffer_id>
     """
     return {
         v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
@@ -50,20 +49,20 @@ def get_filenames(window, bids):
 
 def create_path_dict(window, bids):
     base_dir = ""
-    abs_dict = get_filenames(window, bids)
+    file_names_by_bid = get_filenames(window, bids)
 
-    if len(abs_dict) == 1:
-        for vid, path in abs_dict.items():
+    if len(file_names_by_bid) == 1:
+        for bid, path in file_names_by_bid.items():
             base_dir, file_name = os.path.split(path)
-            rel_paths = {vid: file_name}
+            rel_paths = {bid: file_name}
     else:
-        base_dir = get_common_parent(abs_dict.values())
+        base_dir = get_common_parent(file_names_by_bid.values())
         if not base_dir:
-            rel_paths = abs_dict
+            rel_paths = file_names_by_bid
         else:
             rel_paths = {
-                vid: os.path.relpath(abs_path, base_dir)
-                for vid, abs_path in abs_dict.items()
+                bid: os.path.relpath(abs_path, base_dir)
+                for bid, abs_path in file_names_by_bid.items()
             }
 
     return rel_paths, base_dir or ""
@@ -101,7 +100,7 @@ def sort_errors(errors):
     return sorted(errors, key=lambda x: (x["line"], x["start"], x["end"]))
 
 
-def get_filter_and_sort(buf_errors, panel_filter):
+def filter_and_sort(buf_errors, panel_filter):
     """Filter raw_errors through white- and blacklisting, then sort them."""
     buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
     return sort_errors(buf_errors)
@@ -109,7 +108,7 @@ def get_filter_and_sort(buf_errors, panel_filter):
 
 def get_window_raw_errors(window, errors, panel_filter):
     return {
-        bid: get_filter_and_sort(errors[bid], panel_filter)
+        bid: filter_and_sort(errors[bid], panel_filter)
         for bid in {v.buffer_id()
                     for v in window.views()}
     }
@@ -171,7 +170,7 @@ def fill_panel(window, update=False, **panel_filter):
 
     errors_by_bid = get_window_raw_errors(window, errors, panel_filter)
 
-    path_dict, base_dir = create_path_dict(window, errors_by_bid)
+    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
     assert window, "missing window!"
 
     panel = ensure_panel(window)
@@ -208,19 +207,19 @@ def fill_panel(window, update=False, **panel_filter):
 
 # logic for updating panel selection
 
-def get_next_panel_line(buf_line, buf_errors):
+def get_next_panel_line(line, errors):
     """Get panel line for next error in buffer.
 
     If not found this means the current line is past last error's buffer line.
     In that case return last error's panel line incremented by one, which will
     place panel selection in empty space between buffer sections.
     """
-    for d in buf_errors:
-        if d["line"] > buf_line:
-            panel_line = d["panel_line"]
+    for error in errors:
+        if error["line"] > line:
+            panel_line = error["panel_line"]
             break
     else:
-        panel_line = buf_errors[-1]["panel_line"] + 1
+        panel_line = errors[-1]["panel_line"] + 1
 
     return panel_line, panel_line
 
@@ -250,34 +249,41 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
     if current_pos == (-1, -1):
         return
 
-    buf_errors = persist.raw_errors.get(active_view.buffer_id())
-    if not buf_errors:  # None type error with default dict??
+    all_errors = persist.raw_errors.get(active_view.buffer_id())
+    if not all_errors:
         return
-    buf_errors = [d for d in buf_errors if "panel_line" in d]
-    if not buf_errors:
+    all_errors = [
+        e for e in all_errors
+        if "panel_line" in e
+    ]
+    if not all_errors:
         return
 
-    (buf_line, col) = current_pos
-    line_dicts = [d for d in buf_errors if d["line"] == buf_line]
+    (line, col) = current_pos
+
+    errors = [
+        e for e in all_errors
+        if e["line"] == line
+    ]
 
     panel_lines = None
     is_full_line = False
 
-    if line_dicts:
+    if errors:
         # we got line dict, now check if current position has errors
         region_panel_lines = [
-            d["panel_line"]
-            for d in line_dicts
-            if d["start"] <= col <= d["end"]
+            e["panel_line"]
+            for e in errors
+            if e["start"] <= col <= e["end"]
         ]
         if region_panel_lines:
             panel_lines = min(region_panel_lines), max(region_panel_lines)
             is_full_line = True
 
-    if not panel_lines:   # fallback: take next panel line
-        panel_lines = get_next_panel_line(buf_line, line_dicts or buf_errors)
+    if not panel_lines:  # fallback: take next panel line
+        panel_lines = get_next_panel_line(line, errors or all_errors)
 
-    # logic for actually changing panel
+    # logic for changing panel selection
     panel = get_panel(sublime.active_window())
     if not panel:
         return
@@ -291,10 +297,7 @@ def update_panel_selection(active_view, we_count, current_pos, **kwargs):
         region = sublime.Region(region_a.begin(), region_b.end())
 
     update_selection(panel, region)
-
-    # scroll non-empty selection into panel if ot visible
-    if not panel.visible_region().contains(region) and is_full_line:
-        panel.show(region)
+    panel.show_at_center(region)
 
     # simulate scrolling to enforce rerendering of panel,
     # otherwise selection is not updated (ST core bug)

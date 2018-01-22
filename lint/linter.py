@@ -875,16 +875,20 @@ class Linter(metaclass=LinterMeta):
                     options[name] = value
 
     def get_chdir(self, settings):
-        """Find the chdir to use with the linter."""
+        """Return the working dir for this lint."""
         chdir = settings.get('chdir', None)
 
         if chdir and os.path.isdir(chdir):
-            return chdir
-        else:
-            if self.filename:
-                return os.path.dirname(self.filename)
+            if os.path.isdir(chdir):
+                return chdir
             else:
-                return os.path.realpath('.')
+                persist.printf(
+                    "{}: WARNING: wanted working_dir '{}' is not a dir"
+                    "".format(self.name, chdir)
+                )
+                return None
+
+        return self._guess_project_path(self.view.window(), self.view.file_name())
 
     def get_error_type(self, error, warning):  # noqa:D102
         if error:
@@ -1273,13 +1277,6 @@ class Linter(metaclass=LinterMeta):
         method, it will need to override this method.
 
         """
-        if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
-
         if self.tempfile_suffix:
             if self.tempfile_suffix != '-':
                 return self.tmpfile(cmd, code)
@@ -1315,6 +1312,15 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         cwd = self.get_chdir(settings)
 
+        if persist.debug_mode():
+            util.printf('{}: {} {}'.format(
+                self.name,
+                os.path.basename(self.filename or '<unsaved>'),
+                cmd)
+            )
+            if cwd:
+                util.printf('{}: cwd: {}'.format(self.name, cwd))
+
         return util.communicate(
             cmd,
             code,
@@ -1326,6 +1332,15 @@ class Linter(metaclass=LinterMeta):
         """Run an external executable using a temp file to pass code and return its output."""
         settings = self.get_view_settings()
         cwd = self.get_chdir(settings)
+
+        if persist.debug_mode():
+            util.printf('{}: {} {}'.format(
+                self.name,
+                os.path.basename(self.filename or '<unsaved>'),
+                cmd)
+            )
+            if cwd:
+                util.printf('{}: cwd: {}'.format(self.name, cwd))
 
         return util.tmpfile(
             cmd,

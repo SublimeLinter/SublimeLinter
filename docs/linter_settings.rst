@@ -30,16 +30,17 @@ The value may be a string or an array. If it is a string, it will be parsed as i
 The default value is an empty array.
 
 
-chdir
+working_dir
 -----
 This setting specifies the linter working directory.
 
-The value must be a string, corresponding to a valid directory path.
+The value must be a string, corresponding to a valid directory path. Variable
+substitutions are supported.
 
 .. code-block:: json
 
     {
-        "chdir": "${folder:$file_path}"
+        "working_dir": "${folder:$file_path}"
     }
 
 With the above example,
@@ -49,11 +50,7 @@ or the file's directory if it is not contained within a project folder
 
 .. note::
 
-     If the value of ``chdir`` is unspecified (or inaccessible), then:
-
-     - If linting a saved file, the directory is set to that of the linted file
-
-     - If linting an unsaved file, the directory is unchanged
+     The above example is the default.
 
 
 excludes

@@ -64,9 +64,14 @@ Default settings are no longer copied to the user settings.
   in the README of the linter plugin.
 
 The "user" node has been removed from settings.
+A python version can no longer be set globally.
+The "chdir" setting has been renamed to "working_dir".
 
 The settings "ignore_matches" and "demote_to_warning_matches" have been removed.
 Your linter should have settings to modify the rules or severity levels.
+
+Settings tokens (e.g. ${folder}) are now expanded using SublimeText features,
+so there are more tokens you can use. The docs covers this in more detail.
 
 The new output panel and filtering have supplanted the "make_warnings_passive"
 and "show_errors_on_save" features.
@@ -74,11 +79,6 @@ and "show_errors_on_save" features.
 Settings can be specified in your user settings, or in project configuration
 (*.sublime-project files). Inline settings, inline overrides, shebang settings
 and .sublimelinterrc files are no longer supported.
-
-A python version can no longer be set globally.
-
-Settings tokens (e.g. ${folder}) are now expanded using SublimeText features,
-so there are more tokens you can use. The docs covers this in more detail.
 
 
 How to upgrade
@@ -100,6 +100,7 @@ exist anymore:
 - tooltip_fontsize, tooltip_theme, tooltip_theme_excludes, tooltips
 - warning_color
 - wrap_find
+- python_paths
 
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.

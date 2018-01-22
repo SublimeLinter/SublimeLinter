@@ -3,6 +3,14 @@ Linter Settings
 Each linter plugin can provide its own settings. SublimeLinter already provides these for every linter:
 
 
+env
+--------
+Set additional environment variables.
+
+```json
+"env": "{'GEM_HOME': '~/foo/bar'}"
+```
+
 disable
 --------
 Disables the linter.

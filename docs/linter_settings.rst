@@ -34,8 +34,7 @@ working_dir
 -----
 This setting specifies the linter working directory.
 
-The value must be a string, corresponding to a valid directory path. Variable
-substitutions are supported.
+The value must be a string, corresponding to a valid directory path.
 
 .. code-block:: json
 

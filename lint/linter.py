@@ -883,7 +883,7 @@ class Linter(metaclass=LinterMeta):
                 return cwd
             else:
                 persist.printf(
-                    "{}: WARNING: wanted working_dir '{}' is not a dir"
+                    "{}: WARNING: wanted working_dir '{}' is not a directory"
                     "".format(self.name, cwd)
                 )
                 return None

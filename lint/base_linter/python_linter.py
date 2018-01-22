@@ -111,7 +111,7 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        chdir = self.get_chdir(settings)
+        chdir = self.get_working_dir(settings)
         executable = ask_pipenv(cmd[0], chdir)
         if executable:
             persist.debug(

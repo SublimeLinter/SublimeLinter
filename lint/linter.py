@@ -874,7 +874,7 @@ class Linter(metaclass=LinterMeta):
 
                     options[name] = value
 
-    def get_chdir(self, settings):
+    def get_working_dir(self, settings):
         """Return the working dir for this lint."""
         chdir = settings.get('chdir', None)
 
@@ -1310,7 +1310,7 @@ class Linter(metaclass=LinterMeta):
             cmd.append(self.filename)
 
         settings = self.get_view_settings()
-        cwd = self.get_chdir(settings)
+        cwd = self.get_working_dir(settings)
 
         if persist.debug_mode():
             util.printf('{}: {} {}'.format(
@@ -1331,7 +1331,7 @@ class Linter(metaclass=LinterMeta):
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
         settings = self.get_view_settings()
-        cwd = self.get_chdir(settings)
+        cwd = self.get_working_dir(settings)
 
         if persist.debug_mode():
             util.printf('{}: {} {}'.format(

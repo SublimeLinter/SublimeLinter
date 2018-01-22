@@ -111,8 +111,8 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        chdir = self.get_chdir(settings)
-        executable = ask_pipenv(cmd[0], chdir)
+        cwd = self.get_working_dir(settings)
+        executable = ask_pipenv(cmd[0], cwd)
         if executable:
             persist.debug(
                 "{}: Using {} according to 'pipenv'"
@@ -192,7 +192,7 @@ def get_project_path():
         return folders[0]['path']  # ?
 
 
-def ask_pipenv(linter_name, chdir):
+def ask_pipenv(linter_name, cwd):
     """Ask pipenv for a virtual environment and maybe resolve the linter."""
     # Some pre-checks bc `pipenv` is super slow
     project_path = get_project_path()
@@ -206,13 +206,13 @@ def ask_pipenv(linter_name, chdir):
     # Defer the real work to another function we can cache.
     # ATTENTION: If the user has a Pipfile, but did not (yet) installed the
     # environment, we will cache a wrong result here.
-    return _ask_pipenv(linter_name, chdir)
+    return _ask_pipenv(linter_name, cwd)
 
 
 @lru_cache(maxsize=None)
-def _ask_pipenv(linter_name, chdir):
+def _ask_pipenv(linter_name, cwd):
     cmd = ['pipenv', '--venv']
-    venv = _communicate(cmd, cwd=chdir).strip().split('\n')[-1]
+    venv = _communicate(cmd, cwd=cwd).strip().split('\n')[-1]
 
     if not venv:
         return

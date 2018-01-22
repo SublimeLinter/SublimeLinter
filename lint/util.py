@@ -268,32 +268,6 @@ def find_executables(executable):
     return None
 
 
-@lru_cache(maxsize=None)
-def get_python_paths():
-    """
-    Return sys.path for the system version of python 3.
-
-    If python 3 cannot be found on the system, [] is returned.
-    """
-    from . import persist
-
-    python_path = which('@python3')[0]
-
-    if python_path:
-        code = r'import sys;print("\n".join(sys.path).strip())'
-        out = communicate(python_path, code)
-        paths = out.splitlines()
-
-        if persist.debug_mode():
-            printf('sys.path for {}:\n{}\n'.format(
-                python_path, '\n'.join(paths)))
-    else:
-        persist.debug('no python 3 available to augment sys.path')
-        paths = []
-
-    return paths
-
-
 # popen utils
 
 def decode(bytes):
@@ -544,7 +518,6 @@ def apply_to_all_views(callback):
 def clear_path_caches():
     """Clear the caches of all path-related methods in this module that use an lru_cache."""
     which.cache_clear()
-    get_python_paths.cache_clear()
 
 
 def convert_type(value, type_value, sep=None, default=None):

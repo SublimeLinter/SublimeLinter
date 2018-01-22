@@ -119,18 +119,4 @@ class RubyLinter(linter.Linter):
         else:
             ruby_cmd = [ruby]
 
-        # Attention readers! All self mutations can have surprising
-        # side-effects for concurrent/async linting.
-
-        # Don't use GEM_HOME with rbenv, it prevents it from using gem shims
-        if rbenv:
-            self.env = {}
-        else:
-            gem_home = os.environ.get('GEM_HOME', None)
-
-            if gem_home:
-                self.env = {'GEM_HOME': gem_home}
-            else:
-                self.env = {}
-
         return True, ruby_cmd

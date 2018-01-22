@@ -371,7 +371,6 @@ class Linter(metaclass=LinterMeta):
     #
     # Internal class storage, do not set
     #
-    env = None
     disabled = False
     executable_version = None
 
@@ -400,6 +399,10 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
+        # Using `self.env` is deprecated, bc it can have surprising
+        # side-effects for concurrent/async linting. We initialize it here
+        # bc some ruby linters rely on that behavior.
+        self.env = {}
 
     @property
     def filename(self):
@@ -890,6 +893,10 @@ class Linter(metaclass=LinterMeta):
 
         return self._guess_project_path(self.view.window(), self.view.file_name())
 
+    def get_environment(self, settings):
+        """Return runtime environment for this lint."""
+        return ChainMap({}, settings.get('env', {}), self.env)
+
     def get_error_type(self, error, warning):  # noqa:D102
         if error:
             return ERROR
@@ -1311,6 +1318,7 @@ class Linter(metaclass=LinterMeta):
 
         settings = self.get_view_settings()
         cwd = self.get_working_dir(settings)
+        env = self.get_environment(settings)
 
         if persist.debug_mode():
             util.printf('{}: {} {}'.format(
@@ -1325,13 +1333,14 @@ class Linter(metaclass=LinterMeta):
             cmd,
             code,
             output_stream=self.error_stream,
-            env=self.env,
+            env=env,
             cwd=cwd)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
         settings = self.get_view_settings()
         cwd = self.get_working_dir(settings)
+        env = self.get_environment(settings)
 
         if persist.debug_mode():
             util.printf('{}: {} {}'.format(
@@ -1348,15 +1357,18 @@ class Linter(metaclass=LinterMeta):
             self.filename,
             suffix or self.get_tempfile_suffix(),
             output_stream=self.error_stream,
-            env=self.env,
+            env=env,
             cwd=cwd)
 
     def tmpdir(self, cmd, files, code):
         """Run an external executable using a temp dir filled with files and return its output."""
+        settings = self.get_view_settings()
+        env = self.get_environment(settings)
+
         return util.tmpdir(
             cmd,
             files,
             self.filename,
             code,
             output_stream=self.error_stream,
-            env=self.env)
+            env=env)

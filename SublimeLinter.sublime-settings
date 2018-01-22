@@ -60,11 +60,6 @@
         "osx": [],
         "windows": []
     },
-    "python_paths": {
-        "linux": [],
-        "osx": [],
-        "windows": []
-    },
 
     // How much time we should be available for reading $PATH from the shell.
     "shell_timeout": 10,

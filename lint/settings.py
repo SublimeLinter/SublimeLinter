@@ -1,5 +1,4 @@
 import os
-import sys
 from glob import glob
 
 import sublime
@@ -152,16 +151,6 @@ class Settings:
         # Clear the path-related caches if the paths list has changed
         if "paths" in self.changeset:
             util.clear_path_caches()
-
-        # Add python paths if they changed
-        if "python_paths" in self.changeset:
-            python_paths = self.settings.get('python_paths', {}).get(
-                sublime.platform(), []
-            )
-
-            for path in python_paths:
-                if path not in sys.path:
-                    sys.path.append(path)
 
         # If the syntax map changed, reassign linters to all views
         from .linter import Linter

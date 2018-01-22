@@ -72,9 +72,6 @@
         "paths":{
             "type":"object"
         },
-        "python_paths":{
-            "type":"object"
-        },
         "shell_timeout":{
             "type":"number"
         },

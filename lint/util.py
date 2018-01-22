@@ -239,7 +239,6 @@ def can_exec(path):
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
-@lru_cache(maxsize=None)
 def which(cmd):
     """Return the full path to an executable searching PATH."""
     for path in find_executables(cmd):
@@ -513,10 +512,6 @@ def apply_to_all_views(callback):
 
 
 # misc utils
-
-def clear_path_caches():
-    """Clear the caches of all path-related methods in this module that use an lru_cache."""
-    which.cache_clear()
 
 
 def convert_type(value, type_value, sep=None, default=None):

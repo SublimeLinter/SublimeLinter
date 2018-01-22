@@ -449,8 +449,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
             else:
                 shutil.copyfile(f, target)
 
-        os.chdir(d)
-        out = communicate(cmd, output_stream=output_stream, env=env)
+        out = communicate(cmd, output_stream=output_stream, env=env, cwd=d)
 
         if out:
             # filter results from build to just this filename

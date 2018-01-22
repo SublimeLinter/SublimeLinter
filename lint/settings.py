@@ -148,10 +148,6 @@ class Settings:
             from . import style
             style.StyleParser()()
 
-        # Clear the path-related caches if the paths list has changed
-        if "paths" in self.changeset:
-            util.clear_path_caches()
-
         # If the syntax map changed, reassign linters to all views
         from .linter import Linter
 

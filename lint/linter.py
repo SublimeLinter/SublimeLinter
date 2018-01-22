@@ -876,15 +876,15 @@ class Linter(metaclass=LinterMeta):
 
     def get_working_dir(self, settings):
         """Return the working dir for this lint."""
-        chdir = settings.get('chdir', None)
+        cwd = settings.get('working_dir', None)
 
-        if chdir:
-            if os.path.isdir(chdir):
-                return chdir
+        if cwd:
+            if os.path.isdir(cwd):
+                return cwd
             else:
                 persist.printf(
                     "{}: WARNING: wanted working_dir '{}' is not a dir"
-                    "".format(self.name, chdir)
+                    "".format(self.name, cwd)
                 )
                 return None
 

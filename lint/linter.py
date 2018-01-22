@@ -15,6 +15,20 @@ ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:]
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter',)
 
+# Many linters use stdin, and we convert text to utf-8
+# before sending to stdin, so we have to make sure stdin
+# in the target executable is looking for utf-8. Some
+# linters (like ruby) need to have LANG and/or LC_CTYPE
+# set as well.
+UTF8_ENV_VARS = {
+    'PYTHONIOENCODING': 'utf8',
+    'LANG': 'en_US.UTF-8',
+    'LC_CTYPE': 'en_US.UTF-8',
+}
+
+BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
+
+
 MATCH_DICT = OrderedDict(
     (
         ("match", None),
@@ -895,7 +909,7 @@ class Linter(metaclass=LinterMeta):
 
     def get_environment(self, settings):
         """Return runtime environment for this lint."""
-        return ChainMap({}, settings.get('env', {}), self.env)
+        return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
     def get_error_type(self, error, warning):  # noqa:D102
         if error:

@@ -2,9 +2,7 @@
 
 from collections import defaultdict
 
-import sys
-
-from .util import get_python_paths, printf
+from .util import printf
 from .settings import Settings
 
 
@@ -61,14 +59,3 @@ def debug(*args):
     """Print args to the console if the "debug" setting is True."""
     if debug_mode():
         printf(*args)
-
-
-def import_sys_path():
-    """Import system python 3 sys.path into our sys.path."""
-    global sys_path_imported
-
-    if plugin_is_loaded and not sys_path_imported:
-        # Make sure the system python 3 paths are available to plugins.
-        # We do this here to ensure it is only done once.
-        sys.path.extend(get_python_paths())
-        sys_path_imported = True

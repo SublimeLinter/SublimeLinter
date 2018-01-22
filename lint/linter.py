@@ -878,7 +878,7 @@ class Linter(metaclass=LinterMeta):
         """Return the working dir for this lint."""
         chdir = settings.get('chdir', None)
 
-        if chdir and os.path.isdir(chdir):
+        if chdir:
             if os.path.isdir(chdir):
                 return chdir
             else:

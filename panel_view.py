@@ -1,7 +1,7 @@
 import os
 import sublime
 
-from ..lint import persist
+from .lint import persist
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {

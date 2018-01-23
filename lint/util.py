@@ -335,11 +335,12 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
     if suffix:
         filename = os.path.splitext(filename)[0] + suffix
 
+    file = tempfile.NamedTemporaryFile(delete=False)
+    path = file.name
+
     try:
-        f = tempfile.NamedTemporaryFile(delete=False)
-        f.write(bytes(code, 'UTF-8'))
-        f.close()
-        path = f.name
+        file.write(bytes(code, 'UTF-8'))
+        file.close()
 
         cmd = list(cmd)
 

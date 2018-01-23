@@ -60,7 +60,6 @@ class Settings:
         """Load the plugin settings."""
         self.observe()
         self.on_update()
-        self.observe_prefs()
         self.update_gutter_icons()
 
     def has(self, setting):
@@ -70,12 +69,6 @@ class Settings:
     def get(self, setting, default=None):
         """Return a plugin setting, defaulting to default if not found."""
         return self.settings.get(setting, default)
-
-    def observe_prefs(self, observer=None):
-        """Observe changes to the ST prefs."""
-        prefs = sublime.load_settings('Preferences.sublime-settings')
-        prefs.clear_on_change('sublimelinter-pref-settings')
-        prefs.add_on_change('sublimelinter-pref-settings', observer)
 
     def observe(self, observer=None):
         """Observer changes to the plugin settings."""

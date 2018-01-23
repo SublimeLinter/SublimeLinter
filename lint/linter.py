@@ -587,17 +587,6 @@ class Linter(metaclass=LinterMeta):
             del persist.view_linters[vid]
 
     @classmethod
-    def reload(cls):
-        """Assign new instances of linters to views."""
-        for vid, linters in persist.view_linters.items():
-            for linter in linters:
-                linter.clear()
-                persist.view_linters[vid].remove(linter)
-                linter_class = persist.linter_classes[linter.name]
-                linter = linter_class(linter.view, linter.syntax)
-                persist.view_linters[vid].add(linter)
-
-    @classmethod
     def clear_all(cls):
         """Clear highlights and errors in all views."""
         persist.errors.clear()

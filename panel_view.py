@@ -175,12 +175,20 @@ def create_path_dict(window, bids):
             base_dir, file_name = os.path.split(path)
             rel_paths = {bid: file_name}
     else:
-        base_dir = get_common_parent(file_names_by_bid.values())
+        base_dir = get_common_parent(
+            path
+            for path in file_names_by_bid.values()
+            if not path.startswith('<untitled')
+        )
         if not base_dir:
             rel_paths = file_names_by_bid
         else:
             rel_paths = {
-                bid: os.path.relpath(abs_path, base_dir)
+                bid: (
+                    abs_path
+                    if abs_path.startswith('<untitled')
+                    else os.path.relpath(abs_path, base_dir)
+                )
                 for bid, abs_path in file_names_by_bid.items()
             }
 

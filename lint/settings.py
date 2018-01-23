@@ -71,32 +71,6 @@ class Settings:
         """Return a plugin setting, defaulting to default if not found."""
         return self.settings.get(setting, default)
 
-    def set(self, setting, value, changed=False):
-        """
-        Set a plugin setting to the given value.
-
-        Clients of this module should always call this method to set a value
-        instead of doing settings['foo'] = 'bar'.
-
-        If the caller knows for certain that the value has changed,
-        they should pass changed=True.
-
-        """
-        self.settings[setting] = value
-
-        if changed:
-            self.changeset.append(setting)
-
-    def pop(self, setting, default=None):
-        """
-        Remove a given setting and return default if it is not in self.settings.
-
-        Clients of this module should always call this method to pop a value
-        instead of doing settings.pop('foo').
-
-        """
-        return self.settings.pop(setting, default)
-
     def observe_prefs(self, observer=None):
         """Observe changes to the ST prefs."""
         prefs = sublime.load_settings('Preferences.sublime-settings')

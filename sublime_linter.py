@@ -49,8 +49,6 @@ def plugin_loaded():
 
     style.StyleParser()()
 
-    util.create_tempdir()
-
     persist.errors = ErrorStore()
 
     for linter in persist.linter_classes.values():

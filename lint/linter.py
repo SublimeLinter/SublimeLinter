@@ -1373,16 +1373,3 @@ class Linter(metaclass=LinterMeta):
             output_stream=self.error_stream,
             env=env,
             cwd=cwd)
-
-    def tmpdir(self, cmd, files, code):
-        """Run an external executable using a temp dir filled with files and return its output."""
-        settings = self.get_view_settings()
-        env = self.get_environment(settings)
-
-        return util.tmpdir(
-            cmd,
-            files,
-            self.filename,
-            code,
-            output_stream=self.error_stream,
-            env=env)

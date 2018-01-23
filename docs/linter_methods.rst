@@ -69,7 +69,7 @@ This method does the actual linting. *cmd* is a tuple/list of the command to be 
 
 If a linter plugin always uses built-in code (as opposed to a subclass of :doc:`PythonLinter <python_linter>` that may use a :ref:`module <module>`), it should override this method and return a string as the output. Subclasses of ``PythonLinter`` that specify a ``module`` attribute should **not** override this method, but the :ref:`check <check-method>` method instead.
 
-If a linter plugin needs to do complicated setup or will use the :ref:`tmpdir` method, it will need to override this method.
+If a linter plugin needs to do complicated setup it will need to override this method.
 
 
 split_match
@@ -81,17 +81,6 @@ split_match
 This method extracts the named capture groups from the :ref:`regex` and return a tuple of *match*, *line*, *col*, *error*, *warning*, *message*, *near*.
 
 If subclasses need to modify the values returned by the regex, they should override this method, call ``super().split_match(match)``, then modify the values and return them.
-
-
-tmpdir
-------
-.. code-block:: python
-
-   tmpdir(self, cmd, files, code)
-
-This method creates a temp directory, copies the files in the sequence *files* to the directory, appends the temp directory name to the sequence *cmd*, runs the external executable (with arguments) specified by *cmd*, and returns its output.
-
-Normally there is no need to call this method, but if you override the :ref:`run` method you can use this method to execute an external linter that requires a group of files in a specific directory structure.
 
 
 tmpfile

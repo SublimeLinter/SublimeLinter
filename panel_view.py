@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events
+from .lint import persist, events, util
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
@@ -47,6 +47,9 @@ def on_finished_linting(buffer_id):
             'we_count': get_we_count(active_view.id())
         })
 
+    for window in sublime.windows():
+        fill_panel(window, update=True)
+
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
@@ -70,6 +73,12 @@ class UpdateState(sublime_plugin.EventListener):
                 'current_pos': current_pos
             })
             update_panel_selection(**State)
+
+    def on_pre_close(self, view):
+        if not util.is_lintable(view):
+            return
+
+        fill_panel(view.window(), update=True)
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):

@@ -4,6 +4,8 @@ from abc import ABCMeta, abstractmethod
 from .const import INBUILT_ICONS
 
 import os
+from glob import glob
+
 
 GUTTER_ICONS = {}
 
@@ -17,6 +19,45 @@ def get_linter_style_store(name):
     except KeyError:
         linter_style_stores[name] = store = LinterStyleStore(name)
         return store
+
+
+def update_gutter_icons():
+    """Update the gutter mark info based on the the current "gutter_theme" setting."""
+    new_gutter_dict = {"icons": {}}
+
+    theme_path = persist.settings.get('gutter_theme')
+
+    theme_file = os.path.basename(theme_path)
+
+    if not theme_file.endswith(".gutter-theme"):
+        theme_file += ".gutter-theme"
+
+    theme_files = sublime.find_resources(theme_file)
+
+    if theme_files:
+        theme_file = theme_files[0]
+        opts = util.load_json(theme_file)
+        if not opts:
+            colorize = False
+        else:
+            colorize = opts.get("colorize", False)
+    else:
+        colorize = False
+
+    new_gutter_dict["colorize"] = colorize
+    dir_path, _ = os.path.split(theme_file)
+    pck_path = sublime.packages_path().split("/Packages")[0]
+    abs_dir = os.path.join(pck_path, dir_path)
+
+    png_files = glob(os.path.join(abs_dir, "*.png"))
+    for png in png_files:
+        png_file = os.path.basename(png)
+        name, ext = os.path.splitext(png_file)
+
+        new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
+
+    global GUTTER_ICONS
+    GUTTER_ICONS = new_gutter_dict
 
 
 class StyleBaseStore(metaclass=ABCMeta):

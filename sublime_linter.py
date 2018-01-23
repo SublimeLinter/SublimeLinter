@@ -47,6 +47,7 @@ def plugin_loaded():
     persist.settings.load()
     persist.debug("debug mode: on")
 
+    style.update_gutter_icons()
     style.StyleParser()()
 
     util.create_tempdir()

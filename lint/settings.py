@@ -1,6 +1,3 @@
-import os
-from glob import glob
-
 import sublime
 from . import util
 from jsonschema.validators import validate
@@ -17,7 +14,6 @@ class Settings:
         """Load the plugin settings."""
         self.observe()
         self.on_update()
-        self.update_gutter_icons()
 
     @property
     def settings(self):
@@ -59,14 +55,14 @@ class Settings:
         if not validate_settings():
             return
 
+        from . import style
+        from .linter import Linter
+
         # Reparse settings for style rules
         if self.has_changed('styles'):
-            from . import style
             style.StyleParser()()
 
         # If the syntax map changed, reassign linters to all views
-        from .linter import Linter
-
         if self.has_changed('syntax_map'):
             Linter.clear_all()
             util.apply_to_all_views(
@@ -74,49 +70,10 @@ class Settings:
             )
 
         if self.has_changed('gutter_theme'):
-            self.update_gutter_icons()
+            style.update_gutter_icons()
 
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
-
-    def update_gutter_icons(self):
-        """Update the gutter mark info based on the the current "gutter_theme" setting."""
-        new_gutter_dict = {"icons": {}}
-
-        theme_path = self.settings.get('gutter_theme')
-
-        theme_file = os.path.basename(theme_path)
-
-        if not theme_file.endswith(".gutter-theme"):
-            theme_file += ".gutter-theme"
-
-        theme_files = sublime.find_resources(theme_file)
-
-        if theme_files:
-            theme_file = theme_files[0]
-            opts = util.load_json(theme_file)
-            if not opts:
-                colorize = False
-            else:
-                colorize = opts.get("colorize", False)
-        else:
-            colorize = False
-
-        new_gutter_dict["colorize"] = colorize
-        dir_path, _ = os.path.split(theme_file)
-        pck_path = sublime.packages_path().split("/Packages")[0]
-        abs_dir = os.path.join(pck_path, dir_path)
-
-        png_files = glob(os.path.join(abs_dir, "*.png"))
-        for png in png_files:
-            png_file = os.path.basename(png)
-            name, ext = os.path.splitext(png_file)
-
-            new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
-
-        from . import style
-
-        style.GUTTER_ICONS = new_gutter_dict
 
 
 def get_settings_objects():

@@ -100,7 +100,7 @@ class Settings:
 
         """
         self.settings = self.get_view_settings()
-        if not self.settings_valid():
+        if not validate_settings():
             return
 
         self.changeset.extend(self.dict_comparer(self.settings))
@@ -170,22 +170,30 @@ class Settings:
 
         style.GUTTER_ICONS = new_gutter_dict
 
-    def settings_valid(self):
-        """
-        Validate merged settings against json schema.
 
-        If invalid, display message in status bar and console.
-        """
-        status_msg = "SublimeLinter - Settings invalid. Details in console."
-        schema_file = "resources/settings-schema.json"
-        schema = util.load_json(schema_file, from_sl_dir=True)
-
+def get_settings_objects():
+    for name in sublime.find_resources("SublimeLinter.sublime-settings"):
         try:
-            validate(self.settings, schema)
+            yield name, util.load_json(name, from_sl_dir=False)
+        except IOError as ie:
+            util.printf("Settings file not found: {}".format(name))
+        except ValueError as ve:
+            util.printf("Settings file corrupt: {}".format(name))
+
+
+def validate_settings():
+    status_msg = "SublimeLinter - Settings invalid. Details in console."
+    schema_file = "resources/settings-schema.json"
+    schema = util.load_json(schema_file, from_sl_dir=True)
+
+    good = True
+    for name, settings in get_settings_objects():
+        try:
+            validate(settings, schema)
         except ValidationError as ve:
             ve_msg = ve.message.split("\n")[0]  # reduce verbosity
-            util.printf("Settings invalid:\n{}".format(ve_msg))
+            util.printf("Settings in '{}' invalid:\n{}".format(name, ve_msg))
             sublime.active_window().status_message(status_msg)
-            return False
-        else:
-            return True
+            good = False
+
+    return good

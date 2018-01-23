@@ -53,7 +53,6 @@ class Settings:
     def __init__(self):
         self.settings = {}
         self.changeset = []
-        self.plugin_settings = None
         self.dict_comparer = DictDelta()
 
     def load(self):
@@ -70,12 +69,11 @@ class Settings:
         """Return a plugin setting, defaulting to default if not found."""
         return self.settings.get(setting, default)
 
-    def observe(self, observer=None):
-        """Observer changes to the plugin settings."""
-        self.plugin_settings = sublime.load_settings("SublimeLinter.sublime-settings")
-        self.plugin_settings.clear_on_change('sublimelinter-persist-settings')
-        self.plugin_settings.add_on_change('sublimelinter-persist-settings',
-                                           observer or self.on_update)
+    def observe(self):
+        """Observe changes."""
+        settings = sublime.load_settings("SublimeLinter.sublime-settings")
+        settings.clear_on_change('sublimelinter-persist-settings')
+        settings.add_on_change('sublimelinter-persist-settings', self.on_update)
 
     def get_view_settings(self):
         """Return dict of default and user settings merged."""

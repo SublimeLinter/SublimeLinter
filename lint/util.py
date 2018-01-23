@@ -4,34 +4,20 @@ from functools import lru_cache
 import locale
 from numbers import Number
 import os
-import getpass
 import re
-import shutil
-import stat
 import sublime
 import subprocess
 import tempfile
 
-
 from copy import deepcopy
 
 from .const import WARNING, ERROR
-
-if sublime.platform() != 'windows':
-    import pwd
-
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
-
-# Temp directory used to store temp files for linting
-tempdir = os.path.join(
-    tempfile.gettempdir(),
-    "SublimeLinter3-" + getpass.getuser()
-)
 
 
 def printf(*args):
@@ -331,40 +317,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
         return ''
 
 
-def create_tempdir():
-    """Create a directory within the system temp directory used to create temp files."""
-    try:
-        if os.path.isdir(tempdir):
-            shutil.rmtree(tempdir)
-
-        os.mkdir(tempdir)
-
-        # Make sure the directory can be removed by anyone in case the user
-        # runs ST later as another user.
-        os.chmod(tempdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-
-    except PermissionError:
-        if sublime.platform() != 'windows':
-            current_user = pwd.getpwuid(os.geteuid())[0]
-            temp_uid = os.stat(tempdir).st_uid
-            temp_user = pwd.getpwuid(temp_uid)[0]
-            message = (
-                'The SublimeLinter temp directory:\n\n{0}\n\ncould not be cleared '
-                'because it is owned by \'{1}\' and you are logged in as \'{2}\'. '
-                'Please use sudo to remove the temp directory from a terminal.'
-            ).format(tempdir, temp_user, current_user)
-        else:
-            message = (
-                'The SublimeLinter temp directory ({}) could not be reset '
-                'because it belongs to a different user.'
-            ).format(tempdir)
-
-        sublime.error_message(message)
-
-    from . import persist
-    persist.debug('temp directory:', tempdir)
-
-
 def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None, cwd=None):
     """
     Return the result of running an executable against a temporary file containing code.
@@ -400,53 +352,6 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
         return communicate(cmd, output_stream=output_stream, env=env, cwd=cwd)
     finally:
         os.remove(path)
-
-
-def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
-    """
-    Run an executable against a temporary file containing code.
-
-    It is assumed that the executable launched by cmd can take one more argument
-    which is a filename to process.
-
-    Returns a string combination of stdout and stderr.
-    If env is None, the result of create_environment is used.
-    """
-    filename = os.path.basename(filename) if filename else ''
-    out = None
-
-    with tempfile.TemporaryDirectory(dir=tempdir) as d:
-        for f in files:
-            try:
-                os.makedirs(os.path.join(d, os.path.dirname(f)))
-            except OSError:
-                pass
-
-            target = os.path.join(d, f)
-
-            if os.path.basename(target) == filename:
-                # source file hasn't been saved since change, so update it from our live buffer
-                f = open(target, 'wb')
-
-                if isinstance(code, str):
-                    code = code.encode('utf8')
-
-                f.write(code)
-                f.close()
-            else:
-                shutil.copyfile(f, target)
-
-        out = communicate(cmd, output_stream=output_stream, env=env, cwd=d)
-
-        if out:
-            # filter results from build to just this filename
-            # no guarantee all syntaxes are as nice about this as Go
-            # may need to improve later or just defer to communicate()
-            out = '\n'.join([
-                line for line in out.split('\n') if filename in line.split(':', 1)[0]
-            ])
-
-    return out or ''
 
 
 def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cwd=None):

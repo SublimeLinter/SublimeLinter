@@ -222,15 +222,6 @@ def create_environment():
     if persist.debug_mode() and env['PATH']:
         debug_print_env(env['PATH'])
 
-    # Many linters use stdin, and we convert text to utf-8
-    # before sending to stdin, so we have to make sure stdin
-    # in the target executable is looking for utf-8. Some
-    # linters (like ruby) need to have LANG and/or LC_CTYPE
-    # set as well.
-    env['PYTHONIOENCODING'] = 'utf8'
-    env['LANG'] = 'en_US.UTF-8'
-    env['LC_CTYPE'] = 'en_US.UTF-8'
-
     return env
 
 
@@ -300,7 +291,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
 
     The result is a string which comes from stdout, stderr or the
     combining of the two, depending on the value of output_stream.
-    If env is not None, it is merged with the result of create_environment.
+    If env is None, the result of create_environment is used.
 
     """
     # On Windows, using subprocess.PIPE with Popen() is broken when not
@@ -319,7 +310,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
         stdout = stderr = None
 
     out = popen(cmd, stdout=stdout, stderr=stderr,
-                output_stream=output_stream, extra_env=env, cwd=cwd)
+                output_stream=output_stream, env=env, cwd=cwd)
 
     if out is not None:
         if code is not None:
@@ -382,7 +373,7 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
     which is a filename to process.
 
     The result is a string combination of stdout and stderr.
-    If env is not None, it is merged with the result of create_environment.
+    If env is None, the result of create_environment is used.
     """
     if not filename:
         filename = "untitled"
@@ -422,7 +413,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
     which is a filename to process.
 
     Returns a string combination of stdout and stderr.
-    If env is not None, it is merged with the result of create_environment.
+    If env is None, the result of create_environment is used.
     """
     filename = os.path.basename(filename) if filename else ''
     out = None
@@ -461,7 +452,7 @@ def tmpdir(cmd, files, filename, code, output_stream=STREAM_STDOUT, env=None):
     return out or ''
 
 
-def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, extra_env=None, cwd=None):
+def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cwd=None):
     """Open a pipe to an external process and return a Popen object."""
     info = None
 
@@ -482,9 +473,6 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, ex
 
     if env is None:
         env = create_environment()
-
-    if extra_env is not None:
-        env.update(extra_env)
 
     try:
         return subprocess.Popen(

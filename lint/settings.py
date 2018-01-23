@@ -76,7 +76,6 @@ class Settings:
         if self.has_changed('gutter_theme'):
             self.update_gutter_icons()
 
-        Linter.reload()  # always reload
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
 

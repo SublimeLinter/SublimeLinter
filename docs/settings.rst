@@ -12,6 +12,9 @@ SublimeLinter merges settings from several sources to calculate the value. Setti
 
 Project settings
 ~~~~~~~~~~~~~~~~
+Only the "linters" settings in can be changed in a project.
+All other settings (e.g. "debug", "delay", etc.) can only be changed in your user settings.
+
 SublimeLinter project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. Here you can change linter settings for a project.
 
 Project settings are opened from the ``Project > Edit Project`` menu. Here is an example project settings file where the flake8 linter has been disabled:

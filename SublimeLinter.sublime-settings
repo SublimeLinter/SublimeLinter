@@ -28,6 +28,7 @@
     "lint_mode": "background",
 
     // Example of linter specific settings.
+    // Linter specific settings can also be changed in sublime-project settings.
     // What settings are available is documented in the readme of the
     // specific linter plugin.
     // "linters": {

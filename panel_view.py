@@ -225,12 +225,19 @@ def filter_and_sort(buf_errors, panel_filter):
     return sort_errors(buf_errors)
 
 
-def get_window_raw_errors(window, errors, panel_filter):
+def get_window_raw_errors(window, all_errors, panel_filter):
+    bid_error_pairs = (
+        (bid, all_errors[bid]) for bid in buffer_ids_per_windows(window)
+    )
     return {
-        bid: filter_and_sort(errors[bid], panel_filter)
-        for bid in {v.buffer_id()
-                    for v in window.views()}
+        bid: filter_and_sort(errors, panel_filter)
+        for bid, errors in bid_error_pairs
+        if errors
     }
+
+
+def buffer_ids_per_windows(window):
+    return {v.buffer_id() for v in window.views()}
 
 
 def format_header(f_path):
@@ -305,10 +312,6 @@ def fill_panel(window, update=False, **panel_filter):
 
     to_render = []
     for bid, buf_errors in errors_by_bid.items():
-        # do not show headers without errors
-        if not buf_errors:
-            continue
-
         # append header
         to_render.append(format_header(path_dict[bid]))
 

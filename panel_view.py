@@ -282,12 +282,7 @@ def passes_listing(error, panel_filter):
 
 
 def fill_panel(window, update=False, **panel_filter):
-
-    errors = persist.raw_errors
-    if not errors:
-        return
-
-    errors_by_bid = get_window_raw_errors(window, errors, panel_filter)
+    errors_by_bid = get_window_raw_errors(window, persist.raw_errors, panel_filter)
 
     path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
     assert window, "missing window!"

@@ -7,53 +7,11 @@ from jsonschema.validators import validate
 from jsonschema.exceptions import ValidationError
 
 
-class DictDelta:
-    """Return a list of ḱeys, which are added, deleted.
-
-    Or whose values have been altered compared to the dict passed in the previous call.
-    """
-
-    def __init__(self):
-        self.old_dict = None
-
-    def __call__(self, new_dict):
-        """Return list of changed keys."""
-        # explicitly check for None, prevent all keys being returned on 1st run
-        if self.old_dict is None:
-            self.old_dict = new_dict
-            return []
-
-        changeset = self.diff_keys(new_dict, self.old_dict)
-        self.old_dict = new_dict
-
-        return changeset
-
-    def diff_keys(self, d1, d2):
-        """Diff dicts via set operations and subsequent traversing value comparison."""
-        changed_keys = []
-        d1_keys = set(d1.keys())
-        d2_keys = set(d2.keys())
-
-        sym_diff = list(d1_keys ^ d2_keys)
-        changed_keys.extend(sym_diff)
-
-        intersec = d1_keys & d2_keys
-        for k in intersec:
-            if type(d1[k]) is dict:
-                changed_keys.extend(self.diff_keys(d1[k], d2[k]))
-            elif d1[k] != d2[k]:
-                changed_keys.append(k)
-
-        return changed_keys
-
-
 class Settings:
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):
-        self.settings = {}
-        self.changeset = []
-        self.dict_comparer = DictDelta()
+        self._storage = {}
 
     def load(self):
         """Load the plugin settings."""
@@ -61,35 +19,34 @@ class Settings:
         self.on_update()
         self.update_gutter_icons()
 
-    def has(self, setting):
-        """Return whether the given setting exists."""
-        return setting in self.settings
+    @property
+    def settings(self):
+        return sublime.load_settings("SublimeLinter.sublime-settings")
 
-    def get(self, setting, default=None):
+    def has(self, name):
+        """Return whether the given setting exists."""
+        return self.settings.has(name)
+
+    def get(self, name, default=None):
         """Return a plugin setting, defaulting to default if not found."""
-        return self.settings.get(setting, default)
+        return self.settings.get(name, default)
+
+    def has_changed(self, name):
+        current_value = self.get(name)
+        try:
+            old_value = self._storage[name]
+        except KeyError:
+            return False
+        else:
+            return (old_value != current_value)
+        finally:
+            self._storage[name] = current_value
 
     def observe(self):
         """Observe changes."""
         settings = sublime.load_settings("SublimeLinter.sublime-settings")
         settings.clear_on_change('sublimelinter-persist-settings')
         settings.add_on_change('sublimelinter-persist-settings', self.on_update)
-
-    def get_view_settings(self):
-        """Return dict of default and user settings merged."""
-        res = sublime.find_resources("SublimeLinter.sublime-settings")
-        merged_dict = {}
-        for r in res:
-            try:
-                s = sublime.load_resource(r)
-                d = sublime.decode_value(s)
-            except IOError as ie:
-                util.printf("Settings file not found: {}".format(r))
-            except ValueError as ve:
-                util.printf("Settings file corrupt: {}".format(r))
-            else:
-                merged_dict.update(d)
-        return merged_dict
 
     def on_update(self):
         """
@@ -99,37 +56,29 @@ class Settings:
         Depending on what changes, views will either be redrawn or relinted.
 
         """
-        self.settings = self.get_view_settings()
         if not validate_settings():
             return
 
-        self.changeset.extend(self.dict_comparer(self.settings))
-
-        if not self.changeset:
-            return
-
         # Reparse settings for style rules
-        if "styles" in self.changeset:
+        if self.has_changed('styles'):
             from . import style
             style.StyleParser()()
 
         # If the syntax map changed, reassign linters to all views
         from .linter import Linter
 
-        if "syntax_map" in self.changeset:
+        if self.has_changed('syntax_map'):
             Linter.clear_all()
             util.apply_to_all_views(
                 lambda view: Linter.assign(view, reset=True)
             )
 
-        if "gutter_theme" in self.changeset:
+        if self.has_changed('gutter_theme'):
             self.update_gutter_icons()
 
         Linter.reload()  # always reload
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
-
-        self.changeset.clear()
 
     def update_gutter_icons(self):
         """Update the gutter mark info based on the the current "gutter_theme" setting."""

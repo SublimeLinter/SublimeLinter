@@ -46,7 +46,7 @@ def plugin_loaded():
     persist.plugin_is_loaded = True
     persist.settings.load()
     persist.debug("debug mode: on")
-
+    persist.debug(util.get_sl_version())
     style.load_gutter_icons()
     style.StyleParser()()
 

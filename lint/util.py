@@ -450,3 +450,11 @@ def load_json(*segments, from_sl_dir=False):
     base_path = "Packages/SublimeLinter/" if from_sl_dir else ""
     full_path = base_path + "/".join(segments)
     return sublime.decode_value(sublime.load_resource(full_path))
+
+
+def get_sl_version():
+    try:
+        metadata = load_json("package-metadata.json", from_sl_dir=True)
+        return metadata.get("version")
+    except Exception:
+        return "version unknown"

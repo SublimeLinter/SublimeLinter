@@ -21,7 +21,7 @@ def get_linter_style_store(name):
         return store
 
 
-def update_gutter_icons():
+def load_gutter_icons():
     """Update the gutter mark info based on the the current "gutter_theme" setting."""
     new_gutter_dict = {"icons": {}}
 

@@ -70,7 +70,7 @@ class Settings:
             )
 
         if self.has_changed('gutter_theme'):
-            style.update_gutter_icons()
+            style.load_gutter_icons()
 
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()

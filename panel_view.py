@@ -72,6 +72,53 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
 
+class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
+    def run(self, force_show=False, **kwargs):
+        active_panel = self.window.active_panel()
+        is_active_panel = (active_panel == "output." + PANEL_NAME)
+
+        if is_active_panel and not force_show:
+            self.show_panel(PANEL_NAME, show=False)
+        else:
+            fill_panel(self.window, **kwargs)
+            self.show_panel(PANEL_NAME)
+
+    def show_panel(self, name, show=True):
+        """
+        Change visibility of panel with given name.
+
+        Panel will be shown by default.
+        Pass show=False for hiding.
+        """
+        if show:
+            cmd = "show_panel"
+        else:
+            cmd = "hide_panel"
+
+        self.window.run_command(cmd, {"panel": "output." + name or ""})
+
+
+class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
+    def run(self, edit, text="", clear_sel=False):
+        """Replace a view's text entirely and attempt to restore previous selection."""
+        sel = self.view.sel()
+        # Doesn't make sense to consider multiple selections
+        selected_region = sel[0] if sel else None
+        selected_text = self.view.substr(selected_region) if sel else None
+
+        self.view.set_read_only(False)
+        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
+        self.view.set_read_only(True)
+
+        sel.clear()
+        if selected_text and not clear_sel:
+            new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
+            if new_selected_region:
+                sel.add(new_selected_region)
+                return
+        sel.add(0)
+
+
 def get_we_count(vid):
     view_errors = persist.errors.get_view_dict(vid) if vid else {}
     return view_errors.get('we_count_view', {})

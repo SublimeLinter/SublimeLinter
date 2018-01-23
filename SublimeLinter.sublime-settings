@@ -116,6 +116,8 @@
     ],
 
     // Maps variant syntaxes to the syntax that you have a linter for.
+    // The syntax is the name of the syntax definition file, in lower case
+    // Run this in the console to find it: view.settings().get('syntax').lower()
     "syntax_map": {
         "html (django)": "html",
         "html (rails)": "html",

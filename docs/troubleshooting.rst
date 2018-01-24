@@ -56,10 +56,6 @@ Another possibility is that an executable called by the linter executable is mis
     SublimeLinter: jshint output:
     env: node: No such file or directory
 
-.. note::
-
-   On Windows, linter errors messages will not always appear. It appears to be a bug in python.
-
 Unlike the other error messages mentioned earlier, you would not see this message unless debug mode was turned on, because it isn’t an error message detected by SublimeLinter, it is the output captured from the `jshint`_ executable. So if you aren’t seeing any errors or warnings in the console and the linter isn’t working, turn on debug mode to see if you can find the source of the problem.
 
 

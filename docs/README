@@ -1,0 +1,9 @@
+To build the docs:
+
+- `pip3 install Sphinx` the documentation generator
+- `pip3 install sphinx_rtd_theme` the readthedocs.org theme
+- `pip3 install recommonmark` for markdown support 
+- `sphinx-build docs docs-out` to build the docs
+
+The HTML is now in docs-out
+

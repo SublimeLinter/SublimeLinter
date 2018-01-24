@@ -41,7 +41,8 @@ def plugin_unloaded():
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(buffer_id):
     for window in sublime.windows():
-        fill_panel(window, update=True)
+        if buffer_id in buffer_ids_per_window(window):
+            fill_panel(window, update=True)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -200,7 +201,7 @@ def filter_and_sort(buf_errors, panel_filter):
 
 def get_window_raw_errors(window, all_errors, panel_filter):
     bid_error_pairs = (
-        (bid, all_errors[bid]) for bid in buffer_ids_per_windows(window)
+        (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )
     return {
         bid: filter_and_sort(errors, panel_filter)
@@ -209,7 +210,7 @@ def get_window_raw_errors(window, all_errors, panel_filter):
     }
 
 
-def buffer_ids_per_windows(window):
+def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
 
 

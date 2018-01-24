@@ -2,7 +2,7 @@ import sublime
 import sublime_plugin
 
 from .lint import persist
-from .lint.const import STATUS_KEY
+from .lint.const import STATUS_KEY, WARNING, ERROR
 from .lint import events
 
 
@@ -28,7 +28,7 @@ def on_finished_linting(buffer_id):
     active_view = State['active_view']
     if active_view.buffer_id() == buffer_id:
         State.update({
-            'we_count': get_we_count(active_view.id())
+            'we_count': get_we_count(buffer_id)
         })
 
         draw(**State)
@@ -36,10 +36,10 @@ def on_finished_linting(buffer_id):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        vid = active_view.id()
+        bid = active_view.buffer_id()
 
         current_pos = get_current_pos(active_view)
-        we_count = get_we_count(vid)
+        we_count = get_we_count(bid)
 
         State.update({
             'active_view': active_view,
@@ -71,7 +71,7 @@ def draw(active_view, we_count, current_pos, **kwargs):
     if not we_count:
         active_view.erase_status(STATUS_KEY)
         return
-    status = "W: {warning} E: {error}".format(**we_count)
+    status = "W: {} E: {}".format(*we_count)
 
     bid = active_view.buffer_id()
     errors = persist.raw_errors[bid]
@@ -84,9 +84,15 @@ def draw(active_view, we_count, current_pos, **kwargs):
         active_view.set_status(STATUS_KEY, status)
 
 
-def get_we_count(vid):
-    view_errors = persist.errors.get_view_dict(vid) if vid else {}
-    return view_errors.get('we_count_view', {})
+def get_we_count(bid):
+    warnings, errors = 0, 0
+    for error in persist.raw_errors[bid]:
+        error_type = error['error_type']
+        if error_type == WARNING:
+            warnings += 1
+        elif error_type == ERROR:
+            errors += 1
+    return (warnings, errors)
 
 
 def get_current_pos(view):

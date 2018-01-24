@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, util
+from .lint import persist, events
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
@@ -75,10 +75,8 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
     def on_pre_close(self, view):
-        if not util.is_lintable(view):
-            return
-
-        fill_panel(view.window(), update=True)
+        window = view.window()
+        sublime.set_timeout_async(lambda: fill_panel(window, update=True))
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):

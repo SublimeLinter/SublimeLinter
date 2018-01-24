@@ -15,7 +15,6 @@ from .lint import persist, util, style
 from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
 from .lint import backend
-from .panel import panel
 
 
 def backup_old_settings():
@@ -152,7 +151,6 @@ class Listener:
                 d.pop(vid, None)
 
         queue.cleanup(vid)
-        panel.fill_panel(view.window(), update=True)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -264,9 +262,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         for view in all_views_into_buffer(view):
             highlight.clear_view(view)
             highlights.draw(view)
-
-        for window in sublime.windows():
-            panel.fill_panel(window, update=True)
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

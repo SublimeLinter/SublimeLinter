@@ -1,7 +1,8 @@
 import os
 import sublime
+import sublime_plugin
 
-from ..lint import persist
+from .lint import persist, events, util
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
@@ -19,6 +20,124 @@ OUTPUT_PANEL_SETTINGS = {
     "translate_tabs_to_spaces": False,
     "word_wrap": False
 }
+
+
+State = {
+    'we_count': {},
+    'active_view': None,
+    'current_pos': (-1, -1)
+}
+
+
+def plugin_loaded():
+    State.update({
+        'active_view': sublime.active_window().active_view()
+    })
+
+
+def plugin_unloaded():
+    events.off(on_finished_linting)
+
+
+@events.on(events.FINISHED_LINTING)
+def on_finished_linting(buffer_id):
+    active_view = State['active_view']
+    if active_view.buffer_id() == buffer_id:
+        State.update({
+            'we_count': get_we_count(active_view.id())
+        })
+
+    for window in sublime.windows():
+        fill_panel(window, update=True)
+
+
+class UpdateState(sublime_plugin.EventListener):
+    def on_activated_async(self, active_view):
+        vid = active_view.id()
+
+        current_pos = get_current_pos(active_view)
+        we_count = get_we_count(vid)
+
+        State.update({
+            'active_view': active_view,
+            'we_count': we_count,
+            'current_pos': current_pos
+        })
+        update_panel_selection(**State)
+
+    def on_selection_modified_async(self, _primary_view_):
+        active_view = State['active_view']
+        current_pos = get_current_pos(active_view)
+        if current_pos != State['current_pos']:
+            State.update({
+                'current_pos': current_pos
+            })
+            update_panel_selection(**State)
+
+    def on_pre_close(self, view):
+        if not util.is_lintable(view):
+            return
+
+        fill_panel(view.window(), update=True)
+
+
+class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
+    def run(self, force_show=False, **kwargs):
+        active_panel = self.window.active_panel()
+        is_active_panel = (active_panel == "output." + PANEL_NAME)
+
+        if is_active_panel and not force_show:
+            self.show_panel(PANEL_NAME, show=False)
+        else:
+            fill_panel(self.window, **kwargs)
+            self.show_panel(PANEL_NAME)
+
+    def show_panel(self, name, show=True):
+        """
+        Change visibility of panel with given name.
+
+        Panel will be shown by default.
+        Pass show=False for hiding.
+        """
+        if show:
+            cmd = "show_panel"
+        else:
+            cmd = "hide_panel"
+
+        self.window.run_command(cmd, {"panel": "output." + name or ""})
+
+
+class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
+    def run(self, edit, text="", clear_sel=False):
+        """Replace a view's text entirely and attempt to restore previous selection."""
+        sel = self.view.sel()
+        # Doesn't make sense to consider multiple selections
+        selected_region = sel[0] if sel else None
+        selected_text = self.view.substr(selected_region) if sel else None
+
+        self.view.set_read_only(False)
+        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
+        self.view.set_read_only(True)
+
+        sel.clear()
+        if selected_text and not clear_sel:
+            new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
+            if new_selected_region:
+                sel.add(new_selected_region)
+                return
+        sel.add(0)
+
+
+def get_we_count(vid):
+    view_errors = persist.errors.get_view_dict(vid) if vid else {}
+    return view_errors.get('we_count_view', {})
+
+
+def get_current_pos(view):
+    try:
+        return view.rowcol(view.sel()[0].begin())
+    except (AttributeError, IndexError):
+        return -1, -1
 
 
 def get_common_parent(paths):

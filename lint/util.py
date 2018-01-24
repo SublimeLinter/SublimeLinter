@@ -180,7 +180,8 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 
 @lru_cache(maxsize=1)  # print once every time the path changes
 def debug_print_env(path):
-    printf('PATH:\n{}\n'.format(path.replace(os.pathsep, '\n')))
+    import textwrap
+    printf('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
 
 
 def create_environment():

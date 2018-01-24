@@ -495,13 +495,13 @@ class Linter(metaclass=LinterMeta):
 
         if persist.debug_mode():
             import pprint
-            self._debug_print_available_variables(pprint.pformat(dict(variables), indent=2))
+            self._debug_print_available_variables(pprint.pformat(dict(variables), indent=4))
         return recursive_replace(variables, settings)
 
     @staticmethod
     @lru_cache(maxsize=1)
     def _debug_print_available_variables(variables):
-        persist.debug('Available variables: {}'.format(variables))
+        persist.debug('Available variables:\n{}'.format(variables))
 
     @staticmethod
     def _guess_project_path(window, filename):
@@ -939,8 +939,9 @@ class Linter(metaclass=LinterMeta):
             return None  # ABORT
 
         if persist.debug_mode():
+            import textwrap
             stripped_output = output.replace('\r', '').rstrip()
-            util.printf('{} output:\n{}'.format(self.name, stripped_output))
+            util.printf('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
 
         errors = []
         vv = VirtualView(code)

@@ -58,19 +58,11 @@ class UpdateState(sublime_plugin.EventListener):
             draw(**State)
 
 
-def get_current_messages(current_pos, errors):
-    line, col = current_pos
-    return [
-        e["msg"] for e in errors
-        if e["line"] == line and e["start"] <= col <= e["end"]
-    ]
-
-
 def draw(active_view, we_count, current_pos, **kwargs):
-
     if not we_count:
         active_view.erase_status(STATUS_KEY)
         return
+
     status = "W: {} E: {}".format(*we_count)
 
     bid = active_view.buffer_id()
@@ -82,6 +74,14 @@ def draw(active_view, we_count, current_pos, **kwargs):
 
     if status != active_view.get_status(STATUS_KEY):
         active_view.set_status(STATUS_KEY, status)
+
+
+def get_current_messages(current_pos, errors):
+    line, col = current_pos
+    return [
+        e["msg"] for e in errors
+        if e["line"] == line and e["start"] <= col <= e["end"]
+    ]
 
 
 def get_we_count(bid):

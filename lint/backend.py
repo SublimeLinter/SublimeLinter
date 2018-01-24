@@ -137,7 +137,7 @@ def get_linters(view):
         yield linter
 
 
-def run_concurrently(tasks, max_workers=2):
+def run_concurrently(tasks, max_workers=5):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
         yield from await_futures(work)

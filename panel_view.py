@@ -141,16 +141,9 @@ def get_current_pos(view):
 
 
 def get_common_parent(paths):
-    """
-    Get the common parent directory of multiple paths.
-
-    Python 3.5+ includes os.path.commonpath which does this, however Sublime
-    currently embeds Python 3.3.
-    """
-    common_path = os.path.commonprefix([path + '/' for path in paths if path])
-    if not os.path.exists(common_path):
-        common_path = os.path.dirname(common_path)
-    return common_path.rstrip('/\\')
+    """Get the common parent directory of multiple absolute file paths."""
+    common_path = os.path.commonprefix(paths)
+    return os.path.dirname(common_path)
 
 
 def get_filenames(window, bids):
@@ -175,11 +168,11 @@ def create_path_dict(window, bids):
             base_dir, file_name = os.path.split(path)
             rel_paths = {bid: file_name}
     else:
-        base_dir = get_common_parent(
+        base_dir = get_common_parent([
             path
             for path in file_names_by_bid.values()
             if not path.startswith('<untitled')
-        )
+        ])
         if not base_dir:
             rel_paths = file_names_by_bid
         else:

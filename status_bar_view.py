@@ -1,8 +1,10 @@
 import sublime
 import sublime_plugin
 
+from collections import defaultdict
+
 from .lint import persist
-from .lint.const import STATUS_KEY
+from .lint.const import STATUS_KEY, WARNING, ERROR
 from .lint import events
 
 
@@ -28,28 +30,36 @@ def on_finished_linting(buffer_id):
     active_view = State['active_view']
     if active_view.buffer_id() == buffer_id:
         State.update({
-            'we_count': get_we_count(active_view.id())
+            'we_count': get_we_count(buffer_id),
+            'errors_per_line': errors_per_line(persist.raw_errors[buffer_id]),
         })
 
         draw(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):
+    # Fires once per view with the actual view, not necessary the primary
     def on_activated_async(self, active_view):
-        vid = active_view.id()
-
-        current_pos = get_current_pos(active_view)
-        we_count = get_we_count(vid)
+        bid = active_view.buffer_id()
 
         State.update({
             'active_view': active_view,
-            'we_count': we_count,
-            'current_pos': current_pos
+            'we_count': get_we_count(bid),
+            'errors_per_line': errors_per_line(persist.raw_errors[bid]),
+            'current_pos': get_current_pos(active_view)
         })
         draw(**State)
 
-    def on_selection_modified_async(self, _primary_view_):
+    # Triggers multiple times for each view into the same buffer.
+    # But the argument is always the same view, the primary.
+    # Activate view via mouse click fires this also, twice per view.
+    def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        # It is possible that views (e.g. panels) update in the background.
+        # So we check here and return early.
+        if active_view.buffer_id() != view.buffer_id():
+            return
+
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
@@ -58,20 +68,14 @@ class UpdateState(sublime_plugin.EventListener):
             draw(**State)
 
 
-def draw(active_view, we_count, current_pos, **kwargs):
-    vid = active_view.id()
-
+def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
     if not we_count:
         active_view.erase_status(STATUS_KEY)
         return
 
-    status = "W: {warning} E: {error}".format(**we_count)
+    status = "W: {} E: {}".format(*we_count)
 
-    msgs = []
-    errors_on_pos = persist.errors.get_region_dict(vid, *current_pos)
-    for error_type, dc in errors_on_pos.items():
-        for d in dc:
-            msgs.append(d["msg"])
+    msgs = messages_under_cursor(errors_per_line, current_pos)
     if msgs:
         status += " - {}".format("; ".join(msgs))
 
@@ -79,9 +83,30 @@ def draw(active_view, we_count, current_pos, **kwargs):
         active_view.set_status(STATUS_KEY, status)
 
 
-def get_we_count(vid):
-    view_errors = persist.errors.get_view_dict(vid) if vid else {}
-    return view_errors.get('we_count_view', {})
+def messages_under_cursor(errors, current_pos):
+    line, col = current_pos
+    return [
+        error['msg'] for error in errors[line]
+        if error["start"] <= col <= error["end"]
+    ]
+
+
+def errors_per_line(errors):
+    rv = defaultdict(list)
+    for error in errors:
+        rv[error['line']].append(error)
+    return rv
+
+
+def get_we_count(bid):
+    warnings, errors = 0, 0
+    for error in persist.raw_errors[bid]:
+        error_type = error['error_type']
+        if error_type == WARNING:
+            warnings += 1
+        elif error_type == ERROR:
+            errors += 1
+    return (warnings, errors)
 
 
 def get_current_pos(view):

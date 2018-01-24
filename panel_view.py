@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, util
+from .lint import persist, events
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL_SETTINGS = {
@@ -75,10 +75,8 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
     def on_pre_close(self, view):
-        if not util.is_lintable(view):
-            return
-
-        fill_panel(view.window(), update=True)
+        window = view.window()
+        sublime.set_timeout_async(lambda: fill_panel(window, update=True))
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
@@ -141,16 +139,9 @@ def get_current_pos(view):
 
 
 def get_common_parent(paths):
-    """
-    Get the common parent directory of multiple paths.
-
-    Python 3.5+ includes os.path.commonpath which does this, however Sublime
-    currently embeds Python 3.3.
-    """
-    common_path = os.path.commonprefix([path + '/' for path in paths if path])
-    if not os.path.exists(common_path):
-        common_path = os.path.dirname(common_path)
-    return common_path.rstrip('/\\')
+    """Get the common parent directory of multiple absolute file paths."""
+    common_path = os.path.commonprefix(paths)
+    return os.path.dirname(common_path)
 
 
 def get_filenames(window, bids):
@@ -167,32 +158,24 @@ def get_filenames(window, bids):
 
 
 def create_path_dict(window, bids):
-    base_dir = ""
     file_names_by_bid = get_filenames(window, bids)
 
-    if len(file_names_by_bid) == 1:
-        for bid, path in file_names_by_bid.items():
-            base_dir, file_name = os.path.split(path)
-            rel_paths = {bid: file_name}
-    else:
-        base_dir = get_common_parent(
-            path
-            for path in file_names_by_bid.values()
-            if not path.startswith('<untitled')
-        )
-        if not base_dir:
-            rel_paths = file_names_by_bid
-        else:
-            rel_paths = {
-                bid: (
-                    abs_path
-                    if abs_path.startswith('<untitled')
-                    else os.path.relpath(abs_path, base_dir)
-                )
-                for bid, abs_path in file_names_by_bid.items()
-            }
+    base_dir = get_common_parent([
+        path
+        for path in file_names_by_bid.values()
+        if not path.startswith('<untitled')
+    ])
 
-    return rel_paths, base_dir or ""
+    rel_paths = {
+        bid: (
+            abs_path
+            if abs_path.startswith('<untitled')
+            else os.path.relpath(abs_path, base_dir)
+        )
+        for bid, abs_path in file_names_by_bid.items()
+    }
+
+    return rel_paths, base_dir
 
 
 def create_panel(window):

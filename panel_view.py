@@ -295,6 +295,9 @@ def fill_panel(window, update=False, **panel_filter):
 
     run_update_panel_cmd(panel, text="\n".join(to_render))
 
+    if State['active_view'].window() == window:
+        update_panel_selection(**State)
+
 
 # logic for updating panel selection
 

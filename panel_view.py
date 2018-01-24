@@ -23,7 +23,6 @@ OUTPUT_PANEL_SETTINGS = {
 
 
 State = {
-    'we_count': {},
     'active_view': None,
     'current_pos': (-1, -1)
 }
@@ -41,27 +40,16 @@ def plugin_unloaded():
 
 @events.on(events.FINISHED_LINTING)
 def on_finished_linting(buffer_id):
-    active_view = State['active_view']
-    if active_view.buffer_id() == buffer_id:
-        State.update({
-            'we_count': get_we_count(active_view.id())
-        })
-
     for window in sublime.windows():
-        fill_panel(window, update=True)
+        if buffer_id in buffer_ids_per_window(window):
+            fill_panel(window, update=True)
 
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        vid = active_view.id()
-
-        current_pos = get_current_pos(active_view)
-        we_count = get_we_count(vid)
-
         State.update({
             'active_view': active_view,
-            'we_count': we_count,
-            'current_pos': current_pos
+            'current_pos': get_current_pos(active_view)
         })
         update_panel_selection(**State)
 
@@ -124,11 +112,6 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
                 sel.add(new_selected_region)
                 return
         sel.add(0)
-
-
-def get_we_count(vid):
-    view_errors = persist.errors.get_view_dict(vid) if vid else {}
-    return view_errors.get('we_count_view', {})
 
 
 def get_current_pos(view):
@@ -218,7 +201,7 @@ def filter_and_sort(buf_errors, panel_filter):
 
 def get_window_raw_errors(window, all_errors, panel_filter):
     bid_error_pairs = (
-        (bid, all_errors[bid]) for bid in buffer_ids_per_windows(window)
+        (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )
     return {
         bid: filter_and_sort(errors, panel_filter)
@@ -227,7 +210,7 @@ def get_window_raw_errors(window, all_errors, panel_filter):
     }
 
 
-def buffer_ids_per_windows(window):
+def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
 
 
@@ -312,6 +295,9 @@ def fill_panel(window, update=False, **panel_filter):
 
     run_update_panel_cmd(panel, text="\n".join(to_render))
 
+    if State['active_view'].window() == window:
+        update_panel_selection(**State)
+
 
 # logic for updating panel selection
 
@@ -346,7 +332,7 @@ def get_panel_region(row, panel, is_full_line=False):
     return region
 
 
-def update_panel_selection(active_view, we_count, current_pos, **kwargs):
+def update_panel_selection(active_view, current_pos, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.

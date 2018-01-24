@@ -3,6 +3,7 @@ import sublime
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from fnmatch import fnmatch
 from itertools import chain
+from functools import partial
 import os
 import traceback
 
@@ -34,9 +35,8 @@ def lint_view(view, hit_time, callback):
     linters = get_linters(view)
     lint_tasks = get_lint_tasks(linters, view)
 
-    run = run_concurrently(max_workers=5)
-    results = run(
-        lambda: execute_lint_task(*task, hit_time=hit_time)
+    results = run_concurrently(
+        partial(execute_lint_task, *task, hit_time=hit_time)
         for task in lint_tasks)
 
     all_errors = chain.from_iterable(results)
@@ -44,8 +44,7 @@ def lint_view(view, hit_time, callback):
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(
-        lambda: callback(view, list(all_errors), hit_time))
+    sublime.set_timeout_async(partial(callback, view, list(all_errors), hit_time))
 
 
 def execute_lint_task(linter, code, offset, hit_time):
@@ -138,13 +137,10 @@ def get_linters(view):
         yield linter
 
 
-def run_concurrently(max_workers=2):
-    def run(tasks):
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            work = [executor.submit(task) for task in tasks]
-            yield from await_futures(work)
-
-    return run
+def run_concurrently(tasks, max_workers=5):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        work = [executor.submit(task) for task in tasks]
+        yield from await_futures(work)
 
 
 def await_futures(fs, ordered=False):

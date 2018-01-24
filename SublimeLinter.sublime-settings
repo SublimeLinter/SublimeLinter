@@ -50,7 +50,7 @@
     // }
     "linters": {},
 
-    // Determines what happens when a linter reports an error without column.
+    // Determines what happens when a linter reports a problem without column.
     // By default, a mark is put in the gutter but no text is highlighted.
     // If this setting is ``true``, the entire line is also highlighted.
     "no_column_highlights_line": false,
@@ -65,13 +65,13 @@
     // How much time we should be available for reading $PATH from the shell.
     "shell_timeout": 10,
 
-    // Show a report for errors on a line by hovering over the gutter.
+    // Show a report for problems on a line by hovering over the gutter.
     "show_hover_line_report": true,
 
-    // Show a report for errors on a region by hovering over it.
+    // Show a report for problems on a region by hovering over it.
     "show_hover_region_report": true,
 
-    // Highlight errors in the minimap.
+    // Highlight problems in the minimap.
     "show_marks_in_minimap": true,
 
     // Global styles for all linters.

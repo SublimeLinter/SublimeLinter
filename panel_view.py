@@ -239,7 +239,7 @@ def run_update_panel_cmd(panel, text=None):
     cmd = "sublime_linter_update_panel"
     clear_sel = False
     if not text:
-        text = "No lint errors."
+        text = "No lint results."
         clear_sel = True
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 

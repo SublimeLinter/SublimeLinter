@@ -83,11 +83,31 @@ def goto(view, direction, count, wrap):
     move_to(view, line, start)
 
 
+class _sublime_linter_goto_line(sublime_plugin.TextCommand):
+
+    def run(self, edit, line, col):
+        pt = self.view.text_point(line, col)
+        self.view.sel().clear()
+        self.view.sel().add(pt)
+        self.view.show(pt)
+
+
 def move_to(view, line, col):
     window = view.window()
-    filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
-    target = "{}:{}:{}".format(filename, line + 1, col + 1)
-    window.open_file(target, sublime.ENCODED_POSITION)
+    if view == window.active_view():
+        # If the region we're moving to is already visible, then we don't want
+        # the view to suddenly scroll. If the region is not visible, then we
+        # want the surrounding area of the region to be visible.
+        # We need to a use a custom goto line command for several reasons:
+        # * ST's goto line command doesn't accept a col argument.
+        # * SL requires that on_selection_modified events MUST be triggered for
+        #   each move.
+        # See https://github.com/SublimeLinter/SublimeLinter/pull/867.
+        view.run_command('_sublime_linter_goto_line', {'line': line, 'col': col})
+    else:
+        filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
+        target = "{}:{}:{}".format(filename, line + 1, col + 1)
+        window.open_file(target, sublime.ENCODED_POSITION)
 
 
 def get_current_pos(view):

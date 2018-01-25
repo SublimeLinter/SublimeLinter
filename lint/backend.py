@@ -13,7 +13,7 @@ from . import persist, util
 WILDCARD_SYNTAX = '*'
 
 
-def lint_view(view, hit_time, callback):
+def lint_view(view, hit_time, next):
     """
     Lint the given view.
 
@@ -39,12 +39,12 @@ def lint_view(view, hit_time, callback):
         partial(execute_lint_task, *task, hit_time=hit_time)
         for task in lint_tasks)
 
-    all_errors = chain.from_iterable(results)
+    all_errors = list(chain.from_iterable(results))
 
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(partial(callback, view, list(all_errors), hit_time))
+    sublime.set_timeout_async(lambda: next(all_errors))
 
 
 def execute_lint_task(linter, code, offset, hit_time):

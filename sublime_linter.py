@@ -1,5 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from functools import partial
 import os
 import html
 
@@ -214,9 +215,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        backend.lint_view(view, hit_time, self.highlight)
 
-    def highlight(self, view, errors, hit_time):
+        next = partial(self.highlight, view, hit_time)
+        backend.lint_view(view, hit_time, next)
+
+    def highlight(self, view, hit_time, errors):
         """
         Highlight any errors found during a lint of the given view.
 

@@ -41,20 +41,19 @@ def lint_view(view, hit_time, next):
         tasks_by_linter[linter].append(task)
 
     run_concurrently(
-        partial(run_tasks, linter, tasks, next)
+        partial(run_tasks, tasks, next=partial(next, linter))
         for linter, tasks in tasks_by_linter.items()
     )
 
 
-def run_tasks(linter, tasks, next):
+def run_tasks(tasks, next):
     results = run_concurrently(tasks)
     errors = list(chain.from_iterable(results))  # flatten and consume
 
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(lambda: next(linter, errors))
-    return errors
+    sublime.set_timeout_async(lambda: next(errors))
 
 
 def get_lint_tasks(linters, view, hit_time):

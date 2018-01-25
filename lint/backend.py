@@ -33,11 +33,9 @@ def lint_view(view, hit_time, next):
     the corresponding section is linted as embedded code.
     """
     linters = get_linters(view)
-    lint_tasks = get_lint_tasks(linters, view)
+    lint_tasks = get_lint_tasks(linters, view, hit_time)
 
-    results = run_concurrently(
-        partial(execute_lint_task, *task, hit_time=hit_time)
-        for task in lint_tasks)
+    results = run_concurrently(lint_tasks)
 
     all_errors = list(chain.from_iterable(results))
 
@@ -45,6 +43,13 @@ def lint_view(view, hit_time, next):
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
     sublime.set_timeout_async(lambda: next(all_errors))
+
+
+def get_lint_tasks(linters, view, hit_time):
+    for (linter, region) in get_lint_regions(linters, view):
+        code = view.substr(region)
+        offset = view.rowcol(region.begin())
+        yield partial(execute_lint_task, linter, code, offset, hit_time)
 
 
 def execute_lint_task(linter, code, offset, hit_time):
@@ -69,13 +74,6 @@ def translate_lineno_and_column(errors, offset):
                 'start': error['start'] + col_offset,
                 'end': error['end'] + col_offset
             })
-
-
-def get_lint_tasks(linters, view):
-    for (linter, region) in get_lint_regions(linters, view):
-        code = view.substr(region)
-        offset = view.rowcol(region.begin())
-        yield (linter, code, offset)
 
 
 def get_lint_regions(linters, view):

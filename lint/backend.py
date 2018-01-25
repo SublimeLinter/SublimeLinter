@@ -1,5 +1,6 @@
 import sublime
 
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from fnmatch import fnmatch
 from itertools import chain
@@ -35,9 +36,14 @@ def lint_view(view, hit_time, next):
     linters = get_linters(view)
     lint_tasks = get_lint_tasks(linters, view, hit_time)
 
-    results = run_concurrently(lint_tasks)
+    tasks_by_linter = defaultdict(list)
+    for linter, task in lint_tasks:
+        tasks_by_linter[linter].append(task)
 
-    all_errors = list(chain.from_iterable(results))
+    all_errors = run_concurrently(
+        partial(run_tasks, tasks) for linter, tasks in tasks_by_linter.items()
+    )
+    all_errors = list(chain.from_iterable(all_errors))
 
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
@@ -45,11 +51,17 @@ def lint_view(view, hit_time, next):
     sublime.set_timeout_async(lambda: next(all_errors))
 
 
+def run_tasks(tasks):
+    results = run_concurrently(tasks)
+    errors = list(chain.from_iterable(results))
+    return errors
+
+
 def get_lint_tasks(linters, view, hit_time):
     for (linter, region) in get_lint_regions(linters, view):
         code = view.substr(region)
         offset = view.rowcol(region.begin())
-        yield partial(execute_lint_task, linter, code, offset, hit_time)
+        yield linter, partial(execute_lint_task, linter, code, offset, hit_time)
 
 
 def execute_lint_task(linter, code, offset, hit_time):

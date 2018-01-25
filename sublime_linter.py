@@ -209,8 +209,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
             return
 
-        view = Linter.get_view(view_id)
-
+        view = persist.views.get(view_id)
         if not view:
             return
 

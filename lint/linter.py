@@ -591,11 +591,6 @@ class Linter(metaclass=LinterMeta):
         return view.substr(sublime.Region(0, view.size()))
 
     @classmethod
-    def get_view(cls, vid):
-        """Return the view object with the given id."""
-        return persist.views.get(vid)
-
-    @classmethod
     def which(cls, cmd):
         """Return full path to a given executable.
 

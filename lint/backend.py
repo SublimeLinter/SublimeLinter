@@ -40,20 +40,20 @@ def lint_view(view, hit_time, next):
     for linter, task in lint_tasks:
         tasks_by_linter[linter].append(task)
 
-    all_errors = run_concurrently(
-        partial(run_tasks, tasks) for linter, tasks in tasks_by_linter.items()
+    run_concurrently(
+        partial(run_tasks, linter, tasks, next)
+        for linter, tasks in tasks_by_linter.items()
     )
-    all_errors = list(chain.from_iterable(all_errors))
+
+
+def run_tasks(linter, tasks, next):
+    results = run_concurrently(tasks)
+    errors = list(chain.from_iterable(results))  # flatten and consume
 
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(lambda: next(all_errors))
-
-
-def run_tasks(tasks):
-    results = run_concurrently(tasks)
-    errors = list(chain.from_iterable(results))
+    sublime.set_timeout_async(lambda: next(linter, errors))
     return errors
 
 
@@ -150,7 +150,8 @@ def get_linters(view):
 def run_concurrently(tasks, max_workers=5):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
-        yield from await_futures(work)
+        results = await_futures(work)
+        return list(results)  # consume the generator immediately
 
 
 def await_futures(fs, ordered=False):

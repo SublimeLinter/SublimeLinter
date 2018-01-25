@@ -1,6 +1,5 @@
 import sublime
 
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from fnmatch import fnmatch
 from itertools import chain
@@ -36,13 +35,9 @@ def lint_view(view, hit_time, next):
     linters = get_linters(view)
     lint_tasks = get_lint_tasks(linters, view, hit_time)
 
-    tasks_by_linter = defaultdict(list)
-    for linter, task in lint_tasks:
-        tasks_by_linter[linter].append(task)
-
     run_concurrently(
         partial(run_tasks, tasks, next=partial(next, linter))
-        for linter, tasks in tasks_by_linter.items()
+        for linter, tasks in lint_tasks
     )
 
 
@@ -57,10 +52,14 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, hit_time):
-    for (linter, region) in get_lint_regions(linters, view):
-        code = view.substr(region)
-        offset = view.rowcol(region.begin())
-        yield linter, partial(execute_lint_task, linter, code, offset, hit_time)
+    for (linter, regions) in get_lint_regions(linters, view):
+
+        def make_task(region):
+            code = view.substr(region)
+            offset = view.rowcol(region.begin())
+            return partial(execute_lint_task, linter, code, offset, hit_time)
+
+        yield linter, map(make_task, regions)
 
 
 def execute_lint_task(linter, code, offset, hit_time):
@@ -94,12 +93,14 @@ def get_lint_regions(linters, view):
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
         ):
-            yield (linter, sublime.Region(0, view.size()))
+            yield linter, [sublime.Region(0, view.size())]
 
         else:
-            for selector in get_selectors(linter, syntax):
-                for region in view.find_by_selector(selector):
-                    yield (linter, region)
+            yield linter, [
+                region
+                for selector in get_selectors(linter, syntax)
+                for region in view.find_by_selector(selector)
+            ]
 
 
 def get_selectors(linter, wanted_syntax):

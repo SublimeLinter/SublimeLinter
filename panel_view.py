@@ -64,7 +64,10 @@ class UpdateState(sublime_plugin.EventListener):
 
     def on_pre_close(self, view):
         window = view.window()
-        sublime.set_timeout_async(lambda: fill_panel(window, update=True))
+        # If the user closes the window and not *just* a view, the view is
+        # already detached, hence we check.
+        if window:
+            sublime.set_timeout_async(lambda: fill_panel(window, update=True))
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):

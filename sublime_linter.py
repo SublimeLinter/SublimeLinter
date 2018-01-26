@@ -1,6 +1,5 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
-from collections import defaultdict
 import os
 import html
 
@@ -12,7 +11,7 @@ from .lint.linter import Linter
 from .lint import highlight
 from .lint.queue import queue
 from .lint import persist, util, style
-from .lint.const import WARN_ERR
+from .lint.const import WARN_ERR, WARNING, ERROR
 from .lint import backend
 
 
@@ -38,17 +37,6 @@ def backup_old_settings():
             sublime.message_dialog(msg)
 
 
-def get_we_count(bid):
-    warnings, errors = 0, 0
-    for error in persist.raw_errors[bid]:
-        error_type = error['error_type']
-        if error_type == WARNING:
-            warnings += 1
-        elif error_type == ERROR:
-            errors += 1
-    return (warnings, errors)
-
-
 def plugin_loaded():
     backup_old_settings()
 
@@ -58,8 +46,6 @@ def plugin_loaded():
     persist.debug("version: " + util.get_sl_version())
     style.load_gutter_icons()
     style.StyleParser()()
-
-    util.create_tempdir()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
@@ -318,7 +304,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return lineno, colno
 
     @classmethod
-    def join_msgs(cls, errors, we_count, show_count=False):
+    def join_msgs(cls, errors, show_count=False):
 
         if show_count:
             part = '''
@@ -330,22 +316,25 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 <div>{messages}</div>
             '''
 
-        template = "{linter}: {code} - {escaped_msg}"
-        template_no_code = "{linter}: {escaped_msg}"
+        tmpl_with_code = "{linter}: {code} - {escaped_msg}"
+        tmpl_sans_code = "{linter}: {escaped_msg}"
 
         all_msgs = ""
         for error_type in WARN_ERR:
-            count = we_count[error_type]
             heading = error_type
-            error_type_msgs = []
-            msg_list = line_dict.get(error_type)
+            filled_templates = []
+            msg_list = [e for e in errors if e["error_type"] == error_type]
 
             if not msg_list:
                 continue
+
+            msg_list = sorted(msg_list, key=lambda x: (x["start"], x["end"]))
+            count = len(msg_list)
+
             for item in msg_list:
-                item["escaped_msg"] = html.escape(item["msg"], quote=False)
-                template_to_fill = template if item.get('code') else template_no_code
-                error_type_msgs.append(template_to_fill.format(**item))
+                msg = html.escape(item["msg"], quote=False)
+                tmpl = tmpl_with_code if item.get('code') else tmpl_sans_code
+                filled_templates.append(tmpl.format(escaped_msg=msg, **item))
 
             if count > 1:  # pluralize
                 heading += "s"
@@ -354,7 +343,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 classname=error_type,
                 count=count,
                 heading=heading,
-                messages='<br />'.join(error_type_msgs)
+                messages='<br />'.join(filled_templates)
             )
         return all_msgs
 
@@ -395,19 +384,15 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             line, col = self.get_line_and_col(active_view)
 
         bid = active_view.buffer_id()
-        we_count =  get_we_count(bid)
-        if we_count == (0, 0):
-            return
 
         errors = persist.raw_errors[bid]
-
+        errors = [e for e in errors if e["line"] == line]
         if not is_gutter:  # do not show tooltip on hovering empty gutter
             errors = [e for e in errors if e["start"] <= col <= e["end"]]
-
         if not errors:
             return
 
-        tooltip_message = self.join_msgs(errors, we_count, is_gutter)
+        tooltip_message = self.join_msgs(errors, is_gutter)
         if not tooltip_message:
             return
 

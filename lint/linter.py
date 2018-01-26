@@ -1127,7 +1127,9 @@ class Linter(metaclass=LinterMeta):
 
         view.erase_status(STATUS_KEY)
         highlight.clear_view(view)
-        persist.errors.pop(view.id(), None)
+        vid = view.buffer_id()
+        if vid in persist.raw_errors:
+            del persist.raw_errors[vid]
 
     def clear(self):
         self.clear_view(self.view)

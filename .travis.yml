@@ -12,6 +12,8 @@ matrix:
 install:
   - pip3 install flake8
   - pip3 install flake8-docstrings
+  - pip3 install Sphinx sphinx_rtd_theme
 
 script:
   - flake8
+  - sphinx-build docs docs-out

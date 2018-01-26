@@ -43,8 +43,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SublimeLinter'
-copyright = u'2018, The SublimeLinter Community'
+project = 'SublimeLinter'
+copyright = '2018, The SublimeLinter Community'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -134,7 +134,7 @@ else:
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -203,8 +203,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'SublimeLinter.tex', u'SublimeLinter Documentation',
-   u'The SublimeLinter Community', 'manual'),
+  ('index', 'SublimeLinter.tex', 'SublimeLinter Documentation',
+   'The SublimeLinter Community', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -233,8 +233,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'sublimelinter', u'SublimeLinter Documentation',
-     [u'The SublimeLinter Community'], 1)
+    ('index', 'sublimelinter', 'SublimeLinter Documentation',
+     ['The SublimeLinter Community'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -247,8 +247,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'SublimeLinter', u'SublimeLinter Documentation',
-   u'The SublimeLinter Community', 'SublimeLinter', 'Interactive code linting framework for Sublime Text.',
+  ('index', 'SublimeLinter', 'SublimeLinter Documentation',
+   'The SublimeLinter Community', 'SublimeLinter', 'Interactive code linting framework for Sublime Text.',
    'Miscellaneous'),
 ]
 

@@ -11,7 +11,7 @@ from .lint.linter import Linter
 from .lint import highlight
 from .lint.queue import queue
 from .lint import persist, util, style
-from .lint.const import WARN_ERR, WARNING, ERROR
+from .lint.const import WARN_ERR
 from .lint import backend
 
 

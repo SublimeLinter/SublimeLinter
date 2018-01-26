@@ -1,13 +1,7 @@
 language: python
 
 python:
-  - "3.3"
   - "3.6"
-
-matrix:
-  allow_failures:
-    - python: "3.6"
-  fast_finish: true
 
 install:
   - pip3 install flake8

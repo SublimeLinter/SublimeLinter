@@ -11,7 +11,8 @@ from .lint import events
 State = {
     'we_count': {},
     'active_view': None,
-    'current_pos': (-1, -1)
+    'current_pos': (-1, -1),
+    'errors_per_line': {}
 }
 
 

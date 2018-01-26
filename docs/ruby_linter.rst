@@ -1,23 +1,18 @@
 RubyLinter class
 ======================
-If your linter plugin interfaces with a linter that is written in ruby, you should subclass from ``SublimeLinter.lint.RubyLinter``.
+If your linter plugin interfaces with a linter that is written in ruby,
+you should subclass from ``SublimeLinter.lint.RubyLinter``.
 
-.. note::
-
-   This is done for you if you use the :ref:`Create Linter Plugin <create-linter-plugin-command>` command and select ``Ruby`` as the linter language.
-
-By doing so, you get the following features:
-
-- Support for `rbenv`_ and `rvm`_ (via rvm-auto-ruby).
+By doing so, you get support for `rbenv`_ and `rvm`_ (via rvm-auto-ruby).
 
 
 rbenv and rvm support
 ----------------------
-During class construction, SublimeLinter attempts to locate the gem and ruby specified in :ref:`cmd`.
+During class construction, SublimeLinter attempts to locate the gem and ruby specified in :ref:`cmd <cmd>`.
 
 The following forms are valid for the first argument of ``cmd``:
 
-.. code-block:: none
+.. code-block:: python
 
     gem@ruby
     gem

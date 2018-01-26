@@ -17,6 +17,7 @@ Developer Documentation
     :maxdepth: 3
 
     gutter_themes
+    linter_plugin
     linter_attributes
     linter_methods
     python_linter

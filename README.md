@@ -37,17 +37,21 @@ Navigating to the next/previous error is done using the `next_result` and `prev_
 
 ## Support & Bugs
 
-Please use the debug mode and include all console output, and your settings in your bug report. If your issue is specific to a particular linter, please report it on that linter's repository instead.
+Please use the debug mode and include all console output, and your settings in your bug report.
+If your issue is specific to a particular linter, please report it on that linter's repository instead.
 
 
 ## Creating a linter plugin
 
-Use the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin. It contains a howto with all the information you need.
+Fork the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
+It contains a howto with all the information you need.
 
 ---------------------------
 
 
-If you use SublimeLinter and feel it is making your coding life better and easier, please consider making a donation to help fund development and support. Thank you!
+If you use SublimeLinter and feel it is making your coding life better and easier,
+please consider making a donation for all the coffee and beer involved in this project.
+Thank you!
 
 Donate via: 
 * [**Paypal**](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU)

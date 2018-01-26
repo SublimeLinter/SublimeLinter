@@ -1,23 +1,35 @@
 Settings
 ========
 
+The settings are documented in the default settings file, so you can refer to
+them while editing your settings.
+
+This page covers some extra tricks and how to work with project specific settings.
+
 Settings stack
 --------------
-SublimeLinter merges settings from several sources to calculate the value. Settings are merged in the following order:
+SublimeLinter merges settings from several sources to calculate the value.
+Settings are merged in the following order:
 
-1. Default settings
-1. User settings
-1. Project settings
+#. Default settings
+#. User settings
+#. Project settings
 
 
 Project settings
-~~~~~~~~~~~~~~~~
+----------------
 Only the "linters" settings in can be changed in a project.
 All other settings (e.g. "debug", "delay", etc.) can only be changed in your user settings.
 
-SublimeLinter project settings are defined by a ``"SublimeLinter"`` object within Sublime Text’s project settings. Here you can change linter settings for a project.
+SublimeLinter project settings are defined by a ``"SublimeLinter"`` object
+within Sublime Text’s sublime-project file.
 
-Project settings are opened from the ``Project > Edit Project`` menu. Here is an example project settings file where the flake8 linter has been disabled:
+.. note::
+
+    Read more about project setting in
+    `Sublime Text's documentation <https://www.sublimetext.com/docs/3/projects.html>`_.
+
+Here is an example project settings file where the flake8 linter has been disabled:
 
 .. code-block:: json
 
@@ -25,8 +37,7 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
         "folders":
         [
             {
-                "follow_symlinks": true,
-                "path": "/Users/aparajita/Projects/SublimeLinter"
+                "path": "."
             }
         ],
         "SublimeLinter":
@@ -42,7 +53,8 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
 
 .. note::
 
-    Be sure you are **not** putting the ``"SublimeLinter"`` object inside the ``settings`` object. They should be sibling objects in the root document.
+    Do not put the ``"SublimeLinter"`` object inside a ``"settings"`` object,
+    or anywhere else but directly in the root object of the sublime-project file.
 
 
 .. _settings-expansion:
@@ -50,8 +62,11 @@ Project settings are opened from the ``Project > Edit Project`` menu. Here is an
 Settings Expansion
 ------------------
 After the settings have been merged, SublimeLinter iterates over all settings values and expands any strings.
-This uses Sublime Text's `expand_variables` API, which uses the ``${varname}`` syntax and supports placeholders (``${varname:placeholder}``), where placeholders are resolved recursively (e.g. ``${XDG_CONFIG_HOME:$HOME/.config}``).
-To insert a literal ``$`` character, use ``\$`` (in JSON: ``\\$``).
+This uses Sublime Text's `expand_variables` API,
+which uses the ``${varname}`` syntax and supports placeholders (``${varname:placeholder}``).
+Placeholders are resolved recursively (e.g. ``${XDG_CONFIG_HOME:$HOME/.config}``).
+
+To insert a literal ``$`` character, use ``\\$``.
 
 The following case-sensitive variables are provided:
 
@@ -70,9 +85,14 @@ The following case-sensitive variables are provided:
 - ``project_extension``
 - all environment variables
 
-See the `documentation on build systems <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_ for an explanation of what each variable contains.
+.. note::
 
-We enhanced the expansion for ``folder`` that attempts to guess the correct folder if you have multiple folders open in a window.
+    See the `documentation on build systems <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_
+    for an explanation of what each variable contains.
 
-Additionally, ``~`` will get expanded using `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
+We enhanced the expansion for ``folder``.
+It now attempts to guess the correct folder if you have multiple folders open in a window.
+
+Additionally, ``~`` will get expanded using
+`os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
 

@@ -1,92 +1,146 @@
 Linter Attributes
 ========================
-All linter plugins must be subclasses (direct or indirect) of ``SublimeLinter.lint.Linter``. The Linter class provides the attributes and methods necessary to make linters work within the SublimeLinter framework.
+All linter plugins must be subclasses of ``SublimeLinter.lint.Linter``.
+The Linter class provides the attributes and methods necessary to make linters
+work within SublimeLinter.
 
-The Linter class is designed to allow interfacing with most linter executables/libraries through the configuration of class attributes, with no coding necessary. Some linters, however, will need to do more work to set up the environment for the linter executable, or may do the linting directly in the linter plugin itself. In that case, you will need to read the :doc:`linter method documentation <linter_methods>`.
+The Linter class is designed to allow interfacing with most linter
+executables/libraries through the configuration of class attributes.
+Some linters, however, will need to do more work
+to set up the environment for the linter executable,
+or may do the linting directly in the linter plugin itself.
+In that case, refer to the :doc:`linter method documentation <linter_methods>`.
 
 
-cmd
----
-**Mandatory.** A string, list, tuple or callable that returns a string, list or tuple, containing the command line (with arguments) used to lint. If a string, it should be as if it were entered on a command line, and is parsed by `shlex.split <https://docs.python.org/2/library/shlex.html>`_.
+.. _cmd:
 
-If ``cmd`` is ``None``, it is assumed the plugin overrides the :ref:`run` method.
+cmd (mandatory)
+---------------
+A string, list, tuple or callable that
+returns a string, list or tuple,
+containing the command line (with arguments) used to lint.
+If a string, it should be as if it were entered on a command line,
+and is parsed by `shlex.split <https://docs.python.org/2/library/shlex.html>`_.
 
-A ``@`` argument will be replaced with the filename, which allows you to guarantee that certain arguments will be passed after the filename. When :ref:`tempfile_suffix` is set, the filename will be the temp filename.
-
-A ``*`` argument will be replaced with the arguments built from the linter settings, which allows you to guarantee that certain arguments will be passed at the end of the argument list.
-
-.. note::
-
-   If the linter executable is python-based, there is a special form you should use for the ``cmd`` attribute. See :doc:`Python-based linters <python_linter>` for more information.
+- If ``cmd`` is ``None``, it is assumed the plugin overrides the :ref:`run` method.
+- A ``@`` argument will be replaced with the filename,
+  which allows you to guarantee that certain arguments will be passed after the filename.
+- When :ref:`tempfile_suffix` is set, the filename will be the temp filename.
+- A ``*`` argument will be replaced with the arguments built from the linter settings,
+  which allows you to guarantee that certain arguments will be passed at the end of the argument list.
 
 
 default_type
 ------------
-As noted in the :ref:`regex` documentation, you use the ``error`` and ``warning`` named capture groups to classify linter errors. If the linter output does not provide information which can be captured with those groups, this attribute is used to determine how to classify the linter error. The value should be ``highlight.ERROR`` or ``highlight.WARNING``. The default value is ``highlight.ERROR``.
+Usually the ``error`` and ``warning`` named capture groups in the :ref:`regex`
+classify the problems.
+If the linter output does not provide information which can be captured with those groups,
+this attribute is used to determine how to classify the linter error.
+The value should be ``highlight.ERROR`` or ``highlight.WARNING``.
 
+The default value is ``highlight.ERROR``.
+
+
+.. _defaults:
 
 defaults
 --------
-If you want to provide default settings for the linter, set this attribute to a dict of setting names and values.
+Set this attribute to a dict of setting names and values to provide defaults for the linter's settings.
 
-If a setting will be passed as an argument to the linter executable, you may specify the format of the argument here and the setting will automatically be passed as an argument to the executable. The format specification is as follows:
+If a setting will be passed as an argument to the linter executable,
+you may specify the format of the argument here and
+the setting will automatically be passed as an argument to the executable.
+The format specification is as follows:
 
 .. code-block:: none
 
     <prefix><name><joiner>[<sep>[+]]
 
 - **prefix** – Either ‘@’, ‘-’ or ‘--’.
-
 - **name** – The name of the setting.
+- **joiner** – Either ‘=’ or ‘:’.
+- **sep** – If the argument accepts a list of values,
+  ``sep`` specifies the character used to delimit the list (usually ‘,’).
+- **+** – If the setting can be a list of values,
+  but each value must be passed as a separate argument,
+  terminate the setting with ‘+’.
 
-- **joiner** – Either ‘=’ or ‘:’. If ``prefix`` is ‘@’, this attribute is ignored (but may not be omitted). Otherwise, if this is ‘=’, the setting value is joined with ``name`` by ‘=’ and passed as a single argument. If ‘:’, ``name`` and the value are passed as separate arguments.
 
-- **sep** – If the argument accepts a list of values, ``sep`` specifies the character used to delimit the list (usually ‘,’).
+If ``prefix`` is ‘@’, this attribute is ignored (but may not be omitted).
+Otherwise, if this is ‘=’, the setting value is joined with ``name`` by ‘=’ and passed as a single argument.
+If ‘:’, ``name`` and the value are passed as separate arguments.
 
-- **+** – If the setting can be a list of values, but each value must be passed as a separate argument, terminate the setting with ‘+’.
 
 After the format is parsed, the prefix and suffix are removed and the setting key is replaced with ``name``.
 
 .. note::
 
-   When building the list of arguments to pass to the linter, if the setting value evaluates to ``False`` (``None``, zero, ``False``, or an empty sequence), the argument is not passed to the linter.
+   When building the list of arguments to pass to the linter,
+   if the setting value is ``falsy`` (``None``, zero, ``False``, or an empty sequence),
+   the argument is not passed to the linter.
 
 
 error_stream
 ------------
-Some linters report problem on ``stdout``, some on ``stderr``. For efficiency reasons there is no point in parsing non-error output, so by default SublimeLinter ignores ``stderr`` since most linters report on ``stdout``.
+Some linters report problem on ``stdout``, some on ``stderr``.
+By default SublimeLinter ignores ``stderr`` since most linters report on ``stdout``.
 
-However, it’s very important that you capture errors generated by the linter itself, for example a bad command line argument or some internal error. Usually linters will report their own errors on ``stderr``. To ensure you capture both regular linter output and internal linter errors, you need to determine on which stream the linter writes reports and errors.
+However, it’s important to capture errors generated by the linter itself,
+for example a bad command line argument or some internal error.
+Usually linters will report their own errors on ``stderr``.
+To ensure you capture both regular linter output and internal linter errors,
+you need to determine on which stream the linter writes reports and errors.
 
 
 executable
 ----------
-If the name of the executable cannot be determined by the first element of ``cmd`` (for example when ``cmd`` is a method that dynamically generates the command line arguments), this can be set to the name of the executable used to do linting. Once the executable’s name is determined, its existence is checked in the user’s path. If it is not available, the linter is deactivated.
+If the name of the executable cannot be determined by the first element of :ref:`cmd <cmd>`
+(for example when ``cmd`` is a method that dynamically generates the command line arguments),
+this can be set to the name of the executable used to do linting.
+Once the executable’s name is determined, its existence is checked in the user’s path.
+If it is not available, the linter is deactivated.
 
 .. note::
 
-   If the ``cmd`` attribute is a string, list or tuple whose first element is the linter executable name, you do **not** need to define this attribute.
+   If the ``cmd`` attribute is a
+   string, list or tuple whose first element is the linter executable name,
+   you do **not** need to define this attribute.
 
 
 line_col_base
 -------------
-This attribute is a tuple that defines the number base used by linters in reporting line and column numbers. Linters usually report errors with a line number, and some report a column number as well. In general, most linters use one-based line numbers and column numbers, so the default value is ``(1, 1)``. If a linter uses zero-based line numbers or column numbers, the linter class should define this attribute accordingly.
+This attribute is a tuple that defines the number base used by linters in reporting line and column numbers.
+In general, most linters use one-based line numbers and column numbers, so the default value is ``(1, 1)``.
+If a linter uses zero-based line numbers or column numbers,
+the linter class should define this attribute accordingly.
 
-For example, if the linter reports one-based line numbers but zero-based column numbers, the value of this attribute should be ``(1, 0)``.
+.. note::
+
+    For example, if the linter reports one-based line numbers but zero-based column numbers,
+    the value of this attribute should be ``(1, 0)``.
 
 
 multiline
 ---------
-This attribute determines whether the :ref:`regex` attribute parses multiple lines. The linter may output multiline error messages, but if :ref:`regex` only parses single lines, this attribute should be ``False`` (the default). It is important that you set this attribute correctly; it does more than just add the ``re.MULTILINE`` flag when it compiles the :ref:`regex` pattern.
+This attribute determines whether the :ref:`regex` attribute parses multiple lines.
+The linter may output multiline error messages, but if ``regex`` only parses single lines,
+this attribute should be ``False`` (the default).
 
-If ``multiline`` is ``False``, the linter output is split into lines (using ``str.splitlines`` and each line is matched against :ref:`regex` pattern.
+- If ``multiline`` is ``False``, the linter output is split into lines (using ``str.splitlines``
+  and each line is matched against ``regex`` pattern.
+- If ``multiline`` is ``True``, the linter output is iterated over using ``re.finditer``
+  until no more matches are found.
 
-If ``multiline`` is ``True``, the linter output is iterated over using ``re.finditer`` until no more matches are found.
+.. note::
+
+    It is important that you set this attribute correctly; it does more than just
+    add the ``re.MULTILINE`` flag when it compiles the ``regex`` pattern.
 
 
 re_flags
 --------
-If you wish to add custom ``re flags`` that are used when compiling the ``regex`` pattern, you may specify them here.
+If you wish to add custom ``re flags`` that are used when compiling the :ref:`regex` pattern,
+you may specify them here.
 
 For example, if you want the pattern to be case-insensitive, you could do this:
 
@@ -94,23 +148,32 @@ For example, if you want the pattern to be case-insensitive, you could do this:
 
     re_flags = re.IGNORECASE
 
-As noted in the :ref:`examples <re-flags-example>`, these flags can also be included within the :ref:`regex` pattern itself. It’s up to you which technique you prefer.
+
+.. note::
+
+    These flags can also be included within the ``regex`` pattern itself.
+    It’s up to you which technique you prefer.
 
 
-regex
------
-**Mandatory.** A python regular expression pattern used to extract information from the linter’s output. The pattern must contain at least the following named capture groups:
+.. _regex:
 
-======= ===========================================
-Name    Description
-======= ===========================================
-line    The line number on which the problem occurred
-message The description of the problem
-======= ===========================================
+regex (mandatory)
+-----------------
+A python regular expression pattern used to extract information from the linter’s output.
+The pattern must contain at least the following named capture groups:
 
-Actually the pattern doesn’t *have* to have these named capture groups, but if it doesn’t you must override the :ref:`split_match <split_match>` method and provide those values yourself.
++-----------+-----------------------------------------------------------------+
+| Name      | Description                                                     |
++===========+=================================================================+
+| line      | The line number on which the problem occurred                   |
+| message   | The description of the problem                                  |
++-----------+-----------------------------------------------------------------+
 
-In addition to the above capture groups, the pattern should contain the following named capture groups when possible:
+If your pattern doesn’t have these groups you must override the :ref:`split_match <split_match>`
+method to provide those values yourself.
+
+In addition to the above capture groups,
+the pattern should contain the following named capture groups when possible:
 
 +-----------+-----------------------------------------------------------------+
 | Name      | Description                                                     |
@@ -135,60 +198,88 @@ In addition to the above capture groups, the pattern should contain the followin
 +-----------+-----------------------------------------------------------------+
 
 
+.. _selectors:
+
 selectors
 ---------
-If a linter can be used with embedded code, you need to tell SublimeLinter which portions of the source code contain the embedded code by specifying the embedded scope selectors. This attribute maps syntax names to embedded scope selectors.
+This attribute maps syntax names to embedded scope selectors.
+
+If a linter can be used with embedded code, specify the scope selectors of the embedded code
+to tell SublimeLinter which portions of the code to lint.
 
 
-syntax
-------
-**Mandatory.** This attribute is the primary way that SublimeLinter associates a linter plugin with files of a given syntax. See :ref:`Syntax names <syntax-names>` below for info on how to determine the correct syntax names to use.
+syntax (mandatory)
+------------------
+This attribute is the primary way that SublimeLinter associates a linter plugin with files of a given syntax.
+See :ref:`Syntax names <syntax-names>` below for info on how to determine the correct syntax names to use.
 
-This may be a single string, or a list/tuple of strings. If the linter supports multiple syntaxes, you may either use a list/tuple of strings, or a single string which begins with ``^``, in which case it is compiled as a regular expression pattern which is matched against a syntax name.
+This may be a single string, or a list/tuple of strings.
+If the linter supports multiple syntaxes, you may either use a list/tuple of strings,
+or a single string which begins with ``^``,
+in which case it is compiled as a regular expression pattern which is matched against a syntax name.
 
-If the linter supports embedded syntaxes, be sure to make this attribute a list/tuple or regex pattern which includes the embedding syntax, one of whose values should match one of the keys in the :ref:`selectors <selectors>` dict.
+If the linter supports embedded syntaxes,
+be sure to make this attribute a list/tuple or regex pattern which includes the embedding syntax,
+one of whose values should match one of the keys in the :ref:`selectors <selectors>` dict.
 
+
+.. _syntax-names:
 
 Syntax names
 ~~~~~~~~~~~~
-The syntax names SublimeLinter uses are based on the **internal** syntax name used by SublimeText, which does not always match the display name. The internal syntax name can be found by doing the following:
+The syntax names SublimeLinter uses are based on the **internal** syntax name used by SublimeText.
+The internal syntax name of the current file is reported by SublimeLinter in :ref:`debug mode <debug-mode>`
 
-#. Open a file which has the relevant syntax, or alternately create a new file and set the syntax in the ``View > Syntax`` menu.
 
-#. Open the SublimeText console and enter :kbd:`view.settings().get('syntax')`. The result will be a path to a :file:`.tmLanguage` file, for example :file:`'Packages/JavaScript/JavaScript.tmLanguage'`.
-
-#. The lowercase filename without the extension (.e.g. :file:`javascript`) is the syntax name SublimeLinter uses.
-
+.. _tempfile_suffix:
 
 tempfile_suffix
 ---------------
 This attribute configures the behavior of linter executables that cannot receive input from ``stdin``.
 
-If the linter executable require input from a file, SublimeLinter can automatically create a temp file from the current code and pass that file to the linter executable. To enable automatic temp file creation, set this attribute to the suffix of the temp file name (with or without a leading ‘.’).
+If the linter executable require input from a file,
+SublimeLinter can automatically create a temp file from the current code
+and pass that file to the linter executable.
+To enable automatic temp file creation,
+set this attribute to the suffix of the temp file name (with or without a leading ‘.’).
 
 
 File-only linters
 ~~~~~~~~~~~~~~~~~
-Some linters can only work from an actual disk file, because they rely on an entire directory structure that cannot be realistically be copied to a temp directory (e.g. ``javac``). In such cases, you can mark a linter as “file-only” by setting ``tempfile_suffix`` to ``'-'``.
+Some linters can only work from an actual disk file, because they rely on an
+entire directory structure that cannot be realistically be copied to a temp directory.
+In such cases, you can mark a linter as “file-only” by setting :ref:`tempfile_suffix` to ``'-'``.
 
-File-only linters will only run on files that have not been modified since their last save, ensuring that what the user sees and what the linter executable sees is in sync.
+File-only linters will only run on files that have not been modified since their last save,
+ensuring that what the user sees and what the linter executable sees is in sync.
 
+
+.. _version_args:
 
 version_args
----------------
-This attribute defines the arguments that should be passed to the linter executable to get its version. It may be a string, in which case it may contains multiple arguments separated by spaces, or it may be a list or tuple containing one argument per element.
+------------
+This attribute defines the arguments that should be passed to the linter executable to get its version.
+It may be a string, in which case it may contains multiple arguments separated by spaces,
+or it may be a list or tuple containing one argument per element.
 
 
 version_re
----------------
-This attribute should be a regex pattern or compiled regex used to match the numeric portion of the version returned by executing the linter binary with :ref:`version_args`. It must contain a named capture group called “version” that captures only the version, including dots but excluding a prefix such as “v”.
+----------
+This attribute should be a regex pattern or compiled regex used to match the
+numeric portion of the version returned by executing the linter binary with :ref:`version_args`.
+
+It must contain a named capture group called “version” that captures only the version,
+including dots but excluding a prefix such as “v”.
 
 
 version_requirement
---------------------
-This attribute should be a string which describes the version requirements, suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor <http://epydoc.sourceforge.net/stdlib/distutils.versionpredicate.VersionPredicate-class.html>`_.
+-------------------
+This attribute should be a string which describes the version requirements,
+suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor <http://epydoc.sourceforge.net/stdlib/distutils.versionpredicate.VersionPredicate-class.html>`_.
 
 
 word_re
 -------
-If a linter reports a column position, SublimeLinter highlights the nearest word at that point. By default, SublimeLinter uses the regex pattern ``r'^([-\w]+)'`` to determine what is a word. You can customize the regex used to highlight words by setting this attribute to a pattern string or a compiled regex.
+If a linter reports a column position, SublimeLinter highlights the nearest word at that point.
+By default, SublimeLinter uses the regex pattern ``r'^([-\w]+)'`` to determine what is a word.
+You can customize the regex used to highlight words by setting this attribute to a pattern string or a compiled regex.

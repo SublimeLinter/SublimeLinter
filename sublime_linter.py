@@ -38,6 +38,17 @@ def backup_old_settings():
             sublime.message_dialog(msg)
 
 
+def get_we_count(bid):
+    warnings, errors = 0, 0
+    for error in persist.raw_errors[bid]:
+        error_type = error['error_type']
+        if error_type == WARNING:
+            warnings += 1
+        elif error_type == ERROR:
+            errors += 1
+    return (warnings, errors)
+
+
 def plugin_loaded():
     backup_old_settings()
 
@@ -378,15 +389,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if active_view.is_popup_visible():
             return
 
-        if point:  # provided from hover
+        if point:  # provided by hover
             line, col = active_view.rowcol(point)
         else:
             line, col = self.get_line_and_col(active_view)
 
         bid = active_view.buffer_id()
-        errors = persist.raw_errors[bid]
-        if not errors:
+        we_count =  get_we_count(bid)
+        if we_count == (0, 0):
             return
+
+        errors = persist.raw_errors[bid]
 
         if not is_gutter:  # do not show tooltip on hovering empty gutter
             errors = [e for e in errors if e["start"] <= col <= e["end"]]
@@ -394,17 +407,12 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not errors:
             return
 
-        we_count =  # where to get those from?
-
-        if util.is_none_or_zero(we_count):  # Is this func redundant
-            return
-
         tooltip_message = self.join_msgs(errors, we_count, is_gutter)
         if not tooltip_message:
             return
 
-        colno = 0 if not is_inline else colno
-        location = active_view.text_point(lineno, colno)
+        col = 0 if is_gutter else col
+        location = active_view.text_point(line, col)
         active_view.show_popup(
             template.format(stylesheet=stylesheet, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,

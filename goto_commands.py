@@ -19,7 +19,7 @@ def goto(view, direction, count, wrap):
     bid = view.buffer_id()
 
     try:
-        errors = persist.raw_errors[bid]
+        errors = persist.errors[bid]
     except KeyError:
         flash(view, 'No problems')
         return

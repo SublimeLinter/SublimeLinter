@@ -197,12 +197,12 @@ def sort_errors(errors):
 
 
 def filter_and_sort(buf_errors, panel_filter):
-    """Filter raw_errors through white- and blacklisting, then sort them."""
+    """Filter errors through white- and blacklisting, then sort them."""
     buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
     return sort_errors(buf_errors)
 
 
-def get_window_raw_errors(window, all_errors, panel_filter):
+def get_window_errors(window, all_errors, panel_filter):
     bid_error_pairs = (
         (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )
@@ -266,7 +266,7 @@ def passes_listing(error, panel_filter):
 
 
 def fill_panel(window, update=False, **panel_filter):
-    errors_by_bid = get_window_raw_errors(window, persist.raw_errors, panel_filter)
+    errors_by_bid = get_window_errors(window, persist.errors, panel_filter)
 
     path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
     assert window, "missing window!"
@@ -346,7 +346,7 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     if current_pos == (-1, -1):
         return
 
-    all_errors = persist.raw_errors.get(active_view.buffer_id())
+    all_errors = persist.errors.get(active_view.buffer_id())
     if not all_errors:
         return
     all_errors = [

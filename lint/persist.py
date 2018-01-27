@@ -11,12 +11,9 @@ if 'plugin_is_loaded' not in globals():
 
     scheme = None
 
-    # New style data comes here
+    # A mapping between buffer ids and errors,
     # Dict[buffer_id, [error]]
-    raw_errors = defaultdict(list)
-
-    # A mapping between view ids and errors, which are line:(col, message) dicts
-    errors = None
+    errors = defaultdict(list)
 
     # A mapping between linter class names and linter classes
     linter_classes = {}

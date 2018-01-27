@@ -32,7 +32,7 @@ def on_finished_linting(buffer_id):
     if active_view.buffer_id() == buffer_id:
         State.update({
             'we_count': get_we_count(buffer_id),
-            'errors_per_line': errors_per_line(persist.raw_errors[buffer_id]),
+            'errors_per_line': errors_per_line(persist.errors[buffer_id]),
         })
 
         draw(**State)
@@ -46,7 +46,7 @@ class UpdateState(sublime_plugin.EventListener):
         State.update({
             'active_view': active_view,
             'we_count': get_we_count(bid),
-            'errors_per_line': errors_per_line(persist.raw_errors[bid]),
+            'errors_per_line': errors_per_line(persist.errors[bid]),
             'current_pos': get_current_pos(active_view)
         })
         draw(**State)
@@ -101,7 +101,7 @@ def errors_per_line(errors):
 
 def get_we_count(bid):
     warnings, errors = 0, 0
-    for error in persist.raw_errors[bid]:
+    for error in persist.errors[bid]:
         error_type = error['error_type']
         if error_type == WARNING:
             warnings += 1

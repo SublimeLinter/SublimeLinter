@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, ChainMap
 import sublime
 
 from .lint import persist, events
@@ -44,6 +44,14 @@ def all_views_into_buffer(buffer_id):
 
 
 def prepare_data(view, errors):
+    errors = [
+        ChainMap({
+            'style': (
+                style_stores.get_linter_style_store(error['linter'])
+                            .get_style(error['code'], error['error_type']))
+        }, error)
+        for error in errors]
+
     highlights = Highlight(view)
     for error in errors:
         highlights.add_error(**error)
@@ -88,12 +96,9 @@ class Highlight:
         # Dict[error_type, Dict[lineno, style]]
         self.lines = defaultdict(dict)
 
-    def add_error(self, line, start, end, error_type, code, linter, **kwargs):
+    def add_error(self, line, start, end, error_type, style, **kwargs):
         line_start = get_line_start(self.view, line)
         region = sublime.Region(line_start + start, line_start + end)
-
-        store = style_stores.get_linter_style_store(linter)
-        style = store.get_style(code, error_type)
 
         self.add_mark(error_type, style, region)
         line_region = sublime.Region(line_start, line_start)

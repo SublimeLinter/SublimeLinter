@@ -1,6 +1,5 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
-from collections import defaultdict
 import os
 import html
 
@@ -12,7 +11,6 @@ from .lint.linter import Linter
 from .lint import highlight
 from .lint.queue import queue
 from .lint import persist, util, style
-from .lint.error import ErrorStore
 from .lint.const import WARN_ERR
 from .lint import backend
 
@@ -48,8 +46,6 @@ def plugin_loaded():
     persist.debug("version: " + util.get_sl_version())
     style.load_gutter_icons()
     style.StyleParser()()
-
-    persist.errors = ErrorStore()
 
     for linter in persist.linter_classes.values():
         linter.initialize()
@@ -138,7 +134,6 @@ class Listener:
             self.loaded_views,
             self.linted_views,
             self.view_syntax,
-            persist.errors,
             persist.view_linters,
             persist.views,
             persist.last_hit_times
@@ -162,11 +157,11 @@ class Listener:
         """
         if hover_zone == sublime.HOVER_GUTTER:
             if persist.settings.get('show_hover_line_report'):
-                SublimeLinter.shared_plugin().open_tooltip(view, point)
+                SublimeLinter.shared_plugin().open_tooltip(view, point, True)
 
         elif hover_zone == sublime.HOVER_TEXT:
             if persist.settings.get('show_hover_region_report'):
-                SublimeLinter.shared_plugin().open_tooltip(view, point, True)
+                SublimeLinter.shared_plugin().open_tooltip(view, point)
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
@@ -240,18 +235,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         bid = view.buffer_id()
-        persist.raw_errors[bid] = errors
-
-        # For compatibility we store the errors SL3 style as well.
-        errors_by_line = defaultdict(lambda: defaultdict(list))
-        for error in errors:
-            line = error['line']
-            error_type = error['error_type']
-            errors_by_line[line][error_type].append(error)
-
-        for view in all_views_into_buffer(view):
-            vid = view.id()
-            persist.errors[vid] = errors_by_line
+        persist.errors[bid] = errors
 
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
 
@@ -320,7 +304,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         return lineno, colno
 
     @classmethod
-    def join_msgs(cls, line_dict, we_count, show_count=False):
+    def join_msgs(cls, errors, show_count=False):
 
         if show_count:
             part = '''
@@ -332,22 +316,25 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 <div>{messages}</div>
             '''
 
-        template = "{linter}: {code} - {escaped_msg}"
-        template_no_code = "{linter}: {escaped_msg}"
+        tmpl_with_code = "{linter}: {code} - {escaped_msg}"
+        tmpl_sans_code = "{linter}: {escaped_msg}"
 
         all_msgs = ""
         for error_type in WARN_ERR:
-            count = we_count[error_type]
             heading = error_type
-            error_type_msgs = []
-            msg_list = line_dict.get(error_type)
+            filled_templates = []
+            msg_list = [e for e in errors if e["error_type"] == error_type]
 
             if not msg_list:
                 continue
+
+            msg_list = sorted(msg_list, key=lambda x: (x["start"], x["end"]))
+            count = len(msg_list)
+
             for item in msg_list:
-                item["escaped_msg"] = html.escape(item["msg"], quote=False)
-                template_to_fill = template if item.get('code') else template_no_code
-                error_type_msgs.append(template_to_fill.format(**item))
+                msg = html.escape(item["msg"], quote=False)
+                tmpl = tmpl_with_code if item.get('code') else tmpl_sans_code
+                filled_templates.append(tmpl.format(escaped_msg=msg, **item))
 
             if count > 1:  # pluralize
                 heading += "s"
@@ -356,11 +343,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 classname=error_type,
                 count=count,
                 heading=heading,
-                messages='<br />'.join(error_type_msgs)
+                messages='<br />'.join(filled_templates)
             )
         return all_msgs
 
-    def open_tooltip(self, active_view=None, point=None, is_inline=False):
+    def open_tooltip(self, active_view=None, point=None, is_gutter=False):
         """Show a tooltip containing all linting errors on a given line."""
         stylesheet = '''
             body {
@@ -391,37 +378,26 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if active_view.is_popup_visible():
             return
 
-        if point:  # provided from hover
-            lineno, colno = active_view.rowcol(point)
+        if point:  # provided by hover
+            line, col = active_view.rowcol(point)
         else:
-            lineno, colno = self.get_line_and_col(active_view)
+            line, col = self.get_line_and_col(active_view)
 
-        vid = active_view.id()
+        bid = active_view.buffer_id()
 
-        line_dict = persist.errors.get_line_dict(vid, lineno)
-        if not line_dict:
+        errors = persist.errors[bid]
+        errors = [e for e in errors if e["line"] == line]
+        if not is_gutter:  # do not show tooltip on hovering empty gutter
+            errors = [e for e in errors if e["start"] <= col <= e["end"]]
+        if not errors:
             return
 
-        if is_inline:  # do not show tooltip on hovering empty gutter
-            line_dict = persist.errors.get_region_dict(vid, lineno, colno)
-            show_count = False
-        else:
-            show_count = True
-
-        if not line_dict:
-            return
-
-        we_count = persist.errors.get_we_count_line(vid, lineno)
-
-        if util.is_none_or_zero(we_count):
-            return
-
-        tooltip_message = self.join_msgs(line_dict, we_count, show_count)
+        tooltip_message = self.join_msgs(errors, is_gutter)
         if not tooltip_message:
             return
 
-        colno = 0 if not is_inline else colno
-        location = active_view.text_point(lineno, colno)
+        col = 0 if is_gutter else col
+        location = active_view.text_point(line, col)
         active_view.show_popup(
             template.format(stylesheet=stylesheet, message=tooltip_message),
             flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,

@@ -51,15 +51,15 @@ def prepare_data(view, errors):
     return highlights.marks, highlights.lines
 
 
-REGION_KEYS = 'SL.region_keys'
+REGION_KEYS = 'SL.{}.region_keys'
 
 
 def remember_region_keys(view, keys):
-    view.settings().set(REGION_KEYS, keys)
+    view.settings().set(REGION_KEYS.format(view.id()), keys)
 
 
 def get_regions_keys(view):
-    return set(view.settings().get(REGION_KEYS, []))
+    return set(view.settings().get(REGION_KEYS.format(view.id()), []))
 
 
 def clear_view(view):

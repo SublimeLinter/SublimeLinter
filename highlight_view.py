@@ -96,7 +96,8 @@ class Highlight:
         style = store.get_style(code, error_type)
 
         self.add_mark(error_type, style, region)
-        self.line(line, error_type, style)
+        line_region = sublime.Region(line_start, line_start)
+        self.line(line, error_type, style, line_region)
 
     def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING
@@ -114,7 +115,7 @@ class Highlight:
 
         self.marks[error_type][style].append(region)
 
-    def line(self, line, error_type, style=None):
+    def line(self, line, error_type, style, region):
         """Record the given line as having the given error type."""
         # Errors override warnings on the same line
         if error_type == WARNING:
@@ -125,14 +126,14 @@ class Highlight:
 
         # Styles with higher priority override those of lower one
         # on the same line
-        existing = self.lines[error_type].get(line)
+        existing, _ = self.lines[error_type].get(line, (None, None))
         if existing:
             scope_ex = self.style_store.get(existing).get("priority", 0)
             scope_new = self.style_store.get(style).get("priority", 0)
             if scope_ex > scope_new:
                 return
 
-        self.lines[error_type][line] = style
+        self.lines[error_type][line] = (style, region)
 
 
 def draw(view, style_store, marks, lines):
@@ -176,11 +177,9 @@ def draw(view, style_store, marks, lines):
 
         gutter_regions = {}
         # collect regions of error type
-        for line, style in lines[error_type].items():
+        for line, (style, region) in lines[error_type].items():
             if not style_store.has_style(style):
                 continue
-            pos = get_line_start(view, line)
-            region = sublime.Region(pos, pos)
             gutter_regions.setdefault(style, []).append(region)
 
         # draw gutter marks for

@@ -29,13 +29,11 @@ def on_finished_linting(buffer_id):
         return
 
     errors = persist.errors[buffer_id]
-    highlights = Highlight(views[0])
-    for error in errors:
-        highlights.add_error(**error)
+    marks, lines = prepare_data(views[0], errors)
 
     for view in views:
         clear_view(view)
-        draw(view, highlights.style_store, highlights.marks, highlights.lines)
+        draw(view, style_stores.HighlightStyleStore(), marks, lines)
 
 
 def all_views_into_buffer(buffer_id):
@@ -43,6 +41,14 @@ def all_views_into_buffer(buffer_id):
         for view in window.views():
             if view.buffer_id() == buffer_id:
                 yield view
+
+
+def prepare_data(view, errors):
+    highlights = Highlight(view)
+    for error in errors:
+        highlights.add_error(**error)
+
+    return highlights.marks, highlights.lines
 
 
 REGION_KEYS = 'SL.region_keys'

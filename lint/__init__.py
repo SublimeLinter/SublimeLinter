@@ -2,7 +2,6 @@
 """This module exports the linter classes and the highlight, linter, persist and util submodules."""
 
 from . import (
-    highlight,
     linter,
     persist,
     util,

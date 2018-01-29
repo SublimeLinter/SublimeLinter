@@ -8,7 +8,6 @@ import sublime_plugin
 
 from .lint import events
 from .lint.linter import Linter
-from .lint import highlight
 from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.const import WARN_ERR
@@ -239,14 +238,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
 
-        highlights = highlight.Highlight(view)
-        for error in errors:
-            highlights.add_error(**error)
-
-        for view in all_views_into_buffer(view):
-            highlight.clear_view(view)
-            highlights.draw(view)
-
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
         if not view:
@@ -417,13 +408,3 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
-
-
-def all_views_into_buffer(view):
-    """Yield all views with the same underlying buffer."""
-    buffer_id = view.buffer_id()
-
-    for window in sublime.windows():
-        for view in window.views():
-            if view.buffer_id() == buffer_id:
-                yield view

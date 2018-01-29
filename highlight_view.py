@@ -1,10 +1,9 @@
 from collections import defaultdict
 import sublime
 
-from . import persist
-from . import style as style_stores
-from .style import HighlightStyleStore
-from .const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
+from .lint import persist, events
+from .lint import style as style_stores
+from .lint.const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -17,6 +16,33 @@ MARK_STYLES = {
     'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'none': sublime.HIDDEN
 }
+
+
+def plugin_unloaded():
+    events.off(on_finished_linting)
+
+
+@events.on(events.FINISHED_LINTING)
+def on_finished_linting(buffer_id):
+    views = list(all_views_into_buffer(buffer_id))
+    if not views:
+        return
+
+    errors = persist.errors[buffer_id]
+    highlights = Highlight(views[0])
+    for error in errors:
+        highlights.add_error(**error)
+
+    for view in views:
+        clear_view(view)
+        highlights.draw(view)
+
+
+def all_views_into_buffer(buffer_id):
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() == buffer_id:
+                yield view
 
 
 # Dict[view_id, region_keys]
@@ -49,7 +75,7 @@ class Highlight:
 
         # Dict[error_type, Dict[style, List[region]]]
         self.marks = defaultdict(lambda: defaultdict(list))
-        self.style_store = HighlightStyleStore()
+        self.style_store = style_stores.HighlightStyleStore()
 
         # Every line that has a mark is kept in this dict, so we know which
         # lines to mark in the gutter.
@@ -110,8 +136,6 @@ class Highlight:
         since each one potentially needs a different color.
 
         """
-        from .style import GUTTER_ICONS
-
         # `drawn_regions` should be a `set`. We use a list here to
         # assert if we can actually hold this promise
         drawn_regions = []
@@ -158,7 +182,7 @@ class Highlight:
                 if not icon or icon == "none":  # do not draw icon
                     continue
 
-                if GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+                if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
                     scope = self.style_store.get_val("scope", style, error_type)
                 else:
                     scope = " "  # set scope to non-existent one

@@ -18,6 +18,22 @@ MARK_STYLES = {
 }
 
 highlight_store = style_stores.HighlightStyleStore()
+REGION_KEYS = 'SL.{}.region_keys'
+
+
+def remember_region_keys(view, keys):
+    view.settings().set(REGION_KEYS.format(view.id()), keys)
+
+
+def get_regions_keys(view):
+    return set(view.settings().get(REGION_KEYS.format(view.id()), []))
+
+
+def clear_view(view):
+    for key in get_regions_keys(view):
+        view.erase_regions(key)
+
+    remember_region_keys(view, [])
 
 
 def plugin_unloaded():
@@ -148,24 +164,6 @@ def prepare_highlights_data(view, errors):
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
-
-
-REGION_KEYS = 'SL.{}.region_keys'
-
-
-def remember_region_keys(view, keys):
-    view.settings().set(REGION_KEYS.format(view.id()), keys)
-
-
-def get_regions_keys(view):
-    return set(view.settings().get(REGION_KEYS.format(view.id()), []))
-
-
-def clear_view(view):
-    for key in get_regions_keys(view):
-        view.erase_regions(key)
-
-    remember_region_keys(view, [])
 
 
 def get_line_start(view, line):

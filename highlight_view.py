@@ -45,22 +45,22 @@ def all_views_into_buffer(buffer_id):
                 yield view
 
 
-# Dict[view_id, region_keys]
-regions = defaultdict(set)
+REGION_KEYS = 'SL.region_keys'
 
 
-def remember_drawn_regions(view, regions_keys):
-    """Remember draw regions for later clearance."""
-    view_id = view.id()
-    regions[view_id].update(regions_keys)
+def remember_region_keys(view, keys):
+    view.settings().set(REGION_KEYS, keys)
+
+
+def get_regions_keys(view):
+    return set(view.settings().get(REGION_KEYS, []))
 
 
 def clear_view(view):
-    """Clear all marks in the given view."""
-    view_id = view.id()
-    region_keys = regions.pop(view_id, [])
-    for key in region_keys:
+    for key in get_regions_keys(view):
         view.erase_regions(key)
+
+    remember_region_keys(view, [])
 
 
 def get_line_start(view, line):
@@ -215,4 +215,4 @@ def draw(view, style_store, marks, lines):
         "region keys not unique {}".format(drawn_regions)
 
     # persisting region keys for later clearance
-    remember_drawn_regions(view, drawn_regions)
+    remember_region_keys(view, drawn_regions)

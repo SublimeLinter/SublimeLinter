@@ -35,7 +35,7 @@ def on_finished_linting(buffer_id):
 
     for view in views:
         clear_view(view)
-        highlights.draw(view)
+        draw(view, highlights.style_store, highlights.marks, highlights.lines)
 
 
 def all_views_into_buffer(buffer_id):
@@ -128,90 +128,91 @@ class Highlight:
 
         self.lines[error_type][line] = style
 
-    def draw(self, view):
-        """
-        Draw code and gutter marks in the given view.
 
-        Error, warning and gutter marks are drawn with separate regions,
-        since each one potentially needs a different color.
+def draw(view, style_store, marks, lines):
+    """
+    Draw code and gutter marks in the given view.
 
-        """
-        # `drawn_regions` should be a `set`. We use a list here to
-        # assert if we can actually hold this promise
-        drawn_regions = []
-        protected_regions = []
+    Error, warning and gutter marks are drawn with separate regions,
+    since each one potentially needs a different color.
 
-        for error_type in WARN_ERR:
-            if not self.marks[error_type]:
+    """
+    # `drawn_regions` should be a `set`. We use a list here to
+    # assert if we can actually hold this promise
+    drawn_regions = []
+    protected_regions = []
+
+    for error_type in WARN_ERR:
+        if not marks[error_type]:
+            continue
+
+        for style, regions in marks[error_type].items():
+            if not style_store.has_style(style):
                 continue
 
-            for style, regions in self.marks[error_type].items():
-                if not self.style_store.has_style(style):
-                    continue
-
-                scope = self.style_store.get_val("scope", style, error_type)
-                mark_style = self.style_store.get_val(
-                    "mark_style",
-                    style,
-                    error_type
-                )
-
-                flags = MARK_STYLES[mark_style]
-                if not persist.settings.get('show_marks_in_minimap'):
-                    flags |= sublime.HIDE_ON_MINIMAP
-
-                view.add_regions(style, regions, scope=scope, flags=flags)
-                drawn_regions.append(style)
-
-            # gutter marks
-            if not persist.settings.has('gutter_theme'):
-                continue
-
-            gutter_regions = {}
-            # collect regions of error type
-            for line, style in self.lines[error_type].items():
-                if not self.style_store.has_style(style):
-                    continue
-                pos = get_line_start(self.view, line)
-                region = sublime.Region(pos, pos)
-                gutter_regions.setdefault(style, []).append(region)
-
-            # draw gutter marks for
-            for style, regions in gutter_regions.items():
-                icon = self.style_store.get_val("icon", style, error_type)
-                if not icon or icon == "none":  # do not draw icon
-                    continue
-
-                if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
-                    scope = self.style_store.get_val("scope", style, error_type)
-                else:
-                    scope = " "  # set scope to non-existent one
-
-                k = style.rfind(".")
-                gutter_key = style[:k] + ".gutter." + style[k + 1:]
-
-                view.add_regions(
-                    gutter_key,
-                    regions,
-                    scope=scope,
-                    icon=icon
-                )
-                drawn_regions.append(gutter_key)
-                protected_regions.extend(regions)
-
-        # overlaying all gutter regions with common invisible one,
-        # to create unified handle for GitGutter and other plugins
-        # flag might not be neccessary
-        if protected_regions:
-            view.add_regions(
-                PROTECTED_REGIONS_KEY,
-                protected_regions,
-                flags=sublime.HIDDEN
+            scope = style_store.get_val("scope", style, error_type)
+            mark_style = style_store.get_val(
+                "mark_style",
+                style,
+                error_type
             )
-            drawn_regions.append(PROTECTED_REGIONS_KEY)
 
-        assert len(drawn_regions) == len(set(drawn_regions)), \
-            "region keys not unique {}".format(drawn_regions)
+            flags = MARK_STYLES[mark_style]
+            if not persist.settings.get('show_marks_in_minimap'):
+                flags |= sublime.HIDE_ON_MINIMAP
 
-        # persisting region keys for later clearance
-        remember_drawn_regions(view, drawn_regions)
+            view.add_regions(style, regions, scope=scope, flags=flags)
+            drawn_regions.append(style)
+
+        # gutter marks
+        if not persist.settings.has('gutter_theme'):
+            continue
+
+        gutter_regions = {}
+        # collect regions of error type
+        for line, style in lines[error_type].items():
+            if not style_store.has_style(style):
+                continue
+            pos = get_line_start(view, line)
+            region = sublime.Region(pos, pos)
+            gutter_regions.setdefault(style, []).append(region)
+
+        # draw gutter marks for
+        for style, regions in gutter_regions.items():
+            icon = style_store.get_val("icon", style, error_type)
+            if not icon or icon == "none":  # do not draw icon
+                continue
+
+            if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+                scope = style_store.get_val("scope", style, error_type)
+            else:
+                scope = " "  # set scope to non-existent one
+
+            k = style.rfind(".")
+            gutter_key = style[:k] + ".gutter." + style[k + 1:]
+
+            view.add_regions(
+                gutter_key,
+                regions,
+                scope=scope,
+                icon=icon
+            )
+            drawn_regions.append(gutter_key)
+            protected_regions.extend(regions)
+
+    # overlaying all gutter regions with common invisible one,
+    # to create unified handle for GitGutter and other plugins
+    # flag might not be neccessary
+    if protected_regions:
+        view.add_regions(
+            PROTECTED_REGIONS_KEY,
+            protected_regions,
+            flags=sublime.HIDDEN
+        )
+        drawn_regions.append(PROTECTED_REGIONS_KEY)
+
+    assert len(drawn_regions) == len(set(drawn_regions)), \
+        "region keys not unique {}".format(drawn_regions)
+
+    # persisting region keys for later clearance
+    remember_drawn_regions(view, drawn_regions)

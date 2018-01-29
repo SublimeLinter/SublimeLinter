@@ -17,6 +17,8 @@ MARK_STYLES = {
     'none': sublime.HIDDEN
 }
 
+highlight_store = style_stores.HighlightStyleStore()
+
 
 def plugin_unloaded():
     events.off(on_finished_linting)
@@ -33,7 +35,7 @@ def on_finished_linting(buffer_id):
 
     for view in views:
         clear_view(view)
-        draw(view, style_stores.HighlightStyleStore(), marks, lines)
+        draw(view, marks, lines)
 
 
 def all_views_into_buffer(buffer_id):
@@ -58,9 +60,6 @@ def prepare_data(view, errors):
 
     gutter_regions = prepare_gutter_data(view, errors)
     return highlights.marks, gutter_regions
-
-
-highlight_store = style_stores.HighlightStyleStore()
 
 
 def prepare_gutter_data(view, errors):
@@ -143,7 +142,6 @@ class Highlight:
 
         # Dict[error_type, Dict[style, List[region]]]
         self.marks = defaultdict(lambda: defaultdict(list))
-        self.style_store = style_stores.HighlightStyleStore()
 
     def add_error(self, line, start, end, error_type, style, **kwargs):
         line_start = get_line_start(self.view, line)
@@ -168,7 +166,7 @@ class Highlight:
         self.marks[error_type][style].append(region)
 
 
-def draw(view, style_store, marks, gutter_regions):
+def draw(view, marks, gutter_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -185,11 +183,11 @@ def draw(view, style_store, marks, gutter_regions):
             continue
 
         for style, regions in marks[error_type].items():
-            if not style_store.has_style(style):
+            if not highlight_store.has_style(style):
                 continue
 
-            scope = style_store.get_val("scope", style, error_type)
-            mark_style = style_store.get_val(
+            scope = highlight_store.get_val("scope", style, error_type)
+            mark_style = highlight_store.get_val(
                 "mark_style",
                 style,
                 error_type

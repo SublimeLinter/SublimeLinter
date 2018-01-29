@@ -34,7 +34,6 @@ def on_finished_linting(buffer_id):
     marks, lines = prepare_data(views[0], errors)
 
     for view in views:
-        clear_view(view)
         draw(view, marks, lines)
 
 
@@ -181,20 +180,25 @@ def draw(view, highlight_regions, gutter_regions):
     since each one potentially needs a different color.
 
     """
-    # `drawn_regions` should be a `set`. We use a list here to
-    # assert if we can actually hold this promise
-    drawn_regions = []
+    current_region_keys = get_regions_keys(view)
+    new_regions_keys = list(highlight_regions.keys()) + list(gutter_regions.keys())
+    if len(gutter_regions):
+        new_regions_keys.append(PROTECTED_REGIONS_KEY)
+
+    # remove unused regions
+    for key in current_region_keys - set(new_regions_keys):
+        view.erase_regions(key)
+
+    # otherwise update (or create) regions
 
     for region_id, (scope, flags, regions) in highlight_regions.items():
         view.add_regions(region_id, regions, scope=scope, flags=flags)
-        drawn_regions.append(region_id)
 
     if persist.settings.has('gutter_theme'):
         protected_regions = []
 
         for region_id, (scope, icon, regions) in gutter_regions.items():
             view.add_regions(region_id, regions, scope=scope, icon=icon)
-            drawn_regions.append(region_id)
             protected_regions.extend(regions)
 
         # overlaying all gutter regions with common invisible one,
@@ -206,10 +210,6 @@ def draw(view, highlight_regions, gutter_regions):
                 protected_regions,
                 flags=sublime.HIDDEN
             )
-            drawn_regions.append(PROTECTED_REGIONS_KEY)
-
-    assert len(drawn_regions) == len(set(drawn_regions)), \
-        "region keys not unique {}".format(drawn_regions)
 
     # persisting region keys for later clearance
-    remember_region_keys(view, drawn_regions)
+    remember_region_keys(view, new_regions_keys)

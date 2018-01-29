@@ -3,7 +3,7 @@ import sublime
 
 from .lint import persist, events
 from .lint import style as style_stores
-from .lint.const import PROTECTED_REGIONS_KEY, WARNING, ERROR, WARN_ERR, INBUILT_ICONS
+from .lint.const import PROTECTED_REGIONS_KEY, INBUILT_ICONS
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -51,12 +51,9 @@ def prepare_data(view, errors):
         for error in errors
     ]
 
-    highlights = Highlight(view)
-    for error in errors:
-        highlights.add_error(**error)
-
+    highlight_regions = prepare_highlights_data(view, errors)
     gutter_regions = prepare_gutter_data(view, errors)
-    return highlights.marks, gutter_regions
+    return highlight_regions, gutter_regions
 
 
 def get_base_error_style(linter, code, error_type, **kwargs):
@@ -114,6 +111,46 @@ def prepare_gutter_data(view, errors):
     return by_region_id
 
 
+def prepare_highlights_data(view, errors):
+    # We can only one highlight per exact position, so we first group per
+    # position.
+    by_position = defaultdict(list)
+    for error in errors:
+        line_start = get_line_start(view, error['line'])
+        region = sublime.Region(line_start + error['start'], line_start + error['end'])
+        by_position[(region.a, region.b)].append(ChainMap({'region': region}, error))
+
+    by_id = defaultdict(list)
+    for pos, errors in by_position.items():
+        # If we have multiple 'problems' here, 'error' takes precedence over
+        # 'warning'. We're lucky again that 'error' copmes before 'warning'
+        head = sorted(errors, key=lambda e: e['error_type'])[0]
+
+        if not highlight_store.has_style(head['style']):  # really?
+            continue
+
+        scope = highlight_store.get_val('scope', head['style'], head['error_type'])
+        mark_style = highlight_store.get_val('mark_style', head['style'], head['error_type'])
+        flags = MARK_STYLES[mark_style]
+        if not persist.settings.get('show_marks_in_minimap'):
+                flags |= sublime.HIDE_ON_MINIMAP
+
+        # We group towards the sublime API usage
+        #   view.add_regions(uuid(), regions, scope, flags)
+        id = (scope, flags)
+        by_id[id].append(head['region'])
+
+    # Exchange the `id` with a regular sublime region_id which is a unique
+    # string. Generally, uuid() would suffice, but generate an id here for
+    # efficient updates.
+    by_region_id = {}
+    for (scope, flags), regions in by_id.items():
+        region_id = 'SL.Highlights.{}.{}'.format(scope, flags)
+        by_region_id[region_id] = (scope, flags, regions)
+
+    return by_region_id
+
+
 REGION_KEYS = 'SL.{}.region_keys'
 
 
@@ -136,39 +173,7 @@ def get_line_start(view, line):
     return view.text_point(line, 0)
 
 
-class Highlight:
-    """This class maintains error marks and knows how to draw them."""
-
-    def __init__(self, view):
-        self.view = view
-
-        # Dict[error_type, Dict[style, List[region]]]
-        self.marks = defaultdict(lambda: defaultdict(list))
-
-    def add_error(self, line, start, end, error_type, style, **kwargs):
-        line_start = get_line_start(self.view, line)
-        region = sublime.Region(line_start + start, line_start + end)
-
-        self.add_mark(error_type, style, region)
-
-    def add_mark(self, error_type, style, region):
-        other_type = ERROR if error_type == WARNING else WARNING
-
-        for scope, marks in self.marks[other_type].items():
-            i_offset = 0
-            for i, mark in enumerate(marks):
-                if (mark.a, mark.b) == (region.a, region.b):
-                    if error_type == WARNING:
-                        # ABORT! We found an error on the exact same position
-                        return
-                    else:
-                        self.marks[other_type][scope].pop(i - i_offset)
-                        i_offset += 1
-
-        self.marks[error_type][style].append(region)
-
-
-def draw(view, marks, gutter_regions):
+def draw(view, highlight_regions, gutter_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -180,29 +185,10 @@ def draw(view, marks, gutter_regions):
     # assert if we can actually hold this promise
     drawn_regions = []
 
-    for error_type in WARN_ERR:
-        if not marks[error_type]:
-            continue
+    for region_id, (scope, flags, regions) in highlight_regions.items():
+        view.add_regions(region_id, regions, scope=scope, flags=flags)
+        drawn_regions.append(region_id)
 
-        for style, regions in marks[error_type].items():
-            if not highlight_store.has_style(style):
-                continue
-
-            scope = highlight_store.get_val("scope", style, error_type)
-            mark_style = highlight_store.get_val(
-                "mark_style",
-                style,
-                error_type
-            )
-
-            flags = MARK_STYLES[mark_style]
-            if not persist.settings.get('show_marks_in_minimap'):
-                flags |= sublime.HIDE_ON_MINIMAP
-
-            view.add_regions(style, regions, scope=scope, flags=flags)
-            drawn_regions.append(style)
-
-    # gutter marks
     if persist.settings.has('gutter_theme'):
         protected_regions = []
 

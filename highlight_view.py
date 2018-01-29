@@ -56,7 +56,61 @@ def prepare_data(view, errors):
     for error in errors:
         highlights.add_error(**error)
 
-    return highlights.marks, highlights.lines
+    gutter_regions = prepare_gutter_data(view, errors)
+    return highlights.marks, gutter_regions
+
+
+highlight_store = style_stores.HighlightStyleStore()
+
+
+def prepare_gutter_data(view, errors):
+    errors_by_line = defaultdict(list)
+    for error in errors:
+        priority = highlight_store.get(error['style']).get('priority', 0)
+        errors_by_line[error['line']].append(ChainMap({'priority': int(priority)}, error))
+
+    # Since, there can only be one gutter mark per line, we have to select
+    # one 'winning' error from all the errors on that line
+    error_per_line = {}
+    for line, errors in errors_by_line.items():
+        # We're lucky here that 'error' comes before 'warning'
+        head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
+        error_per_line[line] = head
+
+    # Compute the icon and scope for the gutter mark from the error.
+    # Drop lines for which we don't get a value or for which the user
+    # specified 'none'
+    by_id = defaultdict(list)
+    for line, error in error_per_line.items():
+
+        if not highlight_store.has_style(error['style']):  # really?
+            continue
+
+        icon = highlight_store.get_val('icon', error['style'], error['error_type'])
+        if not icon or icon == 'none':
+            continue
+
+        if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+            scope = highlight_store.get_val('scope', error['style'], error['error_type'])
+        else:
+            scope = " "  # set scope to non-existent one
+
+        pos = get_line_start(view, line)
+        region = sublime.Region(pos, pos)
+
+        # We group towards the optimal sublime API usage:
+        #   view.add_regions(uuid(), [region], scope, icon)
+        id = (scope, icon)
+        by_id[id].append(region)
+
+    # Exchange the `id` with a regular region_id which is a unique string, so
+    # uuid() would be candidate here, that can be reused for efficient updates.
+    by_region_id = {}
+    for (scope, icon), regions in by_id.items():
+        region_id = 'SL.Gutter.{}.{}'.format(scope, icon)
+        by_region_id[region_id] = (scope, icon, regions)
+
+    return by_region_id
 
 
 REGION_KEYS = 'SL.{}.region_keys'
@@ -91,18 +145,11 @@ class Highlight:
         self.marks = defaultdict(lambda: defaultdict(list))
         self.style_store = style_stores.HighlightStyleStore()
 
-        # Every line that has a mark is kept in this dict, so we know which
-        # lines to mark in the gutter.
-        # Dict[error_type, Dict[lineno, style]]
-        self.lines = defaultdict(dict)
-
     def add_error(self, line, start, end, error_type, style, **kwargs):
         line_start = get_line_start(self.view, line)
         region = sublime.Region(line_start + start, line_start + end)
 
         self.add_mark(error_type, style, region)
-        line_region = sublime.Region(line_start, line_start)
-        self.line(line, error_type, style, line_region)
 
     def add_mark(self, error_type, style, region):
         other_type = ERROR if error_type == WARNING else WARNING
@@ -120,28 +167,8 @@ class Highlight:
 
         self.marks[error_type][style].append(region)
 
-    def line(self, line, error_type, style, region):
-        """Record the given line as having the given error type."""
-        # Errors override warnings on the same line
-        if error_type == WARNING:
-            if line in self.lines[ERROR]:
-                return
-        else:  # ensure no warning icons on same line as error
-            self.lines[WARNING].pop(line, None)
 
-        # Styles with higher priority override those of lower one
-        # on the same line
-        existing, _ = self.lines[error_type].get(line, (None, None))
-        if existing:
-            scope_ex = self.style_store.get(existing).get("priority", 0)
-            scope_new = self.style_store.get(style).get("priority", 0)
-            if scope_ex > scope_new:
-                return
-
-        self.lines[error_type][line] = (style, region)
-
-
-def draw(view, style_store, marks, lines):
+def draw(view, style_store, marks, gutter_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -152,7 +179,6 @@ def draw(view, style_store, marks, lines):
     # `drawn_regions` should be a `set`. We use a list here to
     # assert if we can actually hold this promise
     drawn_regions = []
-    protected_regions = []
 
     for error_type in WARN_ERR:
         if not marks[error_type]:
@@ -176,50 +202,25 @@ def draw(view, style_store, marks, lines):
             view.add_regions(style, regions, scope=scope, flags=flags)
             drawn_regions.append(style)
 
-        # gutter marks
-        if not persist.settings.has('gutter_theme'):
-            continue
+    # gutter marks
+    if persist.settings.has('gutter_theme'):
+        protected_regions = []
 
-        gutter_regions = {}
-        # collect regions of error type
-        for line, (style, region) in lines[error_type].items():
-            if not style_store.has_style(style):
-                continue
-            gutter_regions.setdefault(style, []).append(region)
-
-        # draw gutter marks for
-        for style, regions in gutter_regions.items():
-            icon = style_store.get_val("icon", style, error_type)
-            if not icon or icon == "none":  # do not draw icon
-                continue
-
-            if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
-                scope = style_store.get_val("scope", style, error_type)
-            else:
-                scope = " "  # set scope to non-existent one
-
-            k = style.rfind(".")
-            gutter_key = style[:k] + ".gutter." + style[k + 1:]
-
-            view.add_regions(
-                gutter_key,
-                regions,
-                scope=scope,
-                icon=icon
-            )
-            drawn_regions.append(gutter_key)
+        for region_id, (scope, icon, regions) in gutter_regions.items():
+            view.add_regions(region_id, regions, scope=scope, icon=icon)
+            drawn_regions.append(region_id)
             protected_regions.extend(regions)
 
-    # overlaying all gutter regions with common invisible one,
-    # to create unified handle for GitGutter and other plugins
-    # flag might not be neccessary
-    if protected_regions:
-        view.add_regions(
-            PROTECTED_REGIONS_KEY,
-            protected_regions,
-            flags=sublime.HIDDEN
-        )
-        drawn_regions.append(PROTECTED_REGIONS_KEY)
+        # overlaying all gutter regions with common invisible one,
+        # to create unified handle for GitGutter and other plugins
+        # flag might not be neccessary
+        if protected_regions:
+            view.add_regions(
+                PROTECTED_REGIONS_KEY,
+                protected_regions,
+                flags=sublime.HIDDEN
+            )
+            drawn_regions.append(PROTECTED_REGIONS_KEY)
 
     assert len(drawn_regions) == len(set(drawn_regions)), \
         "region keys not unique {}".format(drawn_regions)

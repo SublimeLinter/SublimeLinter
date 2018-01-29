@@ -47,12 +47,9 @@ def all_views_into_buffer(buffer_id):
 
 def prepare_data(view, errors):
     errors = [
-        ChainMap({
-            'style': (
-                style_stores.get_linter_style_store(error['linter'])
-                            .get_style(error['code'], error['error_type']))
-        }, error)
-        for error in errors]
+        ChainMap({'style': get_base_error_style(**error)}, error)
+        for error in errors
+    ]
 
     highlights = Highlight(view)
     for error in errors:
@@ -60,6 +57,11 @@ def prepare_data(view, errors):
 
     gutter_regions = prepare_gutter_data(view, errors)
     return highlights.marks, gutter_regions
+
+
+def get_base_error_style(linter, code, error_type, **kwargs):
+    store = style_stores.get_linter_style_store(linter)
+    return store.get_style(code, error_type)
 
 
 def prepare_gutter_data(view, errors):

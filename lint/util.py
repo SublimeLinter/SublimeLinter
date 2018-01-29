@@ -11,7 +11,7 @@ import tempfile
 
 from copy import deepcopy
 
-from .const import WARNING, ERROR
+from .const import WARNING, ERROR, VERSION
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -458,4 +458,4 @@ def get_sl_version():
         metadata = load_json("package-metadata.json", from_sl_dir=True)
         return metadata.get("version")
     except Exception:
-        return "unknown"
+        return VERSION

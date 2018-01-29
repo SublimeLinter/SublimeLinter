@@ -62,6 +62,10 @@ class Settings:
         if self.has_changed('styles'):
             style.StyleParser()()
 
+        # Linter specific settings can include style rules too
+        if self.has_changed('linters'):
+            style.StyleParser()()
+
         # If the syntax map changed, reassign linters to all views
         if self.has_changed('syntax_map'):
             Linter.clear_all()

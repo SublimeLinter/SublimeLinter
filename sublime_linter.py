@@ -42,8 +42,12 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
-    persist.debug("debug mode: on")
-    persist.debug("version: " + util.get_sl_version())
+    if persist.debug_mode():
+        persist.debug("debug mode: on")
+        persist.debug("version: " + util.get_sl_version())
+        import pprint
+        text = pprint.pformat(dict(os.environ), indent=4)
+        persist.debug('Environment variables:\n{}'.format(text))
     style.load_gutter_icons()
     style.StyleParser()()
 

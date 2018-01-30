@@ -494,14 +494,18 @@ class Linter(metaclass=LinterMeta):
             variables['folder'] = project_folder
 
         if persist.debug_mode():
+            # Only print the non-deterministic variables
+            vars_to_print = ('file', 'project', 'folder')
+            filtered_variables = {k: v for k, v in variables.items() if k in vars_to_print}
             import pprint
-            self._debug_print_available_variables(pprint.pformat(dict(variables), indent=4))
+            text = pprint.pformat(dict(filtered_variables), indent=4)
+            self._debug_print_variables(text)
         return recursive_replace(variables, settings)
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def _debug_print_available_variables(variables):
-        persist.debug('Available variables:\n{}'.format(variables))
+    def _debug_print_variables(text):
+        persist.debug('Selected variables:\n{}'.format(text))
 
     @staticmethod
     def _guess_project_path(window, filename):

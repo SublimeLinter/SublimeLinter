@@ -336,11 +336,6 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
     if suffix:
         filename = os.path.splitext(filename)[0] + suffix
 
-    if not suffix:
-        # Some linters require a file extension to run properly.
-        short_filename, file_extension = os.path.splitext(filename)
-        suffix = file_extension
-
     file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     path = file.name
 

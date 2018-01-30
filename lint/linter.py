@@ -1298,18 +1298,22 @@ class Linter(metaclass=LinterMeta):
 
     def get_tempfile_suffix(self):
         """Return the mapped tempfile_suffix."""
-        if self.tempfile_suffix and not self.view.file_name():
-            if isinstance(self.tempfile_suffix, dict):
-                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
-            else:
-                suffix = self.tempfile_suffix
+        suffix = ''
 
-            if not suffix.startswith('.'):
-                suffix = '.' + suffix
+        if isinstance(self.tempfile_suffix, str):
+            suffix = self.tempfile_suffix
+        elif isinstance(self.tempfile_suffix, dict):
+            suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
 
-            return suffix
-        else:
-            return ''
+        # default to plain text
+        if not suffix:
+            suffix = '.txt'
+
+        # prepend period if necessary
+        if not suffix.startswith('.'):
+            suffix = '.' + suffix
+
+        return suffix
 
     # popen wrappers
 

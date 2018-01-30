@@ -454,8 +454,10 @@ def load_json(*segments, from_sl_dir=False):
 
 
 def get_sl_version():
+    import SublimeLinter
+    version = str(getattr(SublimeLinter, 'VERSION'))
     try:
         metadata = load_json("package-metadata.json", from_sl_dir=True)
-        return metadata.get("version")
+        return version + ", " + metadata.get("version")
     except Exception:
-        return "unknown"
+        return version + ", dev"

@@ -2,8 +2,8 @@
 
 from collections import defaultdict
 
-from .util import printf
 from .settings import Settings
+from . import logging
 
 
 if 'plugin_is_loaded' not in globals():
@@ -52,7 +52,5 @@ def debug_mode():
     return settings.get('debug', False)
 
 
-def debug(*args):
-    """Print args to the console if the "debug" setting is True."""
-    if debug_mode():
-        printf(*args)
+# Backwards compatibility
+debug = logging.default_logger.debug

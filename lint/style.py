@@ -1,5 +1,5 @@
 import sublime
-from . import persist, util
+from . import persist, util, logging
 from abc import ABCMeta, abstractmethod
 from .const import INBUILT_ICONS
 
@@ -85,7 +85,9 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
             error_type = args[3]
 
             if not res:
-                util.printf("Styles are invalid. Please check your settings and restart Sublime Text.")
+                logging.default_logger.print(
+                    "Styles are invalid. Please check your settings and restart Sublime Text."
+                )
                 return
 
             if key != "icon":

@@ -8,7 +8,7 @@ import re
 import shlex
 import sublime
 
-from . import highlight, persist, util
+from . import highlight, persist, util, logging
 from .const import STATUS_KEY, WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
@@ -97,10 +97,13 @@ class LinterMeta(type):
         - Convert strings to tuples where necessary.
         - Add a leading dot to the tempfile_suffix if necessary.
         - Build a map between defaults and linter arguments.
-        - Add '@python' as an inline setting to PythonLinter subclasses.
+        - Create a class-specific logger instance.
 
         Finally, the class is registered as a linter for its configured syntax.
         """
+        cls_logger = logging.LinterClsLogger(cls)
+        setattr(cls, 'cls_logger', cls_logger)
+
         if bases:
             setattr(cls, 'disabled', False)
 
@@ -119,10 +122,7 @@ class LinterMeta(type):
                 if isinstance(syntax, str) and syntax[0] == '^':
                     setattr(cls, 'syntax', re.compile(syntax))
             except re.error as err:
-                util.printf(
-                    'ERROR: {} disabled, error compiling syntax: {}'
-                    .format(name.lower(), str(err))
-                )
+                cls.cls_logger.print('ERROR: disabled; error compiling syntax: {!s}', err)
                 setattr(cls, 'disabled', True)
 
             if not cls.disabled:
@@ -136,15 +136,15 @@ class LinterMeta(type):
                         try:
                             setattr(cls, regex, re.compile(attr, cls.re_flags))
                         except re.error as err:
-                            util.printf(
-                                'ERROR: {} disabled, error compiling {}: {}'
-                                .format(name.lower(), regex, str(err))
+                            cls.cls_logger.print(
+                                'ERROR: disabled; error compiling {}: {!s}',
+                                regex, err
                             )
                             setattr(cls, 'disabled', True)
 
             if not cls.disabled:
                 if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    util.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
+                    cls.cls_logger.print('ERROR: disabled; not fully implemented')
                     setattr(cls, 'disabled', True)
 
             # If this class has its own defaults, create an args_map.
@@ -179,10 +179,10 @@ class LinterMeta(type):
                 for view in persist.views.values():
                     cls.assign(view, linter_name=linter_name)
 
-                persist.debug('{} linter reloaded'.format(name))
+                cls.cls_logger.debug('linter reloaded')
 
             else:
-                persist.debug('{} linter loaded'.format(name))
+                cls.cls_logger.debug('linter loaded')
 
     def map_args(cls, defaults):
         """
@@ -413,6 +413,7 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
+        self.logger = logging.LinterLogger(self)
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
@@ -499,13 +500,8 @@ class Linter(metaclass=LinterMeta):
             filtered_variables = {k: v for k, v in variables.items() if k in vars_to_print}
             import pprint
             text = pprint.pformat(dict(filtered_variables), indent=4)
-            self._debug_print_variables(text)
+            self.logger.print('Selected variables:\n{}', text)
         return recursive_replace(variables, settings)
-
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def _debug_print_variables(text):
-        persist.debug('Selected variables:\n{}'.format(text))
 
     @staticmethod
     def _guess_project_path(window, filename):
@@ -542,7 +538,7 @@ class Linter(metaclass=LinterMeta):
         vid = view.id()
         persist.views[vid] = view
         syntax = util.get_syntax(view)
-        persist.debug("detected syntax: " + syntax)
+        cls.cls_logger.debug("detected syntax: {}", syntax)
 
         if not syntax:
             cls.remove(vid)
@@ -680,7 +676,7 @@ class Linter(metaclass=LinterMeta):
             path = self.which(which)
 
         if not path:
-            util.printf('WARNING: {} cannot locate \'{}\''.format(self.name, which))
+            self.logger.print('WARNING: {} cannot locate \'{}\''.format(self.name, which))
             return None
 
         cmd[0:1] = util.convert_type(path, [])
@@ -704,16 +700,11 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         executable = settings.get('executable', None)
         if executable:
-            persist.debug(
-                "{}: wanted executable is '{}'".format(self.name, executable)
-            )
+            self.logger.debug("wanted executable is '{}'", executable)
 
             # If `executable` is an iterable, we can only assume it will work.
             if isinstance(executable, str) and not util.can_exec(executable):
-                persist.printf(
-                    "ERROR: {} deactivated, cannot locate '{}' "
-                    .format(self.name, executable)
-                )
+                self.logger.print("ERROR: deactivated; cannot locate '{}' ", executable)
                 # no fallback, the user specified something, so we err
                 return True, None
 
@@ -893,7 +884,7 @@ class Linter(metaclass=LinterMeta):
             if os.path.isdir(cwd):
                 return cwd
             else:
-                persist.printf(
+                self.logger.print(
                     "{}: WARNING: wanted working_dir '{}' is not a directory"
                     "".format(self.name, cwd)
                 )
@@ -926,42 +917,43 @@ class Linter(metaclass=LinterMeta):
         if self.disabled:
             return []
 
-        # `cmd = None` is a special API signal, that the plugin author
-        # implemented its own `run`
-        if self.cmd is None:
-            output = self.run(None, code)
-        else:
-            cmd = self.get_cmd()
-            if not cmd:  # We couldn't find a executable
+        with logging.logger_context(self.logger):
+            # `cmd = None` is a special API signal, that the plugin author
+            # implemented its own `run`
+            if self.cmd is None:
+                output = self.run(None, code)
+            else:
+                cmd = self.get_cmd()
+                if not cmd:  # We couldn't find a executable
+                    return []
+                output = self.run(cmd, code)
+
+            if not output:
                 return []
-            output = self.run(cmd, code)
 
-        if not output:
-            return []
+            # If the view has been modified since the lint was triggered, no point in continuing.
+            if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
+                return None  # ABORT
 
-        # If the view has been modified since the lint was triggered, no point in continuing.
-        if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
-            return None  # ABORT
+            if persist.debug_mode():
+                import textwrap
+                stripped_output = output.replace('\r', '').rstrip()
+                self.logger.print('output:\n{}', textwrap.indent(stripped_output, '    '))
 
-        if persist.debug_mode():
-            import textwrap
-            stripped_output = output.replace('\r', '').rstrip()
-            util.printf('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
+            errors = []
+            vv = VirtualView(code)
+            for m in self.find_errors(output):
+                if not m or not m[0]:
+                    continue
 
-        errors = []
-        vv = VirtualView(code)
-        for m in self.find_errors(output):
-            if not m or not m[0]:
-                continue
+                if not isinstance(m, LintMatch):  # ensure right type
+                    m = LintMatch(*m)
 
-            if not isinstance(m, LintMatch):  # ensure right type
-                m = LintMatch(*m)
+                if m.message and m.line is not None:
+                    error = self.process_match(m, vv)
+                    errors.append(error)
 
-            if m.message and m.line is not None:
-                error = self.process_match(m, vv)
-                errors.append(error)
-
-        return errors
+            return errors
 
     def find_errors(self, output):
         """
@@ -974,8 +966,7 @@ class Linter(metaclass=LinterMeta):
         if self.multiline:
             matches = list(self.regex.finditer(output))
             if not matches:
-                persist.debug(
-                    '{}: No matches for regex: {}'.format(self.name, self.regex.pattern))
+                self.logger.debug('No matches for regex: {}', self.regex.pattern)
                 return
 
             for match in matches:
@@ -986,8 +977,7 @@ class Linter(metaclass=LinterMeta):
                 if match:
                     yield self.split_match(match)
                 else:
-                    persist.debug(
-                        "{}: No match for line: '{}'".format(self.name, line))
+                    self.logger.debug("No match for line: {!r}", line)
 
     def split_match(self, match):
         """
@@ -1201,10 +1191,10 @@ class Linter(metaclass=LinterMeta):
                 can = cls.can_lint_syntax(syntax)
 
             elif status is None:
-                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
+                status = "WARNING: deactivated; cannot locate '{!r}'".format(cls.executable_path)
 
             if status:
-                persist.debug(status)
+                cls.cls_logger.debug(status)
 
         return can
 
@@ -1239,15 +1229,15 @@ class Linter(metaclass=LinterMeta):
             )
 
             if predicate.satisfied_by(cls.executable_version):
-                persist.debug(
-                    '{}: ({}) satisfied by {}'
-                    .format(cls.name, cls.version_requirement, cls.executable_version)
+                cls.cls_logger.debug(
+                    'version requirement {!r} satisfied by {!r}',
+                    cls.version_requirement, cls.executable_version
                 )
                 return True
             else:
-                util.printf(
-                    'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
-                    .format(cls.name, cls.version_requirement, cls.executable_version)
+                cls.cls_logger.print(
+                    'WARNING: deactivated, version requirement {!r} not fulfilled by {!r}',
+                    cls.version_requirement, cls.executable_version
                 )
 
         return False
@@ -1268,17 +1258,17 @@ class Linter(metaclass=LinterMeta):
             cmd = list(cls.executable_path)
 
         cmd += args
-        persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
+        cls.cls_logger.debug('version query: {}', ' '.join(cmd))
 
         version = util.communicate(cmd, output_stream=util.STREAM_BOTH)
         match = cls.version_re.search(version)
 
         if match:
             version = match.group('version')
-            persist.debug('{} version: {}'.format(cls.name, version))
+            cls.cls_logger.debug('version: {}', version)
             return version
         else:
-            util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            cls.cls_logger.print('WARNING: no version could be extracted from:\n{}', version)
             return None
 
     def run(self, cmd, code):
@@ -1329,13 +1319,9 @@ class Linter(metaclass=LinterMeta):
         env = self.get_environment(settings)
 
         if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
+            self.logger.print('cmd: {}', cmd)
             if cwd:
-                util.printf('{}: cwd: {}'.format(self.name, cwd))
+                self.logger.print('cwd: {}', cwd)
 
         return util.communicate(
             cmd,
@@ -1351,13 +1337,9 @@ class Linter(metaclass=LinterMeta):
         env = self.get_environment(settings)
 
         if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
+            self.logger.print('cmd: {}', cmd)
             if cwd:
-                util.printf('{}: cwd: {}'.format(self.name, cwd))
+                self.logger.print('cwd: {}', cwd)
 
         return util.tmpfile(
             cmd,

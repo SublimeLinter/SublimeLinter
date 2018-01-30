@@ -1,5 +1,5 @@
 import sublime
-from . import util
+from . import util, logging
 from jsonschema.validators import validate
 from jsonschema.exceptions import ValidationError
 
@@ -82,9 +82,9 @@ def get_settings_objects():
         try:
             yield name, util.load_json(name, from_sl_dir=False)
         except IOError as ie:
-            util.printf("Settings file not found: {}".format(name))
+            logging.default_logger.print("Settings file not found: {}".format(name))
         except ValueError as ve:
-            util.printf("Settings file corrupt: {}".format(name))
+            logging.default_logger.print("Settings file corrupt: {}".format(name))
 
 
 def validate_settings():
@@ -98,7 +98,7 @@ def validate_settings():
             validate(settings, schema)
         except ValidationError as ve:
             ve_msg = ve.message.split("\n")[0]  # reduce verbosity
-            util.printf("Settings in '{}' invalid:\n{}".format(name, ve_msg))
+            logging.default_logger.print("Settings in {!r} invalid:\n{}", name, ve_msg)
             sublime.active_window().status_message(status_msg)
             good = False
 

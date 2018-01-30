@@ -6,13 +6,22 @@ SublimeLinter
 A framework for interactive code linting in [Sublime Text 3](http://sublimetext.com/3).
 
 
-## SublimeLinter 4 beta
+## SublimeLinter 4 is imminent!
 
-We're making big improvements to how SublimeLinter works. You can read more about it [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt).
+We've made big improvements to SublimeLinter. You can read more about it [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt).
 
 Participate in the beta right now by editing your Package Control preferences and adding SublimeLinter to the "install_prereleases" key:  
 ```json
 "install_prereleases":
+[
+  "SublimeLinter"
+]
+```
+
+To op-out of an automatic upgrade (so you can do it later at your leasure),
+add SublimeLinter to the "auto_upgrade_ignore" key:
+```json
+"auto_upgrade_ignore":
 [
   "SublimeLinter"
 ]

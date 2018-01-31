@@ -22,7 +22,7 @@ REGION_KEYS = 'SL.{}.region_keys'
 
 
 def remember_region_keys(view, keys):
-    view.settings().set(REGION_KEYS.format(view.id()), keys)
+    view.settings().set(REGION_KEYS.format(view.id()), list(keys))
 
 
 def get_regions_keys(view):
@@ -49,12 +49,25 @@ def on_finished_linting(buffer_id, linter_name, **kwargs):
     errors = persist.errors[buffer_id]
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 
+    # `prepare_data` returns the state of the view as we would like to draw it.
+    # But we cannot *redraw* regions as soon as the buffer changed, in fact
+    # Sublime already moved all the regions for us.
+    # So for the next step, we filter for errors from the current finished
+    # lint, namely from linter_name. All other errors are already UP-TO-DATE.
+
+    errors_for_the_highlights = [error for error in errors_for_the_highlights
+                                 if error['linter'] == linter_name]
+    errors_for_the_gutter = [error for error in errors_for_the_gutter
+                             if error['linter'] == linter_name]
+
     view = views[0]  # to calculate regions we can take any of the views
-    highlight_regions = prepare_highlights_data(view, errors_for_the_highlights)
-    gutter_regions = prepare_gutter_data(view, errors_for_the_gutter)
+    highlight_regions = prepare_highlights_data(
+        view, linter_name, errors_for_the_highlights)
+    gutter_regions = prepare_gutter_data(
+        view, linter_name, errors_for_the_gutter)
 
     for view in views:
-        draw(view, highlight_regions, gutter_regions)
+        draw(view, linter_name, highlight_regions, gutter_regions)
 
 
 def all_views_into_buffer(buffer_id):
@@ -119,7 +132,7 @@ def filter_errors_for_highlights(errors):
     return filtered_errors
 
 
-def prepare_gutter_data(view, errors):
+def prepare_gutter_data(view, linter_name, errors):
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
@@ -143,13 +156,13 @@ def prepare_gutter_data(view, errors):
     # uuid() would be candidate here, that can be reused for efficient updates.
     by_region_id = {}
     for (scope, icon), regions in by_id.items():
-        region_id = 'SL.Gutter.{}.{}'.format(scope, icon)
+        region_id = 'SL.{}.Gutter.{}.{}'.format(linter_name, scope, icon)
         by_region_id[region_id] = (scope, icon, regions)
 
     return by_region_id
 
 
-def prepare_highlights_data(view, errors):
+def prepare_highlights_data(view, linter_name, errors):
     by_id = defaultdict(list)
     for error in errors:
         scope = get_scope(**error)
@@ -171,7 +184,7 @@ def prepare_highlights_data(view, errors):
     # efficient updates.
     by_region_id = {}
     for (scope, flags), regions in by_id.items():
-        region_id = 'SL.Highlights.{}.{}'.format(scope, flags)
+        region_id = 'SL.{}.Highlights.{}.{}'.format(linter_name, scope, flags)
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -200,7 +213,7 @@ def get_icon_scope(icon, error):
         return " "  # set scope to non-existent one
 
 
-def draw(view, highlight_regions, gutter_regions):
+def draw(view, linter_name, highlight_regions, gutter_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -209,16 +222,18 @@ def draw(view, highlight_regions, gutter_regions):
 
     """
     current_region_keys = get_regions_keys(view)
-    new_regions_keys = list(highlight_regions.keys()) + list(gutter_regions.keys())
+    current_linter_keys = {key for key in current_region_keys
+                           if key.startswith('SL.{}.'.format(linter_name))}
+
+    new_linter_keys = list(highlight_regions.keys()) + list(gutter_regions.keys())
     if len(gutter_regions):
-        new_regions_keys.append(PROTECTED_REGIONS_KEY)
+        new_linter_keys.append(PROTECTED_REGIONS_KEY)
 
     # remove unused regions
-    for key in current_region_keys - set(new_regions_keys):
+    for key in current_linter_keys - set(new_linter_keys):
         view.erase_regions(key)
 
     # otherwise update (or create) regions
-
     for region_id, (scope, flags, regions) in highlight_regions.items():
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
@@ -233,11 +248,13 @@ def draw(view, highlight_regions, gutter_regions):
         # to create unified handle for GitGutter and other plugins
         # flag might not be neccessary
         if protected_regions:
+            current_protected_regions = view.get_regions(PROTECTED_REGIONS_KEY) or []
             view.add_regions(
                 PROTECTED_REGIONS_KEY,
-                protected_regions,
+                current_protected_regions + protected_regions,
                 flags=sublime.HIDDEN
             )
 
+    new_region_keys = (current_region_keys - current_linter_keys).union(new_linter_keys)
     # persisting region keys for later clearance
-    remember_region_keys(view, new_regions_keys)
+    remember_region_keys(view, new_region_keys)

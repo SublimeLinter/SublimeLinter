@@ -61,13 +61,18 @@ def all_views_into_buffer(buffer_id):
 
 
 def prepare_data(view, errors):
-    errors = [
-        ChainMap({'style': get_base_error_style(**error)}, error)
-        for error in errors
-    ]
+    errors_augmented = []
+    for error in errors:
+        style = get_base_error_style(**error)
+        if not highlight_store.has_style(style):  # really?
+            continue
 
-    highlight_regions = prepare_highlights_data(view, errors)
-    gutter_regions = prepare_gutter_data(view, errors)
+        priority = int(highlight_store.get(style).get('priority', 0))
+        errors_augmented.append(
+            ChainMap({'style': style, 'priority': priority}, error))
+
+    highlight_regions = prepare_highlights_data(view, errors_augmented)
+    gutter_regions = prepare_gutter_data(view, errors_augmented)
     return highlight_regions, gutter_regions
 
 
@@ -79,8 +84,7 @@ def get_base_error_style(linter, code, error_type, **kwargs):
 def prepare_gutter_data(view, errors):
     errors_by_line = defaultdict(list)
     for error in errors:
-        priority = highlight_store.get(error['style']).get('priority', 0)
-        errors_by_line[error['line']].append(ChainMap({'priority': int(priority)}, error))
+        errors_by_line[error['line']].append(error)
 
     # Since, there can only be one gutter mark per line, we have to select
     # one 'winning' error from all the errors on that line
@@ -88,9 +92,6 @@ def prepare_gutter_data(view, errors):
     for line, errors in errors_by_line.items():
         # We're lucky here that 'error' comes before 'warning'
         head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
-        if not highlight_store.has_style(head['style']):  # really?
-            continue
-
         filtered_errors.append(head)
 
     # Compute the icon and scope for the gutter mark from the error.
@@ -134,9 +135,6 @@ def prepare_highlights_data(view, errors):
         # If we have multiple 'problems' here, 'error' takes precedence over
         # 'warning'. We're lucky again that 'error' comes before 'warning'.
         head = sorted(errors, key=lambda e: e['error_type'])[0]
-        if not highlight_store.has_style(head['style']):  # really?
-            continue
-
         filtered_errors.append(head)
 
     by_id = defaultdict(list)

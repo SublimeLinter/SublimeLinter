@@ -1,4 +1,5 @@
 from collections import defaultdict, ChainMap
+from itertools import chain
 import sublime
 
 from .lint import persist, events
@@ -65,9 +66,16 @@ def on_finished_linting(buffer_id, linter_name, **kwargs):
         view, linter_name, errors_for_the_highlights)
     gutter_regions = prepare_gutter_data(
         view, linter_name, errors_for_the_gutter)
+    protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
 
     for view in views:
-        draw(view, linter_name, highlight_regions, gutter_regions)
+        draw(view, linter_name, highlight_regions, gutter_regions, protected_regions)
+
+
+def prepare_protected_regions(view, errors):
+    return list(chain.from_iterable(
+        regions for (_, _, regions) in
+        prepare_gutter_data(view, 'PROTECTED_REGIONS', errors).values()))
 
 
 def all_views_into_buffer(buffer_id):
@@ -213,7 +221,7 @@ def get_icon_scope(icon, error):
         return " "  # set scope to non-existent one
 
 
-def draw(view, linter_name, highlight_regions, gutter_regions):
+def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -239,23 +247,18 @@ def draw(view, linter_name, highlight_regions, gutter_regions):
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
     if persist.settings.has('gutter_theme'):
-        protected_regions = []
-
         for region_id, (scope, icon, regions) in gutter_regions.items():
             view.add_regions(region_id, regions, scope=scope, icon=icon)
-            protected_regions.extend(regions)
 
-        # overlaying all gutter regions with common invisible one,
-        # to create unified handle for GitGutter and other plugins
-        # flag might not be neccessary
-        if protected_regions:
-            current_protected_regions = view.get_regions(PROTECTED_REGIONS_KEY) or []
-            view.add_regions(
-                PROTECTED_REGIONS_KEY,
-                current_protected_regions + protected_regions,
-                flags=sublime.HIDDEN
-            )
+    # overlaying all gutter regions with common invisible one,
+    # to create unified handle for GitGutter and other plugins
+    # flag might not be neccessary
+    view.add_regions(
+        PROTECTED_REGIONS_KEY,
+        protected_regions,
+        flags=sublime.HIDDEN
+    )
 
-    new_region_keys = other_region_keys | new_linter_keys
     # persisting region keys for later clearance
+    new_region_keys = other_region_keys | new_linter_keys
     remember_region_keys(view, new_region_keys)

@@ -138,7 +138,7 @@ def prepare_highlights_data(view, errors):
     by_id = defaultdict(list)
     for pos, errors in by_position.items():
         # If we have multiple 'problems' here, 'error' takes precedence over
-        # 'warning'. We're lucky again that 'error' copmes before 'warning'
+        # 'warning'. We're lucky again that 'error' comes before 'warning'.
         head = sorted(errors, key=lambda e: e['error_type'])[0]
 
         if not highlight_store.has_style(head['style']):  # really?

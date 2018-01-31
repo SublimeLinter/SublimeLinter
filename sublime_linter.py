@@ -13,6 +13,7 @@ from .lint.queue import queue
 from .lint import persist, util, style
 from .lint.const import WARN_ERR
 from .lint import backend
+from .lint import logging
 
 
 def backup_old_settings():
@@ -42,8 +43,12 @@ def plugin_loaded():
 
     persist.plugin_is_loaded = True
     persist.settings.load()
-    persist.debug("debug mode: on")
-    persist.debug("version: " + util.get_sl_version())
+    if persist.debug_mode():
+        logging.debug("debug mode: on")
+        logging.debug("version: " + util.get_sl_version())
+        import pprint
+        text = pprint.pformat(dict(os.environ), indent=4)
+        logging.debug('Environment variables:\n%s', (text))
     style.load_gutter_icons()
     style.StyleParser()()
 

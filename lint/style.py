@@ -3,6 +3,7 @@ from . import persist, util
 from abc import ABCMeta, abstractmethod
 from .const import INBUILT_ICONS
 
+import logging
 import os
 from glob import glob
 
@@ -11,6 +12,7 @@ GUTTER_ICONS = {}
 
 
 linter_style_stores = {}
+logger = logging.getLogger(__name__)
 
 
 def get_linter_style_store(name):
@@ -85,7 +87,9 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
             error_type = args[3]
 
             if not res:
-                util.printf("Styles are invalid. Please check your settings and restart Sublime Text.")
+                logger.error(
+                    "Styles are invalid. Please check your settings and restart Sublime Text."
+                )
                 return
 
             if key != "icon":

@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 import locale
+import logging
 from numbers import Number
 import os
 import re
@@ -12,6 +13,7 @@ import tempfile
 from copy import deepcopy
 
 from .const import WARNING, ERROR
+from . import logging as sl_logging
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -19,13 +21,10 @@ STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
+logger = logging.getLogger(__name__)
 
-def printf(*args):
-    """Print args to the console, prefixed by the plugin name."""
-    print('SublimeLinter: ', end='')
-    for arg in args:
-        print(arg, end=' ')
-    print()
+# Backwards compatibility
+printf = sl_logging.info
 
 
 def get_syntax(view):
@@ -179,9 +178,9 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 
 
 @lru_cache(maxsize=1)  # print once every time the path changes
-def debug_print_env(path):
+def debug_print_path(path):
     import textwrap
-    printf('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
+    logger.info('PATH:\n%s', textwrap.indent(path.replace(os.pathsep, '\n'), '    '))
 
 
 def create_environment():
@@ -207,7 +206,7 @@ def create_environment():
         env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
     if persist.debug_mode() and env['PATH']:
-        debug_print_env(env['PATH'])
+        debug_print_path(env['PATH'])
 
     return env
 
@@ -388,9 +387,8 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             cwd=cwd,
         )
     except Exception as err:
-        printf('ERROR: could not launch', repr(cmd))
-        printf('reason:', str(err))
-        printf('PATH:', env.get('PATH', ''))
+        sl_logging.error('ERROR: could not launch %r\nreason: %s\nPATH: %s',
+                         cmd, err, env.get('PATH', ''))
 
 
 # view utils

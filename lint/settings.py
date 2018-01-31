@@ -1,7 +1,10 @@
+import logging
 import sublime
 from . import util
 from jsonschema.validators import validate
 from jsonschema.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 class Settings:
@@ -57,6 +60,9 @@ class Settings:
 
         from . import style
         from .linter import Linter
+        from .logging import set_debug_level
+
+        set_debug_level(self.get("debug", False))
 
         # Reparse settings for style rules
         # Linter specific settings can include style rules too
@@ -82,9 +88,9 @@ def get_settings_objects():
         try:
             yield name, util.load_json(name, from_sl_dir=False)
         except IOError as ie:
-            util.printf("Settings file not found: {}".format(name))
+            logger.error("Settings file not found: %s", name)
         except ValueError as ve:
-            util.printf("Settings file corrupt: {}".format(name))
+            logger.error("Settings file corrupt: %s", name)
 
 
 def validate_settings():
@@ -98,7 +104,7 @@ def validate_settings():
             validate(settings, schema)
         except ValidationError as ve:
             ve_msg = ve.message.split("\n")[0]  # reduce verbosity
-            util.printf("Settings in '{}' invalid:\n{}".format(name, ve_msg))
+            logger.error("Settings in %r invalid:\n%s", name, ve_msg)
             sublime.active_window().status_message(status_msg)
             good = False
 

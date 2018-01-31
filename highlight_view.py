@@ -41,7 +41,7 @@ def plugin_unloaded():
 
 
 @events.on(events.FINISHED_LINTING)
-def on_finished_linting(buffer_id):
+def on_finished_linting(buffer_id, linter_name, **kwargs):
     views = list(all_views_into_buffer(buffer_id))
     if not views:
         return

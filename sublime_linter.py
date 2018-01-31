@@ -240,7 +240,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                       if error['linter'] != linter.name] + errors
         persist.errors[bid] = all_errors
 
-        events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
+        events.broadcast(events.FINISHED_LINTING, {
+            'buffer_id': bid,
+            'linter_name': linter.name,
+            'errors': errors
+        })
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

@@ -445,10 +445,10 @@ class Linter(metaclass=LinterMeta):
         with self._settings_lock:
             self.window_settings.check()
             if (
-                self._settings is None
-                or persist.settings.change_count > self._persisted_settings_change_count
-                or self.window_settings.change_count > self._window_settings_change_count
-                or self.view.file_name() != self._last_file_name
+                self._settings is None or
+                persist.settings.change_count > self._persisted_settings_change_count or
+                self.window_settings.change_count > self._window_settings_change_count or
+                self.view.file_name() != self._last_file_name
             ):
                 self._settings = self._get_view_settings()
                 self._persisted_settings_change_count = persist.settings.change_count

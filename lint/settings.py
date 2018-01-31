@@ -87,7 +87,6 @@ class Settings:
 
 
 class WindowSettings:
-
     """Extract settings for SL from a project file."""
 
     change_count = 0

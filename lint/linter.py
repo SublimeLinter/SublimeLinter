@@ -1309,7 +1309,10 @@ class Linter(metaclass=LinterMeta):
 
             return suffix
         else:
-            return ''
+            """Attempt to extract extension from filename, return an empty string otherwise."""
+            name = self.view.file_name()
+            _, suffix = os.path.splitext(name)
+            return suffix
 
     # popen wrappers
 

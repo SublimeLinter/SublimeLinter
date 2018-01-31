@@ -7,6 +7,9 @@ from jsonschema.exceptions import ValidationError
 class Settings:
     """This class provides global access to and management of plugin settings."""
 
+    # Can be used to check for outdated caches
+    change_count = 0
+
     def __init__(self):
         self._storage = {}
 
@@ -55,6 +58,8 @@ class Settings:
         if not validate_settings():
             return
 
+        self.change_count += 1
+
         from . import style
         from .linter import Linter
 
@@ -75,6 +80,56 @@ class Settings:
 
         from ..sublime_linter import SublimeLinter
         SublimeLinter.lint_all_views()
+
+    def linter_settings(self, linter_name):
+        """Return settings for the linter with the specified name."""
+        return self.get('linters', {}).get(linter_name, {})
+
+
+class WindowSettings:
+    """Extract settings for SL from a project file."""
+
+    change_count = 0
+    _cached_data = None
+    _window_map = {}
+
+    def __init__(self, window):
+        self.window = window
+
+    def _current_data(self):
+        return self.window.project_data() or {}
+
+    def check(self):
+        """Check whether the underlying data has changed."""
+        prev_count = self.change_count
+        self.data()
+        return self.change_count != prev_count
+
+    def _data(self):
+        """Fetch the current data and increase `change_count` if it changed."""
+        current_data = self._current_data()
+        if self._cached_data is None:
+            self._cached_data = current_data
+        elif self._cached_data != current_data:
+            self._cached_data = current_data
+            self.change_count += 1
+        return self._cached_data
+
+    def data(self):
+        return self._data().get('SublimeLinter', {})
+
+    def linter_settings(self, linter_name):
+        """Return settings for the linter with the specified name."""
+        return self.data().get('linters', {}).get(linter_name, {})
+
+    @classmethod
+    def for_window(cls, window):
+        id_ = window.id()
+        instance = cls._window_map.get(id_)
+        if not instance:
+            instance = cls(window)
+            cls._window_map[id_] = instance
+        return instance
 
 
 def get_settings_objects():

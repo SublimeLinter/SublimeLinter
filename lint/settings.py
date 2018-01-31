@@ -91,17 +91,14 @@ class WindowSettings:
     """Extract settings for SL from a project file."""
 
     change_count = 0
-    _data = None
+    _cached_data = None
     _window_map = {}
 
     def __init__(self, window):
         self.window = window
 
     def _current_data(self):
-        p_data = self.window.project_data()
-        if not p_data:
-            return {}
-        return p_data.get('SublimeLinter', {})
+        return self.window.project_data() or {}
 
     def check(self):
         """Check whether the underlying data has changed."""
@@ -109,15 +106,18 @@ class WindowSettings:
         self.data()
         return self.change_count != prev_count
 
-    def data(self):
+    def _data(self):
         """Fetch the current data and increase `change_count` if it changed."""
         current_data = self._current_data()
-        if self._data is None:
-            self._data = current_data
-        elif self._data != current_data:
-            self._data = current_data
+        if self._cached_data is None:
+            self._cached_data = current_data
+        elif self._cached_data != current_data:
+            self._cached_data = current_data
             self.change_count += 1
-        return self._data
+        return self._cached_data
+
+    def data(self):
+        return self._data().get('SublimeLinter', {})
 
     def linter_settings(self, linter_name):
         """Return settings for the linter with the specified name."""

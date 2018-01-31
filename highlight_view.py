@@ -224,13 +224,14 @@ def draw(view, linter_name, highlight_regions, gutter_regions):
     current_region_keys = get_regions_keys(view)
     current_linter_keys = {key for key in current_region_keys
                            if key.startswith('SL.{}.'.format(linter_name))}
+    other_region_keys = current_region_keys - current_linter_keys
 
-    new_linter_keys = list(highlight_regions.keys()) + list(gutter_regions.keys())
+    new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
     if len(gutter_regions):
-        new_linter_keys.append(PROTECTED_REGIONS_KEY)
+        new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
     # remove unused regions
-    for key in current_linter_keys - set(new_linter_keys):
+    for key in current_linter_keys - new_linter_keys:
         view.erase_regions(key)
 
     # otherwise update (or create) regions
@@ -255,6 +256,6 @@ def draw(view, linter_name, highlight_regions, gutter_regions):
                 flags=sublime.HIDDEN
             )
 
-    new_region_keys = (current_region_keys - current_linter_keys).union(new_linter_keys)
+    new_region_keys = other_region_keys | new_linter_keys
     # persisting region keys for later clearance
     remember_region_keys(view, new_region_keys)

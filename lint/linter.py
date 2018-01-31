@@ -8,7 +8,8 @@ import re
 import shlex
 import sublime
 
-from . import highlight, persist, util
+from . import persist, util
+from .. import highlight_view
 from .const import STATUS_KEY, WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
@@ -1126,7 +1127,7 @@ class Linter(metaclass=LinterMeta):
             return
 
         view.erase_status(STATUS_KEY)
-        highlight.clear_view(view)
+        highlight_view.clear_view(view)
 
     def clear(self):
         self.clear_view(self.view)

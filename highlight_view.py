@@ -127,9 +127,7 @@ def prepare_highlights_data(view, errors):
     # position.
     by_position = defaultdict(list)
     for error in errors:
-        line_start = get_line_start(view, error['line'])
-        region = sublime.Region(line_start + error['start'], line_start + error['end'])
-        by_position[(region.a, region.b)].append(ChainMap({'region': region}, error))
+        by_position[(error['line'], error['start'], error['end'])].append(error)
 
     filtered_errors = []
     for pos, errors in by_position.items():
@@ -149,10 +147,13 @@ def prepare_highlights_data(view, errors):
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
 
+        line_start = get_line_start(view, error['line'])
+        region = sublime.Region(line_start + error['start'], line_start + error['end'])
+
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
         id = (scope, flags)
-        by_id[id].append(error['region'])
+        by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for

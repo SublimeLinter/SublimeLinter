@@ -1,9 +1,10 @@
 """This module provides persistent global storage for other modules."""
 
 from collections import defaultdict
+import logging
 
 from .settings import Settings
-from . import logging
+from . import logging as sl_logging
 
 
 if 'plugin_is_loaded' not in globals():
@@ -47,10 +48,11 @@ def edit(vid, edit):
         c(edit)
 
 
+# Backwards compatibility
 def debug_mode():
     """Return whether the "debug" setting is True."""
-    return settings.get('debug', False)
+    return sl_logging.base_logger.isEnabledFor(logging.DEBUG)
 
 
 # Backwards compatibility
-debug = logging.default_logger.debug
+debug = sl_logging.debug

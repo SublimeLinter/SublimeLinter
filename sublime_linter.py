@@ -48,7 +48,7 @@ def plugin_loaded():
         logging.debug("version: " + util.get_sl_version())
         import pprint
         text = pprint.pformat(dict(os.environ), indent=4)
-        logging.debug('Environment variables:\n{}', (text))
+        logging.debug('Environment variables:\n%s', (text))
     style.load_gutter_icons()
     style.StyleParser()()
 

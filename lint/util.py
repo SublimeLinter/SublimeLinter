@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 import locale
+import logging
 from numbers import Number
 import os
 import re
@@ -12,7 +13,7 @@ import tempfile
 from copy import deepcopy
 
 from .const import WARNING, ERROR
-from . import logging
+from . import logging as sl_logging
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -20,9 +21,10 @@ STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
+logger = logging.getLogger(__name__)
 
 # Backwards compatibility
-printf = logging.default_logger.print
+printf = sl_logging.info
 
 
 def get_syntax(view):
@@ -178,7 +180,7 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 @lru_cache(maxsize=1)  # print once every time the path changes
 def debug_print_path(path):
     import textwrap
-    logging.print('PATH:\n{}', textwrap.indent(path.replace(os.pathsep, '\n'), '    '))
+    logger.info('PATH:\n%s', textwrap.indent(path.replace(os.pathsep, '\n'), '    '))
 
 
 def create_environment():
@@ -385,9 +387,8 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             cwd=cwd,
         )
     except Exception as err:
-        logging.print('ERROR: could not launch', repr(cmd))
-        logging.print('reason:', str(err))
-        logging.print('PATH:', env.get('PATH', ''))
+        sl_logging.error('ERROR: could not launch %r\nreason: %s\nPATH: %s',
+                         cmd, err, env.get('PATH', ''))
 
 
 # view utils

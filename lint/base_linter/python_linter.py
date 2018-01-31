@@ -68,7 +68,7 @@ class PythonLinter(linter.Linter):
         # point to a python environment, NOT a python binary.
         python = settings.get('python', None)
 
-        self.logger.debug("wanted python is '{}'", python)
+        self.logger.debug("wanted python is '%s'", python)
 
         cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
 
@@ -78,9 +78,9 @@ class PythonLinter(linter.Linter):
                     python, cmd_name
                 )
                 if not executable:
-                    self.logger.print(
-                        "WARNING: deactivated; cannot locate '{}' "
-                        "for given python '{}'",
+                    self.logger.warning(
+                        "WARNING: deactivated; cannot locate %r "
+                        "for given python %r",
                         cmd_name, python
                     )
                     # Do not fallback, user specified something we didn't find
@@ -94,14 +94,14 @@ class PythonLinter(linter.Linter):
                 )
 
                 if executable is None:
-                    self.logger.print(
-                        "WARNING: {} deactivated; cannot locate '{}' "
-                        "for given python '{}'",
+                    self.logger.warning(
+                        "WARNING: deactivated; cannot locate %r "
+                        "for given python %r",
                         cmd_name, python
                     )
                     return True, None
 
-                self.logger.debug("Using '{}' for given python '{}'", executable, python)
+                self.logger.debug("Using '%s' for given python %r", executable, python)
                 return True, executable
 
         # If we're here the user didn't specify anything. This is the default
@@ -109,18 +109,18 @@ class PythonLinter(linter.Linter):
         cwd = self.get_working_dir(settings)
         executable = ask_pipenv(cmd[0], cwd)
         if executable:
-            self.logger.debug("Using '{}' according to pipenv", executable)
+            self.logger.debug("Using '%s' according to pipenv", executable)
             return True, executable
 
         # Should we try a `pyenv which` as well? Problem: I don't have it,
         # it's MacOS only.
 
-        self.logger.debug("trying to use globally installed {}", cmd_name)
+        self.logger.debug("trying to use globally installed %r", cmd_name)
         # fallback, similiar to a which(cmd)
         executable = util.which(cmd_name)
         if executable is None:
-            self.logger.print("WARNING: cannot locate excecutable."
-                              " Fill in the 'python' or 'executable' setting.")
+            self.logger.warning("WARNING: cannot locate excecutable."
+                                " Fill in the 'python' or 'executable' setting.")
         return True, executable
 
 
@@ -159,7 +159,7 @@ def find_script_by_python_env(python_env_path, script):
     else:
         full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
 
-    logging.print("trying {}".format(full_path))
+    logging.info("trying '%s'".format(full_path))
     if os.path.exists(full_path):
         return full_path
 
@@ -222,7 +222,7 @@ def _communicate(cmd, cwd):
             cmd, env=env, startupinfo=info, universal_newlines=True, cwd=cwd
         )
     except Exception as err:
-        logging.debug("executing {} failed. reason: {!s}", str(err))
+        logging.debug("executing %s failed. reason: %s", cmd, err)
         return ''
 
 
@@ -239,9 +239,9 @@ def get_python_version(path):
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
-        logging.print(
-            'ERROR: an error occurred retrieving the version for {}:\n{}',
-            path, str(ex)
+        logging.error(
+            'ERROR: an error occurred retrieving the version for %s:\n%s',
+            path, ex
         )
 
         return {'major': None, 'minor': None}

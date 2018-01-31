@@ -124,7 +124,7 @@ def get_linters(view):
 
                 for pattern in excludes:
                     if fnmatch(filename, pattern):
-                        linter.logger.debug('skipping; excluded by \'{}\'', pattern)
+                        linter.logger.debug('skipping; excluded by %r', pattern)
                         matched = True
                         break
 

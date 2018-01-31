@@ -84,28 +84,27 @@ def prepare_gutter_data(view, errors):
 
     # Since, there can only be one gutter mark per line, we have to select
     # one 'winning' error from all the errors on that line
-    error_per_line = {}
+    filtered_errors = []
     for line, errors in errors_by_line.items():
         # We're lucky here that 'error' comes before 'warning'
         head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
-        error_per_line[line] = head
+        if not highlight_store.has_style(head['style']):  # really?
+            continue
+
+        filtered_errors.append(head)
 
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
     by_id = defaultdict(list)
-    for line, error in error_per_line.items():
-
-        if not highlight_store.has_style(error['style']):  # really?
-            continue
-
+    for error in filtered_errors:
         icon = get_icon(**error)
         if not icon or icon == 'none':
             continue
 
         scope = get_icon_scope(icon, error)
 
-        pos = get_line_start(view, line)
+        pos = get_line_start(view, error['line'])
         region = sublime.Region(pos, pos)
 
         # We group towards the optimal sublime API usage:
@@ -132,17 +131,20 @@ def prepare_highlights_data(view, errors):
         region = sublime.Region(line_start + error['start'], line_start + error['end'])
         by_position[(region.a, region.b)].append(ChainMap({'region': region}, error))
 
-    by_id = defaultdict(list)
+    filtered_errors = []
     for pos, errors in by_position.items():
         # If we have multiple 'problems' here, 'error' takes precedence over
         # 'warning'. We're lucky again that 'error' comes before 'warning'.
         head = sorted(errors, key=lambda e: e['error_type'])[0]
-
         if not highlight_store.has_style(head['style']):  # really?
             continue
 
-        scope = get_scope(**head)
-        mark_style = get_mark_style(**head)
+        filtered_errors.append(head)
+
+    by_id = defaultdict(list)
+    for error in filtered_errors:
+        scope = get_scope(**error)
+        mark_style = get_mark_style(**error)
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
@@ -150,7 +152,7 @@ def prepare_highlights_data(view, errors):
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
         id = (scope, flags)
-        by_id[id].append(head['region'])
+        by_id[id].append(error['region'])
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for

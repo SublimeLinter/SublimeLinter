@@ -47,10 +47,14 @@ def on_finished_linting(buffer_id):
         return
 
     errors = persist.errors[buffer_id]
-    marks, lines = prepare_data(views[0], errors)
+    errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
+
+    view = views[0]  # to calculate regions we can take any of the views
+    highlight_regions = prepare_highlights_data(view, errors_for_the_highlights)
+    gutter_regions = prepare_gutter_data(view, errors_for_the_gutter)
 
     for view in views:
-        draw(view, marks, lines)
+        draw(view, highlight_regions, gutter_regions)
 
 
 def all_views_into_buffer(buffer_id):
@@ -60,7 +64,7 @@ def all_views_into_buffer(buffer_id):
                 yield view
 
 
-def prepare_data(view, errors):
+def prepare_data(errors):
     errors_augmented = []
     for error in errors:
         style = get_base_error_style(**error)
@@ -71,9 +75,10 @@ def prepare_data(view, errors):
         errors_augmented.append(
             ChainMap({'style': style, 'priority': priority}, error))
 
-    highlight_regions = prepare_highlights_data(view, filter_errors_for_highlights(errors_augmented))
-    gutter_regions = prepare_gutter_data(view, filter_errors_for_gutter(errors_augmented))
-    return highlight_regions, gutter_regions
+    return (
+        filter_errors_for_highlights(errors_augmented),
+        filter_errors_for_gutter(errors_augmented)
+    )
 
 
 def get_base_error_style(linter, code, error_type, **kwargs):

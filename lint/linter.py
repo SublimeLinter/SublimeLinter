@@ -438,6 +438,7 @@ class Linter(metaclass=LinterMeta):
     _settings = None
     _persisted_settings_change_count = 0
     _window_settings_change_count = 0
+    _last_file_name = None
 
     def get_view_settings(self):
         # We need to lock here for potential races during settings updates
@@ -447,10 +448,12 @@ class Linter(metaclass=LinterMeta):
                 self._settings is None
                 or persist.settings.change_count > self._persisted_settings_change_count
                 or self.window_settings.change_count > self._window_settings_change_count
+                or self.view.file_name() != self._last_file_name
             ):
                 self._settings = self._get_view_settings()
                 self._persisted_settings_change_count = persist.settings.change_count
                 self._window_settings_change_count = self.window_settings.change_count
+                self._last_file_name = self.view.file_name()
 
             return self._settings
 

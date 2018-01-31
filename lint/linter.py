@@ -7,8 +7,10 @@ import os
 import re
 import shlex
 import sublime
+import threading
 
 from . import highlight, persist, util
+from .settings import WindowSettings
 from .const import STATUS_KEY, WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
@@ -413,6 +415,11 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
+        # Note that when files are loaded during quick panel preview,
+        # it can happen that they are linted without having a window.
+        window = view.window() or sublime.active_window()
+        self.window_settings = WindowSettings.for_window(window)
+        self._settings_lock = threading.Lock()
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
@@ -428,20 +435,26 @@ class Linter(metaclass=LinterMeta):
         """Return the class name lowercased."""
         return self.__class__.__name__.lower()
 
-    @staticmethod
-    def _get_settings(linter, window=None):
-        defaults = linter.defaults or {}
-        user_settings = persist.settings.get('linters', {}).get(linter.name, {})
-
-        if window:
-            data = window.project_data() or {}
-            project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
-        else:
-            project_settings = {}
-
-        return ChainMap({}, project_settings, user_settings, defaults)
+    _settings = None
+    _persisted_settings_change_count = 0
+    _window_settings_change_count = 0
 
     def get_view_settings(self):
+        # We need to lock here for potential races during settings updates
+        with self._settings_lock:
+            self.window_settings.check()
+            if (
+                self._settings is None
+                or persist.settings.change_count > self._persisted_settings_change_count
+                or self.window_settings.change_count > self._window_settings_change_count
+            ):
+                self._settings = self._get_view_settings()
+                self._persisted_settings_change_count = persist.settings.change_count
+                self._window_settings_change_count = self.window_settings.change_count
+
+            return self._settings
+
+    def _get_view_settings(self):
         """Return a union of all settings specific to this view's linter.
 
         The settings are merged in the following order:
@@ -452,10 +465,10 @@ class Linter(metaclass=LinterMeta):
 
         After merging, tokens in the settings are replaced.
         """
-        # Note that when files are loaded during quick panel preview,
-        # it can happen that they are linted without having a window.
-        window = self.view.window()
-        settings = self._get_settings(self, window)
+        defaults = self.defaults or {}
+        user_settings = persist.settings.linter_settings(self.name)
+        project_settings = self.window_settings.linter_settings(self.name)
+        settings = ChainMap({}, project_settings, user_settings, defaults)
         return self.replace_settings_tokens(settings)
 
     def replace_settings_tokens(self, settings):

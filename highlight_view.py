@@ -99,14 +99,11 @@ def prepare_gutter_data(view, errors):
         if not highlight_store.has_style(error['style']):  # really?
             continue
 
-        icon = highlight_store.get_val('icon', error['style'], error['error_type'])
+        icon = get_icon(**error)
         if not icon or icon == 'none':
             continue
 
-        if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
-            scope = highlight_store.get_val('scope', error['style'], error['error_type'])
-        else:
-            scope = " "  # set scope to non-existent one
+        scope = get_icon_scope(icon, error)
 
         pos = get_line_start(view, line)
         region = sublime.Region(pos, pos)
@@ -144,8 +141,8 @@ def prepare_highlights_data(view, errors):
         if not highlight_store.has_style(head['style']):  # really?
             continue
 
-        scope = highlight_store.get_val('scope', head['style'], head['error_type'])
-        mark_style = highlight_store.get_val('mark_style', head['style'], head['error_type'])
+        scope = get_scope(**head)
+        mark_style = get_mark_style(**head)
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
@@ -168,6 +165,25 @@ def prepare_highlights_data(view, errors):
 
 def get_line_start(view, line):
     return view.text_point(line, 0)
+
+
+def get_icon(style, error_type, **kwargs):
+    return highlight_store.get_val('icon', style, error_type)
+
+
+def get_scope(style, error_type, **kwargs):
+    return highlight_store.get_val('scope', style, error_type)
+
+
+def get_mark_style(style, error_type, **kwargs):
+    return highlight_store.get_val('mark_style', style, error_type)
+
+
+def get_icon_scope(icon, error):
+    if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+        return get_scope(**error)
+    else:
+        return " "  # set scope to non-existent one
 
 
 def draw(view, highlight_regions, gutter_regions):

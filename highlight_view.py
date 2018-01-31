@@ -71,8 +71,8 @@ def prepare_data(view, errors):
         errors_augmented.append(
             ChainMap({'style': style, 'priority': priority}, error))
 
-    highlight_regions = prepare_highlights_data(view, errors_augmented)
-    gutter_regions = prepare_gutter_data(view, errors_augmented)
+    highlight_regions = prepare_highlights_data(view, filter_errors_for_highlights(errors_augmented))
+    gutter_regions = prepare_gutter_data(view, filter_errors_for_gutter(errors_augmented))
     return highlight_regions, gutter_regions
 
 
@@ -81,7 +81,7 @@ def get_base_error_style(linter, code, error_type, **kwargs):
     return store.get_style(code, error_type)
 
 
-def prepare_gutter_data(view, errors):
+def filter_errors_for_gutter(errors):
     errors_by_line = defaultdict(list)
     for error in errors:
         errors_by_line[error['line']].append(error)
@@ -94,11 +94,32 @@ def prepare_gutter_data(view, errors):
         head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
         filtered_errors.append(head)
 
+    return filtered_errors
+
+
+def filter_errors_for_highlights(errors):
+    # We can only one highlight per exact position, so we first group per
+    # position.
+    by_position = defaultdict(list)
+    for error in errors:
+        by_position[(error['line'], error['start'], error['end'])].append(error)
+
+    filtered_errors = []
+    for pos, errors in by_position.items():
+        # If we have multiple 'problems' here, 'error' takes precedence over
+        # 'warning'. We're lucky again that 'error' comes before 'warning'.
+        head = sorted(errors, key=lambda e: e['error_type'])[0]
+        filtered_errors.append(head)
+
+    return filtered_errors
+
+
+def prepare_gutter_data(view, errors):
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
     by_id = defaultdict(list)
-    for error in filtered_errors:
+    for error in errors:
         icon = get_icon(**error)
         if not icon or icon == 'none':
             continue
@@ -124,21 +145,8 @@ def prepare_gutter_data(view, errors):
 
 
 def prepare_highlights_data(view, errors):
-    # We can only one highlight per exact position, so we first group per
-    # position.
-    by_position = defaultdict(list)
-    for error in errors:
-        by_position[(error['line'], error['start'], error['end'])].append(error)
-
-    filtered_errors = []
-    for pos, errors in by_position.items():
-        # If we have multiple 'problems' here, 'error' takes precedence over
-        # 'warning'. We're lucky again that 'error' comes before 'warning'.
-        head = sorted(errors, key=lambda e: e['error_type'])[0]
-        filtered_errors.append(head)
-
     by_id = defaultdict(list)
-    for error in filtered_errors:
+    for error in errors:
         scope = get_scope(**error)
         mark_style = get_mark_style(**error)
         flags = MARK_STYLES[mark_style]

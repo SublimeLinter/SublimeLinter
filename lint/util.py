@@ -328,14 +328,6 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
     The result is a string combination of stdout and stderr.
     If env is None, the result of create_environment is used.
     """
-    if not filename:
-        filename = "untitled"
-    else:
-        filename = os.path.basename(filename)
-
-    if suffix:
-        filename = os.path.splitext(filename)[0] + suffix
-
     file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     path = file.name
 

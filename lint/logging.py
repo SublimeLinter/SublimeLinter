@@ -38,9 +38,12 @@ class LinterLogger(Logger):
     def __init__(self, linter):
         self.linter = linter
         self.linter_name = linter.name
-        self.file_path = linter.view.file_name() or "<untitled {}>".format(linter.view.buffer_id())
-        self.file_name = os.path.basename(self.file_path)
-        self.print_prefix = "[SublimeLinter] [{}] ({})".format(self.linter_name, self.file_name)
+
+    def print(self, fmt, *args, **kwargs):
+        file_path = self.linter.view.file_name() or "<untitled {}>".format(self.linter.view.buffer_id())
+        file_name = os.path.basename(file_path)
+        self.print_prefix = "[SublimeLinter] [{}] ({})".format(self.linter_name, file_name)
+        super().print(fmt, *args, **kwargs)
 
 
 # Maps thread idents to an active logger

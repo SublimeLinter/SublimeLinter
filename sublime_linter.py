@@ -387,7 +387,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not tooltip_message:
             return
 
-        col = 0 if line_report else col
         location = active_view.text_point(line, col)
         active_view.show_popup(
             template.format(stylesheet=stylesheet, message=tooltip_message),

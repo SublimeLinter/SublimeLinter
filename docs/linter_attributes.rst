@@ -36,9 +36,9 @@ Usually the ``error`` and ``warning`` named capture groups in the :ref:`regex`
 classify the problems.
 If the linter output does not provide information which can be captured with those groups,
 this attribute is used to determine how to classify the linter error.
-The value should be ``highlight.ERROR`` or ``highlight.WARNING``.
+The value should be ``const.ERROR`` or ``const.WARNING``.
 
-The default value is ``highlight.ERROR``.
+The default value is ``const.ERROR``.
 
 
 .. _defaults:

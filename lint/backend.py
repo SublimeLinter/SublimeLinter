@@ -32,7 +32,13 @@ def lint_view(view, hit_time, next):
     aggregated, and for each selector, if it occurs in sections,
     the corresponding section is linted as embedded code.
     """
-    linters = get_linters(view)
+    linters, disabled_linters = get_linters(view)
+
+    # The contract here is that we MUST fire 'updates' for every linter, so
+    # that the views (status bar etc) actually update.
+    for linter in disabled_linters:
+        next(linter, [])
+
     lint_tasks = get_lint_tasks(linters, view, hit_time)
 
     run_concurrently(
@@ -115,14 +121,17 @@ def get_linters(view):
     filename = view.file_name()
     vid = view.id()
 
+    enabled, disabled = [], []
     for linter in persist.view_linters.get(vid, []):
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
+            disabled.append(linter)
             continue
 
         view_settings = linter.get_view_settings()
 
         if view_settings.get('disable'):
+            disabled.append(linter)
             continue
 
         if filename:
@@ -142,9 +151,12 @@ def get_linters(view):
                         break
 
                 if matched:
+                    disabled.append(linter)
                     continue
 
-        yield linter
+        enabled.append(linter)
+
+    return enabled, disabled
 
 
 def run_concurrently(tasks, max_workers=5):

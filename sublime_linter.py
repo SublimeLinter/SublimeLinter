@@ -338,7 +338,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             )
         return all_msgs
 
-    def open_tooltip(self, active_view=None, point=None, is_gutter=False):
+    def open_tooltip(self, active_view=None, point=None, line_report=False):
         """Show a tooltip containing all linting errors on a given line."""
         stylesheet = '''
             body {
@@ -378,16 +378,16 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         errors = persist.errors[bid]
         errors = [e for e in errors if e["line"] == line]
-        if not is_gutter:  # do not show tooltip on hovering empty gutter
+        if not line_report:
             errors = [e for e in errors if e["start"] <= col <= e["end"]]
         if not errors:
             return
 
-        tooltip_message = self.join_msgs(errors, is_gutter)
+        tooltip_message = self.join_msgs(errors, line_report)
         if not tooltip_message:
             return
 
-        col = 0 if is_gutter else col
+        col = 0 if line_report else col
         location = active_view.text_point(line, col)
         active_view.show_popup(
             template.format(stylesheet=stylesheet, message=tooltip_message),

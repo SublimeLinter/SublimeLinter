@@ -6,11 +6,11 @@ import html
 import sublime
 import sublime_plugin
 
+from SublimeLinter import ERROR, WARNING
 from .lint import events
 from .lint.linter import Linter
 from .lint.queue import queue
 from .lint import persist, util, style
-from .lint.const import WARN_ERR
 from .lint import backend
 
 
@@ -311,7 +311,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         tmpl_sans_code = "{linter}: {escaped_msg}"
 
         all_msgs = ""
-        for error_type in WARN_ERR:
+        for error_type in (WARNING, ERROR):
             heading = error_type
             filled_templates = []
             msg_list = [e for e in errors if e["error_type"] == error_type]

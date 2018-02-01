@@ -269,10 +269,12 @@ def fill_panel(window, update=False, **panel_filter):
     errors_by_bid = get_window_errors(window, persist.errors, panel_filter)
 
     path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
-    assert window, "missing window!"
 
     panel = ensure_panel(window)
-    assert panel, "must have a panel now!"
+    # If we're here and the user actually closed the window in the meantime,
+    # we cannot create a panel anymore, and just pass.
+    if not panel:
+        return
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)

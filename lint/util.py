@@ -77,7 +77,8 @@ def is_lintable(view):
         not view.window() or
         view.is_scratch() or
         view.is_read_only() or
-        view.settings().get("repl")
+        view.settings().get("repl") or
+        view.settings().get('is_widget')
     ):
         return False
     elif (

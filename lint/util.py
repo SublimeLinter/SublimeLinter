@@ -11,7 +11,7 @@ import tempfile
 
 from copy import deepcopy
 
-from .const import WARNING, ERROR
+from SublimeLinter import ERROR, WARNING
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2

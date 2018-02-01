@@ -10,7 +10,8 @@ import sublime
 
 from . import persist, util
 from .. import highlight_view
-from .const import STATUS_KEY, WARNING, ERROR
+from SublimeLinter import ERROR, WARNING
+from .const import STATUS_KEY
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'

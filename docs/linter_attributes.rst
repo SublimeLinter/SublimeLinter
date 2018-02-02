@@ -37,7 +37,7 @@ classify the problems.
 If the linter output does not provide information which can be captured with those groups,
 this attribute is used to determine how to classify the linter error.
 
-The value should be ``ERROR`` or ``WARNING`` (constants imported from ``SublimeLinter``).
+The value should be ``ERROR`` or ``WARNING`` (constants imported from ``SublimeLinter.lint``).
 
 The default value is ``ERROR``.
 

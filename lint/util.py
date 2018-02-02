@@ -11,7 +11,7 @@ import tempfile
 
 from copy import deepcopy
 
-from .. import ERROR, WARNING
+from . import ERROR, WARNING
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2

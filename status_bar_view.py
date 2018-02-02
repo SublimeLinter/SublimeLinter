@@ -3,8 +3,7 @@ import sublime_plugin
 
 from collections import defaultdict
 
-from . import ERROR, WARNING
-from .lint import persist, events
+from .lint import persist, events, ERROR, WARNING
 
 STATUS_KEY = "sublime_linter_status"
 

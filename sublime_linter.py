@@ -6,12 +6,9 @@ import html
 import sublime
 import sublime_plugin
 
-from . import ERROR, WARNING
-from .lint import events
+from .lint import ERROR, WARNING, events, persist, util, style, backend
 from .lint.linter import Linter
 from .lint.queue import queue
-from .lint import persist, util, style
-from .lint import backend
 
 
 def backup_old_settings():

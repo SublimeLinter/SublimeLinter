@@ -8,8 +8,8 @@ import re
 import shlex
 import sublime
 
-from . import persist, util
-from .. import highlight_view, status_bar_view, ERROR, WARNING
+from . import persist, util, ERROR, WARNING
+from .. import highlight_view, status_bar_view
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'

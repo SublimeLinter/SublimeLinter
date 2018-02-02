@@ -6,7 +6,7 @@ import html
 import sublime
 import sublime_plugin
 
-from SublimeLinter import ERROR, WARNING
+from . import ERROR, WARNING
 from .lint import events
 from .lint.linter import Linter
 from .lint.queue import queue

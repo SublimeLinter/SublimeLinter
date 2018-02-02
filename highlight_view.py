@@ -3,7 +3,7 @@ import sublime
 
 from .lint import persist, events
 from .lint import style as style_stores
-from .lint.const import PROTECTED_REGIONS_KEY, INBUILT_ICONS
+from .lint.const import INBUILT_ICONS
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -19,7 +19,7 @@ MARK_STYLES = {
 
 highlight_store = style_stores.HighlightStyleStore()
 REGION_KEYS = 'SL.{}.region_keys'
-
+PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"
 
 def remember_region_keys(view, keys):
     view.settings().set(REGION_KEYS.format(view.id()), keys)

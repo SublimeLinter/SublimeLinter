@@ -7,6 +7,8 @@ from . import (
     util,
 )
 
+from SublimeLinter import WARNING, ERROR
+
 from .linter import Linter
 from .base_linter.python_linter import PythonLinter
 from .base_linter.ruby_linter import RubyLinter

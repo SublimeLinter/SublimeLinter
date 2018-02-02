@@ -3,10 +3,9 @@ import sublime_plugin
 
 from collections import defaultdict
 
-from .lint import persist
-from .lint.const import STATUS_KEY, WARNING, ERROR
-from .lint import events
+from .lint import persist, events, ERROR, WARNING
 
+STATUS_KEY = "sublime_linter_status"
 
 State = {
     'we_count': {},
@@ -115,3 +114,7 @@ def get_current_pos(view):
         return view.rowcol(view.sel()[0].begin())
     except (AttributeError, IndexError):
         return -1, -1
+
+
+def clear(view):
+    view.erase_status(STATUS_KEY)

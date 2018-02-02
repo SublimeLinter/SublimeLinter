@@ -3,7 +3,6 @@ import sublime
 
 from .lint import persist, events
 from .lint import style as style_stores
-from .lint.const import PROTECTED_REGIONS_KEY, INBUILT_ICONS
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -19,6 +18,7 @@ MARK_STYLES = {
 
 highlight_store = style_stores.HighlightStyleStore()
 REGION_KEYS = 'SL.{}.region_keys'
+PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"
 
 
 def remember_region_keys(view, keys):
@@ -103,7 +103,7 @@ def prepare_gutter_data(view, errors):
         if not icon or icon == 'none':
             continue
 
-        if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+        if style_stores.GUTTER_ICONS.get('colorize', True):
             scope = highlight_store.get_val('scope', error['style'], error['error_type'])
         else:
             scope = " "  # set scope to non-existent one

@@ -1,15 +1,11 @@
 import sublime
 from . import persist, util
 from abc import ABCMeta, abstractmethod
-from .const import INBUILT_ICONS
 
 import os
 from glob import glob
 
-
 GUTTER_ICONS = {}
-
-
 linter_style_stores = {}
 
 
@@ -38,11 +34,11 @@ def load_gutter_icons():
         theme_file = theme_files[0]
         opts = util.load_json(theme_file)
         if not opts:
-            colorize = False
+            colorize = True
         else:
-            colorize = opts.get("colorize", False)
+            colorize = opts.get("colorize", True)
     else:
-        colorize = False
+        colorize = True
 
     new_gutter_dict["colorize"] = colorize
     dir_path, _ = os.path.split(theme_file)
@@ -93,7 +89,7 @@ class HighlightStyleStore(StyleBaseStore, util.Borg):
             else:
                 # returning paths
 
-                if res in INBUILT_ICONS:
+                if res in ("circle", "dot", "bookmark", "none"):  # Sublime Text has some default icons
                     return res
                 elif res != os.path.basename(res):
                     return res

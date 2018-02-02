@@ -36,9 +36,10 @@ Usually the ``error`` and ``warning`` named capture groups in the :ref:`regex`
 classify the problems.
 If the linter output does not provide information which can be captured with those groups,
 this attribute is used to determine how to classify the linter error.
-The value should be ``const.ERROR`` or ``const.WARNING``.
 
-The default value is ``const.ERROR``.
+The value should be ``ERROR`` or ``WARNING`` (constants imported from ``SublimeLinter.lint``).
+
+The default value is ``ERROR``.
 
 
 .. _defaults:

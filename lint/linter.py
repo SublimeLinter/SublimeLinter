@@ -8,9 +8,8 @@ import re
 import shlex
 import sublime
 
-from . import persist, util
-from .. import highlight_view
-from .const import STATUS_KEY, WARNING, ERROR
+from . import persist, util, ERROR, WARNING
+from .. import highlight_view, status_bar_view
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
@@ -1118,7 +1117,7 @@ class Linter(metaclass=LinterMeta):
         if not view:
             return
 
-        view.erase_status(STATUS_KEY)
+        status_bar_view.clear(view)
         highlight_view.clear_view(view)
 
     def clear(self):

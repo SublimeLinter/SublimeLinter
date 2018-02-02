@@ -4,7 +4,7 @@ import sublime
 
 from .lint import persist, events
 from .lint import style as style_stores
-from .lint.const import PROTECTED_REGIONS_KEY, INBUILT_ICONS
+from .lint.const import PROTECTED_REGIONS_KEY
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -151,7 +151,6 @@ def prepare_gutter_data(view, linter_name, errors):
             continue
 
         scope = get_icon_scope(icon, error)
-
         pos = get_line_start(view, error['line'])
         region = sublime.Region(pos, pos)
 
@@ -215,7 +214,7 @@ def get_mark_style(style, error_type, **kwargs):
 
 
 def get_icon_scope(icon, error):
-    if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+    if style_stores.GUTTER_ICONS.get('colorize', True):
         return get_scope(**error)
     else:
         return " "  # set scope to non-existent one

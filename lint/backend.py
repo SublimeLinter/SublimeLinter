@@ -13,7 +13,7 @@ from . import persist, util
 WILDCARD_SYNTAX = '*'
 
 
-def lint_view(view, hit_time, callback):
+def lint_view(view, hit_time, next):
     """
     Lint the given view.
 
@@ -32,19 +32,40 @@ def lint_view(view, hit_time, callback):
     aggregated, and for each selector, if it occurs in sections,
     the corresponding section is linted as embedded code.
     """
-    linters = get_linters(view)
-    lint_tasks = get_lint_tasks(linters, view)
+    linters, disabled_linters = get_linters(view)
 
-    results = run_concurrently(
-        partial(execute_lint_task, *task, hit_time=hit_time)
-        for task in lint_tasks)
+    # The contract here is that we MUST fire 'updates' for every linter, so
+    # that the views (status bar etc) actually update.
+    for linter in disabled_linters:
+        next(linter, [])
 
-    all_errors = chain.from_iterable(results)
+    lint_tasks = get_lint_tasks(linters, view, hit_time)
+
+    run_concurrently(
+        partial(run_tasks, tasks, next=partial(next, linter))
+        for linter, tasks in lint_tasks
+    )
+
+
+def run_tasks(tasks, next):
+    results = run_concurrently(tasks)
+    errors = list(chain.from_iterable(results))  # flatten and consume
 
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(partial(callback, view, list(all_errors), hit_time))
+    sublime.set_timeout_async(lambda: next(errors))
+
+
+def get_lint_tasks(linters, view, hit_time):
+    for (linter, regions) in get_lint_regions(linters, view):
+
+        def make_task(region):
+            code = view.substr(region)
+            offset = view.rowcol(region.begin())
+            return partial(execute_lint_task, linter, code, offset, hit_time)
+
+        yield linter, map(make_task, regions)
 
 
 def execute_lint_task(linter, code, offset, hit_time):
@@ -71,13 +92,6 @@ def translate_lineno_and_column(errors, offset):
             })
 
 
-def get_lint_tasks(linters, view):
-    for (linter, region) in get_lint_regions(linters, view):
-        code = view.substr(region)
-        offset = view.rowcol(region.begin())
-        yield (linter, code, offset)
-
-
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for linter in linters:
@@ -85,12 +99,14 @@ def get_lint_regions(linters, view):
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
         ):
-            yield (linter, sublime.Region(0, view.size()))
+            yield linter, [sublime.Region(0, view.size())]
 
         else:
-            for selector in get_selectors(linter, syntax):
-                for region in view.find_by_selector(selector):
-                    yield (linter, region)
+            yield linter, [
+                region
+                for selector in get_selectors(linter, syntax)
+                for region in view.find_by_selector(selector)
+            ]
 
 
 def get_selectors(linter, wanted_syntax):
@@ -105,14 +121,17 @@ def get_linters(view):
     filename = view.file_name()
     vid = view.id()
 
+    enabled, disabled = [], []
     for linter in persist.view_linters.get(vid, []):
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
+            disabled.append(linter)
             continue
 
         view_settings = linter.get_view_settings()
 
         if view_settings.get('disable'):
+            disabled.append(linter)
             continue
 
         if filename:
@@ -132,15 +151,19 @@ def get_linters(view):
                         break
 
                 if matched:
+                    disabled.append(linter)
                     continue
 
-        yield linter
+        enabled.append(linter)
+
+    return enabled, disabled
 
 
 def run_concurrently(tasks, max_workers=5):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
-        yield from await_futures(work)
+        results = await_futures(work)
+        return list(results)  # consume the generator immediately
 
 
 def await_futures(fs, ordered=False):

@@ -1,4 +1,5 @@
 from collections import defaultdict, ChainMap
+from itertools import chain
 import sublime
 
 from .lint import persist, events
@@ -22,7 +23,7 @@ REGION_KEYS = 'SL.{}.region_keys'
 
 
 def remember_region_keys(view, keys):
-    view.settings().set(REGION_KEYS.format(view.id()), keys)
+    view.settings().set(REGION_KEYS.format(view.id()), list(keys))
 
 
 def get_regions_keys(view):
@@ -41,16 +42,40 @@ def plugin_unloaded():
 
 
 @events.on(events.FINISHED_LINTING)
-def on_finished_linting(buffer_id):
+def on_finished_linting(buffer_id, linter_name, **kwargs):
     views = list(all_views_into_buffer(buffer_id))
     if not views:
         return
 
     errors = persist.errors[buffer_id]
-    marks, lines = prepare_data(views[0], errors)
+    errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
+
+    # `prepare_data` returns the state of the view as we would like to draw it.
+    # But we cannot *redraw* regions as soon as the buffer changed, in fact
+    # Sublime already moved all the regions for us.
+    # So for the next step, we filter for errors from the current finished
+    # lint, namely from linter_name. All other errors are already UP-TO-DATE.
+
+    errors_for_the_highlights = [error for error in errors_for_the_highlights
+                                 if error['linter'] == linter_name]
+    errors_for_the_gutter = [error for error in errors_for_the_gutter
+                             if error['linter'] == linter_name]
+
+    view = views[0]  # to calculate regions we can take any of the views
+    highlight_regions = prepare_highlights_data(
+        view, linter_name, errors_for_the_highlights)
+    gutter_regions = prepare_gutter_data(
+        view, linter_name, errors_for_the_gutter)
+    protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
 
     for view in views:
-        draw(view, marks, lines)
+        draw(view, linter_name, highlight_regions, gutter_regions, protected_regions)
+
+
+def prepare_protected_regions(view, errors):
+    return list(chain.from_iterable(
+        regions for (_, _, regions) in
+        prepare_gutter_data(view, 'PROTECTED_REGIONS', errors).values()))
 
 
 def all_views_into_buffer(buffer_id):
@@ -60,15 +85,21 @@ def all_views_into_buffer(buffer_id):
                 yield view
 
 
-def prepare_data(view, errors):
-    errors = [
-        ChainMap({'style': get_base_error_style(**error)}, error)
-        for error in errors
-    ]
+def prepare_data(errors):
+    errors_augmented = []
+    for error in errors:
+        style = get_base_error_style(**error)
+        if not highlight_store.has_style(style):  # really?
+            continue
 
-    highlight_regions = prepare_highlights_data(view, errors)
-    gutter_regions = prepare_gutter_data(view, errors)
-    return highlight_regions, gutter_regions
+        priority = int(highlight_store.get(style).get('priority', 0))
+        errors_augmented.append(
+            ChainMap({'style': style, 'priority': priority}, error))
+
+    return (
+        filter_errors_for_highlights(errors_augmented),
+        filter_errors_for_gutter(errors_augmented)
+    )
 
 
 def get_base_error_style(linter, code, error_type, **kwargs):
@@ -76,39 +107,52 @@ def get_base_error_style(linter, code, error_type, **kwargs):
     return store.get_style(code, error_type)
 
 
-def prepare_gutter_data(view, errors):
+def filter_errors_for_gutter(errors):
     errors_by_line = defaultdict(list)
     for error in errors:
-        priority = highlight_store.get(error['style']).get('priority', 0)
-        errors_by_line[error['line']].append(ChainMap({'priority': int(priority)}, error))
+        errors_by_line[error['line']].append(error)
 
     # Since, there can only be one gutter mark per line, we have to select
     # one 'winning' error from all the errors on that line
-    error_per_line = {}
+    filtered_errors = []
     for line, errors in errors_by_line.items():
         # We're lucky here that 'error' comes before 'warning'
         head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
-        error_per_line[line] = head
+        filtered_errors.append(head)
 
+    return filtered_errors
+
+
+def filter_errors_for_highlights(errors):
+    # We can only one highlight per exact position, so we first group per
+    # position.
+    by_position = defaultdict(list)
+    for error in errors:
+        by_position[(error['line'], error['start'], error['end'])].append(error)
+
+    filtered_errors = []
+    for pos, errors in by_position.items():
+        # If we have multiple 'problems' here, 'error' takes precedence over
+        # 'warning'. We're lucky again that 'error' comes before 'warning'.
+        head = sorted(errors, key=lambda e: e['error_type'])[0]
+        filtered_errors.append(head)
+
+    return filtered_errors
+
+
+def prepare_gutter_data(view, linter_name, errors):
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
     by_id = defaultdict(list)
-    for line, error in error_per_line.items():
-
-        if not highlight_store.has_style(error['style']):  # really?
-            continue
-
-        icon = highlight_store.get_val('icon', error['style'], error['error_type'])
+    for error in errors:
+        icon = get_icon(**error)
         if not icon or icon == 'none':
             continue
 
-        if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
-            scope = highlight_store.get_val('scope', error['style'], error['error_type'])
-        else:
-            scope = " "  # set scope to non-existent one
+        scope = get_icon_scope(icon, error)
 
-        pos = get_line_start(view, line)
+        pos = get_line_start(view, error['line'])
         region = sublime.Region(pos, pos)
 
         # We group towards the optimal sublime API usage:
@@ -120,47 +164,35 @@ def prepare_gutter_data(view, errors):
     # uuid() would be candidate here, that can be reused for efficient updates.
     by_region_id = {}
     for (scope, icon), regions in by_id.items():
-        region_id = 'SL.Gutter.{}.{}'.format(scope, icon)
+        region_id = 'SL.{}.Gutter.{}.{}'.format(linter_name, scope, icon)
         by_region_id[region_id] = (scope, icon, regions)
 
     return by_region_id
 
 
-def prepare_highlights_data(view, errors):
-    # We can only one highlight per exact position, so we first group per
-    # position.
-    by_position = defaultdict(list)
-    for error in errors:
-        line_start = get_line_start(view, error['line'])
-        region = sublime.Region(line_start + error['start'], line_start + error['end'])
-        by_position[(region.a, region.b)].append(ChainMap({'region': region}, error))
-
+def prepare_highlights_data(view, linter_name, errors):
     by_id = defaultdict(list)
-    for pos, errors in by_position.items():
-        # If we have multiple 'problems' here, 'error' takes precedence over
-        # 'warning'. We're lucky again that 'error' comes before 'warning'.
-        head = sorted(errors, key=lambda e: e['error_type'])[0]
-
-        if not highlight_store.has_style(head['style']):  # really?
-            continue
-
-        scope = highlight_store.get_val('scope', head['style'], head['error_type'])
-        mark_style = highlight_store.get_val('mark_style', head['style'], head['error_type'])
+    for error in errors:
+        scope = get_scope(**error)
+        mark_style = get_mark_style(**error)
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
 
+        line_start = get_line_start(view, error['line'])
+        region = sublime.Region(line_start + error['start'], line_start + error['end'])
+
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
         id = (scope, flags)
-        by_id[id].append(head['region'])
+        by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
     for (scope, flags), regions in by_id.items():
-        region_id = 'SL.Highlights.{}.{}'.format(scope, flags)
+        region_id = 'SL.{}.Highlights.{}.{}'.format(linter_name, scope, flags)
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -170,7 +202,26 @@ def get_line_start(view, line):
     return view.text_point(line, 0)
 
 
-def draw(view, highlight_regions, gutter_regions):
+def get_icon(style, error_type, **kwargs):
+    return highlight_store.get_val('icon', style, error_type)
+
+
+def get_scope(style, error_type, **kwargs):
+    return highlight_store.get_val('scope', style, error_type)
+
+
+def get_mark_style(style, error_type, **kwargs):
+    return highlight_store.get_val('mark_style', style, error_type)
+
+
+def get_icon_scope(icon, error):
+    if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+        return get_scope(**error)
+    else:
+        return " "  # set scope to non-existent one
+
+
+def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions):
     """
     Draw code and gutter marks in the given view.
 
@@ -179,35 +230,35 @@ def draw(view, highlight_regions, gutter_regions):
 
     """
     current_region_keys = get_regions_keys(view)
-    new_regions_keys = list(highlight_regions.keys()) + list(gutter_regions.keys())
+    current_linter_keys = {key for key in current_region_keys
+                           if key.startswith('SL.{}.'.format(linter_name))}
+    other_region_keys = current_region_keys - current_linter_keys
+
+    new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
     if len(gutter_regions):
-        new_regions_keys.append(PROTECTED_REGIONS_KEY)
+        new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
     # remove unused regions
-    for key in current_region_keys - set(new_regions_keys):
+    for key in current_linter_keys - new_linter_keys:
         view.erase_regions(key)
 
     # otherwise update (or create) regions
-
     for region_id, (scope, flags, regions) in highlight_regions.items():
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
     if persist.settings.has('gutter_theme'):
-        protected_regions = []
-
         for region_id, (scope, icon, regions) in gutter_regions.items():
             view.add_regions(region_id, regions, scope=scope, icon=icon)
-            protected_regions.extend(regions)
 
-        # overlaying all gutter regions with common invisible one,
-        # to create unified handle for GitGutter and other plugins
-        # flag might not be neccessary
-        if protected_regions:
-            view.add_regions(
-                PROTECTED_REGIONS_KEY,
-                protected_regions,
-                flags=sublime.HIDDEN
-            )
+    # overlaying all gutter regions with common invisible one,
+    # to create unified handle for GitGutter and other plugins
+    # flag might not be neccessary
+    view.add_regions(
+        PROTECTED_REGIONS_KEY,
+        protected_regions,
+        flags=sublime.HIDDEN
+    )
 
     # persisting region keys for later clearance
-    remember_region_keys(view, new_regions_keys)
+    new_region_keys = other_region_keys | new_linter_keys
+    remember_region_keys(view, new_region_keys)

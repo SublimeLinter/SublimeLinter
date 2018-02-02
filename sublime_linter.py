@@ -1,5 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from functools import partial
 import os
 import html
 
@@ -209,15 +210,16 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
             return
 
-        view = Linter.get_view(view_id)
-
+        view = persist.views.get(view_id)
         if not view:
             return
 
         events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
-        backend.lint_view(view, hit_time, self.highlight)
 
-    def highlight(self, view, errors, hit_time):
+        next = partial(self.highlight, view, hit_time)
+        backend.lint_view(view, hit_time, next)
+
+    def highlight(self, view, hit_time, linter, errors):
         """
         Highlight any errors found during a lint of the given view.
 
@@ -234,9 +236,15 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         bid = view.buffer_id()
-        persist.errors[bid] = errors
+        all_errors = [error for error in persist.errors[bid]
+                      if error['linter'] != linter.name] + errors
+        persist.errors[bid] = all_errors
 
-        events.broadcast(events.FINISHED_LINTING, {'buffer_id': bid})
+        events.broadcast(events.FINISHED_LINTING, {
+            'buffer_id': bid,
+            'linter_name': linter.name,
+            'errors': errors
+        })
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

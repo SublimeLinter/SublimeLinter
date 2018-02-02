@@ -27,7 +27,7 @@ def plugin_unloaded():
 
 
 @events.on(events.FINISHED_LINTING)
-def on_finished_linting(buffer_id):
+def on_finished_linting(buffer_id, **kwargs):
     active_view = State['active_view']
     if active_view.buffer_id() == buffer_id:
         State.update({

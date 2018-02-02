@@ -20,6 +20,7 @@ highlight_store = style_stores.HighlightStyleStore()
 REGION_KEYS = 'SL.{}.region_keys'
 PROTECTED_REGIONS_KEY = "sublime_linter.protected_regions"
 
+
 def remember_region_keys(view, keys):
     view.settings().set(REGION_KEYS.format(view.id()), keys)
 

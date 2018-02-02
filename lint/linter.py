@@ -14,7 +14,6 @@ from .. import highlight_view, status_bar_view, ERROR, WARNING
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter',)
-STATUS_KEY = "sublime_linter_status"
 
 # Many linters use stdin, and we convert text to utf-8
 # before sending to stdin, so we have to make sure stdin

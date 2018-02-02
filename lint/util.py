@@ -35,7 +35,7 @@ def get_syntax(view):
     or the syntax it is mapped to in the "syntax_map" setting.
     """
     syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
-    view_syntax = view.settings().get('syntax', '')
+    view_syntax = view.settings().get('syntax') or ''
     mapped_syntax = ''
 
     if view_syntax:

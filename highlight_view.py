@@ -27,7 +27,7 @@ def remember_region_keys(view, keys):
 
 
 def get_regions_keys(view):
-    return set(view.settings().get(REGION_KEYS.format(view.id()), []))
+    return set(view.settings().get(REGION_KEYS.format(view.id())) or [])
 
 
 def clear_view(view):

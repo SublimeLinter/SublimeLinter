@@ -1,15 +1,13 @@
 import sublime
 from . import persist, util
 from abc import ABCMeta, abstractmethod
-from .const import INBUILT_ICONS
 
 import os
 from glob import glob
 
+from SublimeLinter import INBUILT_ICONS
 
 GUTTER_ICONS = {}
-
-
 linter_style_stores = {}
 
 

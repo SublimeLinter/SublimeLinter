@@ -1,9 +1,9 @@
 from collections import defaultdict, ChainMap
 import sublime
 
+from SublimeLinter import INBUILT_ICONS
 from .lint import persist, events
 from .lint import style as style_stores
-from .lint.const import INBUILT_ICONS
 
 
 UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE

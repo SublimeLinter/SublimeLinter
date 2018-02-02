@@ -3,9 +3,8 @@ import sublime_plugin
 
 from collections import defaultdict
 
-from SublimeLinter import ERROR, WARNING
+from SublimeLinter import ERROR, WARNING, STATUS_KEY
 from .lint import persist, events
-from .lint.const import STATUS_KEY
 
 
 State = {

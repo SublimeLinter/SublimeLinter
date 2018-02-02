@@ -9,12 +9,13 @@ import shlex
 import sublime
 
 from . import persist, util
-from .. import highlight_view
-from SublimeLinter import ERROR, WARNING, STATUS_KEY
+from .. import highlight_view, status_bar_view
+from SublimeLinter import ERROR, WARNING
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter',)
+STATUS_KEY = "sublime_linter_status"
 
 # Many linters use stdin, and we convert text to utf-8
 # before sending to stdin, so we have to make sure stdin
@@ -1118,7 +1119,7 @@ class Linter(metaclass=LinterMeta):
         if not view:
             return
 
-        view.erase_status(STATUS_KEY)
+        status_bar_view.clear(view)
         highlight_view.clear_view(view)
 
     def clear(self):

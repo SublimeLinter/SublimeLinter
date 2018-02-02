@@ -147,6 +147,16 @@ class Listener:
 
         queue.cleanup(vid)
 
+        # Remove bid from persis.errors if it's the last view on the buffer
+        bid = view.buffer_id()
+        buffers = []
+        for w in sublime.windows():
+            for v in w.views():
+                buffers.append(v.buffer_id())
+
+        if buffers.count(bid) is 1:
+            del persist.errors[bid]
+
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
 

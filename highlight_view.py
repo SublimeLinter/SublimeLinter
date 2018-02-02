@@ -1,7 +1,6 @@
 from collections import defaultdict, ChainMap
 import sublime
 
-from SublimeLinter import INBUILT_ICONS
 from .lint import persist, events
 from .lint import style as style_stores
 
@@ -103,7 +102,7 @@ def prepare_gutter_data(view, errors):
         if not icon or icon == 'none':
             continue
 
-        if style_stores.GUTTER_ICONS.get('colorize', True) or icon in INBUILT_ICONS:
+        if style_stores.GUTTER_ICONS.get('colorize', True):
             scope = highlight_store.get_val('scope', error['style'], error['error_type'])
         else:
             scope = " "  # set scope to non-existent one

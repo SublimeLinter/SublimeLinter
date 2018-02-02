@@ -2,4 +2,3 @@
 VERSION = 4
 WARNING = "warning"
 ERROR = "error"
-INBUILT_ICONS = ("circle", "dot", "bookmark", "none")

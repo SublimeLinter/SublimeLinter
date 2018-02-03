@@ -94,9 +94,12 @@ def prepare_data(errors):
         errors_augmented.append(
             ChainMap({'style': style, 'priority': priority}, error))
 
+    # We need to filter the errors, bc we cannot draw multiple regions
+    # on the same position. E.g. we can only draw one gutter icon per line,
+    # and we can only 'underline' a word once.
     return (
-        filter_errors_for_highlights(errors_augmented),
-        filter_errors_for_gutter(errors_augmented)
+        filter_errors(errors_augmented, by_position),  # highlights
+        filter_errors(errors_augmented, by_line)       # gutter icons
     )
 
 
@@ -105,37 +108,25 @@ def get_base_error_style(linter, code, error_type, **kwargs):
     return store.get_style(code, error_type)
 
 
-def filter_errors_for_gutter(errors):
-    errors_by_line = defaultdict(list)
+def filter_errors(errors, group_fn):
+    grouped = defaultdict(list)
     for error in errors:
-        errors_by_line[error['line']].append(error)
+        grouped[group_fn(error)].append(error)
 
-    # Since, there can only be one gutter mark per line, we have to select
-    # one 'winning' error from all the errors on that line
     filtered_errors = []
-    for line, errors in errors_by_line.items():
-        # We're lucky here that 'error' comes before 'warning'
+    for errors in grouped.values():
         head = sorted(errors, key=lambda e: (-e['priority'], e['error_type']))[0]
         filtered_errors.append(head)
 
     return filtered_errors
 
 
-def filter_errors_for_highlights(errors):
-    # We can only one highlight per exact position, so we first group per
-    # position.
-    by_position = defaultdict(list)
-    for error in errors:
-        by_position[(error['line'], error['start'], error['end'])].append(error)
+def by_position(error):
+    return (error['line'], error['start'], error['end'])
 
-    filtered_errors = []
-    for pos, errors in by_position.items():
-        # If we have multiple 'problems' here, 'error' takes precedence over
-        # 'warning'. We're lucky again that 'error' comes before 'warning'.
-        head = sorted(errors, key=lambda e: (-e['priority'], e['error_type']))[0]
-        filtered_errors.append(head)
 
-    return filtered_errors
+def by_line(error):
+    return error['line']
 
 
 def prepare_gutter_data(view, linter_name, errors):

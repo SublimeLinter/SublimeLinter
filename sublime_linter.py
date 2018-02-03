@@ -385,7 +385,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         '''
 
         if not active_view:
-            active_view = util.get_active_view()
+            active_view = sublime.active_window().active_view()
 
         # Leave any existing popup open without replacing it
         # don't let the popup flicker / fight with other packages

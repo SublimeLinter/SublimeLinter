@@ -35,11 +35,11 @@ def plugin_loaded():
 
 
 def plugin_unloaded():
-    events.off(on_finished_linting)
+    events.off(on_lint_result)
 
 
 @events.on(events.LINT_RESULT)
-def on_finished_linting(buffer_id, **kwargs):
+def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if buffer_id in buffer_ids_per_window(window):
             fill_panel(window, update=True)

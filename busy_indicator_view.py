@@ -38,7 +38,7 @@ def on_begin_linting(buffer_id):
         sublime.set_timeout_async(lambda: draw(**State), INITIAL_DELAY * 1000)
 
 
-@events.on(events.FINISHED_LINTING)
+@events.on(events.LINT_RESULT)
 def on_finished_linting(buffer_id, **kwargs):
     State['running'].pop(buffer_id, None)
 

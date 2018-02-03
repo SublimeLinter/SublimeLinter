@@ -255,7 +255,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                       if error['linter'] != linter.name] + errors
         persist.errors[bid] = all_errors
 
-        events.broadcast(events.FINISHED_LINTING, {
+        events.broadcast(events.LINT_RESULT, {
             'buffer_id': bid,
             'linter_name': linter.name,
             'errors': errors

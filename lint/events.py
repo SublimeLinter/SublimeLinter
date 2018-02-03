@@ -3,7 +3,7 @@ import traceback
 
 
 LINT_START = 'LINT_START'
-FINISHED_LINTING = 'FINISHED_LINTING'
+LINT_RESULT = 'LINT_RESULT'
 
 
 listeners = defaultdict(set)

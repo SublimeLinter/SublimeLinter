@@ -49,13 +49,6 @@ def get_syntax(view):
     return mapped_syntax or view_syntax
 
 
-class Borg:
-    _shared_state = {}
-
-    def __init__(self):
-        self.__dict__ = self._shared_state
-
-
 def is_lintable(view):
     """
     Return true when a view is not lintable, e.g. scratch, read_only, etc.

@@ -66,7 +66,14 @@ class StyleBaseStore(metaclass=ABCMeta):
         pass
 
 
-class HighlightStyleStore(StyleBaseStore, util.Borg):
+class Borg:
+    _shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+
+class HighlightStyleStore(StyleBaseStore, Borg):
     styles = {}
 
     def update(self, name, dict):

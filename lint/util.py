@@ -9,9 +9,6 @@ import sublime
 import subprocess
 import tempfile
 
-from copy import deepcopy
-
-from .const import WARNING, ERROR
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -89,41 +86,6 @@ def is_lintable(view):
         return False
     else:
         return True
-
-
-def is_none_or_zero(we_count):
-    """Check warning/error count of dict."""
-    if not we_count:
-        return True
-    elif we_count[WARNING] + we_count[ERROR] == 0:
-        return True
-    else:
-        return False
-
-
-def get_active_view(view=None):
-    if view:
-        window = view.window()
-        if not window:
-            return
-        return window.active_view()
-
-    return sublime.active_window().active_view()
-
-
-def get_new_dict():
-    return deepcopy({WARNING: {}, ERROR: {}})
-
-
-def msg_count(l_dict):
-    w_count = len(l_dict.get("warning", []))
-    e_count = len(l_dict.get("error", []))
-    return w_count, e_count
-
-
-def any_key_in(target, source):
-    """Perform an m:n member check between two iterables."""
-    return any(key in target for key in source)
 
 
 # file/directory/environment utils

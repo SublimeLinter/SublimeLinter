@@ -494,6 +494,20 @@ class Linter(metaclass=LinterMeta):
         if project_folder:
             variables['folder'] = project_folder
 
+        # `window.extract_variables` actually resembles data from the
+        # `active_view`, so we need to pass in all the relevant data around
+        # the filename manually in case the user switches to a different
+        # view, before we're done here.
+        if filename:
+            basename = os.path.basename(filename)
+            file_base_name, file_extension = os.path.splitext(basename)
+
+            variables['file'] = filename
+            variables['file_path'] = os.path.dirname(filename)
+            variables['file_name'] = basename
+            variables['file_base_name'] = file_base_name
+            variables['file_extension'] = file_extension
+
         return recursive_replace(variables, settings)
 
     @staticmethod

@@ -89,8 +89,6 @@ def prepare_data(errors):
     errors_augmented = []
     for error in errors:
         style = get_base_error_style(**error)
-        if not highlight_store.has_style(style):  # really?
-            continue
 
         priority = int(highlight_store.get(style).get('priority', 0))
         errors_augmented.append(

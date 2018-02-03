@@ -115,7 +115,7 @@ def filter_errors_for_gutter(errors):
     filtered_errors = []
     for line, errors in errors_by_line.items():
         # We're lucky here that 'error' comes before 'warning'
-        head = sorted(errors, key=lambda e: (e['error_type'], -e['priority']))[0]
+        head = sorted(errors, key=lambda e: (-e['priority'], e['error_type']))[0]
         filtered_errors.append(head)
 
     return filtered_errors
@@ -132,7 +132,7 @@ def filter_errors_for_highlights(errors):
     for pos, errors in by_position.items():
         # If we have multiple 'problems' here, 'error' takes precedence over
         # 'warning'. We're lucky again that 'error' comes before 'warning'.
-        head = sorted(errors, key=lambda e: e['error_type'])[0]
+        head = sorted(errors, key=lambda e: (-e['priority'], e['error_type']))[0]
         filtered_errors.append(head)
 
     return filtered_errors

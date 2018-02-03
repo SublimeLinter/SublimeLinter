@@ -4,6 +4,7 @@ import traceback
 
 LINT_START = 'LINT_START'
 LINT_RESULT = 'LINT_RESULT'
+LINT_END = 'LINT_END'
 
 
 listeners = defaultdict(set)

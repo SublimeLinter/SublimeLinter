@@ -234,6 +234,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         next = partial(self.highlight, view, hit_time)
         backend.lint_view(view, hit_time, next)
 
+        events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
+
     def highlight(self, view, hit_time, linter, errors):
         """
         Highlight any errors found during a lint of the given view.

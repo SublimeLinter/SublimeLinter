@@ -510,7 +510,7 @@ class Linter(metaclass=LinterMeta):
 
         for folder in folders:
             # Take the first one; should we take the deepest one? The shortest?
-            if folder in filename:
+            if filename.startswith(folder + os.path.sep):
                 return folder
 
     @classmethod

@@ -7,7 +7,7 @@ from .lint.const import STATUS_BUSY_KEY
 from .lint import events
 
 
-INITIAL_DELAY = 1
+INITIAL_DELAY = 2
 CYCLE_TIME = 200
 TIMEOUT = 20
 
@@ -29,7 +29,7 @@ def plugin_unloaded():
     events.off(on_finished_linting)
 
 
-@events.on(events.BEGIN_LINTING)
+@events.on(events.LINT_START)
 def on_begin_linting(buffer_id):
     State['running'][buffer_id] = time.time()
 
@@ -38,7 +38,7 @@ def on_begin_linting(buffer_id):
         sublime.set_timeout_async(lambda: draw(**State), INITIAL_DELAY * 1000)
 
 
-@events.on(events.FINISHED_LINTING)
+@events.on(events.LINT_END)
 def on_finished_linting(buffer_id, **kwargs):
     State['running'].pop(buffer_id, None)
 

@@ -38,11 +38,11 @@ def clear_view(view):
 
 
 def plugin_unloaded():
-    events.off(on_finished_linting)
+    events.off(on_lint_result)
 
 
-@events.on(events.FINISHED_LINTING)
-def on_finished_linting(buffer_id, linter_name, **kwargs):
+@events.on(events.LINT_RESULT)
+def on_lint_result(buffer_id, linter_name, **kwargs):
     views = list(all_views_into_buffer(buffer_id))
     if not views:
         return

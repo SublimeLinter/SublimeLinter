@@ -229,10 +229,12 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not view:
             return
 
-        events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
+        events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
 
         next = partial(self.highlight, view, hit_time)
         backend.lint_view(view, hit_time, next)
+
+        events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
 
     def highlight(self, view, hit_time, linter, errors):
         """
@@ -255,7 +257,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                       if error['linter'] != linter.name] + errors
         persist.errors[bid] = all_errors
 
-        events.broadcast(events.FINISHED_LINTING, {
+        events.broadcast(events.LINT_RESULT, {
             'buffer_id': bid,
             'linter_name': linter.name,
             'errors': errors

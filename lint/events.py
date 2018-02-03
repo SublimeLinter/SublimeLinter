@@ -4,6 +4,7 @@ import traceback
 
 BEGIN_LINTING = 'BEGIN_LINTING'
 FINISHED_LINTING = 'FINISHED_LINTING'
+TOAST = 'SHOW_TOAST'
 
 
 listeners = defaultdict(set)

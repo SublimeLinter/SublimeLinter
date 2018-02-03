@@ -2,9 +2,9 @@ from collections import defaultdict
 import traceback
 
 
-LINT_START = 'LINT_START'
-LINT_RESULT = 'LINT_RESULT'
-LINT_END = 'LINT_END'
+LINT_START = 'LINT_START'    # (buffer_id)
+LINT_RESULT = 'LINT_RESULT'  # (buffer_id, linter_name, errors)
+LINT_END = 'LINT_END'        # (buffer_id)
 
 
 listeners = defaultdict(set)

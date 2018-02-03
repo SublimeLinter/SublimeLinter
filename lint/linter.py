@@ -883,7 +883,11 @@ class Linter(metaclass=LinterMeta):
                 )
                 return None
 
-        return self._guess_project_path(self.view.window(), self.view.file_name())
+        filename = self.view.file_name()
+        return (
+            self._guess_project_path(self.view.window(), filename) or
+            (os.path.dirname(filename) if filename else None)
+        )
 
     def get_environment(self, settings):
         """Return runtime environment for this lint."""

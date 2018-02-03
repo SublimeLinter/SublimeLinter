@@ -29,7 +29,7 @@ def plugin_unloaded():
     events.off(on_finished_linting)
 
 
-@events.on(events.BEGIN_LINTING)
+@events.on(events.LINT_START)
 def on_begin_linting(buffer_id):
     State['running'][buffer_id] = time.time()
 

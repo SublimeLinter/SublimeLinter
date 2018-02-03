@@ -2,7 +2,7 @@ from collections import defaultdict
 import traceback
 
 
-BEGIN_LINTING = 'BEGIN_LINTING'
+LINT_START = 'LINT_START'
 FINISHED_LINTING = 'FINISHED_LINTING'
 
 

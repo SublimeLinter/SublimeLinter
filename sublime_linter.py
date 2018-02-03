@@ -229,7 +229,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if not view:
             return
 
-        events.broadcast(events.BEGIN_LINTING, {'buffer_id': view.buffer_id()})
+        events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
 
         next = partial(self.highlight, view, hit_time)
         backend.lint_view(view, hit_time, next)

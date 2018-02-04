@@ -58,18 +58,20 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, hit_time):
-    for (linter, regions) in get_lint_regions(linters, view):
+    for (linter, settings, regions) in get_lint_regions(linters, view):
 
-        def make_task(linter, region):
+        def make_task(linter, settings, region):
             code = view.substr(region)
             offset = view.rowcol(region.begin())
-            return partial(execute_lint_task, linter, code, offset, hit_time)
+            return partial(
+                execute_lint_task, linter, code, offset, hit_time, settings
+            )
 
-        yield linter, map(partial(make_task, linter), regions)
+        yield linter, map(partial(make_task, linter, settings), regions)
 
 
-def execute_lint_task(linter, code, offset, hit_time):
-    errors = linter.lint(code, hit_time) or []
+def execute_lint_task(linter, code, offset, hit_time, settings):
+    errors = linter.lint(code, hit_time, settings) or []
     translate_lineno_and_column(errors, offset)
 
     return errors
@@ -94,15 +96,15 @@ def translate_lineno_and_column(errors, offset):
 
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
-    for linter in linters:
+    for (linter, settings) in linters:
         if (
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
         ):
-            yield linter, [sublime.Region(0, view.size())]
+            yield linter, settings, [sublime.Region(0, view.size())]
 
         else:
-            yield linter, [
+            yield linter, settings, [
                 region
                 for selector in get_selectors(linter, syntax)
                 for region in view.find_by_selector(selector)
@@ -128,7 +130,7 @@ def get_linters(view):
             disabled.append(linter)
             continue
 
-        view_settings = linter.get_view_settings()
+        view_settings = linter._get_view_settings()
 
         if view_settings.get('disable'):
             disabled.append(linter)
@@ -154,7 +156,7 @@ def get_linters(view):
                     disabled.append(linter)
                     continue
 
-        enabled.append(linter)
+        enabled.append((linter, view_settings))
 
     return enabled, disabled
 

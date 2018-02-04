@@ -60,12 +60,12 @@ def run_tasks(tasks, next):
 def get_lint_tasks(linters, view, hit_time):
     for (linter, regions) in get_lint_regions(linters, view):
 
-        def make_task(region):
+        def make_task(linter, region):
             code = view.substr(region)
             offset = view.rowcol(region.begin())
             return partial(execute_lint_task, linter, code, offset, hit_time)
 
-        yield linter, map(make_task, regions)
+        yield linter, map(partial(make_task, linter), regions)
 
 
 def execute_lint_task(linter, code, offset, hit_time):

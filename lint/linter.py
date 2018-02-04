@@ -2,6 +2,7 @@ from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
 from distutils.versionpredicate import VersionPredicate
 from functools import lru_cache
 from numbers import Number
+import threading
 
 import os
 import re
@@ -43,6 +44,11 @@ MATCH_DICT = OrderedDict(
 )
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
+
+
+# Typical global context, alive and kicking during the multi-threaded
+# (concurrent) `Linter.lint` call.
+lint_context = threading.local()
 
 
 # SublimeLinter can lint partial buffers, e.g. `<script>` tags inside a
@@ -443,6 +449,14 @@ class Linter(metaclass=LinterMeta):
         return ChainMap({}, project_settings, user_settings, defaults)
 
     def get_view_settings(self):
+        try:
+            return lint_context.settings
+        except AttributeError:
+            raise RuntimeError(
+                "CRITICAL: {}: Calling 'get_view_settings' outside "
+                "of lint context".format(self.name))
+
+    def _get_view_settings(self):
         """Return a union of all settings specific to this view's linter.
 
         The settings are merged in the following order:
@@ -911,7 +925,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, hit_time):
+    def lint(self, code, hit_time, settings):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
@@ -923,6 +937,11 @@ class Linter(metaclass=LinterMeta):
         """
         if self.disabled:
             return []
+
+        # Bc of API constraints we cannot pass the settings down, so we attach
+        # them to a global `context` obj. Users can call `get_view_settings`
+        # as before, and get a consistent settings object.
+        lint_context.settings = settings
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`

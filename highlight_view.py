@@ -1,5 +1,7 @@
 from collections import defaultdict, ChainMap
 from itertools import chain
+import re
+
 import sublime
 
 from .lint import persist, events
@@ -7,7 +9,11 @@ from .lint import style as style_stores
 from .lint.const import PROTECTED_REGIONS_KEY
 
 
-UNDERLINE_FLAGS = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE
+UNDERLINE_FLAGS = (
+    sublime.DRAW_NO_FILL |
+    sublime.DRAW_NO_OUTLINE |
+    sublime.DRAW_EMPTY_AS_OVERWRITE
+)
 
 MARK_STYLES = {
     'outline': sublime.DRAW_NO_FILL,
@@ -17,6 +23,12 @@ MARK_STYLES = {
     'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
     'none': sublime.HIDDEN
 }
+UNDERLINE_STYLES = (
+    'solid_underline', 'squiggly_underline', 'stippled_underline'
+)
+
+WS_ONLY = re.compile('^\s*$')
+FALLBACK_MARK_STYLE = 'outline'
 
 highlight_store = style_stores.HighlightStyleStore()
 REGION_KEYS = 'SL.{}.region_keys'
@@ -170,16 +182,25 @@ def prepare_gutter_data(view, linter_name, errors):
 
 
 def prepare_highlights_data(view, linter_name, errors):
+
     by_id = defaultdict(list)
     for error in errors:
+        line_start = get_line_start(view, error['line'])
+        region = sublime.Region(line_start + error['start'], line_start + error['end'])
+
         scope = get_scope(**error)
         mark_style = get_mark_style(**error)
+
+        # Work around Sublime bug, which cannot draw 'underlines' on spaces
+        if (
+            mark_style in UNDERLINE_STYLES and
+            WS_ONLY.match(view.substr(region)) is not None
+        ):
+            mark_style = FALLBACK_MARK_STYLE
+
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
-
-        line_start = get_line_start(view, error['line'])
-        region = sublime.Region(line_start + error['start'], line_start + error['end'])
 
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)

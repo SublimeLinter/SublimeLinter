@@ -57,20 +57,30 @@ def run_tasks(tasks, next):
     sublime.set_timeout_async(lambda: next(errors))
 
 
+task_counter = 0
+
+
 def get_lint_tasks(linters, view, hit_time):
+    global task_counter
+
     for (linter, settings, regions) in get_lint_regions(linters, view):
         tasks = []
         for region in regions:
             code = view.substr(region)
             offset = view.rowcol(region.begin())
+
+            # We cannot specify a thread name using `ThreadPoolExecutor` in
+            # python 3.3. So we need to pass it down.
+            task_counter += 1
+            task_name = 'LintTask/{}'.format(task_counter)
             tasks.append(partial(
-                execute_lint_task, linter, code, offset, hit_time, settings
+                execute_lint_task, linter, code, offset, hit_time, settings, task_name
             ))
         yield linter, tasks
 
 
-def execute_lint_task(linter, code, offset, hit_time, settings):
-    errors = linter.lint(code, hit_time, settings) or []
+def execute_lint_task(linter, code, offset, hit_time, settings, task_name):
+    errors = linter.lint(code, hit_time, settings, task_name) or []
     translate_lineno_and_column(errors, offset)
 
     return errors

@@ -929,7 +929,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, hit_time, settings):
+    def lint(self, code, hit_time, settings, task_name):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
@@ -939,6 +939,13 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
         """
+        threading.current_thread().name = task_name
+
+        # util.printf("'{}' is linting '{}'".format(
+        #     self.name,
+        #     os.path.basename(self.view.file_name())
+        # ))
+
         if self.disabled:
             return []
 

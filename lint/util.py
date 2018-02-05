@@ -9,6 +9,7 @@ import sublime
 import subprocess
 import tempfile
 
+import threading
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -19,7 +20,14 @@ ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
-    print('SublimeLinter: ', end='')
+    thread_name = threading.current_thread().name
+    if thread_name.startswith('LintTask/'):
+        _, task_id = thread_name.split('/')
+        task_id = ' #' + task_id
+    else:
+        task_id = ''
+
+    print('[SL]{}: '.format(task_id), end='')
     for arg in args:
         print(arg, end=' ')
     print()

@@ -35,51 +35,6 @@ class NodeLinter(linter.Linter):
         if self.manifest_path:
             self.read_manifest(path.getmtime(self.manifest_path))
 
-    def lint(self, code, hit_time):
-        """Check NodeLinter options then run lint."""
-        settings = self.get_view_settings()
-
-        if self.manifest_path:
-            is_dep = self.is_dependency()
-
-            enable_if_dependency = \
-                settings.get('enable_if_dependency', False)
-
-            disable_if_not_dependency = \
-                settings.get('disable_if_not_dependency', False)
-
-            if enable_if_dependency and is_dep:
-                self.disabled = False
-
-            if disable_if_not_dependency and not is_dep:
-                self.disabled = True
-
-        return super(NodeLinter, self).lint(code, hit_time)
-
-    def is_dependency(self):
-        """Check package.json to see if linter is a dependency."""
-        is_dep = False
-
-        pkg = self.get_manifest()
-
-        # also return true if the name is the same so linters can lint their
-        # own code (e.g. eslint can lint the eslint project)
-        is_dep = 'name' in pkg and self.npm_name == pkg['name']
-
-        if not is_dep:
-            is_dep = True if (
-                'dependencies' in pkg and
-                self.npm_name in pkg['dependencies']
-            ) else False
-
-        if not is_dep:
-            is_dep = True if (
-                'devDependencies' in pkg and
-                self.npm_name in pkg['devDependencies']
-            ) else False
-
-        return is_dep
-
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the npm module specified in cmd.
@@ -92,19 +47,20 @@ class NodeLinter(linter.Linter):
         # setting.
         success, executable = super().context_sensitive_executable_path(cmd)
         if success:
-            return success, executable
-
-        local_cmd = None
-        global_cmd = util.which(cmd[0])
+            return True, executable
 
         if self.manifest_path:
             local_cmd = self.find_local_cmd_path(cmd[0])
+            if local_cmd:
+                return True, local_cmd
+            elif self.get_view_settings().get('disable_if_not_dependency', False):
+                return True, None
 
-        if not local_cmd and not global_cmd:
+        global_cmd = util.which(cmd[0])
+        if global_cmd:
+            return True, global_cmd
+        else:
             return True, None
-
-        node_cmd_path = local_cmd if local_cmd else global_cmd
-        return True, node_cmd_path
 
     def get_manifest_path(self):
         """Get the path to the package.json file for the current file."""

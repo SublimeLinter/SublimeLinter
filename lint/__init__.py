@@ -11,6 +11,8 @@
 
 """This module exports the linter classes and the highlight, linter, persist and util submodules."""
 
+VERSION = 3
+
 from . import (
     highlight,
     linter,
@@ -23,3 +25,4 @@ from .python_linter import PythonLinter
 from .ruby_linter import RubyLinter
 from .node_linter import NodeLinter
 from .composer_linter import ComposerLinter
+

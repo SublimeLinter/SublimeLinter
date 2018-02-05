@@ -538,7 +538,7 @@ class Linter(metaclass=LinterMeta):
 
         for folder in folders:
             # Take the first one; should we take the deepest one? The shortest?
-            if folder in filename:
+            if filename.startswith(folder + os.path.sep):
                 return folder
 
     @classmethod
@@ -911,7 +911,11 @@ class Linter(metaclass=LinterMeta):
                 )
                 return None
 
-        return self._guess_project_path(self.view.window(), self.view.file_name())
+        filename = self.view.file_name()
+        return (
+            self._guess_project_path(self.view.window(), filename) or
+            (os.path.dirname(filename) if filename else None)
+        )
 
     def get_environment(self, settings):
         """Return runtime environment for this lint."""

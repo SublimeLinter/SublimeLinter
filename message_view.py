@@ -13,3 +13,8 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.TextCommand):
         panel_view.set_read_only(True)
         panel_view.show(0)
         sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(PANEL_NAME)})
+
+
+class SublimeLinterRemovePanelCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        sublime.active_window().destroy_output_panel(PANEL_NAME)

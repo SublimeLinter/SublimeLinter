@@ -91,16 +91,17 @@ def validate_settings():
     status_msg = "SublimeLinter - Settings invalid!"
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
-
+    window = sublime.active_window()
+    window.active_view().run_command("sublime_linter_remove_panel")
     good = True
+
     for name, settings in get_settings_objects():
         try:
             validate(settings, schema)
-        except ValidationError as ve:
+        except ValidationError as error:
             good = False
-            ve_msg = ve.message.split("\n")[0]  # reduce verbosity
-            full_msg = "Invalid settings in '{}':\n{}".format(name, ve_msg)
-            window = sublime.active_window()
+            error_msg = error.message.split("\n")[0]  # reduce verbosity
+            full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
 
             util.printf(full_msg)
             window.status_message(status_msg)

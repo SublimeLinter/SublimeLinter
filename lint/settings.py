@@ -12,6 +12,7 @@ class Settings:
 
     def load(self):
         """Load the plugin settings."""
+        validate_settings()
         self.observe()
         self.on_update()
 

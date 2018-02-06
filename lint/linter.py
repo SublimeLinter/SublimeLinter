@@ -1268,10 +1268,10 @@ class Linter(metaclass=LinterMeta):
                 )
                 return True
             else:
-                util.printf(
-                    'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
-                    .format(cls.name, cls.version_requirement, cls.executable_version)
-                )
+                warning = 'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
+                msg = warning.format(cls.name, cls.version_requirement, cls.executable_version)
+                util.printf(msg)
+                util.message(msg)
 
         return False
 

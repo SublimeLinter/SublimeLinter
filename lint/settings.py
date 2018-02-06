@@ -92,7 +92,7 @@ def validate_settings():
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
     window = sublime.active_window()
-    window.active_view().run_command("sublime_linter_remove_panel")
+    util.clear_message()
     good = True
 
     for name, settings in get_settings_objects():
@@ -104,6 +104,6 @@ def validate_settings():
             full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
 
             util.printf(full_msg)
+            util.message(full_msg)
             window.status_message(status_msg)
-            window.active_view().run_command("sublime_linter_display_panel", {"msg": full_msg})
     return good

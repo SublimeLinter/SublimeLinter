@@ -25,6 +25,17 @@ def printf(*args):
     print()
 
 
+def message(message):
+    view = sublime.active_window().active_view()
+    msg = 'SublimeLinter: ' + message
+    view.run_command("sublime_linter_display_panel", {"msg": msg})
+
+
+def clear_message():
+    window = sublime.active_window()
+    window.active_view().run_command("sublime_linter_remove_panel")
+
+
 def get_syntax(view):
     """
     Return the view's syntax.

@@ -81,9 +81,9 @@ def get_settings_objects():
     for name in sublime.find_resources("SublimeLinter.sublime-settings"):
         try:
             yield name, util.load_json(name, from_sl_dir=False)
-        except IOError as ie:
+        except IOError:
             util.printf("Settings file not found: {}".format(name))
-        except ValueError as ve:
+        except ValueError:
             util.printf("Settings file corrupt: {}".format(name))
 
 

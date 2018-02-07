@@ -272,11 +272,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        if view.size() == 0:
-            for linter in persist.view_linters.get(vid, []):
-                Linter.clear_view(view)
-            return
-
         persist.last_hit_times[vid] = queue.hit(view)
 
     def check_syntax(self, view):

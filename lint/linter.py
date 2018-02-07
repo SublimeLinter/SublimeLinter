@@ -558,12 +558,12 @@ class Linter(metaclass=LinterMeta):
         vid = view.id()
         persist.views[vid] = view
         syntax = util.get_syntax(view)
+        persist.debug("detected syntax: {}".format(syntax))
 
         if not syntax:  # seems like a very rare, edge case
             persist.view_linters.pop(vid, None)
             return
 
-        persist.debug("detected syntax: " + syntax)
         view_linters = persist.view_linters.get(vid, set())
         linters = set()
 

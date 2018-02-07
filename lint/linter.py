@@ -613,6 +613,18 @@ class Linter(metaclass=LinterMeta):
         """Clear highlights and errors in all views."""
         persist.errors.clear()
 
+    @staticmethod
+    def clear_view(view):
+        """Clear marks, status and all other cached error info for the given view."""
+        if not view:
+            return
+
+        view.erase_status(STATUS_KEY)
+        highlight_view.clear_view(view)
+
+    def clear(self):
+        self.clear_view(self.view)
+
     @classmethod
     def text(cls, view):
         """Return the entire text of a view."""
@@ -1143,18 +1155,6 @@ class Linter(metaclass=LinterMeta):
             text = text[1:-1]
 
         return text
-
-    @staticmethod
-    def clear_view(view):
-        """Clear marks, status and all other cached error info for the given view."""
-        if not view:
-            return
-
-        view.erase_status(STATUS_KEY)
-        highlight_view.clear_view(view)
-
-    def clear(self):
-        self.clear_view(self.view)
 
     # Helper methods
 

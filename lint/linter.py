@@ -622,9 +622,6 @@ class Linter(metaclass=LinterMeta):
         view.erase_status(STATUS_KEY)
         highlight_view.clear_view(view)
 
-    def clear(self):
-        self.clear_view(self.view)
-
     @classmethod
     def text(cls, view):
         """Return the entire text of a view."""

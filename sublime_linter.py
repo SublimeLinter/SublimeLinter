@@ -274,7 +274,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if view.size() == 0:
             for linter in persist.view_linters.get(vid, []):
-                linter.clear()
+                Linter.clear_view(view)
             return
 
         persist.last_hit_times[vid] = queue.hit(view)

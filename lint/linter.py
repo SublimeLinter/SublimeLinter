@@ -559,8 +559,8 @@ class Linter(metaclass=LinterMeta):
         persist.views[vid] = view
         syntax = util.get_syntax(view)
 
-        if not syntax:
-            cls.remove(vid)
+        if not syntax:  # seems like a very rare, edge case
+            persist.view_linters.pop(vid, None)
             return
 
         persist.debug("detected syntax: " + syntax)
@@ -596,15 +596,6 @@ class Linter(metaclass=LinterMeta):
         if linters:
             persist.view_linters[vid] = linters
         elif reset and not linters and vid in persist.view_linters:
-            del persist.view_linters[vid]
-
-    @classmethod
-    def remove(cls, vid):
-        """Remove a the mapping between a view and its set of linters."""
-        if vid in persist.view_linters:
-            for linters in persist.view_linters[vid]:
-                linters.clear()
-
             del persist.view_linters[vid]
 
     @classmethod

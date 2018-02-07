@@ -608,11 +608,6 @@ class Linter(metaclass=LinterMeta):
             del persist.view_linters[vid]
 
     @classmethod
-    def text(cls, view):
-        """Return the entire text of a view."""
-        return view.substr(sublime.Region(0, view.size()))
-
-    @classmethod
     def which(cls, cmd):
         """Return full path to a given executable.
 

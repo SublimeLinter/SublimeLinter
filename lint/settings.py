@@ -56,18 +56,11 @@ class Settings:
             return
 
         from . import style
-        from .linter import Linter
 
         # Reparse settings for style rules
         # Linter specific settings can include style rules too
         if self.has_changed('styles') or self.has_changed('linters'):
             style.StyleParser()()
-
-        # If the syntax map changed, reassign linters to all views
-        if self.has_changed('syntax_map'):
-            util.apply_to_all_views(
-                lambda view: Linter.assign(view, reset=True)
-            )
 
         if self.has_changed('gutter_theme'):
             style.load_gutter_icons()

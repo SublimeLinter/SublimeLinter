@@ -419,12 +419,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""
-        syntax_changed = self.check_syntax(view)
+        self.check_syntax(view)
         vid = view.id()
         mode = persist.settings.get('lint_mode')
-
-        if syntax_changed:
-            Linter.clear_view(view)
 
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):

@@ -694,7 +694,7 @@ class Linter(metaclass=LinterMeta):
         if not path:
             msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, which)
             util.printf(msg)
-            util.alert(msg)
+            util.message(msg)
             return None
 
         cmd[0:1] = util.convert_type(path, [])

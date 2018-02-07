@@ -305,8 +305,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""
-        for lint in persist.view_linters.get(vid, []):
-            if lint.tempfile_suffix == '-':
+        for linter in persist.view_linters.get(vid, []):
+            if linter.tempfile_suffix == '-':
                 return True
 
         return False

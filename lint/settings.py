@@ -65,7 +65,6 @@ class Settings:
 
         # If the syntax map changed, reassign linters to all views
         if self.has_changed('syntax_map'):
-            Linter.clear_all()
             util.apply_to_all_views(
                 lambda view: Linter.assign(view, reset=True)
             )

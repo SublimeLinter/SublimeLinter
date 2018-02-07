@@ -608,11 +608,6 @@ class Linter(metaclass=LinterMeta):
 
             del persist.view_linters[vid]
 
-    @classmethod
-    def clear_all(cls):
-        """Clear highlights and errors in all views."""
-        persist.errors.clear()
-
     @staticmethod
     def clear_view(view):
         """Clear marks, status and all other cached error info for the given view."""

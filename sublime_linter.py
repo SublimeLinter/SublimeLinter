@@ -288,9 +288,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         # Syntax either has never been set or just changed
         if vid not in self.view_syntax or self.view_syntax[vid] != syntax:
+            bid = view.buffer_id()
+            persist.errors[bid].clear()
+            for linter in persist.view_linters.get(vid, []):
+                events.broadcast(events.LINT_RESULT, {
+                    'buffer_id': bid,
+                    'linter_name': linter.name,
+                    'errors': []
+                })
+
             self.view_syntax[vid] = syntax
             Linter.assign(view, reset=True)
-            Linter.clear_view(view)
             return True
         else:
             return False

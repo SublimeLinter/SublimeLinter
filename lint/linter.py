@@ -10,8 +10,7 @@ import shlex
 import sublime
 
 from . import persist, util
-from .. import highlight_view
-from .const import STATUS_KEY, WARNING, ERROR
+from .const import WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
@@ -607,15 +606,6 @@ class Linter(metaclass=LinterMeta):
                 linters.clear()
 
             del persist.view_linters[vid]
-
-    @staticmethod
-    def clear_view(view):
-        """Clear marks, status and all other cached error info for the given view."""
-        if not view:
-            return
-
-        view.erase_status(STATUS_KEY)
-        highlight_view.clear_view(view)
 
     @classmethod
     def text(cls, view):

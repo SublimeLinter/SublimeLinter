@@ -42,13 +42,6 @@ def get_regions_keys(view):
     return set(view.settings().get(REGION_KEYS.format(view.id())) or [])
 
 
-def clear_view(view):
-    for key in get_regions_keys(view):
-        view.erase_regions(key)
-
-    remember_region_keys(view, [])
-
-
 def plugin_unloaded():
     events.off(on_lint_result)
 

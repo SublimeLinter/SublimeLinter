@@ -347,9 +347,9 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             cwd=cwd,
         )
     except Exception as err:
-        printf('ERROR: could not launch', repr(cmd))
-        printf('reason:', str(err))
-        printf('PATH:', env.get('PATH', ''))
+        msg = 'ERROR: could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
+        printf(msg)
+        message(msg)
 
 
 # view utils

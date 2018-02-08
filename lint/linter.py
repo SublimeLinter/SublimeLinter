@@ -672,7 +672,9 @@ class Linter(metaclass=LinterMeta):
             path = self.which(which)
 
         if not path:
-            util.printf('WARNING: {} cannot locate \'{}\''.format(self.name, which))
+            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, which)
+            util.printf(msg)
+            util.message(msg)
             return None
 
         cmd[0:1] = util.convert_type(path, [])
@@ -1234,10 +1236,10 @@ class Linter(metaclass=LinterMeta):
                 )
                 return True
             else:
-                util.printf(
-                    'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
-                    .format(cls.name, cls.version_requirement, cls.executable_version)
-                )
+                warning = 'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
+                msg = warning.format(cls.name, cls.version_requirement, cls.executable_version)
+                util.printf(msg)
+                util.message(msg)
 
         return False
 

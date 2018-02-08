@@ -25,6 +25,17 @@ def printf(*args):
     print()
 
 
+def message(message):
+    window = sublime.active_window()
+    msg = 'SublimeLinter: ' + message
+    window.run_command("sublime_linter_display_panel", {"msg": msg})
+
+
+def clear_message():
+    window = sublime.active_window()
+    window.run_command("sublime_linter_remove_panel")
+
+
 def get_syntax(view):
     """
     Return the view's syntax.
@@ -336,9 +347,9 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             cwd=cwd,
         )
     except Exception as err:
-        printf('ERROR: could not launch', repr(cmd))
-        printf('reason:', str(err))
-        printf('PATH:', env.get('PATH', ''))
+        msg = 'ERROR: could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
+        printf(msg)
+        message(msg)
 
 
 # view utils

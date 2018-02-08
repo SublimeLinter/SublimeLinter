@@ -73,25 +73,29 @@ def get_settings_objects():
     for name in sublime.find_resources("SublimeLinter.sublime-settings"):
         try:
             yield name, util.load_json(name, from_sl_dir=False)
-        except IOError as ie:
+        except IOError:
             util.printf("Settings file not found: {}".format(name))
-        except ValueError as ve:
+        except ValueError:
             util.printf("Settings file corrupt: {}".format(name))
 
 
 def validate_settings():
-    status_msg = "SublimeLinter - Settings invalid. Details in console."
+    status_msg = "SublimeLinter - Settings invalid!"
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
-
+    window = sublime.active_window()
+    util.clear_message()
     good = True
+
     for name, settings in get_settings_objects():
         try:
             validate(settings, schema)
-        except ValidationError as ve:
-            ve_msg = ve.message.split("\n")[0]  # reduce verbosity
-            util.printf("Settings in '{}' invalid:\n{}".format(name, ve_msg))
-            sublime.active_window().status_message(status_msg)
+        except ValidationError as error:
             good = False
+            error_msg = error.message.split("\n")[0]  # reduce verbosity
+            full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
 
+            util.printf(full_msg)
+            util.message(full_msg)
+            window.status_message(status_msg)
     return good

@@ -10,8 +10,7 @@ import shlex
 import sublime
 
 from . import persist, util
-from .. import highlight_view
-from .const import STATUS_KEY, WARNING, ERROR
+from .const import WARNING, ERROR
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
@@ -559,12 +558,12 @@ class Linter(metaclass=LinterMeta):
         vid = view.id()
         persist.views[vid] = view
         syntax = util.get_syntax(view)
+        persist.debug("detected syntax: {}".format(syntax))
 
-        if not syntax:
-            cls.remove(vid)
+        if not syntax:  # seems like a very rare, edge case
+            persist.view_linters.pop(vid, None)
             return
 
-        persist.debug("detected syntax: " + syntax)
         view_linters = persist.view_linters.get(vid, set())
         linters = set()
 
@@ -598,25 +597,6 @@ class Linter(metaclass=LinterMeta):
             persist.view_linters[vid] = linters
         elif reset and not linters and vid in persist.view_linters:
             del persist.view_linters[vid]
-
-    @classmethod
-    def remove(cls, vid):
-        """Remove a the mapping between a view and its set of linters."""
-        if vid in persist.view_linters:
-            for linters in persist.view_linters[vid]:
-                linters.clear()
-
-            del persist.view_linters[vid]
-
-    @classmethod
-    def clear_all(cls):
-        """Clear highlights and errors in all views."""
-        persist.errors.clear()
-
-    @classmethod
-    def text(cls, view):
-        """Return the entire text of a view."""
-        return view.substr(sublime.Region(0, view.size()))
 
     @classmethod
     def which(cls, cmd):
@@ -1143,18 +1123,6 @@ class Linter(metaclass=LinterMeta):
             text = text[1:-1]
 
         return text
-
-    @staticmethod
-    def clear_view(view):
-        """Clear marks, status and all other cached error info for the given view."""
-        if not view:
-            return
-
-        view.erase_status(STATUS_KEY)
-        highlight_view.clear_view(view)
-
-    def clear(self):
-        self.clear_view(self.view)
 
     # Helper methods
 

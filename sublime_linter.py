@@ -272,11 +272,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        if view.size() == 0:
-            for linter in persist.view_linters.get(vid, []):
-                linter.clear()
-            return
-
         persist.last_hit_times[vid] = queue.hit(view)
 
     def check_syntax(self, view):
@@ -293,20 +288,26 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         # Syntax either has never been set or just changed
         if vid not in self.view_syntax or self.view_syntax[vid] != syntax:
+            bid = view.buffer_id()
+            persist.errors[bid].clear()
+            for linter in persist.view_linters.get(vid, []):
+                events.broadcast(events.LINT_RESULT, {
+                    'buffer_id': bid,
+                    'linter_name': linter.name,
+                    'errors': []
+                })
+
             self.view_syntax[vid] = syntax
+            self.linted_views.discard(vid)
             Linter.assign(view, reset=True)
-            self.clear(view)
             return True
         else:
             return False
 
-    def clear(self, view):
-        Linter.clear_view(view)
-
     def view_has_file_only_linter(self, vid):
         """Return True if any linters for the given view are file-only."""
-        for lint in persist.view_linters.get(vid, []):
-            if lint.tempfile_suffix == '-':
+        for linter in persist.view_linters.get(vid, []):
+            if linter.tempfile_suffix == '-':
                 return True
 
         return False
@@ -422,12 +423,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""
-        syntax_changed = self.check_syntax(view)
+        self.check_syntax(view)
         vid = view.id()
         mode = persist.settings.get('lint_mode')
-
-        if syntax_changed:
-            self.clear(view)
 
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):

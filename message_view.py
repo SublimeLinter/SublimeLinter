@@ -1,4 +1,3 @@
-import sublime
 import sublime_plugin
 
 PANEL_NAME = "SublimeLinter Messages"

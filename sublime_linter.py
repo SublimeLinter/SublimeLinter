@@ -188,11 +188,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     @classmethod
     def lint_all_views(cls):
         """Mimic a modification of all views, which will trigger a relint."""
-        def apply(view):
-            if view.id() in persist.view_linters:
-                cls.shared_instance.hit(view)
-
-        util.apply_to_all_views(apply)
+        for window in sublime.windows():
+            for view in window.views():
+                if view.id() in persist.view_linters:
+                    cls.shared_instance.hit(view)
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""

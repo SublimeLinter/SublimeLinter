@@ -273,14 +273,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         else:
             return False
 
-    def view_has_file_only_linter(self, vid):
-        """Return True if any linters for the given view are file-only."""
-        for linter in persist.view_linters.get(vid, []):
-            if linter.tempfile_suffix == '-':
-                return True
-
-        return False
-
     def file_was_saved(self, view):
         """Check if the syntax changed or if we need to show errors."""
         self.check_syntax(view)
@@ -288,7 +280,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         mode = persist.settings.get('lint_mode')
 
         if mode != 'manual':
-            if vid in persist.view_linters or self.view_has_file_only_linter(vid):
+            if vid in persist.view_linters:
                 self.hit(view)
 
 

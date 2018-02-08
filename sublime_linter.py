@@ -105,20 +105,9 @@ class Listener:
 
         view_id = view.id()
         if view_id not in self.linted_views:
-            if view_id not in self.loaded_views:
-                self.on_new_async(view)
-
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
-
-    def on_new_async(self, view):
-        if not util.is_lintable(view):
-            return
-
-        vid = view.id()
-        self.loaded_views.add(vid)
-        self.view_syntax[vid] = util.get_syntax(view)
 
     def on_post_save_async(self, view):
         if not util.is_lintable(view):
@@ -138,7 +127,6 @@ class Listener:
 
         vid = view.id()
         dicts = [
-            self.loaded_views,
             self.linted_views,
             self.view_syntax,
             persist.view_linters,
@@ -173,9 +161,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Keeps track of which views we have assigned linters to
-        self.loaded_views = set()
 
         # Keeps track of which views have actually been linted
         self.linted_views = set()

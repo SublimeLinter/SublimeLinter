@@ -51,7 +51,6 @@ def plugin_loaded():
         linter.initialize()
 
     plugin = SublimeLinter.shared_plugin()
-    queue.start(plugin.lint)
 
     # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
@@ -272,7 +271,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        persist.last_hit_times[vid] = queue.hit(view)
+        persist.last_hit_times[vid] = queue.hit(view, self.lint)
 
     def check_syntax(self, view):
         """

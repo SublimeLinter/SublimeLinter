@@ -12,21 +12,16 @@ running = defaultdict(threading.Lock)
 
 # For compatibility this is a class with unchanged API from SL3.
 class Daemon:
-    def start(self, callback):
-        self._callback = callback
-
-    def hit(self, view):
-        assert self._callback, "Queue: Can't hit before start."
-
+    def hit(self, view, callback):
         vid = view.id()
         delay = get_delay()  # [seconds]
-        return queue_lint(vid, delay, self._callback)
+        return _queue_lint(vid, delay, callback)
 
     def cleanup(self, vid):
-        cleanup(vid)
+        _cleanup(vid)
 
 
-def queue_lint(vid, delay, callback):  # <-serial execution
+def _queue_lint(vid, delay, callback):  # <-serial execution
     hit_time = time.monotonic()
 
     def worker():                      # <-concurrent execution
@@ -45,7 +40,7 @@ def queue_lint(vid, delay, callback):  # <-serial execution
     return hit_time
 
 
-def cleanup(vid):
+def _cleanup(vid):
     try:
         timers.pop(vid).cancel()
     except KeyError:

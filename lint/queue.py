@@ -10,15 +10,10 @@ timers = {}
 running = defaultdict(threading.Lock)
 
 
-# For compatibility this is a class with unchanged API from SL3.
-class Daemon:
-    def hit(self, view, callback):
-        vid = view.id()
-        delay = get_delay()  # [seconds]
-        return _queue_lint(vid, delay, callback)
-
-    def cleanup(self, vid):
-        _cleanup(vid)
+def hit(view, callback):
+    vid = view.id()
+    delay = get_delay()  # [seconds]
+    return _queue_lint(vid, delay, callback)
 
 
 def _queue_lint(vid, delay, callback):  # <-serial execution
@@ -40,7 +35,7 @@ def _queue_lint(vid, delay, callback):  # <-serial execution
     return hit_time
 
 
-def _cleanup(vid):
+def cleanup(vid):
     try:
         timers.pop(vid).cancel()
     except KeyError:
@@ -59,6 +54,3 @@ def get_delay():
         return 0
 
     return persist.settings.get('delay')
-
-
-queue = Daemon()

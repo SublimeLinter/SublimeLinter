@@ -9,7 +9,7 @@ import sublime_plugin
 
 from .lint import events
 from .lint.linter import Linter
-from .lint.queue import queue
+from .lint import queue
 from .lint import persist, util, style
 from .lint.const import WARN_ERR
 from .lint import backend

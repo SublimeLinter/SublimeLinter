@@ -24,13 +24,12 @@ class PythonLinter(linter.Linter):
 
     - Support for a "python" setting.
 
-      python can be set to a version, in which case we try to find
-      a python on your system matching that version.
+      python should point to a python binary on your system. Alternatively
+      it can be set to a version, in which case we try to find a python
+      binary on your system matching that version (using PATH).
 
-      python can alternatively set to a base path of a python
-      environment. We then look for linter binaries within that
-      environment. A python environment can be a real installation
-      or a virtual environment
+      It then executes `python -m script_name` (where script_name is e.g.
+      `flake8`).
 
     - Support for a "executable" setting.
 
@@ -79,11 +78,10 @@ class PythonLinter(linter.Linter):
         cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
 
         if python:
-            if isinstance(python, str):
-                executable = find_script_by_python_env(
-                    python, cmd_name
-                )
-                if not executable:
+            python = str(python)
+            if VERSION_RE.match(python):
+                python_bin = find_python_version(python)
+                if python_bin is None:
                     logger.warning(
                         "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
@@ -92,26 +90,22 @@ class PythonLinter(linter.Linter):
                     # Do not fallback, user specified something we didn't find
                     return True, None
 
-                return True, executable
-
-            else:
-                executable = find_script_by_python_version(
-                    cmd_name, str(python)
-                )
-
-                if executable is None:
-                    logger.warning(
-                        "{} deactivated, cannot locate '{}' "
-                        "for given python '{}'"
-                        .format(self.name, cmd_name, python)
-                    )
-                    return True, None
-
                 logger.info(
                     "{}: Using {} for given python '{}'"
-                    .format(self.name, executable, python)
+                    .format(self.name, python_bin, python)
                 )
-                return True, executable
+                return True, [python_bin, '-m', cmd_name]
+
+            else:
+                if not os.path.exists(python):
+                    logger.warning(
+                        "{} deactivated, cannot locate '{}'"
+                        .format(self.name, python)
+                    )
+                    # Do not fallback, user specified something we didn't find
+                    return True, None
+
+                return True, [python, '-m', cmd_name]
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
@@ -148,26 +142,11 @@ def find_python_version(version):  # type: Str
     for python in util.find_executables('python'):
         python_version = get_python_version(python)
         if version_fulfills_request(python_version, requested_version):
-            yield python
+            return python
 
     return None
 
 
-@lru_cache(maxsize=None)
-def find_script_by_python_version(script_name, version):
-    """Return full path to a script, given just a python version."""
-    # They can be multiple matching pythons. We try to find a python with
-    # its complete environment, not just a symbolic link or so.
-    for python in find_python_version(version):
-        python_env = os.path.dirname(python)
-        script_path = find_script_by_python_env(python_env, script_name)
-        if script_path:
-            return script_path
-
-    return None
-
-
-@lru_cache(maxsize=None)
 def find_script_by_python_env(python_env_path, script):
     """Return full path to a script, given a python environment base dir."""
     posix = sublime.platform() in ('osx', 'linux')

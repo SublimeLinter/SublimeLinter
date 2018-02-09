@@ -1,6 +1,5 @@
 import sublime
 from . import persist, util
-from abc import ABCMeta, abstractmethod
 
 import os
 from glob import glob
@@ -58,22 +57,10 @@ def load_gutter_icons():
     GUTTER_ICONS = new_gutter_dict
 
 
-class StyleBaseStore(metaclass=ABCMeta):
-    @abstractmethod
-    def update(cls):
-        pass
-
-
-class Borg:
-    _shared_state = {}
-
-    def __init__(self):
-        self.__dict__ = self._shared_state
-
-
-class HighlightStyleStore(StyleBaseStore, Borg):
+class HighlightStyleStore:
     styles = {}
 
+    @classmethod
     def update(self, name, dict):
         self.styles[name] = dict
 
@@ -118,7 +105,7 @@ class HighlightStyleStore(StyleBaseStore, Borg):
         3. Default error type
         """
         # 1. Individual style definition.
-        y = self.styles.setdefault(style, {}).get(key)
+        y = self.styles.get(style, {}).get(key)
         if y:
             return y
 
@@ -146,7 +133,7 @@ class HighlightStyleStore(StyleBaseStore, Borg):
             return val
 
 
-class LinterStyleStore(StyleBaseStore):
+class LinterStyleStore:
     all_linter_styles = {}
     default_styles = {}
 
@@ -161,7 +148,7 @@ class LinterStyleStore(StyleBaseStore):
         self.linter_styles = self.all_linter_styles.get(linter_name, {})
 
     def traverse_dict(self, dict, error_type):
-        return dict.setdefault("types", {}).get(error_type)
+        return dict.get("types", {}).get(error_type)
 
     def get_default_style(self, error_type):
         """Return default style for error_type of this linter.
@@ -187,6 +174,11 @@ class LinterStyleStore(StyleBaseStore):
 
 class StyleParser:
     def __call__(self):
+        linter_style_stores.clear()
+        LinterStyleStore.all_linter_styles.clear()
+        LinterStyleStore.default_styles.clear()
+        HighlightStyleStore.styles.clear()
+
         rule_validities = []
 
         # 1 - for default styles
@@ -245,7 +237,7 @@ class StyleParser:
             for code in node.get("codes", []):
                 lint_dict["codes"][code] = rule_name
 
-            HighlightStyleStore().update(rule_name, style_dict)
+            HighlightStyleStore.update(rule_name, style_dict)
 
         LinterStyleStore.update(linter_name, lint_dict)
 

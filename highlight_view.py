@@ -240,6 +240,14 @@ def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions
     if len(gutter_regions):
         new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
+    # overlaying all gutter regions with common invisible one,
+    # to create unified handle for GitGutter and other plugins
+    # flag might not be neccessary
+    view.add_regions(
+        PROTECTED_REGIONS_KEY,
+        protected_regions
+    )
+
     # remove unused regions
     for key in current_linter_keys - new_linter_keys:
         view.erase_regions(key)
@@ -251,15 +259,6 @@ def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions
     if persist.settings.has('gutter_theme'):
         for region_id, (scope, icon, regions) in gutter_regions.items():
             view.add_regions(region_id, regions, scope=scope, icon=icon)
-
-    # overlaying all gutter regions with common invisible one,
-    # to create unified handle for GitGutter and other plugins
-    # flag might not be neccessary
-    view.add_regions(
-        PROTECTED_REGIONS_KEY,
-        protected_regions,
-        flags=sublime.HIDDEN
-    )
 
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys

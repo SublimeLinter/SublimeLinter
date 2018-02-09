@@ -117,9 +117,9 @@ class Listener:
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
         else:
-            filename = os.path.basename(view.file_name())
-            if filename != "SublimeLinter.sublime-settings":
-                self.file_was_saved(view)
+            lint_mode = persist.settings.get('lint_mode')
+            if lint_mode != 'manual':
+                self.hit(view)
 
     def on_pre_close(self, view):
         if not util.is_lintable(view):
@@ -187,9 +187,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        view_has_changed = make_view_has_changed_fn(view)
-        fn = partial(self.lint, view, view_has_changed)
-        queue.debounce(fn, key=view.buffer_id())
+        if vid in persist.view_linters:
+            view_has_changed = make_view_has_changed_fn(view)
+            fn = partial(self.lint, view, view_has_changed)
+            queue.debounce(fn, key=view.buffer_id())
 
     def lint(self, view, view_has_changed):
         """Lint the view with the given id.
@@ -256,16 +257,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return True
         else:
             return False
-
-    def file_was_saved(self, view):
-        """Check if the syntax changed or if we need to show errors."""
-        self.check_syntax(view)
-        vid = view.id()
-        mode = persist.settings.get('lint_mode')
-
-        if mode != 'manual':
-            if vid in persist.view_linters:
-                self.hit(view)
 
 
 def make_view_has_changed_fn(view):

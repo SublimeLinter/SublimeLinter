@@ -2,8 +2,9 @@
 
 from functools import partial
 import logging
-import os
 import html
+import os
+import time
 
 import sublime
 import sublime_plugin
@@ -272,7 +273,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        persist.last_hit_times[vid] = queue.hit(view, self.lint)
+        hit_time = time.monotonic()
+        queue.hit(view, partial(self.lint, view, hit_time))
+        persist.last_hit_times[vid] = hit_time
 
     def check_syntax(self, view):
         """

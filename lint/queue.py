@@ -1,7 +1,5 @@
 from . import persist
 
-from functools import partial
-import time
 import threading
 
 
@@ -11,10 +9,7 @@ timers = {}
 
 def hit(view, callback):
     delay = get_delay()  # [seconds]
-    hit_time = time.monotonic()
-
-    debounce(partial(callback, view, hit_time), delay, key=view.id())
-    return hit_time
+    debounce(callback, delay, key=view.id())
 
 
 def debounce(callback, delay, key=None):

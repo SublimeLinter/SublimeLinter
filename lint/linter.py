@@ -717,26 +717,22 @@ class Linter(metaclass=LinterMeta):
 
     def insert_args(self, cmd):
         """Insert user arguments into cmd and return the result."""
-        args = self.build_args(self.get_view_settings())
-        cmd = list(cmd)
+        settings = self.get_view_settings()
+        args = self.build_args(settings)
 
-        if '*' in cmd:
+        if '${args}' in cmd:
+            i = cmd.index('${args}')
+            cmd[i:i + 1] = args
+        elif '*' in cmd:  # legacy SL3 crypto-identifier
             i = cmd.index('*')
-
-            if args:
-                cmd[i:i + 1] = args
-            else:
-                cmd.pop(i)
+            cmd[i:i + 1] = args
         else:
             cmd += args
 
         return cmd
 
-    def get_user_args(self, settings=None):
+    def get_user_args(self, settings):
         """Return any args the user specifies in settings as a list."""
-        if settings is None:
-            settings = self.get_view_settings()
-
         args = settings.get('args', [])
 
         if isinstance(args, str):
@@ -1313,7 +1309,9 @@ class Linter(metaclass=LinterMeta):
 
     def communicate(self, cmd, code=None):
         """Run an external executable using stdin to pass code and return its output."""
-        if '@' in cmd:
+        if '${file_name}' in cmd:
+            cmd[cmd.index('${file_name')] = self.filename
+        elif '@' in cmd:  # legacy SL3 crypto-identifier
             cmd[cmd.index('@')] = self.filename
         elif not code:
             cmd.append(self.filename)

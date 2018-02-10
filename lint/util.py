@@ -2,12 +2,16 @@
 
 from functools import lru_cache
 import locale
+import logging
 from numbers import Number
 import os
 import re
 import sublime
 import subprocess
 import tempfile
+
+
+logger = logging.getLogger(__name__)
 
 
 STREAM_STDOUT = 1
@@ -27,8 +31,7 @@ def printf(*args):
 
 def message(message):
     window = sublime.active_window()
-    msg = 'SublimeLinter: ' + message
-    window.run_command("sublime_linter_display_panel", {"msg": msg})
+    window.run_command("sublime_linter_display_panel", {"msg": message})
 
 
 def clear_message():
@@ -148,7 +151,7 @@ def find_file(start_dir, name, parent=False, limit=None, aux_dirs=[]):
 @lru_cache(maxsize=1)  # print once every time the path changes
 def debug_print_env(path):
     import textwrap
-    printf('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
+    logger.info('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
 
 
 def create_environment():
@@ -173,7 +176,7 @@ def create_environment():
     if paths:
         env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
 
-    if persist.debug_mode() and env['PATH']:
+    if logger.isEnabledFor(logging.INFO) and env['PATH']:
         debug_print_env(env['PATH'])
 
     return env
@@ -347,9 +350,8 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             cwd=cwd,
         )
     except Exception as err:
-        msg = 'ERROR: could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
-        printf(msg)
-        message(msg)
+        msg = 'could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
+        logger.error(msg)
 
 
 # view utils

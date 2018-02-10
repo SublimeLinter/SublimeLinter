@@ -1,8 +1,12 @@
 import sublime
 from . import persist, util
 
+import logging
 import os
 from glob import glob
+
+
+logger = logging.getLogger(__name__)
 
 GUTTER_ICONS = {}
 
@@ -77,7 +81,7 @@ class HighlightStyleStore:
             error_type = args[3]
 
             if not res:
-                util.printf("Styles are invalid. Please check your settings and restart Sublime Text.")
+                logger.error("Styles are invalid. Please check your settings and restart Sublime Text.")
                 return
 
             if key != "icon":

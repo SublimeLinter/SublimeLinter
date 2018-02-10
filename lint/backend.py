@@ -2,15 +2,22 @@ import sublime
 
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from fnmatch import fnmatch
-from itertools import chain
+from itertools import chain, count
 from functools import partial
+import logging
 import os
-import traceback
+import threading
 
 from . import persist, util
 
 
+logger = logging.getLogger(__name__)
+
 WILDCARD_SYNTAX = '*'
+
+
+task_count = count(start=1)
+counter_lock = threading.Lock()
 
 
 def lint_view(view, hit_time, next):
@@ -63,14 +70,19 @@ def get_lint_tasks(linters, view, hit_time):
         for region in regions:
             code = view.substr(region)
             offset = view.rowcol(region.begin())
+
+            with counter_lock:
+                task_number = next(task_count)
+            task_name = 'LintTask.{}'.format(task_number)
+
             tasks.append(partial(
-                execute_lint_task, linter, code, offset, hit_time, settings
+                execute_lint_task, linter, code, offset, hit_time, settings, task_name
             ))
         yield linter, tasks
 
 
-def execute_lint_task(linter, code, offset, hit_time, settings):
-    errors = linter.lint(code, hit_time, settings) or []
+def execute_lint_task(linter, code, offset, hit_time, settings, task_name):
+    errors = linter.lint(code, hit_time, settings, task_name) or []
     translate_lineno_and_column(errors, offset)
 
     return errors
@@ -144,7 +156,7 @@ def get_linters(view):
 
                 for pattern in excludes:
                     if fnmatch(filename, pattern):
-                        persist.debug(
+                        logger.info(
                             '{} skipped \'{}\', excluded by \'{}\''
                             .format(linter.name, filename, pattern)
                         )
@@ -177,5 +189,4 @@ def await_futures(fs, ordered=False):
         try:
             yield future.result()
         except Exception:
-            ...
-            traceback.print_exc()
+            logger.exception('Lint task failed.')

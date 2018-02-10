@@ -4,6 +4,7 @@ from functools import lru_cache
 from numbers import Number
 import threading
 
+import logging
 import os
 import re
 import shlex
@@ -11,6 +12,10 @@ import sublime
 
 from . import persist, util
 from .const import WARNING, ERROR
+
+
+logger = logging.getLogger(__name__)
+
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
@@ -125,8 +130,8 @@ class LinterMeta(type):
                 if isinstance(syntax, str) and syntax[0] == '^':
                     setattr(cls, 'syntax', re.compile(syntax))
             except re.error as err:
-                util.printf(
-                    'ERROR: {} disabled, error compiling syntax: {}'
+                logger.error(
+                    '{} disabled, error compiling syntax: {}'
                     .format(name.lower(), str(err))
                 )
                 setattr(cls, 'disabled', True)
@@ -142,15 +147,15 @@ class LinterMeta(type):
                         try:
                             setattr(cls, regex, re.compile(attr, cls.re_flags))
                         except re.error as err:
-                            util.printf(
-                                'ERROR: {} disabled, error compiling {}: {}'
+                            logger.error(
+                                '{} disabled, error compiling {}: {}'
                                 .format(name.lower(), regex, str(err))
                             )
                             setattr(cls, 'disabled', True)
 
             if not cls.disabled:
                 if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    util.printf('ERROR: {} disabled, not fully implemented'.format(name.lower()))
+                    logger.error('{} disabled, not fully implemented'.format(name.lower()))
                     setattr(cls, 'disabled', True)
 
             # If this class has its own defaults, create an args_map.
@@ -185,10 +190,10 @@ class LinterMeta(type):
                 for view in persist.views.values():
                     cls.assign(view, linter_name=linter_name)
 
-                persist.debug('{} linter reloaded'.format(name))
+                logger.info('{} linter reloaded'.format(name))
 
             else:
-                persist.debug('{} linter loaded'.format(name))
+                logger.info('{} linter loaded'.format(name))
 
     def map_args(cls, defaults):
         """
@@ -558,7 +563,7 @@ class Linter(metaclass=LinterMeta):
         vid = view.id()
         persist.views[vid] = view
         syntax = util.get_syntax(view)
-        persist.debug("detected syntax: {}".format(syntax))
+        logger.info("detected syntax: {}".format(syntax))
 
         if not syntax:  # seems like a very rare, edge case
             persist.view_linters.pop(vid, None)
@@ -672,9 +677,8 @@ class Linter(metaclass=LinterMeta):
             path = self.which(which)
 
         if not path:
-            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, which)
-            util.printf(msg)
-            util.message(msg)
+            msg = '{} cannot locate \'{}\''.format(self.name, which)
+            logger.warning(msg)
             return None
 
         cmd[0:1] = util.convert_type(path, [])
@@ -698,14 +702,14 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         executable = settings.get('executable', None)
         if executable:
-            persist.debug(
+            logger.info(
                 "{}: wanted executable is '{}'".format(self.name, executable)
             )
 
             # If `executable` is an iterable, we can only assume it will work.
             if isinstance(executable, str) and not util.can_exec(executable):
-                persist.printf(
-                    "ERROR: {} deactivated, cannot locate '{}' "
+                logger.error(
+                    "{} deactivated, cannot locate '{}' "
                     .format(self.name, executable)
                 )
                 # no fallback, the user specified something, so we err
@@ -887,8 +891,8 @@ class Linter(metaclass=LinterMeta):
             if os.path.isdir(cwd):
                 return cwd
             else:
-                persist.printf(
-                    "{}: WARNING: wanted working_dir '{}' is not a directory"
+                logger.warning(
+                    "{}: wanted working_dir '{}' is not a directory"
                     "".format(self.name, cwd)
                 )
                 return None
@@ -911,7 +915,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, hit_time, settings):
+    def lint(self, code, hit_time, settings, task_name):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
@@ -921,8 +925,17 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
         """
+        threading.current_thread().name = task_name
+
         if self.disabled:
             return []
+
+        canonical_filename = (
+            os.path.basename(self.view.file_name()) if self.view.file_name()
+            else '<untitled {}>'.format(self.view.buffer_id()))
+        logger.info(
+            "'{}' is linting '{}'"
+            .format(self.name, canonical_filename))
 
         # Bc of API constraints we cannot pass the settings down, so we attach
         # them to a global `context` obj. Users can call `get_view_settings`
@@ -946,10 +959,10 @@ class Linter(metaclass=LinterMeta):
         if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
             return None  # ABORT
 
-        if persist.debug_mode():
+        if logger.isEnabledFor(logging.INFO):
             import textwrap
             stripped_output = output.replace('\r', '').rstrip()
-            util.printf('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
+            logger.info('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
 
         errors = []
         vv = VirtualView(code)
@@ -977,7 +990,7 @@ class Linter(metaclass=LinterMeta):
         if self.multiline:
             matches = list(self.regex.finditer(output))
             if not matches:
-                persist.debug(
+                logger.info(
                     '{}: No matches for regex: {}'.format(self.name, self.regex.pattern))
                 return
 
@@ -989,7 +1002,7 @@ class Linter(metaclass=LinterMeta):
                 if match:
                     yield self.split_match(match)
                 else:
-                    persist.debug(
+                    logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
     def split_match(self, match):
@@ -1192,10 +1205,10 @@ class Linter(metaclass=LinterMeta):
                 can = cls.can_lint_syntax(syntax)
 
             elif status is None:
-                status = 'WARNING: {} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
+                status = '{} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
 
             if status:
-                persist.debug(status)
+                logger.warning(status)
 
         return can
 
@@ -1230,16 +1243,15 @@ class Linter(metaclass=LinterMeta):
             )
 
             if predicate.satisfied_by(cls.executable_version):
-                persist.debug(
+                logger.info(
                     '{}: ({}) satisfied by {}'
                     .format(cls.name, cls.version_requirement, cls.executable_version)
                 )
                 return True
             else:
-                warning = 'WARNING: {} deactivated, version requirement ({}) not fulfilled by {}'
+                warning = '{} deactivated, version requirement ({}) not fulfilled by {}'
                 msg = warning.format(cls.name, cls.version_requirement, cls.executable_version)
-                util.printf(msg)
-                util.message(msg)
+                logger.warning(msg)
 
         return False
 
@@ -1259,17 +1271,17 @@ class Linter(metaclass=LinterMeta):
             cmd = list(cls.executable_path)
 
         cmd += args
-        persist.debug('{} version query: {}'.format(cls.name, ' '.join(cmd)))
+        logger.info('{} version query: {}'.format(cls.name, ' '.join(cmd)))
 
         version = util.communicate(cmd, output_stream=util.STREAM_BOTH)
         match = cls.version_re.search(version)
 
         if match:
             version = match.group('version')
-            persist.debug('{} version: {}'.format(cls.name, version))
+            logger.info('{} version: {}'.format(cls.name, version))
             return version
         else:
-            util.printf('WARNING: no {} version could be extracted from:\n{}'.format(cls.name, version))
+            logger.warning('no {} version could be extracted from:\n{}'.format(cls.name, version))
             return None
 
     def run(self, cmd, code):
@@ -1322,14 +1334,14 @@ class Linter(metaclass=LinterMeta):
         cwd = self.get_working_dir(settings)
         env = self.get_environment(settings)
 
-        if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
+        if logger.isEnabledFor(logging.INFO):
+            logger.info('{}: {} {}'.format(
                 self.name,
                 os.path.basename(self.filename or '<unsaved>'),
                 cmd)
             )
             if cwd:
-                util.printf('{}: cwd: {}'.format(self.name, cwd))
+                logger.info('{}: cwd: {}'.format(self.name, cwd))
 
         return util.communicate(
             cmd,
@@ -1344,14 +1356,14 @@ class Linter(metaclass=LinterMeta):
         cwd = self.get_working_dir(settings)
         env = self.get_environment(settings)
 
-        if persist.debug_mode():
-            util.printf('{}: {} {}'.format(
+        if logger.isEnabledFor(logging.INFO):
+            logger.info('{}: {} {}'.format(
                 self.name,
                 os.path.basename(self.filename or '<unsaved>'),
                 cmd)
             )
             if cwd:
-                util.printf('{}: cwd: {}'.format(self.name, cwd))
+                logger.info('{}: cwd: {}'.format(self.name, cwd))
 
         return util.tmpfile(
             cmd,

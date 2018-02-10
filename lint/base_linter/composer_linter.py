@@ -56,6 +56,9 @@ class ComposerLinter(linter.Linter):
             local_cmd = self.find_local_cmd_path(cmd[0])
 
         if not local_cmd and not global_cmd:
+            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0])
+            util.printf(msg)
+            util.message(msg)
             return True, None
 
         composer_cmd_path = local_cmd if local_cmd else global_cmd

@@ -886,7 +886,7 @@ class Linter(metaclass=LinterMeta):
 
         - Get the command line.
         - Run the linter.
-        - If the view has been modified since the original hit_time, stop.
+        - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
         # We 'name' our threads, for logging purposes.

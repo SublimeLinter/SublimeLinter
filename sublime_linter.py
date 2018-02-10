@@ -4,7 +4,6 @@ from functools import partial
 import logging
 import html
 import os
-import time
 
 import sublime
 import sublime_plugin
@@ -145,8 +144,7 @@ class Listener:
             self.linted_views,
             self.view_syntax,
             persist.view_linters,
-            persist.views,
-            persist.last_hit_times
+            persist.views
         ]
 
         for d in dicts:
@@ -225,14 +223,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         This method is called asynchronously by queue.Daemon when a lint
         request is pulled off the queue.
-
-        If provided, hit_time is the time at which the lint request was added
-        to the queue. It is used to determine if the view has been modified
-        since the lint request was queued. If so, the lint is aborted, since
-        another lint request is already in the queue.
         """
-        # If this is not the latest 'hit' we're processing abort early.
-        if view_has_changed():
+        if view_has_changed():  # abort early
             return
 
         events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
@@ -248,9 +240,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         This method is called by Linter.lint_view after linting is finished.
         """
-        # If the view has been modified since the lint was triggered,
-        # don't draw marks.
-        if view_has_changed():
+        if view_has_changed():  # abort early
             return
 
         bid = view.buffer_id()
@@ -273,9 +263,11 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        def make_aborter(view, hit_time):
+        def make_aborter(view):
+            initial_change_count = view.change_count()
+
             def view_has_changed():
-                changed = persist.last_hit_times.get(view.id(), 0) > hit_time
+                changed = view.change_count() != initial_change_count
                 if changed:
                     persist.debug(
                         'Buffer {} inconsistent. Aborting lint.'
@@ -285,10 +277,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             return view_has_changed
 
-        hit_time = time.monotonic()
-        aborter = make_aborter(view, hit_time)
+        aborter = make_aborter(view)
         queue.debounce(partial(self.lint, view, aborter), key=view.id())
-        persist.last_hit_times[vid] = hit_time
 
     def check_syntax(self, view):
         """

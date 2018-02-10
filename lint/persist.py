@@ -24,12 +24,6 @@ if 'plugin_is_loaded' not in globals():
     # A mapping between view ids and views
     views = {}
 
-    # Every time a view is modified, this is updated with a mapping between a view id
-    # and the time of the modification. This is checked at various stages of the linting
-    # process. If a view has been modified since the original modification, the
-    # linting process stops.
-    last_hit_times = {}
-
     edits = defaultdict(list)
 
     # Whether sys.path has been imported from the system.

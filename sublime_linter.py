@@ -220,7 +220,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
-    def lint(self, view, hit_time=None):
+    def lint(self, view, view_has_changed):
         """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
@@ -232,17 +232,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         another lint request is already in the queue.
         """
         # If this is not the latest 'hit' we're processing abort early.
-        if hit_time and persist.last_hit_times.get(view.id(), 0) > hit_time:
+        if view_has_changed():
             return
 
         events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
 
-        next = partial(self.highlight, view, hit_time)
-        backend.lint_view(view, hit_time, next)
+        next = partial(self.highlight, view, view_has_changed)
+        backend.lint_view(view, view_has_changed, next)
 
         events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
 
-    def highlight(self, view, hit_time, linter, errors):
+    def highlight(self, view, view_has_changed, linter, errors):
         """
         Highlight any errors found during a lint of the given view.
 
@@ -250,7 +250,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         """
         # If the view has been modified since the lint was triggered,
         # don't draw marks.
-        if hit_time and persist.last_hit_times.get(view.id(), 0) > hit_time:
+        if view_has_changed():
             return
 
         bid = view.buffer_id()
@@ -273,8 +273,21 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
+        def make_aborter(view, hit_time):
+            def view_has_changed():
+                changed = persist.last_hit_times.get(view.id(), 0) > hit_time
+                if changed:
+                    persist.debug(
+                        'Buffer {} inconsistent. Aborting lint.'
+                        .format(view.buffer_id()))
+
+                return changed
+
+            return view_has_changed
+
         hit_time = time.monotonic()
-        queue.debounce(partial(self.lint, view, hit_time), key=view.id())
+        aborter = make_aborter(view, hit_time)
+        queue.debounce(partial(self.lint, view, aborter), key=view.id())
         persist.last_hit_times[vid] = hit_time
 
     def check_syntax(self, view):

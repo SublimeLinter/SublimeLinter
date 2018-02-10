@@ -1,13 +1,11 @@
 from . import persist
 
-from collections import defaultdict
 import time
 import threading
 
 
 # Map from view_id to threading.Timer objects
 timers = {}
-running = defaultdict(threading.Lock)
 
 
 def hit(view, callback):
@@ -19,17 +17,12 @@ def hit(view, callback):
 def _queue_lint(vid, delay, callback):  # <-serial execution
     hit_time = time.monotonic()
 
-    def worker():                      # <-concurrent execution
-        with running[vid]:  # <- If worker runs long enough
-                            #    multiple tasks can wait here!
-            callback(vid, hit_time)
-
     try:
         timers[vid].cancel()
     except KeyError:
         pass
 
-    timers[vid] = timer = threading.Timer(delay, worker)
+    timers[vid] = timer = threading.Timer(delay, lambda: callback(vid, hit_time))
     timer.start()
 
     return hit_time
@@ -40,8 +33,6 @@ def cleanup(vid):
         timers.pop(vid).cancel()
     except KeyError:
         pass
-
-    running.pop(vid, None)
 
 
 def get_delay():

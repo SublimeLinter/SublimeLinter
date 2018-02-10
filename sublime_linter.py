@@ -218,6 +218,18 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
+    def hit(self, view):
+        """Record an activity that could trigger a lint and enqueue a desire to lint."""
+        if not view:
+            return
+
+        vid = view.id()
+        self.check_syntax(view)
+        self.linted_views.add(vid)
+
+        view_has_changed = make_view_has_changed_fn(view)
+        queue.debounce(partial(self.lint, view, view_has_changed), key=view.id())
+
     def lint(self, view, view_has_changed):
         """Lint the view with the given id.
 
@@ -253,18 +265,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             'linter_name': linter.name,
             'errors': errors
         })
-
-    def hit(self, view):
-        """Record an activity that could trigger a lint and enqueue a desire to lint."""
-        if not view:
-            return
-
-        vid = view.id()
-        self.check_syntax(view)
-        self.linted_views.add(vid)
-
-        view_has_changed = make_view_has_changed_fn(view)
-        queue.debounce(partial(self.lint, view, view_has_changed), key=view.id())
 
     def check_syntax(self, view):
         """

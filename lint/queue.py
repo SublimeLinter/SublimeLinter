@@ -1,5 +1,6 @@
 from . import persist
 
+from functools import partial
 import time
 import threading
 
@@ -10,22 +11,22 @@ timers = {}
 
 def hit(view, callback):
     delay = get_delay()  # [seconds]
-    return _queue_lint(view, delay, callback)
-
-
-def _queue_lint(view, delay, callback):  # <-serial execution
-    vid = view.id()
     hit_time = time.monotonic()
 
+    debounce(partial(callback, view, hit_time), delay, key=view.id())
+    return hit_time
+
+
+def debounce(callback, delay, key=None):
+    key = key or callback
     try:
-        timers[vid].cancel()
+        timers[key].cancel()
     except KeyError:
         pass
 
-    timers[vid] = timer = threading.Timer(delay, lambda: callback(view, hit_time))
+    timers[key] = timer = threading.Timer(delay, callback)
     timer.start()
-
-    return hit_time
+    return timer
 
 
 def cleanup(vid):

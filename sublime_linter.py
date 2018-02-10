@@ -263,22 +263,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        def make_aborter(view):
-            initial_change_count = view.change_count()
-
-            def view_has_changed():
-                changed = view.change_count() != initial_change_count
-                if changed:
-                    persist.debug(
-                        'Buffer {} inconsistent. Aborting lint.'
-                        .format(view.buffer_id()))
-
-                return changed
-
-            return view_has_changed
-
-        aborter = make_aborter(view)
-        queue.debounce(partial(self.lint, view, aborter), key=view.id())
+        view_has_changed = make_view_has_changed_fn(view)
+        queue.debounce(partial(self.lint, view, view_has_changed), key=view.id())
 
     def check_syntax(self, view):
         """
@@ -436,3 +422,18 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
+
+
+def make_view_has_changed_fn(view):
+    initial_change_count = view.change_count()
+
+    def view_has_changed():
+        changed = view.change_count() != initial_change_count
+        if changed:
+            persist.debug(
+                'Buffer {} inconsistent. Aborting lint.'
+                .format(view.buffer_id()))
+
+        return changed
+
+    return view_has_changed

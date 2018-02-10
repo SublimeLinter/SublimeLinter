@@ -274,7 +274,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.linted_views.add(vid)
 
         hit_time = time.monotonic()
-        queue.hit(view, partial(self.lint, view, hit_time))
+        queue.debounce(partial(self.lint, view, hit_time), key=view.id())
         persist.last_hit_times[vid] = hit_time
 
     def check_syntax(self, view):

@@ -7,13 +7,11 @@ import threading
 timers = {}
 
 
-def hit(view, callback):
-    delay = get_delay()  # [seconds]
-    debounce(callback, delay, key=view.id())
-
-
-def debounce(callback, delay, key=None):
+def debounce(callback, delay=None, key=None):
+    if delay is None:
+        delay = get_delay()
     key = key or callback
+
     try:
         timers[key].cancel()
     except KeyError:

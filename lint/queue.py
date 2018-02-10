@@ -9,12 +9,12 @@ timers = {}
 
 
 def hit(view, callback):
-    vid = view.id()
     delay = get_delay()  # [seconds]
-    return _queue_lint(vid, delay, callback)
+    return _queue_lint(view, delay, callback)
 
 
-def _queue_lint(vid, delay, callback):  # <-serial execution
+def _queue_lint(view, delay, callback):  # <-serial execution
+    vid = view.id()
     hit_time = time.monotonic()
 
     try:
@@ -22,7 +22,7 @@ def _queue_lint(vid, delay, callback):  # <-serial execution
     except KeyError:
         pass
 
-    timers[vid] = timer = threading.Timer(delay, lambda: callback(vid, hit_time))
+    timers[vid] = timer = threading.Timer(delay, lambda: callback(view, hit_time))
     timer.start()
 
     return hit_time

@@ -219,7 +219,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
-    def lint(self, view_id, hit_time=None):
+    def lint(self, view, hit_time=None):
         """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
@@ -231,11 +231,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         another lint request is already in the queue.
         """
         # If this is not the latest 'hit' we're processing abort early.
-        if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
-            return
-
-        view = persist.views.get(view_id)
-        if not view:
+        if hit_time and persist.last_hit_times.get(view.id(), 0) > hit_time:
             return
 
         events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
@@ -251,14 +247,9 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         This method is called by Linter.lint_view after linting is finished.
         """
-        if not view:
-            return
-
-        vid = view.id()
-
         # If the view has been modified since the lint was triggered,
         # don't draw marks.
-        if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
+        if hit_time and persist.last_hit_times.get(view.id(), 0) > hit_time:
             return
 
         bid = view.buffer_id()

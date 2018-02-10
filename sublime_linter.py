@@ -153,22 +153,16 @@ class Listener:
             else:
                 d.pop(vid, None)
 
-        queue.cleanup(vid)
-
         bid = view.buffer_id()
         buffers = []
-        view_count = 0
         for w in sublime.windows():
             for v in w.views():
-                view_count = view_count + 1
                 buffers.append(v.buffer_id())
 
-        if view_count <= 1:
-            # Wipe clean after last view closes
-            persist.errors.clear()
-        elif buffers.count(bid) <= 1:
-            # Remove bid from persist.errors if it's the last view on the buffer
+        # Cleanup bid-based stores if this is the last view on the buffer
+        if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
+            queue.cleanup(bid)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -228,7 +222,8 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.linted_views.add(vid)
 
         view_has_changed = make_view_has_changed_fn(view)
-        queue.debounce(partial(self.lint, view, view_has_changed), key=view.id())
+        fn = partial(self.lint, view, view_has_changed)
+        queue.debounce(fn, key=view.buffer_id())
 
     def lint(self, view, view_has_changed):
         """Lint the view with the given id.

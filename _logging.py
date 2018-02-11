@@ -4,6 +4,10 @@ import sublime
 from .lint import util
 
 
+DEBUG_FALSE_LEVEL = logging.WARNING
+DEBUG_TRUE_LEVEL = logging.INFO
+ERROR_PANEL_LEVEL = logging.WARNING
+
 logger = logging.getLogger(__package__)
 logger.setLevel(logging.DEBUG)
 handler = None
@@ -37,18 +41,15 @@ def install_std_handler():
     level = settings.get('debug', False)
 
     if level is False:
+        level = DEBUG_FALSE_LEVEL
         formatter = TaskNumberFormatter(
             fmt="SublimeLinter: {LEVELNAME}{message}",
             style='{')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
-        handler.setLevel(logging.WARNING)
-
-        logger.addHandler(handler)
-        logger.setLevel(logging.WARNING)
     else:
         if level is True:
-            level = logging.DEBUG
+            level = DEBUG_TRUE_LEVEL
         else:
             level = logging.getLevelName(level.upper())
 
@@ -57,10 +58,10 @@ def install_std_handler():
             style='{')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
-        handler.setLevel(level)
 
-        logger.addHandler(handler)
-        logger.setLevel(min(logging.WARNING, level))
+    handler.setLevel(level)
+    logger.addHandler(handler)
+    logger.setLevel(min(ERROR_PANEL_LEVEL, level))
 
 
 def install_error_panel_handler():
@@ -73,7 +74,7 @@ def install_error_panel_handler():
         style='{')
     error_panel_handler = ErrorPanelHandler()
     error_panel_handler.setFormatter(formatter)
-    error_panel_handler.setLevel(logging.WARNING)
+    error_panel_handler.setLevel(ERROR_PANEL_LEVEL)
 
     logger.addHandler(error_panel_handler)
 

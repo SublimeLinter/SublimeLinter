@@ -1,20 +1,20 @@
 import logging
 import sublime
 
-from .lint import util
+from . import util
 
 
 DEBUG_FALSE_LEVEL = logging.WARNING
 DEBUG_TRUE_LEVEL = logging.INFO
 ERROR_PANEL_LEVEL = logging.WARNING
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger('SublimeLinter')
 logger.setLevel(logging.DEBUG)
 handler = None
 error_panel_handler = None
 
 
-def plugin_loaded():
+def install():
     install_std_handler()
     install_error_panel_handler()
 
@@ -22,7 +22,7 @@ def plugin_loaded():
     settings.add_on_change('SublimeLinter._logging', install_std_handler)
 
 
-def plugin_unloaded():
+def uninstall():
     if handler:
         logger.removeHandler(handler)
     if error_panel_handler:
@@ -62,6 +62,9 @@ def install_std_handler():
     handler.setLevel(level)
     logger.addHandler(handler)
     logger.setLevel(min(ERROR_PANEL_LEVEL, level))
+    logger.info(
+        'Logging installed; log level {}'.format(logging.getLevelName(level))
+    )
 
 
 def install_error_panel_handler():

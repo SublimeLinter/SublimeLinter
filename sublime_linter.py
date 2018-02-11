@@ -9,6 +9,7 @@ import sublime
 import sublime_plugin
 
 from .lint import events
+from .lint import log_handler
 from .lint.linter import Linter
 from .lint import queue
 from .lint import persist, util, style
@@ -42,6 +43,7 @@ def backup_old_settings():
 
 
 def plugin_loaded():
+    log_handler.install()
     backup_old_settings()
 
     persist.plugin_is_loaded = True
@@ -60,6 +62,10 @@ def plugin_loaded():
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():
             plugin.hit(view)
+
+
+def plugin_unloaded():
+    log_handler.uninstall()
 
 
 def visible_views():

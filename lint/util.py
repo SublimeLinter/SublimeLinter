@@ -257,7 +257,12 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
 
         cmd = list(cmd)
 
-        if '@' in cmd:
+        if '${file_name}' in cmd:
+            cmd[cmd.index('${file_name')] = filename
+
+        if '${tmpfilename}' in cmd:
+            cmd[cmd.index('${tmpfilename}')] = path
+        elif '@' in cmd:  # legacy SL3 crypto-identifier
             cmd[cmd.index('@')] = path
         else:
             cmd.append(path)

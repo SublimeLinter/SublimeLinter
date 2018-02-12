@@ -90,7 +90,10 @@ def get_lint_tasks(linters, view, view_has_changed):
 
 
 def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
-    errors = linter.lint(code, view_has_changed, settings, task_name) or []
+    # We 'name' our threads, for logging purposes.
+    threading.current_thread().name = task_name
+
+    errors = linter.lint(code, view_has_changed, settings) or []
     translate_lineno_and_column(errors, offset)
 
     return errors

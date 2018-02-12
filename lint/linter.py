@@ -875,7 +875,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, view_has_changed, settings, task_name):
+    def lint(self, code, view_has_changed, settings):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
@@ -885,9 +885,6 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        # We 'name' our threads, for logging purposes.
-        threading.current_thread().name = task_name
-
         if self.disabled:
             return []
 

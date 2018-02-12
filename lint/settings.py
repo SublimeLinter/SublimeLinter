@@ -1,7 +1,12 @@
+import logging
+
 import sublime
 from . import util
 from jsonschema.validators import validate
 from jsonschema.exceptions import ValidationError
+
+
+logger = logging.getLogger(__name__)
 
 
 class Settings:
@@ -74,9 +79,9 @@ def get_settings_objects():
         try:
             yield name, util.load_json(name, from_sl_dir=False)
         except IOError:
-            util.printf("Settings file not found: {}".format(name))
+            logger.error("Settings file not found: {}".format(name))
         except ValueError:
-            util.printf("Settings file corrupt: {}".format(name))
+            logger.error("Settings file corrupt: {}".format(name))
 
 
 def validate_settings():
@@ -95,7 +100,6 @@ def validate_settings():
             error_msg = error.message.split("\n")[0]  # reduce verbosity
             full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
 
-            util.printf(full_msg)
-            util.message(full_msg)
+            logger.error(full_msg)
             window.status_message(status_msg)
     return good

@@ -1,12 +1,16 @@
 """This module exports the PythonLinter subclass of Linter."""
 
 from functools import lru_cache
+import logging
 import os
 import re
 import subprocess
 
 import sublime
-from .. import linter, persist, util
+from .. import linter, util
+
+
+logger = logging.getLogger(__name__)
 
 
 class PythonLinter(linter.Linter):
@@ -68,7 +72,7 @@ class PythonLinter(linter.Linter):
         # point to a python environment, NOT a python binary.
         python = settings.get('python', None)
 
-        persist.debug(
+        logger.info(
             "{}: wanted python is '{}'".format(self.name, python)
         )
 
@@ -80,8 +84,8 @@ class PythonLinter(linter.Linter):
                     python, cmd_name
                 )
                 if not executable:
-                    persist.printf(
-                        "WARNING: {} deactivated, cannot locate '{}' "
+                    logger.warning(
+                        "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
                         .format(self.name, cmd_name, python)
                     )
@@ -96,14 +100,14 @@ class PythonLinter(linter.Linter):
                 )
 
                 if executable is None:
-                    persist.printf(
-                        "WARNING: {} deactivated, cannot locate '{}' "
+                    logger.warning(
+                        "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
                         .format(self.name, cmd_name, python)
                     )
                     return True, None
 
-                persist.debug(
+                logger.info(
                     "{}: Using {} for given python '{}'"
                     .format(self.name, executable, python)
                 )
@@ -114,7 +118,7 @@ class PythonLinter(linter.Linter):
         cwd = self.get_working_dir(settings)
         executable = ask_pipenv(cmd[0], cwd)
         if executable:
-            persist.debug(
+            logger.info(
                 "{}: Using {} according to 'pipenv'"
                 .format(self.name, executable)
             )
@@ -123,15 +127,15 @@ class PythonLinter(linter.Linter):
         # Should we try a `pyenv which` as well? Problem: I don't have it,
         # it's MacOS only.
 
-        persist.debug(
+        logger.info(
             "{}: trying to use globally installed {}"
             .format(self.name, cmd_name)
         )
         # fallback, similiar to a which(cmd)
         executable = util.which(cmd_name)
         if executable is None:
-            persist.printf(
-                "WARNING: cannot locate '{}'. Fill in the 'python' or "
+            logger.warning(
+                "cannot locate '{}'. Fill in the 'python' or "
                 "'executable' setting."
                 .format(self.name)
             )
@@ -173,7 +177,7 @@ def find_script_by_python_env(python_env_path, script):
     else:
         full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
 
-    persist.printf("trying {}".format(full_path))
+    logger.info("trying {}".format(full_path))
     if os.path.exists(full_path):
         return full_path
 
@@ -236,7 +240,7 @@ def _communicate(cmd, cwd):
             cmd, env=env, startupinfo=info, universal_newlines=True, cwd=cwd
         )
     except Exception as err:
-        persist.debug(
+        logger.info(
             "executing {} failed: reason: {}".format(cmd, str(err))
         )
         return ''
@@ -255,8 +259,8 @@ def get_python_version(path):
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])
     except Exception as ex:
-        util.printf(
-            'ERROR: an error occurred retrieving the version for {}: {}'
+        logger.error(
+            'an error occurred retrieving the version for {}: {}'
             .format(path, str(ex)))
 
         return {'major': None, 'minor': None}

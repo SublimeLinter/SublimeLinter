@@ -925,6 +925,7 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified since the original hit_time, stop.
         - Parse the linter output with the regex.
         """
+        # We 'name' our threads, for logging purposes.
         threading.current_thread().name = task_name
 
         if self.disabled:

@@ -71,9 +71,16 @@ def get_lint_tasks(linters, view, hit_time):
             code = view.substr(region)
             offset = view.rowcol(region.begin())
 
+            # Due to a limitation in python 3.3, we cannot 'name' a thread when
+            # using the ThreadPoolExecutor. (This feature has been introduced
+            # in python 3.6.) So, we pass the name down.
             with counter_lock:
                 task_number = next(task_count)
-            task_name = 'LintTask.{}'.format(task_number)
+            canonical_filename = (
+                os.path.basename(view.file_name()) if view.file_name()
+                else '<untitled {}>'.format(view.buffer_id()))
+            task_name = 'LintTask|{}|{}|{}'.format(
+                task_number, linter.name, canonical_filename)
 
             tasks.append(partial(
                 execute_lint_task, linter, code, offset, hit_time, settings, task_name

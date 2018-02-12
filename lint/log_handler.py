@@ -54,7 +54,7 @@ def install_std_handler():
             level = logging.getLevelName(level.upper())
 
         formatter = TaskNumberFormatter(
-            fmt="SublimeLinter:{thread_info} {filename}:{lineno}: {LEVELNAME}{message}",
+            fmt="SublimeLinter: {TASK_NUMBER}{filename}:{lineno}: {LEVELNAME}{message}",
             style='{')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
@@ -72,8 +72,9 @@ def install_error_panel_handler():
     if error_panel_handler:
         logger.removeHandler(error_panel_handler)
 
-    formatter = logging.Formatter(
-        fmt="SublimeLinter: {levelname}: {message}",
+    formatter = TaskNumberFormatter(
+        fmt="SublimeLinter: {TASK_NUMBER}{LINTER_NAME}{FILENAME}{levelname}:\n\n"
+            " {message}",
         style='{')
     error_panel_handler = ErrorPanelHandler()
     error_panel_handler.setFormatter(formatter)
@@ -85,11 +86,15 @@ def install_error_panel_handler():
 class TaskNumberFormatter(logging.Formatter):
     def format(self, record):
         thread_name = record.threadName
-        if thread_name.startswith('LintTask.'):
-            _, task_number = thread_name.split('.')
-            record.thread_info = ' #{}'.format(task_number)
+        if thread_name.startswith('LintTask|'):
+            _, task_number, linter_name, filename = thread_name.split('|')
+            record.TASK_NUMBER = '#{} '.format(task_number)
+            record.LINTER_NAME = linter_name + ' '
+            record.FILENAME = filename + ' '
         else:
-            record.thread_info = ''
+            record.TASK_NUMBER = ''
+            record.LINTER_NAME = ''
+            record.FILENAME = ''
 
         levelno = record.levelno
         if levelno > logging.INFO:

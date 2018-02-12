@@ -87,14 +87,7 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        if view.id() not in persist.view_linters:
-            syntax_changed = self.check_syntax(view)
-            if not syntax_changed:
-                return
-        else:
-            syntax_changed = False
-
-        if syntax_changed or persist.settings.get('lint_mode') == 'background':
+        if persist.settings.get('lint_mode') == 'background':
             self.hit(view)
 
     def on_activated_async(self, view):

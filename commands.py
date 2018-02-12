@@ -34,9 +34,3 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         """Lint the current view."""
         from .sublime_linter import SublimeLinter
         SublimeLinter.shared_plugin().hit(self.view)
-
-
-class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
-    def run(self):
-        from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().open_tooltip(line_report=True)

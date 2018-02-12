@@ -4,4 +4,3 @@ STATUS_BUSY_KEY = "sublime_linter_status_busy"
 
 WARNING = "warning"
 ERROR = "error"
-WARN_ERR = (WARNING, ERROR)

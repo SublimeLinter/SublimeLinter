@@ -879,14 +879,14 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, hit_time, settings, task_name):
+    def lint(self, code, view_has_changed, settings, task_name):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
 
         - Get the command line.
         - Run the linter.
-        - If the view has been modified since the original hit_time, stop.
+        - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
         # We 'name' our threads, for logging purposes.
@@ -921,7 +921,7 @@ class Linter(metaclass=LinterMeta):
             return []
 
         # If the view has been modified since the lint was triggered, no point in continuing.
-        if hit_time and persist.last_hit_times.get(self.view.id(), 0) > hit_time:
+        if view_has_changed():
             return None  # ABORT
 
         if logger.isEnabledFor(logging.INFO):

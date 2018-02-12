@@ -2,8 +2,8 @@
 
 from functools import partial
 import logging
-import os
 import html
+import os
 
 import sublime
 import sublime_plugin
@@ -144,8 +144,7 @@ class Listener:
             self.linted_views,
             self.view_syntax,
             persist.view_linters,
-            persist.views,
-            persist.last_hit_times
+            persist.views
         ]
 
         for d in dicts:
@@ -154,22 +153,16 @@ class Listener:
             else:
                 d.pop(vid, None)
 
-        queue.cleanup(vid)
-
         bid = view.buffer_id()
         buffers = []
-        view_count = 0
         for w in sublime.windows():
             for v in w.views():
-                view_count = view_count + 1
                 buffers.append(v.buffer_id())
 
-        if view_count <= 1:
-            # Wipe clean after last view closes
-            persist.errors.clear()
-        elif buffers.count(bid) <= 1:
-            # Remove bid from persist.errors if it's the last view on the buffer
+        # Cleanup bid-based stores if this is the last view on the buffer
+        if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
+            queue.cleanup(bid)
 
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
@@ -219,46 +212,42 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         util.apply_to_all_views(apply)
 
-    def lint(self, view_id, hit_time=None):
+    def hit(self, view):
+        """Record an activity that could trigger a lint and enqueue a desire to lint."""
+        if not view:
+            return
+
+        vid = view.id()
+        self.check_syntax(view)
+        self.linted_views.add(vid)
+
+        view_has_changed = make_view_has_changed_fn(view)
+        fn = partial(self.lint, view, view_has_changed)
+        queue.debounce(fn, key=view.buffer_id())
+
+    def lint(self, view, view_has_changed):
         """Lint the view with the given id.
 
         This method is called asynchronously by queue.Daemon when a lint
         request is pulled off the queue.
-
-        If provided, hit_time is the time at which the lint request was added
-        to the queue. It is used to determine if the view has been modified
-        since the lint request was queued. If so, the lint is aborted, since
-        another lint request is already in the queue.
         """
-        # If this is not the latest 'hit' we're processing abort early.
-        if hit_time and persist.last_hit_times.get(view_id, 0) > hit_time:
-            return
-
-        view = persist.views.get(view_id)
-        if not view:
+        if view_has_changed():  # abort early
             return
 
         events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
 
-        next = partial(self.highlight, view, hit_time)
-        backend.lint_view(view, hit_time, next)
+        next = partial(self.highlight, view, view_has_changed)
+        backend.lint_view(view, view_has_changed, next)
 
         events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
 
-    def highlight(self, view, hit_time, linter, errors):
+    def highlight(self, view, view_has_changed, linter, errors):
         """
         Highlight any errors found during a lint of the given view.
 
         This method is called by Linter.lint_view after linting is finished.
         """
-        if not view:
-            return
-
-        vid = view.id()
-
-        # If the view has been modified since the lint was triggered,
-        # don't draw marks.
-        if hit_time and persist.last_hit_times.get(vid, 0) > hit_time:
+        if view_has_changed():  # abort early
             return
 
         bid = view.buffer_id()
@@ -271,17 +260,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             'linter_name': linter.name,
             'errors': errors
         })
-
-    def hit(self, view):
-        """Record an activity that could trigger a lint and enqueue a desire to lint."""
-        if not view:
-            return
-
-        vid = view.id()
-        self.check_syntax(view)
-        self.linted_views.add(vid)
-
-        persist.last_hit_times[vid] = queue.hit(view, self.lint)
 
     def check_syntax(self, view):
         """
@@ -439,3 +417,18 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         if mode != 'manual':
             if vid in persist.view_linters or self.view_has_file_only_linter(vid):
                 self.hit(view)
+
+
+def make_view_has_changed_fn(view):
+    initial_change_count = view.change_count()
+
+    def view_has_changed():
+        changed = view.change_count() != initial_change_count
+        if changed:
+            persist.debug(
+                'Buffer {} inconsistent. Aborting lint.'
+                .format(view.buffer_id()))
+
+        return changed
+
+    return view_has_changed

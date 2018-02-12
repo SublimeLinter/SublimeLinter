@@ -20,7 +20,7 @@ task_count = count(start=1)
 counter_lock = threading.Lock()
 
 
-def lint_view(view, hit_time, next):
+def lint_view(view, view_has_changed, next):
     """
     Lint the given view.
 
@@ -46,7 +46,7 @@ def lint_view(view, hit_time, next):
     for linter in disabled_linters:
         next(linter, [])
 
-    lint_tasks = get_lint_tasks(linters, view, hit_time)
+    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
 
     run_concurrently(
         partial(run_tasks, tasks, next=partial(next, linter))
@@ -64,7 +64,7 @@ def run_tasks(tasks, next):
     sublime.set_timeout_async(lambda: next(errors))
 
 
-def get_lint_tasks(linters, view, hit_time):
+def get_lint_tasks(linters, view, view_has_changed):
     for (linter, settings, regions) in get_lint_regions(linters, view):
         tasks = []
         for region in regions:
@@ -83,13 +83,14 @@ def get_lint_tasks(linters, view, hit_time):
                 task_number, linter.name, canonical_filename)
 
             tasks.append(partial(
-                execute_lint_task, linter, code, offset, hit_time, settings, task_name
+                execute_lint_task, linter, code, offset, view_has_changed,
+                settings, task_name
             ))
         yield linter, tasks
 
 
-def execute_lint_task(linter, code, offset, hit_time, settings, task_name):
-    errors = linter.lint(code, hit_time, settings, task_name) or []
+def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
+    errors = linter.lint(code, view_has_changed, settings, task_name) or []
     translate_lineno_and_column(errors, offset)
 
     return errors

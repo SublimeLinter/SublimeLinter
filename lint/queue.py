@@ -1,38 +1,25 @@
 from . import persist
 
-from collections import defaultdict
-import time
 import threading
 
 
 # Map from view_id to threading.Timer objects
 timers = {}
-running = defaultdict(threading.Lock)
 
 
-def hit(view, callback):
-    vid = view.id()
-    delay = get_delay()  # [seconds]
-    return _queue_lint(vid, delay, callback)
-
-
-def _queue_lint(vid, delay, callback):  # <-serial execution
-    hit_time = time.monotonic()
-
-    def worker():                      # <-concurrent execution
-        with running[vid]:  # <- If worker runs long enough
-                            #    multiple tasks can wait here!
-            callback(vid, hit_time)
+def debounce(callback, delay=None, key=None):
+    if delay is None:
+        delay = get_delay()
+    key = key or callback
 
     try:
-        timers[vid].cancel()
+        timers[key].cancel()
     except KeyError:
         pass
 
-    timers[vid] = timer = threading.Timer(delay, worker)
+    timers[key] = timer = threading.Timer(delay, callback)
     timer.start()
-
-    return hit_time
+    return timer
 
 
 def cleanup(vid):
@@ -40,8 +27,6 @@ def cleanup(vid):
         timers.pop(vid).cancel()
     except KeyError:
         pass
-
-    running.pop(vid, None)
 
 
 def get_delay():

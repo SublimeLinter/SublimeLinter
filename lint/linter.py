@@ -646,23 +646,23 @@ class Linter(metaclass=LinterMeta):
         if have_path:
             # happy path
             ...
-        elif util.can_exec(which):
-            # If `cmd` is a method, it is expected it finds an executable on
-            # its own. (Unless `context_sensitive_executable_path` is also
-            # implemented.)
-            path = which
-        elif self.executable_path:
-            # `executable_path` is set statically by `can_lint`.
-            path = self.executable_path
         else:
-            # `which` here is a fishy escape hatch bc it was almost always
-            # asked in `can_lint` already.
-            path = self.which(which)
+            if util.can_exec(which):
+                # If `cmd` is a method, it is expected it finds an executable on
+                # its own. (Unless `context_sensitive_executable_path` is also
+                # implemented.)
+                path = which
+            elif self.executable_path:
+                # `executable_path` is set statically by `can_lint`.
+                path = self.executable_path
+            else:
+                # `which` here is a fishy escape hatch bc it was almost always
+                # asked in `can_lint` already.
+                path = self.which(which)
 
-        if not path:
-            msg = '{} cannot locate \'{}\''.format(self.name, which)
-            logger.warning(msg)
-            return None
+            if not path:
+                logger.warning('{} cannot locate \'{}\''.format(self.name, which))
+                return None
 
         cmd[0:1] = util.convert_type(path, [])
         return self.insert_args(cmd)

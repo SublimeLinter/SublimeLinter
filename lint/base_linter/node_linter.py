@@ -54,12 +54,18 @@ class NodeLinter(linter.Linter):
             if local_cmd:
                 return True, local_cmd
             elif self.get_view_settings().get('disable_if_not_dependency', False):
+                util.printf(
+                    "Disabled {}. Did you `npm install {}`?."
+                    .format(self.name, cmd[0]))
                 return True, None
 
         global_cmd = util.which(cmd[0])
         if global_cmd:
             return True, global_cmd
         else:
+            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0])
+            util.printf(msg)
+            util.message(msg)
             return True, None
 
     def get_manifest_path(self):

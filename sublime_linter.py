@@ -246,7 +246,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             self.view_syntax[vid] = syntax
             self.linted_views.discard(vid)
-            Linter.assign(view, reset=True)
+            Linter.assign(view)
             return True
         else:
             return False

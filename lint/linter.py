@@ -181,14 +181,8 @@ class LinterMeta(type):
             if persist.plugin_is_loaded:
                 persist.settings.load()
 
-                # If the linter had previously been loaded, just reassign that linter
-                if name in persist.linter_classes:
-                    linter_name = name
-                else:
-                    linter_name = None
-
                 for view in persist.views.values():
-                    cls.assign(view, linter_name=linter_name)
+                    cls.assign(view)
 
                 logger.info('{} linter reloaded'.format(name))
 
@@ -529,62 +523,22 @@ class Linter(metaclass=LinterMeta):
                 return folder
 
     @classmethod
-    def assign(cls, view, linter_name=None, reset=False):
-        """
-        Assign linters to a view.
-
-        If reset is True, the list of linters for view is completely rebuilt.
-
-        can_lint for each known linter class is called to determine
-        if the linter class can lint the syntax for view. If so, a new instance
-        of the linter class is assigned to the view, unless linter_name is non-empty
-        and does not match the 'name' attribute of any of the view's linters.
-
-        Each view has its own linters so that linters can store persistent data
-        about a view.
-        """
-        vid = view.id()
-        persist.views[vid] = view
+    def assign(cls, view):
+        """Assign linters to a view."""
         syntax = util.get_syntax(view)
         logger.info("detected syntax: {}".format(syntax))
 
-        if not syntax:  # seems like a very rare, edge case
-            persist.view_linters.pop(vid, None)
-            return
-
-        view_linters = persist.view_linters.get(vid, set())
-        linters = set()
-
-        for name, linter_class in persist.linter_classes.items():
-            if not linter_class.disabled and linter_class.can_lint(syntax):
-
-                if reset:
-                    instantiate = True
-                else:
-                    linter = None
-
-                    for l in view_linters:
-                        if name == l.name:
-                            linter = l
-                            break
-
-                    if linter is None:
-                        instantiate = True
-                    else:
-                        # If there is an existing linter and no linter_name was passed,
-                        # leave it. If linter_name was passed, re-instantiate only if
-                        # the linter's name matches linter_name.
-                        instantiate = linter_name == linter.name
-
-                if instantiate:
-                    linter = linter_class(view, syntax)
-
-                linters.add(linter)
-
-        if linters:
-            persist.view_linters[vid] = linters
-        elif reset and not linters and vid in persist.view_linters:
-            del persist.view_linters[vid]
+        vid = view.id()
+        persist.views[vid] = view
+        persist.view_linters[vid] = {
+            linter_class(view, syntax)
+            for linter_class in persist.linter_classes.values()
+            if (
+                not linter_class.disabled and
+                syntax and
+                linter_class.can_lint(syntax)
+            )
+        }
 
     @classmethod
     def which(cls, cmd):

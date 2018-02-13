@@ -8,8 +8,6 @@ from .settings import Settings
 
 settings = Settings()
 
-scheme = None
-
 # A mapping between buffer ids and errors,
 # Dict[buffer_id, [error]]
 errors = defaultdict(list)

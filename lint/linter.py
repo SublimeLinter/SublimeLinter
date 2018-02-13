@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
-BASE_CLASSES = ('PythonLinter',)
+BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
 # Many linters use stdin, and we convert text to utf-8
 # before sending to stdin, so we have to make sure stdin
@@ -115,7 +115,7 @@ class LinterMeta(type):
         if bases:
             setattr(cls, 'disabled', False)
 
-            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
+            if name in BASE_CLASSES:
                 return
 
             cmd = attrs.get('cmd')
@@ -162,7 +162,7 @@ class LinterMeta(type):
             if 'defaults' in attrs and attrs['defaults']:
                 cls.map_args(attrs['defaults'])
 
-            if 'syntax' in attrs and name not in BASE_CLASSES:
+            if 'syntax' in attrs:
                 cls.register_linter(name)
 
     def register_linter(cls, name):

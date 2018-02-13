@@ -51,9 +51,6 @@ def plugin_loaded():
     style.load_gutter_icons()
     style.StyleParser()()
 
-    for linter in persist.linter_classes.values():
-        linter.initialize()
-
     plugin = SublimeLinter.shared_plugin()
 
     # Lint the visible views from the active window on startup

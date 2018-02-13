@@ -162,11 +162,6 @@ class LinterMeta(type):
             if 'defaults' in attrs and attrs['defaults']:
                 cls.map_args(attrs['defaults'])
 
-            if persist.plugin_is_loaded:
-                # If the plugin has already loaded, then we get here because
-                # a linter was added or reloaded. In that case we run reinitialize.
-                cls.reinitialize()
-
             if 'syntax' in attrs and name not in BASE_CLASSES:
                 cls.register_linter(name)
 
@@ -350,28 +345,6 @@ class Linter(metaclass=LinterMeta):
     #
     disabled = False
     executable_version = None
-
-    @classmethod
-    def initialize(cls):
-        """
-        Perform class-level initialization.
-
-        If subclasses override this, they should call super().initialize() first.
-
-        """
-        pass
-
-    @classmethod
-    def reinitialize(cls):
-        """
-        Perform class-level initialization after plugins have been loaded at startup.
-
-        This occurs if a new linter plugin is added or reloaded after startup.
-        Subclasses may override this to provide custom behavior, then they must
-        call cls.initialize().
-
-        """
-        cls.initialize()
 
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view

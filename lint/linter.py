@@ -118,7 +118,6 @@ class LinterMeta(type):
             if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
                 return
 
-            cls.alt_name = cls.make_alt_name(name)
             cmd = attrs.get('cmd')
 
             if isinstance(cmd, str):
@@ -209,21 +208,6 @@ class LinterMeta(type):
             cls.defaults[name] = value
 
         setattr(cls, 'args_map', args_map)
-
-    @staticmethod
-    def make_alt_name(name):
-        """Convert and return a camel-case name to lowercase with dashes."""
-        previous = name[0]
-        alt_name = previous.lower()
-
-        for c in name[1:]:
-            if c.isupper() and previous.islower():
-                alt_name += '-'
-
-            alt_name += c.lower()
-            previous = c
-
-        return alt_name
 
     @property
     def name(cls):

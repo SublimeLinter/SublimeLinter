@@ -169,25 +169,21 @@ class LinterMeta(type):
                 cls.reinitialize()
 
             if 'syntax' in attrs and name not in BASE_CLASSES:
-                cls.register_linter(name, attrs)
+                cls.register_linter(name)
 
-    def register_linter(cls, name, attrs):
+    def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
-        if name:
-            name = name.lower()
-            persist.linter_classes[name] = cls
+        name = name.lower()
+        persist.linter_classes[name] = cls
 
-            # The sublime plugin API is not available until plugin_loaded is executed
-            if persist.plugin_is_loaded:
-                persist.settings.load()
+        # The sublime plugin API is not available until plugin_loaded is executed
+        if persist.plugin_is_loaded:
+            persist.settings.load()
 
-                for view in persist.views.values():
-                    cls.assign(view)
+            for view in persist.views.values():
+                cls.assign(view)
 
-                logger.info('{} linter reloaded'.format(name))
-
-            else:
-                logger.info('{} linter loaded'.format(name))
+            logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):
         """

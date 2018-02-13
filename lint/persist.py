@@ -24,21 +24,8 @@ if 'plugin_is_loaded' not in globals():
     # A mapping between view ids and views
     views = {}
 
-    edits = defaultdict(list)
-
-    # Whether sys.path has been imported from the system.
-    sys_path_imported = False
-
     # Set to true when the plugin is loaded at startup
     plugin_is_loaded = False
-
-
-def edit(vid, edit):
-    """Perform an operation on a view with the given edit object."""
-    callbacks = edits.pop(vid, [])
-
-    for c in callbacks:
-        c(edit)
 
 
 def debug_mode():

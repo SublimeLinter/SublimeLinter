@@ -106,9 +106,7 @@ class LinterMeta(type):
 
         - Compile regex patterns.
         - Convert strings to tuples where necessary.
-        - Add a leading dot to the tempfile_suffix if necessary.
         - Build a map between defaults and linter arguments.
-        - Add '@python' as an inline setting to PythonLinter subclasses.
 
         Finally, the class is registered as a linter for its configured syntax.
         """

@@ -168,10 +168,11 @@ class LinterMeta(type):
     def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
         name = name.lower()
+        reloading = name in persist.linter_classes
         persist.linter_classes[name] = cls
 
         # The sublime plugin API is not available until plugin_loaded is executed
-        if persist.plugin_is_loaded:
+        if reloading:
             persist.settings.load()
 
             for view in persist.views.values():

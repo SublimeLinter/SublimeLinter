@@ -193,7 +193,8 @@ def ensure_panel(window: sublime.Window):
 
 
 def sort_errors(errors):
-    return sorted(errors, key=lambda x: (x["line"], x["start"], x["end"]))
+    return sorted(
+        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
 
 
 def filter_and_sort(buf_errors, panel_filter):

@@ -120,7 +120,10 @@ def filter_errors(errors, group_fn):
 
     filtered_errors = []
     for errors in grouped.values():
-        head = sorted(errors, key=lambda e: (-e['priority'], e['error_type']))[0]
+        head = sorted(
+            errors,
+            key=lambda e: (-e['priority'], e['error_type'], e['linter'])
+        )[0]
         filtered_errors.append(head)
 
     return filtered_errors

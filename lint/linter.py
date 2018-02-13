@@ -110,58 +110,60 @@ class LinterMeta(type):
 
         Finally, the class is registered as a linter for its configured syntax.
         """
-        if bases:
-            setattr(cls, 'disabled', False)
+        if not bases:
+            return
 
-            if name in BASE_CLASSES:
-                return
+        setattr(cls, 'disabled', False)
 
-            cmd = attrs.get('cmd')
+        if name in BASE_CLASSES:
+            return
 
-            if isinstance(cmd, str):
-                setattr(cls, 'cmd', shlex.split(cmd))
+        cmd = attrs.get('cmd')
 
-            syntax = attrs.get('syntax')
+        if isinstance(cmd, str):
+            setattr(cls, 'cmd', shlex.split(cmd))
 
-            try:
-                if isinstance(syntax, str) and syntax[0] == '^':
-                    setattr(cls, 'syntax', re.compile(syntax))
-            except re.error as err:
-                logger.error(
-                    '{} disabled, error compiling syntax: {}'
-                    .format(name.lower(), str(err))
-                )
+        syntax = attrs.get('syntax')
+
+        try:
+            if isinstance(syntax, str) and syntax[0] == '^':
+                setattr(cls, 'syntax', re.compile(syntax))
+        except re.error as err:
+            logger.error(
+                '{} disabled, error compiling syntax: {}'
+                .format(name.lower(), str(err))
+            )
+            setattr(cls, 'disabled', True)
+
+        if not cls.disabled:
+            for regex in ('regex', 'word_re', 'version_re'):
+                attr = getattr(cls, regex)
+
+                if isinstance(attr, str):
+                    if regex == 'regex' and cls.multiline:
+                        setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
+
+                    try:
+                        setattr(cls, regex, re.compile(attr, cls.re_flags))
+                    except re.error as err:
+                        logger.error(
+                            '{} disabled, error compiling {}: {}'
+                            .format(name.lower(), regex, str(err))
+                        )
+                        setattr(cls, 'disabled', True)
+
+        if not cls.disabled:
+            if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
+                logger.error('{} disabled, not fully implemented'.format(name.lower()))
                 setattr(cls, 'disabled', True)
 
-            if not cls.disabled:
-                for regex in ('regex', 'word_re', 'version_re'):
-                    attr = getattr(cls, regex)
+        # If this class has its own defaults, create an args_map.
+        # Otherwise we use the superclass' args_map.
+        if 'defaults' in attrs and attrs['defaults']:
+            cls.map_args(attrs['defaults'])
 
-                    if isinstance(attr, str):
-                        if regex == 'regex' and cls.multiline:
-                            setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
-
-                        try:
-                            setattr(cls, regex, re.compile(attr, cls.re_flags))
-                        except re.error as err:
-                            logger.error(
-                                '{} disabled, error compiling {}: {}'
-                                .format(name.lower(), regex, str(err))
-                            )
-                            setattr(cls, 'disabled', True)
-
-            if not cls.disabled:
-                if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    logger.error('{} disabled, not fully implemented'.format(name.lower()))
-                    setattr(cls, 'disabled', True)
-
-            # If this class has its own defaults, create an args_map.
-            # Otherwise we use the superclass' args_map.
-            if 'defaults' in attrs and attrs['defaults']:
-                cls.map_args(attrs['defaults'])
-
-            if 'syntax' in attrs:
-                cls.register_linter(name)
+        if 'syntax' in attrs:
+            cls.register_linter(name)
 
     def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""

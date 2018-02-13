@@ -209,11 +209,6 @@ class LinterMeta(type):
 
         setattr(cls, 'args_map', args_map)
 
-    @property
-    def name(cls):
-        """Return the class name lowercased."""
-        return cls.__name__.lower()
-
 
 class Linter(metaclass=LinterMeta):
     """

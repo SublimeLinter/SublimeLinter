@@ -309,15 +309,6 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
         logger.error(msg)
 
 
-# view utils
-
-def apply_to_all_views(callback):
-    """Apply callback to all views in all windows."""
-    for window in sublime.windows():
-        for view in window.views():
-            callback(view)
-
-
 # misc utils
 
 

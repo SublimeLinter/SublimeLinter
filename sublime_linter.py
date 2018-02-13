@@ -87,14 +87,7 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        if view.id() not in persist.view_linters:
-            syntax_changed = self.check_syntax(view)
-            if not syntax_changed:
-                return
-        else:
-            syntax_changed = False
-
-        if syntax_changed or persist.settings.get('lint_mode') == 'background':
+        if persist.settings.get('lint_mode') == 'background':
             self.hit(view)
 
     def on_activated_async(self, view):
@@ -105,20 +98,9 @@ class Listener:
 
         view_id = view.id()
         if view_id not in self.linted_views:
-            if view_id not in self.loaded_views:
-                self.on_new_async(view)
-
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
-
-    def on_new_async(self, view):
-        if not util.is_lintable(view):
-            return
-
-        vid = view.id()
-        self.loaded_views.add(vid)
-        self.view_syntax[vid] = util.get_syntax(view)
 
     def on_post_save_async(self, view):
         if not util.is_lintable(view):
@@ -128,9 +110,9 @@ class Listener:
         if view.window().project_file_name() == view.file_name():
             self.lint_all_views()
         else:
-            filename = os.path.basename(view.file_name())
-            if filename != "SublimeLinter.sublime-settings":
-                self.file_was_saved(view)
+            lint_mode = persist.settings.get('lint_mode')
+            if lint_mode != 'manual':
+                self.hit(view)
 
     def on_pre_close(self, view):
         if not util.is_lintable(view):
@@ -138,7 +120,6 @@ class Listener:
 
         vid = view.id()
         dicts = [
-            self.loaded_views,
             self.linted_views,
             self.view_syntax,
             persist.view_linters,
@@ -174,9 +155,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Keeps track of which views we have assigned linters to
-        self.loaded_views = set()
-
         # Keeps track of which views have actually been linted
         self.linted_views = set()
 
@@ -188,11 +166,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     @classmethod
     def lint_all_views(cls):
         """Mimic a modification of all views, which will trigger a relint."""
-        def apply(view):
-            if view.id() in persist.view_linters:
-                cls.shared_instance.hit(view)
-
-        util.apply_to_all_views(apply)
+        for window in sublime.windows():
+            for view in window.views():
+                if view.id() in persist.view_linters:
+                    cls.shared_instance.hit(view)
 
     def hit(self, view):
         """Record an activity that could trigger a lint and enqueue a desire to lint."""
@@ -203,9 +180,10 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         self.check_syntax(view)
         self.linted_views.add(vid)
 
-        view_has_changed = make_view_has_changed_fn(view)
-        fn = partial(self.lint, view, view_has_changed)
-        queue.debounce(fn, key=view.buffer_id())
+        if vid in persist.view_linters:
+            view_has_changed = make_view_has_changed_fn(view)
+            fn = partial(self.lint, view, view_has_changed)
+            queue.debounce(fn, key=view.buffer_id())
 
     def lint(self, view, view_has_changed):
         """Lint the view with the given id.
@@ -272,24 +250,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return True
         else:
             return False
-
-    def view_has_file_only_linter(self, vid):
-        """Return True if any linters for the given view are file-only."""
-        for linter in persist.view_linters.get(vid, []):
-            if linter.tempfile_suffix == '-':
-                return True
-
-        return False
-
-    def file_was_saved(self, view):
-        """Check if the syntax changed or if we need to show errors."""
-        self.check_syntax(view)
-        vid = view.id()
-        mode = persist.settings.get('lint_mode')
-
-        if mode != 'manual':
-            if vid in persist.view_linters or self.view_has_file_only_linter(vid):
-                self.hit(view)
 
 
 def make_view_has_changed_fn(view):

@@ -71,17 +71,12 @@ class NodeLinter(linter.Linter):
 
     def get_manifest_path(self):
         """Get the path to the package.json file for the current file."""
-        curr_file = self.view.file_name()
-
-        manifest_path = None
-
-        if curr_file:
-            cwd = os.path.dirname(curr_file)
-
-            if cwd:
-                manifest_path = self.rev_parse_manifest_path(cwd)
-
-        return manifest_path
+        filename = self.view.file_name()
+        cwd = (
+            os.path.dirname(filename) if filename else
+            self._guess_project_path(self.view.window(), filename)
+        )
+        return self.rev_parse_manifest_path(cwd) if cwd else None
 
     def rev_parse_manifest_path(self, cwd):
         """

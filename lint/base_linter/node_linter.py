@@ -1,12 +1,13 @@
 """This module exports the NodeLinter subclass of Linter."""
 
+import codecs
 import json
 import hashlib
-import codecs
+import os
+
 import sublime
 
 from functools import lru_cache
-from os import path, access, X_OK
 from .. import linter, util
 
 
@@ -33,7 +34,7 @@ class NodeLinter(linter.Linter):
         self.manifest_path = self.get_manifest_path()
 
         if self.manifest_path:
-            self.read_manifest(path.getmtime(self.manifest_path))
+            self.read_manifest(os.path.getmtime(self.manifest_path))
 
     def context_sensitive_executable_path(self, cmd):
         """
@@ -70,17 +71,12 @@ class NodeLinter(linter.Linter):
 
     def get_manifest_path(self):
         """Get the path to the package.json file for the current file."""
-        curr_file = self.view.file_name()
-
-        manifest_path = None
-
-        if curr_file:
-            cwd = path.dirname(curr_file)
-
-            if cwd:
-                manifest_path = self.rev_parse_manifest_path(cwd)
-
-        return manifest_path
+        filename = self.view.file_name()
+        cwd = (
+            os.path.dirname(filename) if filename else
+            self._guess_project_path(self.view.window(), filename)
+        )
+        return self.rev_parse_manifest_path(cwd) if cwd else None
 
     def rev_parse_manifest_path(self, cwd):
         """
@@ -90,15 +86,13 @@ class NodeLinter(linter.Linter):
         at a time checking if that directory contains a package.json
         file. If it does, return that directory.
         """
-        name = 'package.json'
-        manifest_path = path.normpath(path.join(cwd, name))
+        manifest_path = os.path.join(cwd, 'package.json')
+        bin_path = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
 
-        bin_path = path.join(cwd, 'node_modules/.bin/')
-
-        if path.isfile(manifest_path) and path.isdir(bin_path):
+        if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
             return manifest_path
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None
@@ -112,28 +106,28 @@ class NodeLinter(linter.Linter):
         Given package.json filepath and a local binary to find,
         look in node_modules/.bin for that binary.
         """
-        cwd = path.dirname(self.manifest_path)
+        cwd = os.path.dirname(self.manifest_path)
 
         binary = self.get_pkg_bin_cmd(cmd)
 
         if binary:
-            return path.normpath(path.join(cwd, binary))
+            return os.path.normpath(os.path.join(cwd, binary))
 
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' node_modules/.bin directories."""
-        node_modules_bin = path.normpath(path.join(cwd, 'node_modules/.bin/'))
+        node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
 
-        binary = path.join(node_modules_bin, cmd)
+        binary = os.path.join(node_modules_bin, cmd)
 
-        if sublime.platform() == 'windows' and path.splitext(binary)[1] != '.cmd':
+        if sublime.platform() == 'windows' and os.path.splitext(binary)[1] != '.cmd':
             binary += '.cmd'
 
-        if binary and access(binary, X_OK):
+        if util.can_exec(binary):
             return binary
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None
@@ -157,7 +151,7 @@ class NodeLinter(linter.Linter):
 
     def get_manifest(self):
         """Load manifest file (package.json)."""
-        current_manifest_mtime = path.getmtime(self.manifest_path)
+        current_manifest_mtime = os.path.getmtime(self.manifest_path)
 
         if (current_manifest_mtime != self.cached_manifest_mtime and
                 self.hash_manifest() != self.cached_manifest_hash):

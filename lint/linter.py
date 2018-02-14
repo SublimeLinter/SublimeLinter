@@ -514,11 +514,11 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def _guess_project_path(window, filename):
         if not window:
-            return
+            return None
 
         folders = window.folders()
         if not folders:
-            return
+            return None
 
         if not filename:
             return folders[0]
@@ -527,6 +527,8 @@ class Linter(metaclass=LinterMeta):
             # Take the first one; should we take the deepest one? The shortest?
             if filename.startswith(folder + os.path.sep):
                 return folder
+
+        return None
 
     @classmethod
     def assign(cls, view, linter_name=None, reset=False):

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
-BASE_CLASSES = ('PythonLinter',)
+BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
 # Many linters use stdin, and we convert text to utf-8
 # before sending to stdin, so we have to make sure stdin
@@ -106,94 +106,79 @@ class LinterMeta(type):
 
         - Compile regex patterns.
         - Convert strings to tuples where necessary.
-        - Add a leading dot to the tempfile_suffix if necessary.
         - Build a map between defaults and linter arguments.
-        - Add '@python' as an inline setting to PythonLinter subclasses.
 
         Finally, the class is registered as a linter for its configured syntax.
         """
-        if bases:
-            setattr(cls, 'disabled', False)
+        if not bases:
+            return
 
-            if name in ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter'):
-                return
+        setattr(cls, 'disabled', False)
 
-            cls.alt_name = cls.make_alt_name(name)
-            cmd = attrs.get('cmd')
+        if name in BASE_CLASSES:
+            return
 
-            if isinstance(cmd, str):
-                setattr(cls, 'cmd', shlex.split(cmd))
+        cmd = attrs.get('cmd')
 
-            syntax = attrs.get('syntax')
+        if isinstance(cmd, str):
+            setattr(cls, 'cmd', shlex.split(cmd))
 
-            try:
-                if isinstance(syntax, str) and syntax[0] == '^':
-                    setattr(cls, 'syntax', re.compile(syntax))
-            except re.error as err:
-                logger.error(
-                    '{} disabled, error compiling syntax: {}'
-                    .format(name.lower(), str(err))
-                )
+        syntax = attrs.get('syntax')
+
+        try:
+            if isinstance(syntax, str) and syntax[0] == '^':
+                setattr(cls, 'syntax', re.compile(syntax))
+        except re.error as err:
+            logger.error(
+                '{} disabled, error compiling syntax: {}'
+                .format(name.lower(), str(err))
+            )
+            setattr(cls, 'disabled', True)
+
+        if not cls.disabled:
+            for regex in ('regex', 'word_re', 'version_re'):
+                attr = getattr(cls, regex)
+
+                if isinstance(attr, str):
+                    if regex == 'regex' and cls.multiline:
+                        setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
+
+                    try:
+                        setattr(cls, regex, re.compile(attr, cls.re_flags))
+                    except re.error as err:
+                        logger.error(
+                            '{} disabled, error compiling {}: {}'
+                            .format(name.lower(), regex, str(err))
+                        )
+                        setattr(cls, 'disabled', True)
+
+        if not cls.disabled:
+            if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
+                logger.error('{} disabled, not fully implemented'.format(name.lower()))
                 setattr(cls, 'disabled', True)
 
-            if not cls.disabled:
-                for regex in ('regex', 'word_re', 'version_re'):
-                    attr = getattr(cls, regex)
+        # If this class has its own defaults, create an args_map.
+        # Otherwise we use the superclass' args_map.
+        if 'defaults' in attrs and attrs['defaults']:
+            cls.map_args(attrs['defaults'])
 
-                    if isinstance(attr, str):
-                        if regex == 'regex' and cls.multiline:
-                            setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
+        if 'syntax' in attrs:
+            cls.register_linter(name)
 
-                        try:
-                            setattr(cls, regex, re.compile(attr, cls.re_flags))
-                        except re.error as err:
-                            logger.error(
-                                '{} disabled, error compiling {}: {}'
-                                .format(name.lower(), regex, str(err))
-                            )
-                            setattr(cls, 'disabled', True)
-
-            if not cls.disabled:
-                if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                    logger.error('{} disabled, not fully implemented'.format(name.lower()))
-                    setattr(cls, 'disabled', True)
-
-            # If this class has its own defaults, create an args_map.
-            # Otherwise we use the superclass' args_map.
-            if 'defaults' in attrs and attrs['defaults']:
-                cls.map_args(attrs['defaults'])
-
-            if persist.plugin_is_loaded:
-                # If the plugin has already loaded, then we get here because
-                # a linter was added or reloaded. In that case we run reinitialize.
-                cls.reinitialize()
-
-            if 'syntax' in attrs and name not in BASE_CLASSES:
-                cls.register_linter(name, attrs)
-
-    def register_linter(cls, name, attrs):
+    def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
-        if name:
-            name = name.lower()
-            persist.linter_classes[name] = cls
+        name = name.lower()
+        reloading = name in persist.linter_classes
+        persist.linter_classes[name] = cls
 
-            # The sublime plugin API is not available until plugin_loaded is executed
-            if persist.plugin_is_loaded:
-                persist.settings.load()
+        # The sublime plugin API is not available until plugin_loaded is executed
+        if reloading:
+            persist.settings.load()
 
-                # If the linter had previously been loaded, just reassign that linter
-                if name in persist.linter_classes:
-                    linter_name = name
-                else:
-                    linter_name = None
+            for view in persist.views.values():
+                cls.assign(view)
 
-                for view in persist.views.values():
-                    cls.assign(view, linter_name=linter_name)
-
-                logger.info('{} linter reloaded'.format(name))
-
-            else:
-                logger.info('{} linter loaded'.format(name))
+            logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):
         """
@@ -219,26 +204,6 @@ class LinterMeta(type):
             cls.defaults[name] = value
 
         setattr(cls, 'args_map', args_map)
-
-    @staticmethod
-    def make_alt_name(name):
-        """Convert and return a camel-case name to lowercase with dashes."""
-        previous = name[0]
-        alt_name = previous.lower()
-
-        for c in name[1:]:
-            if c.isupper() and previous.islower():
-                alt_name += '-'
-
-            alt_name += c.lower()
-            previous = c
-
-        return alt_name
-
-    @property
-    def name(cls):
-        """Return the class name lowercased."""
-        return cls.__name__.lower()
 
 
 class Linter(metaclass=LinterMeta):
@@ -382,28 +347,6 @@ class Linter(metaclass=LinterMeta):
     disabled = False
     executable_version = None
 
-    @classmethod
-    def initialize(cls):
-        """
-        Perform class-level initialization.
-
-        If subclasses override this, they should call super().initialize() first.
-
-        """
-        pass
-
-    @classmethod
-    def reinitialize(cls):
-        """
-        Perform class-level initialization after plugins have been loaded at startup.
-
-        This occurs if a new linter plugin is added or reloaded after startup.
-        Subclasses may override this to provide custom behavior, then they must
-        call cls.initialize().
-
-        """
-        cls.initialize()
-
     def __init__(self, view, syntax):  # noqa: D107
         self.view = view
         self.syntax = syntax
@@ -531,62 +474,22 @@ class Linter(metaclass=LinterMeta):
         return None
 
     @classmethod
-    def assign(cls, view, linter_name=None, reset=False):
-        """
-        Assign linters to a view.
-
-        If reset is True, the list of linters for view is completely rebuilt.
-
-        can_lint for each known linter class is called to determine
-        if the linter class can lint the syntax for view. If so, a new instance
-        of the linter class is assigned to the view, unless linter_name is non-empty
-        and does not match the 'name' attribute of any of the view's linters.
-
-        Each view has its own linters so that linters can store persistent data
-        about a view.
-        """
-        vid = view.id()
-        persist.views[vid] = view
+    def assign(cls, view):
+        """Assign linters to a view."""
         syntax = util.get_syntax(view)
         logger.info("detected syntax: {}".format(syntax))
 
-        if not syntax:  # seems like a very rare, edge case
-            persist.view_linters.pop(vid, None)
-            return
-
-        view_linters = persist.view_linters.get(vid, set())
-        linters = set()
-
-        for name, linter_class in persist.linter_classes.items():
-            if not linter_class.disabled and linter_class.can_lint(syntax):
-
-                if reset:
-                    instantiate = True
-                else:
-                    linter = None
-
-                    for l in view_linters:
-                        if name == l.name:
-                            linter = l
-                            break
-
-                    if linter is None:
-                        instantiate = True
-                    else:
-                        # If there is an existing linter and no linter_name was passed,
-                        # leave it. If linter_name was passed, re-instantiate only if
-                        # the linter's name matches linter_name.
-                        instantiate = linter_name == linter.name
-
-                if instantiate:
-                    linter = linter_class(view, syntax)
-
-                linters.add(linter)
-
-        if linters:
-            persist.view_linters[vid] = linters
-        elif reset and not linters and vid in persist.view_linters:
-            del persist.view_linters[vid]
+        vid = view.id()
+        persist.views[vid] = view
+        persist.view_linters[vid] = {
+            linter_class(view, syntax)
+            for linter_class in persist.linter_classes.values()
+            if (
+                not linter_class.disabled and
+                syntax and
+                linter_class.can_lint(syntax)
+            )
+        }
 
     @classmethod
     def which(cls, cmd):

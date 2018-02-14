@@ -6,39 +6,20 @@ from .util import printf
 from .settings import Settings
 
 
-if 'plugin_is_loaded' not in globals():
-    settings = Settings()
+settings = Settings()
 
-    scheme = None
+# A mapping between buffer ids and errors,
+# Dict[buffer_id, [error]]
+errors = defaultdict(list)
 
-    # A mapping between buffer ids and errors,
-    # Dict[buffer_id, [error]]
-    errors = defaultdict(list)
+# A mapping between linter class names and linter classes
+linter_classes = {}
 
-    # A mapping between linter class names and linter classes
-    linter_classes = {}
+# A mapping between view ids and a set of linter instances
+view_linters = {}
 
-    # A mapping between view ids and a set of linter instances
-    view_linters = {}
-
-    # A mapping between view ids and views
-    views = {}
-
-    edits = defaultdict(list)
-
-    # Whether sys.path has been imported from the system.
-    sys_path_imported = False
-
-    # Set to true when the plugin is loaded at startup
-    plugin_is_loaded = False
-
-
-def edit(vid, edit):
-    """Perform an operation on a view with the given edit object."""
-    callbacks = edits.pop(vid, [])
-
-    for c in callbacks:
-        c(edit)
+# A mapping between view ids and views
+views = {}
 
 
 def debug_mode():

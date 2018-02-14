@@ -44,15 +44,11 @@ def plugin_loaded():
     log_handler.install()
     backup_old_settings()
 
-    persist.plugin_is_loaded = True
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
     style.load_gutter_icons()
     style.StyleParser()()
-
-    for linter in persist.linter_classes.values():
-        linter.initialize()
 
     plugin = SublimeLinter.shared_plugin()
 
@@ -246,7 +242,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             self.view_syntax[vid] = syntax
             self.linted_views.discard(vid)
-            Linter.assign(view, reset=True)
+            Linter.assign(view)
             return True
         else:
             return False

@@ -1017,7 +1017,6 @@ class Linter(metaclass=LinterMeta):
         2. If the linter uses an external executable, it must be available.
         3. If there is a version requirement and the executable is available,
            its version must fulfill the requirement.
-        4. can_lint_syntax must return True.
         """
         can = False
         syntax = syntax.lower()
@@ -1056,35 +1055,15 @@ class Linter(metaclass=LinterMeta):
 
             status = None
 
+            if cls.executable_path == '':
+                status = '{} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
+                logger.warning(status)
+                return False
+
             if cls.executable_path:
                 can = cls.fulfills_version_requirement()
 
-                if not can:
-                    status = ''  # Warning was already printed
-
-            if can:
-                can = cls.can_lint_syntax(syntax)
-
-            elif status is None:
-                status = '{} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
-
-            if status:
-                logger.warning(status)
-
         return can
-
-    @classmethod
-    def can_lint_syntax(cls, syntax):
-        """
-        Return whether a linter can lint a given syntax.
-
-        Subclasses may override this if the built in mechanism in can_lint
-        is not sufficient. When this method is called, cls.executable_path
-        has been set. If it is '', that means the executable was not specified
-        or could not be found.
-
-        """
-        return cls.executable_path != ''
 
     @classmethod
     def fulfills_version_requirement(cls):

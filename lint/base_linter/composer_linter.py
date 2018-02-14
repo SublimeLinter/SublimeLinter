@@ -4,7 +4,6 @@ import json
 import hashlib
 import codecs
 
-from functools import lru_cache
 from os import path, access, X_OK
 from .. import linter, util
 
@@ -176,24 +175,6 @@ class ComposerLinter(linter.Linter):
         return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
 
     @classmethod
-    @lru_cache(maxsize=None)
-    def can_lint(cls, syntax):
-        """
-        Determine if the linter can handle the provided syntax.
-
-        This is an optimistic determination based on the linter's syntax alone.
-        """
-        can = False
-        syntax = syntax.lower()
-
-        if cls.syntax:
-            if isinstance(cls.syntax, (tuple, list)):
-                can = syntax in cls.syntax
-            elif cls.syntax == '*':
-                can = True
-            elif isinstance(cls.syntax, str):
-                can = syntax == cls.syntax
-            else:
-                can = cls.syntax.match(syntax) is not None
-
-        return can
+    def can_lint(cls):
+        """Assume the linter can lint."""
+        return True

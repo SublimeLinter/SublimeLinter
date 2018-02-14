@@ -8,7 +8,6 @@ import os
 import sublime
 
 from functools import lru_cache
-from os import access, X_OK
 from .. import linter, util
 
 
@@ -132,7 +131,7 @@ class NodeLinter(linter.Linter):
         if sublime.platform() == 'windows' and os.path.splitext(binary)[1] != '.cmd':
             binary += '.cmd'
 
-        if binary and access(binary, X_OK):
+        if util.can_exec(binary):
             return binary
 
         parent = os.path.normpath(os.path.join(cwd, '../'))

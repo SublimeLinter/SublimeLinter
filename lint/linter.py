@@ -1013,13 +1013,14 @@ class Linter(metaclass=LinterMeta):
         if cls.syntax == '*':
             return True
 
-        if hasattr(cls.syntax, 'match'):
+        if hasattr(cls.syntax, 'match'):  # duck type for regex
             return cls.syntax.match(syntax) is not None
 
         syntaxes = (
             [cls.syntax] if isinstance(cls.syntax, str)
             else list(cls.syntax)
-        )
+        ) + cls._get_settings(cls, view.window()).get('syntaxes', [])
+
         return syntax in syntaxes
 
     @classmethod

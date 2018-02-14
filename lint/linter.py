@@ -348,7 +348,7 @@ class Linter(metaclass=LinterMeta):
     disabled = False
     executable_version = None
 
-    def __init__(self, view, syntax):  # noqa: D107
+    def __init__(self, view, syntax):
         self.view = view
         self.syntax = syntax
         # Using `self.env` is deprecated, bc it can have surprising

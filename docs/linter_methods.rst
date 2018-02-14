@@ -33,19 +33,6 @@ this method does the following:
 - Adds the name/value pair to *options*.
 
 
-can_lint_syntax
----------------
-.. code-block:: python
-
-   can_lint_syntax(cls, syntax)
-
-This method returns ``True`` if a linter can lint a given syntax.
-
-Subclasses may override this if the built in mechanism in the ``can_lint`` method is not sufficient.
-When this method is called, ``cls.executable_path`` has been set to the path of the linter executable.
-If it is ``''``, that means the executable was not specified or could not be found.
-
-
 cmd
 ---
 .. code-block:: python

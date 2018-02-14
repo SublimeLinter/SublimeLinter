@@ -644,8 +644,11 @@ class Linter(metaclass=LinterMeta):
         have_path, path = self.context_sensitive_executable_path(cmd)
 
         if have_path:
-            # happy path
-            ...
+            # happy path?
+            if path is None:
+                # Do not log, `context_sensitive_executable_path` should have
+                # logged already.
+                return None
         else:
             if util.can_exec(which):
                 # If `cmd` is a method, it is expected it finds an executable on

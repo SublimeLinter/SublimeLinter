@@ -86,15 +86,13 @@ class NodeLinter(linter.Linter):
         at a time checking if that directory contains a package.json
         file. If it does, return that directory.
         """
-        name = 'package.json'
-        manifest_path = os.path.normpath(os.path.join(cwd, name))
-
-        bin_path = os.path.join(cwd, 'node_modules/.bin/')
+        manifest_path = os.path.join(cwd, 'package.json')
+        bin_path = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
 
         if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
             return manifest_path
 
-        parent = os.path.normpath(os.path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None
@@ -129,7 +127,7 @@ class NodeLinter(linter.Linter):
         if util.can_exec(binary):
             return binary
 
-        parent = os.path.normpath(os.path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None

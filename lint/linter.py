@@ -113,10 +113,12 @@ class LinterMeta(type):
         if not bases:
             return
 
-        setattr(cls, 'disabled', False)
-
         if name in BASE_CLASSES:
             return
+
+        name = name.lower()
+        setattr(cls, 'disabled', False)
+        setattr(cls, 'name', name)
 
         cmd = attrs.get('cmd')
 
@@ -131,7 +133,7 @@ class LinterMeta(type):
         except re.error as err:
             logger.error(
                 '{} disabled, error compiling syntax: {}'
-                .format(name.lower(), str(err))
+                .format(name, str(err))
             )
             setattr(cls, 'disabled', True)
 
@@ -148,13 +150,13 @@ class LinterMeta(type):
                     except re.error as err:
                         logger.error(
                             '{} disabled, error compiling {}: {}'
-                            .format(name.lower(), regex, str(err))
+                            .format(name, regex, str(err))
                         )
                         setattr(cls, 'disabled', True)
 
         if not cls.disabled:
             if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                logger.error('{} disabled, not fully implemented'.format(name.lower()))
+                logger.error('{} disabled, not fully implemented'.format(name))
                 setattr(cls, 'disabled', True)
 
         # If this class has its own defaults, create an args_map.
@@ -167,7 +169,6 @@ class LinterMeta(type):
 
     def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
-        name = name.lower()
         reloading = name in persist.linter_classes
         persist.linter_classes[name] = cls
 
@@ -359,11 +360,6 @@ class Linter(metaclass=LinterMeta):
     def filename(self):
         """Return the view's file path or '' if unsaved."""
         return self.view.file_name() or ''
-
-    @property
-    def name(self):
-        """Return the class name lowercased."""
-        return self.__class__.__name__.lower()
 
     @staticmethod
     def _get_settings(linter, window=None):

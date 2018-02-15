@@ -759,7 +759,7 @@ class Linter(metaclass=LinterMeta):
             if os.path.isdir(cwd):
                 return cwd
             else:
-                logger.warning(
+                logger.error(
                     "{}: wanted working_dir '{}' is not a directory"
                     "".format(self.name, cwd)
                 )

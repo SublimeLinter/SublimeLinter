@@ -82,7 +82,7 @@ class PythonLinter(linter.Linter):
             if VERSION_RE.match(python):
                 python_bin = find_python_version(python)
                 if python_bin is None:
-                    logger.warning(
+                    logger.error(
                         "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
                         .format(self.name, cmd_name, python)
@@ -98,7 +98,7 @@ class PythonLinter(linter.Linter):
 
             else:
                 if not os.path.exists(python):
-                    logger.warning(
+                    logger.error(
                         "{} deactivated, cannot locate '{}'"
                         .format(self.name, python)
                     )

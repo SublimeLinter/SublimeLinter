@@ -6,7 +6,7 @@ from . import util
 
 DEBUG_FALSE_LEVEL = logging.WARNING
 DEBUG_TRUE_LEVEL = logging.INFO
-ERROR_PANEL_LEVEL = logging.WARNING
+ERROR_PANEL_LEVEL = logging.ERROR
 
 logger = logging.getLogger('SublimeLinter')
 logger.setLevel(logging.DEBUG)

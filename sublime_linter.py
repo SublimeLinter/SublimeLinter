@@ -44,6 +44,12 @@ def plugin_loaded():
     log_handler.install()
     backup_old_settings()
 
+    from package_control import events
+    if events.install('SublimeLinter'):
+        util.message('SublimeLinter has been installed. Please restart Sublime Text.')
+    elif events.post_upgrade('SublimeLinter'):
+        util.message('SublimeLinter has been upgraded. Please restart Sublime Text.')
+
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())

@@ -27,7 +27,7 @@ UNDERLINE_STYLES = (
     'solid_underline', 'squiggly_underline', 'stippled_underline'
 )
 
-WS_ONLY = re.compile('^\s*$')
+SOME_WS = re.compile('\s')
 FALLBACK_MARK_STYLE = 'outline'
 
 highlight_store = style_stores.HighlightStyleStore()
@@ -179,7 +179,7 @@ def prepare_highlights_data(view, linter_name, errors):
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if (
             mark_style in UNDERLINE_STYLES and
-            WS_ONLY.match(view.substr(region)) is not None
+            SOME_WS.search(view.substr(region))
         ):
             mark_style = FALLBACK_MARK_STYLE
 

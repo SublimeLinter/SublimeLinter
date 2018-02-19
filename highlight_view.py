@@ -132,6 +132,7 @@ class IdleViewController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
+            invalidate_regions_under_cursor(active_view)
             set_idle(active_view, False)
 
     def on_post_save_async(self, view):
@@ -169,6 +170,27 @@ def toggle_demoted_regions(view, show):
 
             regions = view.get_regions(key)
             view.add_regions(key, regions, scope=scope, flags=flags)
+
+
+def invalidate_regions_under_cursor(view):
+    selections = view.sel()
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if '.Highlights.' not in key:
+            continue
+
+        regions = view.get_regions(key)
+        filtered = {
+            (region.a, region.b)
+            for region in regions
+            if not any(region.contains(selection) for selection in selections)
+        }
+        if len(filtered) != len(regions):
+            _namespace, scope, flags = key.split('|')
+            flags = int(flags)
+
+            filtered_regions = [sublime.Region(a, b) for a, b in filtered]
+            view.add_regions(key, filtered_regions, scope=scope, flags=flags)
 
 
 def prepare_protected_regions(view, errors):

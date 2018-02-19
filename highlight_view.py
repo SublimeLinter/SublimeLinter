@@ -1,12 +1,14 @@
 from collections import defaultdict, ChainMap
 from itertools import chain
+from functools import partial
 import re
 
 import sublime
+import sublime_plugin
 
-from .lint import persist, events
+from .lint import persist, events, queue
 from .lint import style as style_stores
-from .lint.const import PROTECTED_REGIONS_KEY
+from .lint.const import PROTECTED_REGIONS_KEY, WARNING
 
 
 UNDERLINE_FLAGS = (
@@ -42,6 +44,19 @@ def get_regions_keys(view):
     return set(view.settings().get(REGION_KEYS.format(view.id())) or [])
 
 
+State = {
+    'active_view': None,
+    'idle_views': set()
+}
+
+
+def plugin_loaded():
+    State.update({
+        'active_view': sublime.active_window().active_view(),
+        'idle_views': set()
+    })
+
+
 def plugin_unloaded():
     events.off(on_lint_result)
 
@@ -68,13 +83,92 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
 
     view = views[0]  # to calculate regions we can take any of the views
     highlight_regions = prepare_highlights_data(
-        view, linter_name, errors_for_the_highlights)
+        view, linter_name, errors_for_the_highlights,
+        demote_predicate=demote_ws_regions)
     gutter_regions = prepare_gutter_data(
         view, linter_name, errors_for_the_gutter)
     protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
 
     for view in views:
-        draw(view, linter_name, highlight_regions, gutter_regions, protected_regions)
+        draw(
+            view,
+            linter_name,
+            highlight_regions,
+            gutter_regions,
+            protected_regions,
+            idle=(view.id() in State['idle_views'])
+        )
+
+
+TIME_TO_IDLE = 2  # [seconds]  2 is good for testing, but noisy later on
+
+
+def demote_nothing(*args, **kwargs):
+    return False
+
+
+def demote_ws_regions(selected_text, **kwargs):
+    return bool(SOME_WS.search(selected_text))
+
+
+def demote_warnings(selected_text, error_type, **kwargs):
+    return error_type == WARNING
+
+
+def demote_while_busy_key_predicate(key):
+    return '%True%' in key
+
+
+class IdleViewController(sublime_plugin.EventListener):
+    def on_activated_async(self, active_view):
+        previous_view = State['active_view']
+        if previous_view.id() != active_view.id():
+            set_idle(previous_view, True)
+
+        State.update({'active_view': active_view})
+
+    # Called multiple times (once per buffer) but provided *view* is always
+    # the same, the primary one.
+    def on_modified_async(self, view):
+        active_view = State['active_view']
+        if view.buffer_id() == active_view.buffer_id():
+            set_idle(active_view, False)
+
+    def on_post_save_async(self, view):
+        active_view = State['active_view']
+        if view.buffer_id() == active_view.buffer_id():
+            set_idle(active_view, True)
+
+    def on_selection_modified_async(self, view):
+        active_view = State['active_view']
+        if view.buffer_id() == active_view.buffer_id():
+            queue.debounce(
+                partial(set_idle, active_view, True),
+                delay=TIME_TO_IDLE,
+                key='highlights.{}'.format(view.id()))
+
+
+def set_idle(view, idle):
+    vid = view.id()
+    current_idle = vid in State['idle_views']
+    if idle != current_idle:
+        if idle:
+            State['idle_views'].add(vid)
+        else:
+            State['idle_views'].discard(vid)
+
+        toggle_demoted_regions(view, idle)
+
+
+def toggle_demoted_regions(view, show):
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if demote_while_busy_key_predicate(key):
+            _namespace, scope, flags = key.split('|')
+            flags = int(flags) if show else sublime.HIDDEN
+
+            regions = view.get_regions(key)
+            view.add_regions(key, regions, scope=scope, flags=flags)
 
 
 def prepare_protected_regions(view, errors):
@@ -166,7 +260,7 @@ def prepare_gutter_data(view, linter_name, errors):
     return by_region_id
 
 
-def prepare_highlights_data(view, linter_name, errors):
+def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
     by_id = defaultdict(list)
     for error in errors:
@@ -175,12 +269,12 @@ def prepare_highlights_data(view, linter_name, errors):
 
         scope = get_scope(**error)
         mark_style = get_mark_style(**error)
+        selected_text = view.substr(region)
+
+        demote_while_busy = demote_predicate(selected_text, **error)
 
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
-        if (
-            mark_style in UNDERLINE_STYLES and
-            SOME_WS.search(view.substr(region))
-        ):
+        if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
             mark_style = FALLBACK_MARK_STYLE
 
         flags = MARK_STYLES[mark_style]
@@ -189,15 +283,17 @@ def prepare_highlights_data(view, linter_name, errors):
 
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
-        id = (scope, flags)
+        id = (scope, flags, demote_while_busy)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (scope, flags), regions in by_id.items():
-        region_id = 'SL.{}.Highlights.{}.{}'.format(linter_name, scope, flags)
+    for (scope, flags, demote_while_busy), regions in by_id.items():
+        region_id = (
+            'SL.{}.Highlights.%{}%|{}|{}'
+            .format(linter_name, demote_while_busy, scope, flags))
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -226,7 +322,8 @@ def get_icon_scope(icon, error):
         return " "  # set scope to non-existent one
 
 
-def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions):
+def draw(view, linter_name, highlight_regions, gutter_regions,
+         protected_regions, idle):
     """
     Draw code and gutter marks in the given view.
 
@@ -257,6 +354,8 @@ def draw(view, linter_name, highlight_regions, gutter_regions, protected_regions
 
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
+        if not idle and demote_while_busy_key_predicate(region_id):
+            flags = sublime.HIDDEN
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
     if persist.settings.has('gutter_theme'):

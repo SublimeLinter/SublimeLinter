@@ -119,6 +119,16 @@ def translate_lineno_and_column(errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for (linter, settings) in linters:
+        selectors = settings.get('selectors', False)
+        if selectors:
+            for selector in selectors:
+                regions = view.find_by_selector(selector)
+                if regions:
+                    yield linter, settings, [region for region in regions]
+                    return
+            return
+
+        # legacy
         if (
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors

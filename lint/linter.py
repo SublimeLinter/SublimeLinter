@@ -155,7 +155,7 @@ class LinterMeta(type):
                         setattr(cls, 'disabled', True)
 
         if not cls.disabled:
-            if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
+            if (cls.cmd is not None and not cls.cmd) or not cls.regex:
                 logger.error('{} disabled, not fully implemented'.format(name))
                 setattr(cls, 'disabled', True)
 
@@ -164,8 +164,13 @@ class LinterMeta(type):
         if 'defaults' in attrs and attrs['defaults']:
             cls.map_args(attrs['defaults'])
 
-        if 'syntax' in attrs:
-            cls.register_linter(name)
+        if not cls.syntax and not cls.defaults['selectors']:
+            logger.error(
+                "{} disabled, either 'syntax' or 'selectors' must be specified"
+                .format(name))
+            setattr(cls, 'disabled', True)
+
+        cls.register_linter(name)
 
     def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
@@ -1004,6 +1009,13 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
+        selectors = cls._get_settings(cls, view.window()).get('selectors', False)
+        if selectors:
+            return any(view.score_selector(0, selector) or
+                       view.find_by_selector(selector)
+                       for selector in selectors)
+
+        # legacy
         syntax = util.get_syntax(view).lower()
 
         if not syntax:

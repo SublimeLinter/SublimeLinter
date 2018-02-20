@@ -243,11 +243,12 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         vid = view.id()
         syntax = util.get_syntax(view)
 
-        # Syntax either has never been set or just changed
-        if vid not in self.view_syntax or self.view_syntax[vid] != syntax:
+        old_linters = persist.view_linters.get(vid, [])
+        changed = Linter.assign(view)
+        if changed:
             bid = view.buffer_id()
             persist.errors[bid].clear()
-            for linter in persist.view_linters.get(vid, []):
+            for linter in old_linters:
                 events.broadcast(events.LINT_RESULT, {
                     'buffer_id': bid,
                     'linter_name': linter.name,
@@ -256,7 +257,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
             self.view_syntax[vid] = syntax
             self.linted_views.discard(vid)
-            Linter.assign(view)
             return True
         else:
             return False

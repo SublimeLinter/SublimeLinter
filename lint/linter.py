@@ -481,8 +481,12 @@ class Linter(metaclass=LinterMeta):
 
         vid = view.id()
         persist.views[vid] = view
-        persist.view_linters[vid] = {
-            linter_class(view, syntax)
+        old_classes = {
+            linter.__class__
+            for linter in persist.view_linters.get(vid, set())
+        }
+        new_classes = {
+            linter_class
             for linter_class in persist.linter_classes.values()
             if (
                 not linter_class.disabled and
@@ -490,6 +494,15 @@ class Linter(metaclass=LinterMeta):
                 linter_class.can_lint()
             )
         }
+
+        if old_classes != new_classes:
+            persist.view_linters[vid] = {
+                linter_class(view, syntax)
+                for linter_class in new_classes
+            }
+            return True
+
+        return False
 
     @classmethod
     def which(cls, cmd):

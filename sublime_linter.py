@@ -7,12 +7,13 @@ import os
 import sublime
 import sublime_plugin
 
+from .lint import backend
 from .lint import events
 from .lint import log_handler
 from .lint.linter import Linter
 from .lint import queue
 from .lint import persist, util, style
-from .lint import backend
+from .lint import reloader
 
 
 logger = logging.getLogger(__name__)
@@ -44,12 +45,18 @@ def plugin_loaded():
     log_handler.install()
     backup_old_settings()
 
-    from package_control import events
-    if events.install('SublimeLinter'):
-        util.message('SublimeLinter has been installed. Please restart Sublime Text.')
-    elif events.post_upgrade('SublimeLinter'):
-        util.message('SublimeLinter has been upgraded. Please restart Sublime Text.')
+    try:
+        from package_control import events
+        if events.install('SublimeLinter'):
+            reloader.reload_linter_plugins()
+            return
+        elif events.post_upgrade('SublimeLinter'):
+            reloader.reload_everything()
+            return
+    except ImportError:
+        pass
 
+    persist.api_ready = True
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
@@ -66,6 +73,11 @@ def plugin_loaded():
 
 def plugin_unloaded():
     log_handler.uninstall()
+
+
+class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        reloader.reload_everything()
 
 
 def visible_views():

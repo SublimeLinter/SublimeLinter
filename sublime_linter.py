@@ -7,9 +7,9 @@ import os
 import sublime
 import sublime_plugin
 
+from . import log_handler
 from .lint import backend
 from .lint import events
-from .lint import log_handler
 from .lint.linter import Linter
 from .lint import queue
 from .lint import persist, util, style
@@ -69,10 +69,6 @@ def plugin_loaded():
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():
             plugin.hit(view)
-
-
-def plugin_unloaded():
-    log_handler.uninstall()
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):

@@ -119,19 +119,19 @@ def translate_lineno_and_column(errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for (linter, settings) in linters:
-        selectors = settings.get('selectors', False)
+        selectors = settings.get('selectors')
         if selectors:
-            # Inspecting the first char mimics 'file type' matching
-            if any(view.score_selector(0, selector) for selector in selectors):
-                yield linter, settings, [sublime.Region(0, view.size())]
-                continue
+            joined_selectors = '|'.join(selectors)
 
-            # Now, search for embedded syntaxes
-            for selector in selectors:
-                regions = view.find_by_selector(selector)
-                if regions:
-                    yield linter, settings, [region for region in regions]
-                    break
+            # Inspecting the first char mimics 'file type' matching
+            if view.score_selector(0, joined_selectors):
+                yield linter, settings, [sublime.Region(0, view.size())]
+            else:
+                yield linter, settings, [
+                    region
+                    for region in view.find_by_selector(joined_selectors)
+                ]
+
             continue
 
         # Fallback using deprecated `cls.syntax` and `cls.selectors`

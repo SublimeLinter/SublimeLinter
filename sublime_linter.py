@@ -192,30 +192,31 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
 
-        next = partial(self.highlight, view, view_has_changed)
+        next = partial(highlight, view, view_has_changed)
         backend.lint_view(view, view_has_changed, next)
 
         events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
 
-    def highlight(self, view, view_has_changed, linter, errors):
-        """
-        Highlight any errors found during a lint of the given view.
 
-        This method is called by Linter.lint_view after linting is finished.
-        """
-        if view_has_changed():  # abort early
-            return
+def highlight(view, view_has_changed, linter, errors):
+    """
+    Highlight any errors found during a lint of the given view.
 
-        bid = view.buffer_id()
-        all_errors = [error for error in persist.errors[bid]
-                      if error['linter'] != linter.name] + errors
-        persist.errors[bid] = all_errors
+    This method is called by Linter.lint_view after linting is finished.
+    """
+    if view_has_changed():  # abort early
+        return
 
-        events.broadcast(events.LINT_RESULT, {
-            'buffer_id': bid,
-            'linter_name': linter.name,
-            'errors': errors
-        })
+    bid = view.buffer_id()
+    all_errors = [error for error in persist.errors[bid]
+                  if error['linter'] != linter.name] + errors
+    persist.errors[bid] = all_errors
+
+    events.broadcast(events.LINT_RESULT, {
+        'buffer_id': bid,
+        'linter_name': linter.name,
+        'errors': errors
+    })
 
 
 def check_syntax(view):

@@ -32,5 +32,5 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Lint the current view."""
-        from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().hit(self.view)
+        from . import sublime_linter
+        sublime_linter.hit(self.view)

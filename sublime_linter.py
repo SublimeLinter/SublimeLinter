@@ -62,12 +62,10 @@ def plugin_loaded():
     style.load_gutter_icons()
     style.StyleParser()()
 
-    plugin = SublimeLinter.shared_plugin()
-
     # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():
-            plugin.hit(view)
+            hit(view)
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
@@ -97,7 +95,7 @@ class Listener:
             return
 
         if persist.settings.get('lint_mode') == 'background':
-            self.hit(view)
+            hit(view)
 
     def on_activated_async(self, view):
         if not util.is_lintable(view):
@@ -106,7 +104,7 @@ class Listener:
         if check_syntax(view):
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
-                self.hit(view)
+                hit(view)
 
     def on_post_save_async(self, view):
         if not util.is_lintable(view):
@@ -118,7 +116,7 @@ class Listener:
         else:
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode != 'manual':
-                self.hit(view)
+                hit(view)
 
     def on_pre_close(self, view):
         if not util.is_lintable(view):
@@ -148,38 +146,27 @@ class Listener:
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
-    shared_instance = None
-
-    @classmethod
-    def shared_plugin(cls):
-        """Return the plugin instance."""
-        return cls.shared_instance
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.__class__.shared_instance = self
-
     @classmethod
     def lint_all_views(cls):
         """Mimic a modification of all views, which will trigger a relint."""
         for window in sublime.windows():
             for view in window.views():
                 if view.id() in persist.view_linters:
-                    cls.shared_instance.hit(view)
+                    hit(view)
 
-    def hit(self, view):
-        """Record an activity that could trigger a lint and enqueue a desire to lint."""
-        if not view:
-            return
 
-        vid = view.id()
-        check_syntax(view)
+def hit(view):
+    """Record an activity that could trigger a lint and enqueue a desire to lint."""
+    if not view:
+        return
 
-        if vid in persist.view_linters:
-            view_has_changed = make_view_has_changed_fn(view)
-            fn = partial(lint, view, view_has_changed)
-            queue.debounce(fn, key=view.buffer_id())
+    vid = view.id()
+    check_syntax(view)
+
+    if vid in persist.view_linters:
+        view_has_changed = make_view_has_changed_fn(view)
+        fn = partial(lint, view, view_has_changed)
+        queue.debounce(fn, key=view.buffer_id())
 
 
 def lint(view, view_has_changed):

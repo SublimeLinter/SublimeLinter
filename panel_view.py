@@ -9,7 +9,7 @@ OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,
     "draw_white_space": "None",
-    "gutter": False,
+    "gutter": True,
     "is_widget": True,
     "line_numbers": False,
     "match_brackets": False,
@@ -18,7 +18,12 @@ OUTPUT_PANEL_SETTINGS = {
     "spell_check": False,
     "tab_size": 4,
     "translate_tabs_to_spaces": False,
-    "word_wrap": False
+    "word_wrap": False,
+    "line_padding_bottom": -2,
+    "line_padding_top": -2,
+    "highlight_line": False,
+    "fold_buttons": False,
+    "margin": -4
 }
 
 
@@ -394,16 +399,38 @@ def update_panel_selection(active_view, current_pos, **kwargs):
         return
 
     if panel_lines[0] == panel_lines[1]:
+        draw_position_marker(panel, panel_lines[0], is_full_line)
+
         region = get_panel_region(panel_lines[0], panel, is_full_line)
+        if is_full_line:
+            update_selection(panel, region)
+        else:
+            update_selection(panel, None)
     else:  # multiple panel lines
         is_full_line = True
         region_a = get_panel_region(panel_lines[0], panel)
         region_b = get_panel_region(panel_lines[1], panel, is_full_line)
         region = sublime.Region(region_a.begin(), region_b.end())
+        update_selection(panel, region)
 
-    update_selection(panel, region)
     panel.show_at_center(region)
 
     # simulate scrolling to enforce rerendering of panel,
     # otherwise selection is not updated (ST core bug)
     panel.run_command("scroll_lines")
+
+
+def draw_position_marker(panel, line, error_under_cursor):
+    if error_under_cursor:
+        panel.erase_regions('SL.PanelMarker.top')
+        panel.erase_regions('SL.PanelMarker.bottom')
+    else:
+        top_region = sublime.Region(panel.text_point(line - 1, -1))
+        bottom_region = sublime.Region(panel.text_point(line, -1))
+        scope = 'region.redish markup.deleted'
+        panel.add_regions(
+            'SL.PanelMarker.top', [top_region], scope=scope,
+            icon='Packages/SublimeLinter/panel/deleted_bottom_arrow.png')
+        panel.add_regions(
+            'SL.PanelMarker.bottom', [bottom_region], scope=scope,
+            icon='Packages/SublimeLinter/panel/deleted_top_arrow.png')

@@ -90,37 +90,39 @@ def visible_views():
 
 class BackendController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
+        if persist.settings.get('lint_mode') != 'background':
+            return
+
         if not util.is_lintable(view):
             return
 
-        if persist.settings.get('lint_mode') == 'background':
-            hit(view)
+        hit(view)
 
     def on_activated_async(self, view):
+        if persist.settings.get('lint_mode') != 'background':
+            return
+
         if not util.is_lintable(view):
             return
 
         if check_syntax(view):
-            lint_mode = persist.settings.get('lint_mode')
-            if lint_mode in ('background', 'load_save'):
-                hit(view)
+            hit(view)
 
     def on_post_save_async(self, view):
-        if not util.is_lintable(view):
+        if persist.settings.get('lint_mode') == 'manual':
             return
 
         # check if the project settings changed
         if view.window().project_file_name() == view.file_name():
             lint_all_views()
-        else:
-            lint_mode = persist.settings.get('lint_mode')
-            if lint_mode != 'manual':
-                hit(view)
+            return
 
-    def on_pre_close(self, view):
         if not util.is_lintable(view):
             return
 
+        hit(view)
+
+    def on_pre_close(self, view):
         vid = view.id()
         persist.view_linters.pop(vid, None)
 

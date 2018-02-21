@@ -164,7 +164,7 @@ class LinterMeta(type):
         if 'defaults' in attrs and attrs['defaults']:
             cls.map_args(attrs['defaults'])
 
-        if not cls.syntax and not cls.defaults['selectors']:
+        if not cls.syntax and not cls.defaults.get('selectors'):
             logger.error(
                 "{} disabled, either 'syntax' or 'selectors' must be specified"
                 .format(name))

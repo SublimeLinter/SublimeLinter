@@ -1050,10 +1050,7 @@ class Linter(metaclass=LinterMeta):
     @lru_cache(maxsize=None)
     def can_lint(cls, _syntax=None):  # `syntax` stays here for compatibility
         """
-        Determine *eager* if the linter plugin can be used.
-
-        This method is called when a view has not had a linter assigned
-        or when its syntax changes.
+        Determine *eagerly* if a linter's 'executable' can run.
 
         The following tests must all pass for this method to return True:
 

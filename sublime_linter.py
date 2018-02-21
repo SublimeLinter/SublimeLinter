@@ -218,13 +218,9 @@ def check_syntax(view):
 
     if old_linters != wanted_linters:
         bid = view.buffer_id()
-        persist.errors[bid].clear()
-        for linter in old_linters:
-            events.broadcast(events.LINT_RESULT, {
-                'buffer_id': bid,
-                'linter_name': linter.name,
-                'errors': []
-            })
+        unchanged_buffer = lambda: False  # noqa: E731
+        for linter in (old_linters - wanted_linters):
+            update_buffer_errors(bid, unchanged_buffer, linter, [])
 
         syntax = util.get_syntax(view)
         logger.info("detected syntax: {}".format(syntax))

@@ -231,14 +231,23 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         If the syntax has changed, a new linter is assigned.
         """
-        if not view:
-            return
-
         vid = view.id()
 
-        old_linters = persist.view_linters.get(vid, [])
-        changed = assign_linters_to_view(view)
-        if changed:
+        old_linters = {
+            linter.__class__
+            for linter in persist.view_linters.get(vid, set())
+        }
+        wanted_linters = {
+            linter_class
+            for linter_class in persist.linter_classes.values()
+            if (
+                not linter_class.disabled and
+                linter_class.can_lint_view(view) and
+                linter_class.can_lint()
+            )
+        }
+
+        if old_linters != wanted_linters:
             bid = view.buffer_id()
             persist.errors[bid].clear()
             for linter in old_linters:
@@ -249,39 +258,17 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                 })
 
             self.linted_views.discard(vid)
+
+            syntax = util.get_syntax(view)
+            logger.info("detected syntax: {}".format(syntax))
+
+            persist.view_linters[vid] = {
+                linter_class(view, syntax)
+                for linter_class in wanted_linters
+            }
             return True
-        else:
-            return False
 
-
-def assign_linters_to_view(view):
-    """Assign linters to a view."""
-    vid = view.id()
-    old_classes = {
-        linter.__class__
-        for linter in persist.view_linters.get(vid, set())
-    }
-    new_classes = {
-        linter_class
-        for linter_class in persist.linter_classes.values()
-        if (
-            not linter_class.disabled and
-            linter_class.can_lint_view(view) and
-            linter_class.can_lint()
-        )
-    }
-
-    if old_classes != new_classes:
-        syntax = util.get_syntax(view)
-        logger.info("detected syntax: {}".format(syntax))
-
-        persist.view_linters[vid] = {
-            linter_class(view, syntax)
-            for linter_class in new_classes
-        }
-        return True
-
-    return False
+        return False
 
 
 def make_view_has_changed_fn(view):

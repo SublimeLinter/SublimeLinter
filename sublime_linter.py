@@ -122,15 +122,7 @@ class BackendController(sublime_plugin.EventListener):
             return
 
         vid = view.id()
-        dicts = [
-            persist.view_linters,
-        ]
-
-        for d in dicts:
-            if type(d) is set:
-                d.discard(vid)
-            else:
-                d.pop(vid, None)
+        persist.view_linters.pop(vid, None)
 
         bid = view.buffer_id()
         buffers = []

@@ -105,7 +105,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        if check_syntax(view):
+        if check_linters_for_view(view):
             hit(view)
 
     def on_post_save_async(self, view):
@@ -152,7 +152,7 @@ def hit(view):
         return
 
     vid = view.id()
-    check_syntax(view)
+    check_linters_for_view(view)
 
     if vid in persist.view_linters:
         view_has_changed = make_view_has_changed_fn(view)
@@ -194,12 +194,8 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     })
 
 
-def check_syntax(view):
-    """
-    Check and return if view's syntax has changed.
-
-    If the syntax has changed, a new linter is assigned.
-    """
+def check_linters_for_view(view):
+    """Check and eventually instantiate linters for a view."""
     vid = view.id()
 
     old_linters = {

@@ -121,14 +121,20 @@ def get_lint_regions(linters, view):
     for (linter, settings) in linters:
         selectors = settings.get('selectors', False)
         if selectors:
+            # Inspecting the first char mimics 'file type' matching
+            if any(view.score_selector(0, selector) for selector in selectors):
+                yield linter, settings, [sublime.Region(0, view.size())]
+                continue
+
+            # Now, search for embedded syntaxes
             for selector in selectors:
                 regions = view.find_by_selector(selector)
                 if regions:
                     yield linter, settings, [region for region in regions]
-                    return
-            return
+                    break
+            continue
 
-        # legacy
+        # Fallback using deprecated `cls.syntax` and `cls.selectors`
         if (
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors

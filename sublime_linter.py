@@ -103,7 +103,7 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        if self.check_syntax(view):
+        if check_syntax(view):
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
@@ -174,7 +174,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         vid = view.id()
-        self.check_syntax(view)
+        check_syntax(view)
 
         if vid in persist.view_linters:
             view_has_changed = make_view_has_changed_fn(view)
@@ -217,48 +217,49 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             'errors': errors
         })
 
-    def check_syntax(self, view):
-        """
-        Check and return if view's syntax has changed.
 
-        If the syntax has changed, a new linter is assigned.
-        """
-        vid = view.id()
+def check_syntax(view):
+    """
+    Check and return if view's syntax has changed.
 
-        old_linters = {
-            linter.__class__
-            for linter in persist.view_linters.get(vid, set())
+    If the syntax has changed, a new linter is assigned.
+    """
+    vid = view.id()
+
+    old_linters = {
+        linter.__class__
+        for linter in persist.view_linters.get(vid, set())
+    }
+    wanted_linters = {
+        linter_class
+        for linter_class in persist.linter_classes.values()
+        if (
+            not linter_class.disabled and
+            linter_class.can_lint_view(view) and
+            linter_class.can_lint()
+        )
+    }
+
+    if old_linters != wanted_linters:
+        bid = view.buffer_id()
+        persist.errors[bid].clear()
+        for linter in old_linters:
+            events.broadcast(events.LINT_RESULT, {
+                'buffer_id': bid,
+                'linter_name': linter.name,
+                'errors': []
+            })
+
+        syntax = util.get_syntax(view)
+        logger.info("detected syntax: {}".format(syntax))
+
+        persist.view_linters[vid] = {
+            linter_class(view, syntax)
+            for linter_class in wanted_linters
         }
-        wanted_linters = {
-            linter_class
-            for linter_class in persist.linter_classes.values()
-            if (
-                not linter_class.disabled and
-                linter_class.can_lint_view(view) and
-                linter_class.can_lint()
-            )
-        }
+        return True
 
-        if old_linters != wanted_linters:
-            bid = view.buffer_id()
-            persist.errors[bid].clear()
-            for linter in old_linters:
-                events.broadcast(events.LINT_RESULT, {
-                    'buffer_id': bid,
-                    'linter_name': linter.name,
-                    'errors': []
-                })
-
-            syntax = util.get_syntax(view)
-            logger.info("detected syntax: {}".format(syntax))
-
-            persist.view_linters[vid] = {
-                linter_class(view, syntax)
-                for linter_class in wanted_linters
-            }
-            return True
-
-        return False
+    return False
 
 
 def make_view_has_changed_fn(view):

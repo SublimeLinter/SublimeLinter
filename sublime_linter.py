@@ -10,7 +10,6 @@ import sublime_plugin
 from . import log_handler
 from .lint import backend
 from .lint import events
-from .lint.linter import Linter
 from .lint import queue
 from .lint import persist, util, style
 from .lint import reloader
@@ -238,7 +237,7 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
         vid = view.id()
 
         old_linters = persist.view_linters.get(vid, [])
-        changed = Linter.assign(view)
+        changed = assign_linters_to_view(view)
         if changed:
             bid = view.buffer_id()
             persist.errors[bid].clear()
@@ -253,6 +252,36 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return True
         else:
             return False
+
+
+def assign_linters_to_view(view):
+    """Assign linters to a view."""
+    vid = view.id()
+    old_classes = {
+        linter.__class__
+        for linter in persist.view_linters.get(vid, set())
+    }
+    new_classes = {
+        linter_class
+        for linter_class in persist.linter_classes.values()
+        if (
+            not linter_class.disabled and
+            linter_class.can_lint_view(view) and
+            linter_class.can_lint()
+        )
+    }
+
+    if old_classes != new_classes:
+        syntax = util.get_syntax(view)
+        logger.info("detected syntax: {}".format(syntax))
+
+        persist.view_linters[vid] = {
+            linter_class(view, syntax)
+            for linter_class in new_classes
+        }
+        return True
+
+    return False
 
 
 def make_view_has_changed_fn(view):

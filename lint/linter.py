@@ -470,36 +470,6 @@ class Linter(metaclass=LinterMeta):
         return None
 
     @classmethod
-    def assign(cls, view):
-        """Assign linters to a view."""
-        syntax = util.get_syntax(view)
-        logger.info("detected syntax: {}".format(syntax))
-
-        vid = view.id()
-        old_classes = {
-            linter.__class__
-            for linter in persist.view_linters.get(vid, set())
-        }
-        new_classes = {
-            linter_class
-            for linter_class in persist.linter_classes.values()
-            if (
-                not linter_class.disabled and
-                linter_class.can_lint_view(view) and
-                linter_class.can_lint()
-            )
-        }
-
-        if old_classes != new_classes:
-            persist.view_linters[vid] = {
-                linter_class(view, syntax)
-                for linter_class in new_classes
-            }
-            return True
-
-        return False
-
-    @classmethod
     def which(cls, cmd):
         """Return full path to a given executable.
 

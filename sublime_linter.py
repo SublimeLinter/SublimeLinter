@@ -103,10 +103,7 @@ class Listener:
         if not util.is_lintable(view):
             return
 
-        self.check_syntax(view)
-
-        view_id = view.id()
-        if view_id not in self.linted_views:
+        if self.check_syntax(view):
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode in ('background', 'load_save'):
                 self.hit(view)
@@ -129,7 +126,6 @@ class Listener:
 
         vid = view.id()
         dicts = [
-            self.linted_views,
             persist.view_linters,
         ]
 
@@ -162,9 +158,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Keeps track of which views have actually been linted
-        self.linted_views = set()
-
         self.__class__.shared_instance = self
 
     @classmethod
@@ -182,7 +175,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         vid = view.id()
         self.check_syntax(view)
-        self.linted_views.add(vid)
 
         if vid in persist.view_linters:
             view_has_changed = make_view_has_changed_fn(view)
@@ -256,8 +248,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     'linter_name': linter.name,
                     'errors': []
                 })
-
-            self.linted_views.discard(vid)
 
             syntax = util.get_syntax(view)
             logger.info("detected syntax: {}".format(syntax))

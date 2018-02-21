@@ -179,10 +179,6 @@ class LinterMeta(type):
         # The sublime plugin API is not available until plugin_loaded is executed
         if persist.api_ready:
             persist.settings.load()
-
-            for view in persist.views.values():
-                cls.assign(view)
-
             logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):
@@ -480,7 +476,6 @@ class Linter(metaclass=LinterMeta):
         logger.info("detected syntax: {}".format(syntax))
 
         vid = view.id()
-        persist.views[vid] = view
         old_classes = {
             linter.__class__
             for linter in persist.view_linters.get(vid, set())

@@ -132,7 +132,6 @@ class Listener:
         dicts = [
             self.linted_views,
             persist.view_linters,
-            persist.views
         ]
 
         for d in dicts:

@@ -20,9 +20,6 @@ linter_classes = {}
 # A mapping between view ids and a set of linter instances
 view_linters = {}
 
-# A mapping between view ids and views
-views = {}
-
 
 def debug_mode():
     """Return whether the "debug" setting is True."""

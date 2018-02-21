@@ -88,8 +88,7 @@ def visible_views():
             yield view
 
 
-class Listener:
-
+class BackendController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
         if not util.is_lintable(view):
             return
@@ -143,10 +142,6 @@ class Listener:
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
             queue.cleanup(bid)
-
-
-class SublimeLinter(sublime_plugin.EventListener, Listener):
-    ...
 
 
 def lint_all_views():

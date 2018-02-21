@@ -1018,17 +1018,16 @@ class Linter(metaclass=LinterMeta):
 
         return text
 
-    # Helper methods
-
     @classmethod
     def can_lint_view(cls, view):
-        selectors = cls._get_settings(cls, view.window()).get('selectors', False)
+        selectors = cls._get_settings(cls, view.window()).get('selectors')
         if selectors:
-            return any(view.score_selector(0, selector) or
-                       view.find_by_selector(selector)
-                       for selector in selectors)
+            return (
+                any(view.score_selector(0, selector) for selector in selectors) or
+                any(view.find_by_selector(selector) for selector in selectors)
+            )
 
-        # legacy
+        # Fallback using deprecated `cls.syntax`
         syntax = util.get_syntax(view).lower()
 
         if not syntax:

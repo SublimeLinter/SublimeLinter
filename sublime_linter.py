@@ -131,7 +131,6 @@ class Listener:
         vid = view.id()
         dicts = [
             self.linted_views,
-            self.view_syntax,
             persist.view_linters,
             persist.views
         ]
@@ -167,9 +166,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         # Keeps track of which views have actually been linted
         self.linted_views = set()
-
-        # A mapping between view ids and syntax names
-        self.view_syntax = {}
 
         self.__class__.shared_instance = self
 
@@ -241,7 +237,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
             return
 
         vid = view.id()
-        syntax = util.get_syntax(view)
 
         old_linters = persist.view_linters.get(vid, [])
         changed = Linter.assign(view)
@@ -255,7 +250,6 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
                     'errors': []
                 })
 
-            self.view_syntax[vid] = syntax
             self.linted_views.discard(vid)
             return True
         else:

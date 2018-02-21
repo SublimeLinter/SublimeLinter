@@ -178,25 +178,26 @@ class SublimeLinter(sublime_plugin.EventListener, Listener):
 
         if vid in persist.view_linters:
             view_has_changed = make_view_has_changed_fn(view)
-            fn = partial(self.lint, view, view_has_changed)
+            fn = partial(lint, view, view_has_changed)
             queue.debounce(fn, key=view.buffer_id())
 
-    def lint(self, view, view_has_changed):
-        """Lint the view with the given id.
 
-        This method is called asynchronously by queue.Daemon when a lint
-        request is pulled off the queue.
-        """
-        if view_has_changed():  # abort early
-            return
+def lint(view, view_has_changed):
+    """Lint the view with the given id.
 
-        bid = view.buffer_id()
-        events.broadcast(events.LINT_START, {'buffer_id': bid})
+    This method is called asynchronously by queue.Daemon when a lint
+    request is pulled off the queue.
+    """
+    if view_has_changed():  # abort early
+        return
 
-        next = partial(update_buffer_errors, bid, view_has_changed)
-        backend.lint_view(view, view_has_changed, next)
+    bid = view.buffer_id()
+    events.broadcast(events.LINT_START, {'buffer_id': bid})
 
-        events.broadcast(events.LINT_END, {'buffer_id': bid})
+    next = partial(update_buffer_errors, bid, view_has_changed)
+    backend.lint_view(view, view_has_changed, next)
+
+    events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

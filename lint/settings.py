@@ -70,8 +70,8 @@ class Settings:
         if self.has_changed('gutter_theme'):
             style.load_gutter_icons()
 
-        from ..sublime_linter import SublimeLinter
-        SublimeLinter.lint_all_views()
+        from .. import sublime_linter
+        sublime_linter.lint_all_views()
 
 
 def get_settings_objects():

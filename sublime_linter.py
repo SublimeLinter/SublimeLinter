@@ -112,7 +112,7 @@ class Listener:
 
         # check if the project settings changed
         if view.window().project_file_name() == view.file_name():
-            self.lint_all_views()
+            lint_all_views()
         else:
             lint_mode = persist.settings.get('lint_mode')
             if lint_mode != 'manual':
@@ -146,13 +146,15 @@ class Listener:
 
 
 class SublimeLinter(sublime_plugin.EventListener, Listener):
-    @classmethod
-    def lint_all_views(cls):
-        """Mimic a modification of all views, which will trigger a relint."""
-        for window in sublime.windows():
-            for view in window.views():
-                if view.id() in persist.view_linters:
-                    hit(view)
+    ...
+
+
+def lint_all_views():
+    """Mimic a modification of all views, which will trigger a relint."""
+    for window in sublime.windows():
+        for view in window.views():
+            if view.id() in persist.view_linters:
+                hit(view)
 
 
 def hit(view):

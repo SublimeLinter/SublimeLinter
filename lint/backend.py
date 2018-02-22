@@ -119,17 +119,14 @@ def translate_lineno_and_column(errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for (linter, settings) in linters:
-        selectors = settings.get('selectors')
-        if selectors:
-            joined_selectors = '|'.join(selectors)
-
-            # Inspecting the first char mimics 'file type' matching
-            if view.score_selector(0, joined_selectors):
+        selector = settings.get('selector')
+        if selector:
+            # Inspecting just the first char is faster
+            if view.score_selector(0, selector):
                 yield linter, settings, [sublime.Region(0, view.size())]
             else:
                 yield linter, settings, [
-                    region
-                    for region in view.find_by_selector(joined_selectors)
+                    region for region in view.find_by_selector(selector)
                 ]
 
             continue

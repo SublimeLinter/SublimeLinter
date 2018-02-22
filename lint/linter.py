@@ -985,12 +985,11 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        selectors = cls._get_settings(cls, view.window()).get('selectors')
-        if selectors:
-            joined_selectors = '|'.join(selectors)
+        selector = cls._get_settings(cls, view.window()).get('selector')
+        if selector:
             return (
-                view.score_selector(0, joined_selectors) or
-                view.find_by_selector(joined_selectors)
+                view.score_selector(0, selector) or
+                view.find_by_selector(selector)
             )
 
         # Fallback using deprecated `cls.syntax`

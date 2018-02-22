@@ -1,8 +1,10 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from collections import defaultdict
 from functools import partial
 import logging
 import os
+import threading
 
 import sublime
 import sublime_plugin
@@ -88,6 +90,9 @@ def visible_views():
             yield view
 
 
+guard_check_linters_for_view = defaultdict(threading.Lock)
+
+
 class BackendController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
         if persist.settings.get('lint_mode') != 'background':
@@ -135,6 +140,7 @@ class BackendController(sublime_plugin.EventListener):
         # Cleanup bid-based stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
+            guard_check_linters_for_view.pop(bid, None)
             queue.cleanup(bid)
 
 
@@ -148,16 +154,9 @@ def lint_all_views():
 
 def hit(view):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
-    if not view:
-        return
-
-    vid = view.id()
-    check_linters_for_view(view)
-
-    if vid in persist.view_linters:
-        view_has_changed = make_view_has_changed_fn(view)
-        fn = partial(lint, view, view_has_changed)
-        queue.debounce(fn, key=view.buffer_id())
+    view_has_changed = make_view_has_changed_fn(view)
+    fn = partial(lint, view, view_has_changed)
+    queue.debounce(fn, key=view.buffer_id())
 
 
 def lint(view, view_has_changed):
@@ -169,13 +168,20 @@ def lint(view, view_has_changed):
     if view_has_changed():  # abort early
         return
 
+    vid = view.id()
     bid = view.buffer_id()
-    events.broadcast(events.LINT_START, {'buffer_id': bid})
 
-    next = partial(update_buffer_errors, bid, view_has_changed)
-    backend.lint_view(view, view_has_changed, next)
+    # We're already debounced, so races are actually unlikely
+    with guard_check_linters_for_view[bid]:
+        check_linters_for_view(view)
 
-    events.broadcast(events.LINT_END, {'buffer_id': bid})
+    if vid in persist.view_linters:
+        events.broadcast(events.LINT_START, {'buffer_id': bid})
+
+        next = partial(update_buffer_errors, bid, view_has_changed)
+        backend.lint_view(view, view_has_changed, next)
+
+        events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

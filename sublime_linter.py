@@ -91,6 +91,7 @@ def visible_views():
 
 
 guard_check_linters_for_view = defaultdict(threading.Lock)
+buffer_syntaxes = {}
 
 
 class BackendController(sublime_plugin.EventListener):
@@ -104,13 +105,18 @@ class BackendController(sublime_plugin.EventListener):
         hit(view)
 
     def on_activated_async(self, view):
+        # If the user changes the buffers syntax via the command palette,
+        # we get an 'activated' event right after. Since, it is very likely
+        # that the linters change as well, we 'hit' immediately for users
+        # convenience.
+
         if persist.settings.get('lint_mode') != 'background':
             return
 
         if not util.is_lintable(view):
             return
 
-        if check_linters_for_view(view):
+        if has_syntax_changed(view):
             hit(view)
 
     def on_post_save_async(self, view):
@@ -141,7 +147,22 @@ class BackendController(sublime_plugin.EventListener):
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
             guard_check_linters_for_view.pop(bid, None)
+            buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
+
+
+def has_syntax_changed(view):
+    bid = view.buffer_id()
+    current_syntax = util.get_syntax(view)
+
+    try:
+        old_value = buffer_syntaxes[bid]
+    except KeyError:
+        return False
+    else:
+        return old_value != current_syntax
+    finally:
+        buffer_syntaxes[bid] = current_syntax
 
 
 def lint_all_views():

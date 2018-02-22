@@ -192,13 +192,13 @@ def lint(view, view_has_changed):
 
     # We're already debounced, so races are actually unlikely
     with guard_check_linters_for_view[bid]:
-        check_linters_for_view(view)
+        linters = get_linters_for_view(view)
 
-    if bid in persist.view_linters:
+    if linters:
         events.broadcast(events.LINT_START, {'buffer_id': bid})
 
         next = partial(update_buffer_errors, bid, view_has_changed)
-        backend.lint_view(view, view_has_changed, next)
+        backend.lint_view(linters, view, view_has_changed, next)
 
         events.broadcast(events.LINT_END, {'buffer_id': bid})
 
@@ -219,15 +219,12 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     })
 
 
-def check_linters_for_view(view):
+def get_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
-    old_linters = {
-        linter.__class__
-        for linter in persist.view_linters.get(bid, set())
-    }
-    wanted_linters = {
+    linters = persist.view_linters.get(bid, set())
+    wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
         if (
@@ -236,19 +233,23 @@ def check_linters_for_view(view):
             linter_class.can_lint()
         )
     }
+    current_linter_classes = {linter.__class__ for linter in linters}
 
-    if old_linters != wanted_linters:
+    if current_linter_classes != wanted_linter_classes:
         unchanged_buffer = lambda: False  # noqa: E731
-        for linter in (old_linters - wanted_linters):
+        for linter in (current_linter_classes - wanted_linter_classes):
             update_buffer_errors(bid, unchanged_buffer, linter, [])
 
         syntax = util.get_syntax(view)
         logger.info("detected syntax: {}".format(syntax))
 
-        persist.view_linters[bid] = {
+        linters = {
             linter_class(view, syntax)
-            for linter_class in wanted_linters
+            for linter_class in wanted_linter_classes
         }
+        persist.view_linters[bid] = linters
+
+    return linters
 
 
 def make_view_has_changed_fn(view):

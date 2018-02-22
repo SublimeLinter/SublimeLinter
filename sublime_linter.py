@@ -134,9 +134,6 @@ class BackendController(sublime_plugin.EventListener):
         hit(view)
 
     def on_pre_close(self, view):
-        vid = view.id()
-        persist.view_linters.pop(vid, None)
-
         bid = view.buffer_id()
         buffers = []
         for w in sublime.windows():
@@ -146,6 +143,8 @@ class BackendController(sublime_plugin.EventListener):
         # Cleanup bid-based stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
+            persist.view_linters.pop(bid, None)
+
             guard_check_linters_for_view.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
@@ -169,7 +168,7 @@ def lint_all_views():
     """Mimic a modification of all views, which will trigger a relint."""
     for window in sublime.windows():
         for view in window.views():
-            if view.id() in persist.view_linters:
+            if view.buffer_id() in persist.view_linters:
                 hit(view)
 
 
@@ -189,14 +188,13 @@ def lint(view, view_has_changed):
     if view_has_changed():  # abort early
         return
 
-    vid = view.id()
     bid = view.buffer_id()
 
     # We're already debounced, so races are actually unlikely
     with guard_check_linters_for_view[bid]:
         check_linters_for_view(view)
 
-    if vid in persist.view_linters:
+    if bid in persist.view_linters:
         events.broadcast(events.LINT_START, {'buffer_id': bid})
 
         next = partial(update_buffer_errors, bid, view_has_changed)
@@ -223,11 +221,11 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
 
 def check_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
-    vid = view.id()
+    bid = view.buffer_id()
 
     old_linters = {
         linter.__class__
-        for linter in persist.view_linters.get(vid, set())
+        for linter in persist.view_linters.get(bid, set())
     }
     wanted_linters = {
         linter_class
@@ -240,7 +238,6 @@ def check_linters_for_view(view):
     }
 
     if old_linters != wanted_linters:
-        bid = view.buffer_id()
         unchanged_buffer = lambda: False  # noqa: E731
         for linter in (old_linters - wanted_linters):
             update_buffer_errors(bid, unchanged_buffer, linter, [])
@@ -248,13 +245,10 @@ def check_linters_for_view(view):
         syntax = util.get_syntax(view)
         logger.info("detected syntax: {}".format(syntax))
 
-        persist.view_linters[vid] = {
+        persist.view_linters[bid] = {
             linter_class(view, syntax)
             for linter_class in wanted_linters
         }
-        return True
-
-    return False
 
 
 def make_view_has_changed_fn(view):

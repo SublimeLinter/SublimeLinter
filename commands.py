@@ -17,8 +17,8 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         """
         has_non_file_only_linter = False
 
-        vid = self.view.id()
-        linters = persist.view_linters.get(vid, [])
+        bid = self.view.buffer_id()
+        linters = persist.view_linters.get(bid, [])
 
         for lint in linters:
             if lint.tempfile_suffix != '-':

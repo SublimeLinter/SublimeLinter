@@ -17,7 +17,7 @@ errors = defaultdict(list)
 # A mapping between linter class names and linter classes
 linter_classes = {}
 
-# A mapping between view ids and a set of linter instances
+# A mapping between buffer ids and a set of linter instances
 view_linters = {}
 
 

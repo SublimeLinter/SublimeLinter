@@ -156,10 +156,10 @@ def get_selectors(linter, wanted_syntax):
 
 def get_linters(view):
     filename = view.file_name()
-    vid = view.id()
+    bid = view.buffer_id()
 
     enabled, disabled = [], []
-    for linter in persist.view_linters.get(vid, []):
+    for linter in persist.view_linters.get(bid, []):
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
             disabled.append(linter)

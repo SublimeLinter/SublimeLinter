@@ -5,5 +5,5 @@ you should subclass from ``SublimeLinter.lint.PythonLinter``.
 
 By doing so, you get the following features:
 
--  Find correct environment using a ``python`` setting.
+-  Use correct environment using a ``python`` setting.
 -  Automatically find an environment using ``pipenv``

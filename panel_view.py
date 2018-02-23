@@ -101,8 +101,10 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
         """Replace a view's text entirely and attempt to restore previous selection."""
         sel = self.view.sel()
         # Doesn't make sense to consider multiple selections
-        selected_region = sel[0] if sel else None
-        selected_text = self.view.substr(selected_region) if sel else None
+        try:
+            selected_text = self.view.substr(sel[0])
+        except IndexError:
+            selected_text = None
 
         self.view.set_read_only(False)
         self.view.replace(edit, sublime.Region(0, self.view.size()), text)

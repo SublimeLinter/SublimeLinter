@@ -316,12 +316,12 @@ def get_next_panel_line(line, errors):
     In that case return last error's panel line incremented by one, which will
     place panel selection in empty space between buffer sections.
     """
-    for error in errors:
+    for error in sort_errors(errors):
         if error["line"] > line:
             panel_line = error["panel_line"]
             break
-    else:
-        panel_line = errors[-1]["panel_line"] + 1
+        else:
+            panel_line = errors[-1]["panel_line"] + 1
 
     return panel_line, panel_line
 

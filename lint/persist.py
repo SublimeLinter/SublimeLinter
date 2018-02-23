@@ -6,6 +6,8 @@ from .util import printf
 from .settings import Settings
 
 
+api_ready = False
+
 settings = Settings()
 
 # A mapping between buffer ids and errors,

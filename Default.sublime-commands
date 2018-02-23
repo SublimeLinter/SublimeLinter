@@ -20,6 +20,11 @@
         }
     },
     {
+        "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",
+        "command": "sublime_linter_reload"
+
+    },
+    {
         "caption": "Preferences: SublimeLinter Settings",
         "command": "edit_settings", "args":
         {

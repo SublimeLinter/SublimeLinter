@@ -1,7 +1,7 @@
 import logging
 import sublime
 
-from . import util
+from .lint import util
 
 
 DEBUG_FALSE_LEVEL = logging.WARNING
@@ -25,7 +25,7 @@ def install():
     settings.add_on_change('SublimeLinter._logging', install_std_handler)
 
 
-def uninstall():
+def plugin_unloaded():
     if handler:
         logger.removeHandler(handler)
     if error_panel_handler:

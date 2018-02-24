@@ -19,11 +19,11 @@ OUTPUT_PANEL_SETTINGS = {
     "tab_size": 4,
     "translate_tabs_to_spaces": False,
     "word_wrap": False,
-    "line_padding_bottom": -2,
-    "line_padding_top": -2,
+    # "line_padding_bottom": -2,
+    # "line_padding_top": -2,
     "highlight_line": False,
     "fold_buttons": False,
-    "margin": -4
+    # "margin": -4
 }
 
 
@@ -422,15 +422,10 @@ def update_panel_selection(active_view, current_pos, **kwargs):
 
 def draw_position_marker(panel, line, error_under_cursor):
     if error_under_cursor:
-        panel.erase_regions('SL.PanelMarker.top')
         panel.erase_regions('SL.PanelMarker.bottom')
     else:
-        top_region = sublime.Region(panel.text_point(line - 1, -1))
         bottom_region = sublime.Region(panel.text_point(line, -1))
         scope = 'region.redish markup.deleted'
-        panel.add_regions(
-            'SL.PanelMarker.top', [top_region], scope=scope,
-            icon='Packages/SublimeLinter/panel/deleted_bottom_arrow.png')
         panel.add_regions(
             'SL.PanelMarker.bottom', [bottom_region], scope=scope,
             icon='Packages/SublimeLinter/panel/deleted_top_arrow.png')

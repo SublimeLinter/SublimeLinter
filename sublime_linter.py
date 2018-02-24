@@ -174,12 +174,15 @@ def lint_all_views():
 
 def hit(view):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
+    bid = view.buffer_id()
+
+    lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed)
-    queue.debounce(fn, key=view.buffer_id())
+    fn = partial(lint, view, view_has_changed, lock)
+    queue.debounce(fn, key=bid)
 
 
-def lint(view, view_has_changed):
+def lint(view, view_has_changed, lock):
     """Lint the view with the given id.
 
     This method is called asynchronously by queue.Daemon when a lint
@@ -191,7 +194,7 @@ def lint(view, view_has_changed):
     bid = view.buffer_id()
 
     # We're already debounced, so races are actually unlikely
-    with guard_check_linters_for_view[bid]:
+    with lock:
         linters = get_linters_for_view(view)
 
     if linters:

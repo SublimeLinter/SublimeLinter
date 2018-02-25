@@ -323,8 +323,8 @@ def get_next_panel_line(line, col, errors):
         elif error["line"] > line:
             panel_line = error["panel_line"]
             break
-        else:
-            panel_line = errors[-1]["panel_line"] + 1
+    else:
+        panel_line = errors[-1]["panel_line"] + 1
 
     return panel_line, panel_line
 

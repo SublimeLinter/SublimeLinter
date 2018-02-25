@@ -317,7 +317,7 @@ def get_next_panel_line(line, col, errors):
     place panel selection in empty space between buffer sections.
     """
     for error in sort_errors(errors):
-        if error["line"] == line and col < error["start"]:
+        if error["line"] == line and error["start"] > col:
             panel_line = error["panel_line"]
             break
         elif error["line"] > line:

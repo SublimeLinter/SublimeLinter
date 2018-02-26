@@ -31,6 +31,7 @@ UNDERLINE_STYLES = (
 
 SOME_WS = re.compile('\s')
 FALLBACK_MARK_STYLE = 'outline'
+DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 
 highlight_store = style_stores.HighlightStyleStore()
 REGION_KEYS = 'SL.{}.region_keys'
@@ -125,10 +126,6 @@ def demote_warnings(selected_text, error_type, **kwargs):
     return error_type == WARNING
 
 
-def demote_while_busy_key_predicate(key):
-    return '%True%' in key
-
-
 class IdleViewController(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         previous_view = State['active_view']
@@ -175,7 +172,7 @@ def set_idle(view, idle):
 def toggle_demoted_regions(view, show):
     region_keys = get_regions_keys(view)
     for key in region_keys:
-        if demote_while_busy_key_predicate(key):
+        if DEMOTE_WHILE_BUSY_MARKER in key:
             _namespace, scope, flags = key.split('|')
             flags = int(flags) if show else sublime.HIDDEN
 
@@ -324,9 +321,10 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
     # efficient updates.
     by_region_id = {}
     for (scope, flags, demote_while_busy), regions in by_id.items():
+        dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demote_while_busy else ''
         region_id = (
-            'SL.{}.Highlights.%{}%|{}|{}'
-            .format(linter_name, demote_while_busy, scope, flags))
+            'SL.{}.Highlights.{}|{}|{}'
+            .format(linter_name, dwb_marker, scope, flags))
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -387,7 +385,7 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
 
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
-        if not idle and demote_while_busy_key_predicate(region_id):
+        if not idle and DEMOTE_WHILE_BUSY_MARKER in region_id:
             flags = sublime.HIDDEN
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 

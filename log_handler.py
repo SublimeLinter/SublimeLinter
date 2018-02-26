@@ -134,6 +134,9 @@ class ErrorPanelHandler(logging.Handler):
 
 class StatusBarHandler(logging.Handler):
     def emit(self, record):
+        if record.levelno != logging.WARNING:
+            return
+
         try:
             msg = self.format(record)
             window = sublime.active_window()

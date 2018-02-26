@@ -31,6 +31,8 @@ UNDERLINE_STYLES = (
 
 SOME_WS = re.compile('\s')
 FALLBACK_MARK_STYLE = 'outline'
+
+WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 
 highlight_store = style_stores.HighlightStyleStore()
@@ -107,7 +109,7 @@ def get_demote_predicate():
     if setting == 'none':
         return demote_nothing
 
-    if setting == 'some_ws':
+    if setting == 'ws_regions':
         return demote_ws_regions
 
     if setting == 'warnings':
@@ -119,7 +121,7 @@ def demote_nothing(*args, **kwargs):
 
 
 def demote_ws_regions(selected_text, **kwargs):
-    return bool(SOME_WS.search(selected_text))
+    return bool(WS_REGIONS.search(selected_text))
 
 
 def demote_warnings(selected_text, error_type, **kwargs):

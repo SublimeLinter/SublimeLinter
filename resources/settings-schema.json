@@ -16,7 +16,7 @@
         },
         "highlights.demote_while_editing":{
             "type":"string",
-            "pattern":"^(none|some_ws|warnings)$"
+            "pattern":"^(none|ws_regions|warnings)$"
         },
         "lint_mode":{
             "type":"string",

@@ -1127,12 +1127,19 @@ class Linter(metaclass=LinterMeta):
         method, it will need to override this method.
 
         """
-        if self.tempfile_suffix:
-            if self.tempfile_suffix != '-':
-                return self.tmpfile(cmd, code)
-            else:
-                return self.communicate(cmd)
+        if '${tmp_file}' in cmd:
+            return self.tmpfile(cmd, code)
+        elif '${real_file}' in cmd:
+            return self.communicate(cmd, None)
         else:
+            # First check for SL3 identifiers for compatibility
+            if self.tempfile_suffix:
+                if self.tempfile_suffix == '-':
+                    return self.communicate(cmd, None)
+                else:
+                    return self.tmpfile(cmd, code)
+
+            # Use STDIN to communicate
             return self.communicate(cmd, code)
 
     def get_tempfile_suffix(self):
@@ -1159,9 +1166,11 @@ class Linter(metaclass=LinterMeta):
         """Run an external executable using stdin to pass code and return its output."""
         if '${file}' in cmd:
             cmd[cmd.index('${file}')] = self.filename
+        elif '${real_file}' in cmd:
+            cmd[cmd.index('${real_file}')] = self.filename
         elif '@' in cmd:  # legacy SL3 crypto-identifier
             cmd[cmd.index('@')] = self.filename
-        elif not code:
+        elif not code:  # legacy SL3 fallback for 'real-file' linting
             cmd.append(self.filename)
 
         settings = self.get_view_settings()

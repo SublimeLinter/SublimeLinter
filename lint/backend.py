@@ -160,7 +160,12 @@ def filter_linters(linters, view):
     enabled, disabled = [], []
     for linter in linters:
         # First check to see if the linter can run in the current lint mode.
-        if linter.tempfile_suffix == '-' and view.is_dirty():
+        if (
+            ('${real_file}' in linter.cmd or
+             # legacy SL3 check for compatibility
+             linter.tempfile_suffix == '-') and
+            view.is_dirty()
+        ):
             disabled.append(linter)
             continue
 

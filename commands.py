@@ -20,8 +20,12 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         bid = self.view.buffer_id()
         linters = persist.view_linters.get(bid, [])
 
-        for lint in linters:
-            if lint.tempfile_suffix != '-':
+        for linter in linters:
+            if (
+                '${real_file}' not in linter.cmd and
+                # legacy SL3 check for compatibility
+                linter.tempfile_suffix != '-'
+            ):
                 has_non_file_only_linter = True
                 break
 

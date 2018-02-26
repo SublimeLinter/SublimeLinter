@@ -1157,8 +1157,8 @@ class Linter(metaclass=LinterMeta):
 
     def communicate(self, cmd, code=None):
         """Run an external executable using stdin to pass code and return its output."""
-        if '${file_name}' in cmd:
-            cmd[cmd.index('${file_name}')] = self.filename
+        if '${file}' in cmd:
+            cmd[cmd.index('${file}')] = self.filename
         elif '@' in cmd:  # legacy SL3 crypto-identifier
             cmd[cmd.index('@')] = self.filename
         elif not code:

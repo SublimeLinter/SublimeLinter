@@ -21,6 +21,15 @@
     // to an icon in the theme (they usually include "warning" and "error")
     "gutter_theme": "none",
 
+    // EXPERIMENTAL: See below `demote_while_editing`.
+    "highlights.time_to_idle": 5,
+
+    // EXPERIMENTAL: One of 'none', 'some_ws', 'warnings'
+    // Essentially picks a predicate fn from `highlights.py` to hide some
+    // lint errors while editing (busy). These errors appear after
+    // `time_to_idle` seconds or immediately on save.
+    "highlights.demote_while_editing": "none",
+
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
     // load_save: when a file is opened and every time it's saved

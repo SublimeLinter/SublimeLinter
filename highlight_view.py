@@ -82,9 +82,10 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
                              if error['linter'] == linter_name]
 
     view = views[0]  # to calculate regions we can take any of the views
+    demote_predicate = get_demote_predicate()
     highlight_regions = prepare_highlights_data(
         view, linter_name, errors_for_the_highlights,
-        demote_predicate=demote_ws_regions)
+        demote_predicate=demote_predicate)
     gutter_regions = prepare_gutter_data(
         view, linter_name, errors_for_the_gutter)
     protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
@@ -100,7 +101,16 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         )
 
 
-TIME_TO_IDLE = 2  # [seconds]  2 is good for testing, but noisy later on
+def get_demote_predicate():
+    setting = persist.settings.get('highlights.demote_while_editing')
+    if setting == 'none':
+        return demote_nothing
+
+    if setting == 'some_ws':
+        return demote_ws_regions
+
+    if setting == 'warnings':
+        return demote_warnings
 
 
 def demote_nothing(*args, **kwargs):
@@ -142,10 +152,11 @@ class IdleViewController(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        time_to_idle = persist.settings.get('highlights.time_to_idle')
         if view.buffer_id() == active_view.buffer_id():
             queue.debounce(
                 partial(set_idle, active_view, True),
-                delay=TIME_TO_IDLE,
+                delay=time_to_idle,
                 key='highlights.{}'.format(view.id()))
 
 

@@ -11,6 +11,13 @@
         "gutter_theme":{
             "type":"string"
         },
+        "highlights.time_to_idle":{
+            "type":"number"
+        },
+        "highlights.demote_while_editing":{
+            "type":"string",
+            "pattern":"^(none|some_ws|warnings)$"
+        },
         "lint_mode":{
             "type":"string",
             "pattern":"^(background|load_save|manual)$"

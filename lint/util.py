@@ -77,7 +77,6 @@ def is_lintable(view):
 
     """
     if (
-        not view or
         not view.window() or
         view.is_scratch() or
         view.is_read_only() or

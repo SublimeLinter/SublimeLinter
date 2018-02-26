@@ -1,8 +1,10 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
+from collections import defaultdict
 from functools import partial
 import logging
 import os
+import threading
 
 import sublime
 import sublime_plugin
@@ -10,7 +12,6 @@ import sublime_plugin
 from . import log_handler
 from .lint import backend
 from .lint import events
-from .lint.linter import Linter
 from .lint import queue
 from .lint import persist, util, style
 from .lint import reloader
@@ -63,12 +64,10 @@ def plugin_loaded():
     style.load_gutter_icons()
     style.StyleParser()()
 
-    plugin = SublimeLinter.shared_plugin()
-
     # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():
-            plugin.hit(view)
+            hit(view)
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
@@ -91,57 +90,50 @@ def visible_views():
             yield view
 
 
-class Listener:
+guard_check_linters_for_view = defaultdict(threading.Lock)
+buffer_syntaxes = {}
 
+
+class BackendController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
+        if persist.settings.get('lint_mode') != 'background':
+            return
+
         if not util.is_lintable(view):
             return
 
-        if persist.settings.get('lint_mode') == 'background':
-            self.hit(view)
+        hit(view)
 
     def on_activated_async(self, view):
+        # If the user changes the buffers syntax via the command palette,
+        # we get an 'activated' event right after. Since, it is very likely
+        # that the linters change as well, we 'hit' immediately for users
+        # convenience.
+
+        if persist.settings.get('lint_mode') != 'background':
+            return
+
         if not util.is_lintable(view):
             return
 
-        self.check_syntax(view)
-
-        view_id = view.id()
-        if view_id not in self.linted_views:
-            lint_mode = persist.settings.get('lint_mode')
-            if lint_mode in ('background', 'load_save'):
-                self.hit(view)
+        if has_syntax_changed(view):
+            hit(view)
 
     def on_post_save_async(self, view):
-        if not util.is_lintable(view):
+        if persist.settings.get('lint_mode') == 'manual':
             return
 
         # check if the project settings changed
         if view.window().project_file_name() == view.file_name():
-            self.lint_all_views()
-        else:
-            lint_mode = persist.settings.get('lint_mode')
-            if lint_mode != 'manual':
-                self.hit(view)
+            lint_all_views()
+            return
 
-    def on_pre_close(self, view):
         if not util.is_lintable(view):
             return
 
-        vid = view.id()
-        dicts = [
-            self.linted_views,
-            self.view_syntax,
-            persist.view_linters,
-            persist.views
-        ]
+        hit(view)
 
-        for d in dicts:
-            if type(d) is set:
-                d.discard(vid)
-            else:
-                d.pop(vid, None)
-
+    def on_pre_close(self, view):
         bid = view.buffer_id()
         buffers = []
         for w in sublime.windows():
@@ -151,115 +143,116 @@ class Listener:
         # Cleanup bid-based stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
+            persist.view_linters.pop(bid, None)
+
+            guard_check_linters_for_view.pop(bid, None)
+            buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
 
 
-class SublimeLinter(sublime_plugin.EventListener, Listener):
-    shared_instance = None
+def has_syntax_changed(view):
+    bid = view.buffer_id()
+    current_syntax = util.get_syntax(view)
 
-    @classmethod
-    def shared_plugin(cls):
-        """Return the plugin instance."""
-        return cls.shared_instance
+    try:
+        old_value = buffer_syntaxes[bid]
+    except KeyError:
+        return False
+    else:
+        return old_value != current_syntax
+    finally:
+        buffer_syntaxes[bid] = current_syntax
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        # Keeps track of which views have actually been linted
-        self.linted_views = set()
+def lint_all_views():
+    """Mimic a modification of all views, which will trigger a relint."""
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() in persist.view_linters:
+                hit(view)
 
-        # A mapping between view ids and syntax names
-        self.view_syntax = {}
 
-        self.__class__.shared_instance = self
+def hit(view):
+    """Record an activity that could trigger a lint and enqueue a desire to lint."""
+    bid = view.buffer_id()
 
-    @classmethod
-    def lint_all_views(cls):
-        """Mimic a modification of all views, which will trigger a relint."""
-        for window in sublime.windows():
-            for view in window.views():
-                if view.id() in persist.view_linters:
-                    cls.shared_instance.hit(view)
+    lock = guard_check_linters_for_view[bid]
+    view_has_changed = make_view_has_changed_fn(view)
+    fn = partial(lint, view, view_has_changed, lock)
+    queue.debounce(fn, key=bid)
 
-    def hit(self, view):
-        """Record an activity that could trigger a lint and enqueue a desire to lint."""
-        if not view:
-            return
 
-        vid = view.id()
-        self.check_syntax(view)
-        self.linted_views.add(vid)
+def lint(view, view_has_changed, lock):
+    """Lint the view with the given id.
 
-        if vid in persist.view_linters:
-            view_has_changed = make_view_has_changed_fn(view)
-            fn = partial(self.lint, view, view_has_changed)
-            queue.debounce(fn, key=view.buffer_id())
+    This method is called asynchronously by queue.Daemon when a lint
+    request is pulled off the queue.
+    """
+    if view_has_changed():  # abort early
+        return
 
-    def lint(self, view, view_has_changed):
-        """Lint the view with the given id.
+    bid = view.buffer_id()
 
-        This method is called asynchronously by queue.Daemon when a lint
-        request is pulled off the queue.
-        """
-        if view_has_changed():  # abort early
-            return
+    # We're already debounced, so races are actually unlikely
+    with lock:
+        linters = get_linters_for_view(view)
 
-        events.broadcast(events.LINT_START, {'buffer_id': view.buffer_id()})
+    if linters:
+        events.broadcast(events.LINT_START, {'buffer_id': bid})
 
-        next = partial(self.highlight, view, view_has_changed)
-        backend.lint_view(view, view_has_changed, next)
+        next = partial(update_buffer_errors, bid, view_has_changed)
+        backend.lint_view(linters, view, view_has_changed, next)
 
-        events.broadcast(events.LINT_END, {'buffer_id': view.buffer_id()})
+        events.broadcast(events.LINT_END, {'buffer_id': bid})
 
-    def highlight(self, view, view_has_changed, linter, errors):
-        """
-        Highlight any errors found during a lint of the given view.
 
-        This method is called by Linter.lint_view after linting is finished.
-        """
-        if view_has_changed():  # abort early
-            return
+def update_buffer_errors(bid, view_has_changed, linter, errors):
+    """Persist lint error changes and broadcast."""
+    if view_has_changed():  # abort early
+        return
 
-        bid = view.buffer_id()
-        all_errors = [error for error in persist.errors[bid]
-                      if error['linter'] != linter.name] + errors
-        persist.errors[bid] = all_errors
+    all_errors = [error for error in persist.errors[bid]
+                  if error['linter'] != linter.name] + errors
+    persist.errors[bid] = all_errors
 
-        events.broadcast(events.LINT_RESULT, {
-            'buffer_id': bid,
-            'linter_name': linter.name,
-            'errors': errors
-        })
+    events.broadcast(events.LINT_RESULT, {
+        'buffer_id': bid,
+        'linter_name': linter.name,
+        'errors': errors
+    })
 
-    def check_syntax(self, view):
-        """
-        Check and return if view's syntax has changed.
 
-        If the syntax has changed, a new linter is assigned.
-        """
-        if not view:
-            return
+def get_linters_for_view(view):
+    """Check and eventually instantiate linters for a view."""
+    bid = view.buffer_id()
 
-        vid = view.id()
+    linters = persist.view_linters.get(bid, set())
+    wanted_linter_classes = {
+        linter_class
+        for linter_class in persist.linter_classes.values()
+        if (
+            not linter_class.disabled and
+            linter_class.can_lint_view(view) and
+            linter_class.can_lint()
+        )
+    }
+    current_linter_classes = {linter.__class__ for linter in linters}
+
+    if current_linter_classes != wanted_linter_classes:
+        unchanged_buffer = lambda: False  # noqa: E731
+        for linter in (current_linter_classes - wanted_linter_classes):
+            update_buffer_errors(bid, unchanged_buffer, linter, [])
+
         syntax = util.get_syntax(view)
+        logger.info("detected syntax: {}".format(syntax))
 
-        # Syntax either has never been set or just changed
-        if vid not in self.view_syntax or self.view_syntax[vid] != syntax:
-            bid = view.buffer_id()
-            persist.errors[bid].clear()
-            for linter in persist.view_linters.get(vid, []):
-                events.broadcast(events.LINT_RESULT, {
-                    'buffer_id': bid,
-                    'linter_name': linter.name,
-                    'errors': []
-                })
+        linters = {
+            linter_class(view, syntax)
+            for linter_class in wanted_linter_classes
+        }
+        persist.view_linters[bid] = linters
 
-            self.view_syntax[vid] = syntax
-            self.linted_views.discard(vid)
-            Linter.assign(view)
-            return True
-        else:
-            return False
+    return linters
 
 
 def make_view_has_changed_fn(view):

@@ -6,8 +6,6 @@ import re
 import shlex
 import sublime
 
-from functools import lru_cache
-
 from .. import linter, util
 
 
@@ -29,23 +27,9 @@ class RubyLinter(linter.Linter):
     """
 
     @classmethod
-    @lru_cache(maxsize=None)
-    def can_lint(cls, syntax):
-        """Determine optimistically if the linter can handle the provided syntax."""
-        can = False
-        syntax = syntax.lower()
-
-        if cls.syntax:
-            if isinstance(cls.syntax, (tuple, list)):
-                can = syntax in cls.syntax
-            elif cls.syntax == '*':
-                can = True
-            elif isinstance(cls.syntax, str):
-                can = syntax == cls.syntax
-            else:
-                can = cls.syntax.match(syntax) is not None
-
-        return can
+    def can_lint(cls):
+        """Assume the linter can lint."""
+        return True
 
     def context_sensitive_executable_path(self, cmd):
         """

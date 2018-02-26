@@ -8,7 +8,7 @@ import logging
 import os
 import threading
 
-from . import persist, util
+from . import util
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ task_count = count(start=1)
 counter_lock = threading.Lock()
 
 
-def lint_view(view, view_has_changed, next):
+def lint_view(linters, view, view_has_changed, next):
     """
     Lint the given view.
 
@@ -39,14 +39,14 @@ def lint_view(view, view_has_changed, next):
     aggregated, and for each selector, if it occurs in sections,
     the corresponding section is linted as embedded code.
     """
-    linters, disabled_linters = get_linters(view)
+    enabled_linters, disabled_linters = filter_linters(linters, view)
 
     # The contract here is that we MUST fire 'updates' for every linter, so
     # that the views (status bar etc) actually update.
     for linter in disabled_linters:
         next(linter, [])
 
-    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
+    lint_tasks = get_lint_tasks(enabled_linters, view, view_has_changed)
 
     run_concurrently(
         partial(run_tasks, tasks, next=partial(next, linter))
@@ -119,6 +119,19 @@ def translate_lineno_and_column(errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for (linter, settings) in linters:
+        selector = settings.get('selector')
+        if selector:
+            # Inspecting just the first char is faster
+            if view.score_selector(0, selector):
+                yield linter, settings, [sublime.Region(0, view.size())]
+            else:
+                yield linter, settings, [
+                    region for region in view.find_by_selector(selector)
+                ]
+
+            continue
+
+        # Fallback using deprecated `cls.syntax` and `cls.selectors`
         if (
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
@@ -141,12 +154,11 @@ def get_selectors(linter, wanted_syntax):
             pass
 
 
-def get_linters(view):
+def filter_linters(linters, view):
     filename = view.file_name()
-    vid = view.id()
 
     enabled, disabled = [], []
-    for linter in persist.view_linters.get(vid, []):
+    for linter in linters:
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
             disabled.append(linter)

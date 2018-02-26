@@ -155,7 +155,7 @@ class LinterMeta(type):
                         setattr(cls, 'disabled', True)
 
         if not cls.disabled:
-            if not cls.syntax or (cls.cmd is not None and not cls.cmd) or not cls.regex:
+            if (cls.cmd is not None and not cls.cmd) or not cls.regex:
                 logger.error('{} disabled, not fully implemented'.format(name))
                 setattr(cls, 'disabled', True)
 
@@ -164,8 +164,13 @@ class LinterMeta(type):
         if 'defaults' in attrs and attrs['defaults']:
             cls.map_args(attrs['defaults'])
 
-        if 'syntax' in attrs:
-            cls.register_linter(name)
+        if not cls.syntax and not cls.defaults.get('selector'):
+            logger.error(
+                "{} disabled, either 'syntax' or 'selector' must be specified"
+                .format(name))
+            setattr(cls, 'disabled', True)
+
+        cls.register_linter(name)
 
     def register_linter(cls, name):
         """Add a linter class to our mapping of class names <-> linter classes."""
@@ -174,10 +179,6 @@ class LinterMeta(type):
         # The sublime plugin API is not available until plugin_loaded is executed
         if persist.api_ready:
             persist.settings.load()
-
-            for view in persist.views.values():
-                cls.assign(view)
-
             logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):
@@ -347,7 +348,7 @@ class Linter(metaclass=LinterMeta):
     disabled = False
     executable_version = None
 
-    def __init__(self, view, syntax):  # noqa: D107
+    def __init__(self, view, syntax):
         self.view = view
         self.syntax = syntax
         # Using `self.env` is deprecated, bc it can have surprising
@@ -467,24 +468,6 @@ class Linter(metaclass=LinterMeta):
                 return folder
 
         return None
-
-    @classmethod
-    def assign(cls, view):
-        """Assign linters to a view."""
-        syntax = util.get_syntax(view)
-        logger.info("detected syntax: {}".format(syntax))
-
-        vid = view.id()
-        persist.views[vid] = view
-        persist.view_linters[vid] = {
-            linter_class(view, syntax)
-            for linter_class in persist.linter_classes.values()
-            if (
-                not linter_class.disabled and
-                syntax and
-                linter_class.can_lint(syntax)
-            )
-        }
 
     @classmethod
     def which(cls, cmd):
@@ -1000,91 +983,79 @@ class Linter(metaclass=LinterMeta):
 
         return text
 
-    # Helper methods
+    @classmethod
+    def can_lint_view(cls, view):
+        selector = cls._get_settings(cls, view.window()).get('selector')
+        if selector:
+            return (
+                view.score_selector(0, selector) or
+                view.find_by_selector(selector)
+            )
+
+        # Fallback using deprecated `cls.syntax`
+        syntax = util.get_syntax(view).lower()
+
+        if not syntax:
+            return False
+
+        if cls.syntax == '*':
+            return True
+
+        if hasattr(cls.syntax, 'match'):
+            return cls.syntax.match(syntax) is not None
+
+        syntaxes = (
+            [cls.syntax] if isinstance(cls.syntax, str)
+            else list(cls.syntax)
+        )
+        return syntax in syntaxes
 
     @classmethod
     @lru_cache(maxsize=None)
-    def can_lint(cls, syntax):
+    def can_lint(cls, _syntax=None):  # `syntax` stays here for compatibility
         """
-        Determine if a linter class can lint the given syntax.
-
-        This method is called when a view has not had a linter assigned
-        or when its syntax changes.
+        Determine *eagerly* if a linter's 'executable' can run.
 
         The following tests must all pass for this method to return True:
 
-        1. syntax must match one of the syntaxes the linter defines.
-        2. If the linter uses an external executable, it must be available.
-        3. If there is a version requirement and the executable is available,
+        1. If the linter uses an external executable, it must be available.
+        2. If there is a version requirement and the executable is available,
            its version must fulfill the requirement.
-        4. can_lint_syntax must return True.
         """
-        can = False
-        syntax = syntax.lower()
+        can = True
 
-        if cls.syntax:
-            if isinstance(cls.syntax, (tuple, list)):
-                can = syntax in cls.syntax
-            elif cls.syntax == '*':
-                can = True
-            elif isinstance(cls.syntax, str):
-                can = syntax == cls.syntax
+        if cls.executable_path is None:
+            executable = None
+            cmd = cls.cmd
+
+            if cmd and not callable(cmd):
+                if isinstance(cls.cmd, str):
+                    cmd = shlex.split(cmd)
+                executable = cmd[0]
             else:
-                can = cls.syntax.match(syntax) is not None
+                executable = cls.executable
 
-        if can:
-            if cls.executable_path is None:
-                executable = None
-                cmd = cls.cmd
+            if not executable:
+                return True
 
-                if cmd and not callable(cmd):
-                    if isinstance(cls.cmd, str):
-                        cmd = shlex.split(cmd)
-                    executable = cmd[0]
-                else:
-                    executable = cls.executable
+            if executable:
+                cls.executable_path = cls.which(executable) or ''
+            elif cmd is None:
+                cls.executable_path = '<builtin>'
+            else:
+                cls.executable_path = ''
 
-                if not executable:
-                    return True
+        status = None
 
-                if executable:
-                    cls.executable_path = cls.which(executable) or ''
-                elif cmd is None:
-                    cls.executable_path = '<builtin>'
-                else:
-                    cls.executable_path = ''
+        if cls.executable_path == '':
+            status = '{} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
+            logger.warning(status)
+            return False
 
-            status = None
-
-            if cls.executable_path:
-                can = cls.fulfills_version_requirement()
-
-                if not can:
-                    status = ''  # Warning was already printed
-
-            if can:
-                can = cls.can_lint_syntax(syntax)
-
-            elif status is None:
-                status = '{} deactivated, cannot locate \'{}\''.format(cls.name, cls.executable_path)
-
-            if status:
-                logger.warning(status)
+        if cls.executable_path:
+            can = cls.fulfills_version_requirement()
 
         return can
-
-    @classmethod
-    def can_lint_syntax(cls, syntax):
-        """
-        Return whether a linter can lint a given syntax.
-
-        Subclasses may override this if the built in mechanism in can_lint
-        is not sufficient. When this method is called, cls.executable_path
-        has been set. If it is '', that means the executable was not specified
-        or could not be found.
-
-        """
-        return cls.executable_path != ''
 
     @classmethod
     def fulfills_version_requirement(cls):

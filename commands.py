@@ -17,8 +17,8 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         """
         has_non_file_only_linter = False
 
-        vid = self.view.id()
-        linters = persist.view_linters.get(vid, [])
+        bid = self.view.buffer_id()
+        linters = persist.view_linters.get(bid, [])
 
         for lint in linters:
             if lint.tempfile_suffix != '-':
@@ -32,5 +32,5 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Lint the current view."""
-        from .sublime_linter import SublimeLinter
-        SublimeLinter.shared_plugin().hit(self.view)
+        from . import sublime_linter
+        sublime_linter.hit(self.view)

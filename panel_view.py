@@ -309,15 +309,18 @@ def fill_panel(window, update=False, **panel_filter):
 
 # logic for updating panel selection
 
-def get_next_panel_line(line, errors):
+def get_next_panel_line(line, col, errors):
     """Get panel line for next error in buffer.
 
     If not found this means the current line is past last error's buffer line.
     In that case return last error's panel line incremented by one, which will
     place panel selection in empty space between buffer sections.
     """
-    for error in errors:
-        if error["line"] > line:
+    for error in sort_errors(errors):
+        if error["line"] == line and error["start"] > col:
+            panel_line = error["panel_line"]
+            break
+        elif error["line"] > line:
             panel_line = error["panel_line"]
             break
     else:
@@ -383,7 +386,7 @@ def update_panel_selection(active_view, current_pos, **kwargs):
             is_full_line = True
 
     if not panel_lines:  # fallback: take next panel line
-        panel_lines = get_next_panel_line(line, errors or all_errors)
+        panel_lines = get_next_panel_line(line, col, errors or all_errors)
 
     # logic for changing panel selection
     panel = get_panel(sublime.active_window())

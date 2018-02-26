@@ -101,7 +101,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
     except BaseException:
         # Log while multi-threaded to get a nicer log message
         logger.exception('Linter crashed.\n\n')
-        raise
+        return []  # Empty list here to clear old errors
 
 
 def translate_lineno_and_column(errors, offset):
@@ -214,7 +214,4 @@ def await_futures(fs, ordered=False):
         done = as_completed(fs)
 
     for future in done:
-        try:
-            yield future.result()
-        except Exception:
-            ...
+        yield future.result()

@@ -20,7 +20,7 @@ A tuple or callable that returns a tuple,
 containing the command line (with arguments) used to lint.
 
 - If ``cmd`` is ``None``, it is assumed the plugin overrides the :ref:`run` method.
-- A ``${file_name}`` argument will be replaced with the filename,
+- A ``${file}`` argument will be replaced with the full filename,
   which allows you to guarantee that certain arguments will be passed after the filename.
 - When :ref:`tempfile_suffix` is set, the filename will be the temp filename.
 - A ``${args}`` argument will be replaced with the arguments built from the linter settings,

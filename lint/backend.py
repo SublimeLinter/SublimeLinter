@@ -90,13 +90,18 @@ def get_lint_tasks(linters, view, view_has_changed):
 
 
 def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
-    # We 'name' our threads, for logging purposes.
-    threading.current_thread().name = task_name
+    try:
+        # We 'name' our threads, for logging purposes.
+        threading.current_thread().name = task_name
 
-    errors = linter.lint(code, view_has_changed, settings) or []
-    translate_lineno_and_column(errors, offset)
+        errors = linter.lint(code, view_has_changed, settings) or []
+        translate_lineno_and_column(errors, offset)
 
-    return errors
+        return errors
+    except BaseException:
+        # Log while multi-threaded to get a nicer log message
+        logger.exception('Linter crashed.\n\n')
+        return []  # Empty list here to clear old errors
 
 
 def translate_lineno_and_column(errors, offset):
@@ -209,7 +214,4 @@ def await_futures(fs, ordered=False):
         done = as_completed(fs)
 
     for future in done:
-        try:
-            yield future.result()
-        except Exception:
-            logger.exception('Lint task failed.')
+        yield future.result()

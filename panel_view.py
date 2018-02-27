@@ -37,6 +37,9 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_lint_result)
 
+    for window in sublime.windows():
+        window.destroy_output_panel(PANEL_NAME)
+
 
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):

@@ -3,7 +3,6 @@ from . import persist, util
 
 import logging
 import os
-from glob import glob
 
 
 logger = logging.getLogger(__name__)

@@ -134,7 +134,7 @@ class ErrorPanelHandler(logging.Handler):
 
 class StatusBarHandler(logging.Handler):
     def emit(self, record):
-        if record.levelno != logging.WARNING:
+        if record.levelno != STATUS_BAR_LEVEL:
             return
 
         try:

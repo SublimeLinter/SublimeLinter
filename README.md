@@ -18,8 +18,7 @@ Participate in the beta right now by editing your Package Control preferences an
 ]
 ```
 
-To op-out of an automatic upgrade (so you can do it later at your leasure),
-add SublimeLinter to the "auto_upgrade_ignore" key:
+To opt-out of an automatic upgrade (so you can do it later at your leasure), add SublimeLinter to the "auto_upgrade_ignore" key:
 ```json
 "auto_upgrade_ignore":
 [

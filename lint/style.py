@@ -25,9 +25,7 @@ def get_linter_style_store(name):
 def load_gutter_icons():
     """Update the gutter mark info based on the the current "gutter_theme" setting."""
     new_gutter_dict = {"icons": {}}
-
     theme_path = persist.settings.get('gutter_theme')
-
     theme_file = os.path.basename(theme_path)
 
     if not theme_file.endswith(".gutter-theme"):
@@ -46,16 +44,6 @@ def load_gutter_icons():
         colorize = True
 
     new_gutter_dict["colorize"] = colorize
-    dir_path, _ = os.path.split(theme_file)
-    pck_path = sublime.packages_path().split("/Packages")[0]
-    abs_dir = os.path.join(pck_path, dir_path)
-
-    png_files = glob(os.path.join(abs_dir, "*.png"))
-    for png in png_files:
-        png_file = os.path.basename(png)
-        name, ext = os.path.splitext(png_file)
-
-        new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
 
     global GUTTER_ICONS
     GUTTER_ICONS = new_gutter_dict
@@ -78,7 +66,6 @@ class HighlightStyleStore:
         def wrapper(*args):
             res = f(*args)
             key = args[1]
-            error_type = args[3]
 
             if not res:
                 logger.error("Styles are invalid. Please check your settings and restart Sublime Text.")
@@ -87,16 +74,14 @@ class HighlightStyleStore:
             if key != "icon":
                 return res
             else:
-                # returning paths
                 if res in ("circle", "dot", "bookmark", "none"):  # Sublime Text has some default icons
                     return res
-                elif res != os.path.basename(res):
-                    return res
                 else:
-                    icon_path = GUTTER_ICONS["icons"].get(res)
-                    if icon_path:
-                        return icon_path
-                return GUTTER_ICONS["icons"][error_type]
+                    theme = persist.settings.get('gutter_theme')
+                    icon_resouces = sublime.find_resources(res + ".png")
+                    for resource in icon_resouces:
+                        if theme in resource:
+                            return resource
 
         return wrapper
 

@@ -90,3 +90,14 @@ For example, to exclude any python files whose name begins with “foo”, you w
     }
 
 The default value is an empty array.
+
+
+python
+------
+
+This should point to a python binary on your system. Alternatively
+it can be set to a version, in which case we try to find a python
+binary on your system matching that version (using PATH).
+
+It then executes ``python -m script_name``
+(where script_name is e.g. ``flake8``).

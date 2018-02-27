@@ -21,21 +21,8 @@ class PythonLinter(linter.Linter):
     By doing so, they automatically get the following features:
 
     - Automatic discovery of virtual environments using `pipenv`
-
     - Support for a "python" setting.
-
-      python should point to a python binary on your system. Alternatively
-      it can be set to a version, in which case we try to find a python
-      binary on your system matching that version (using PATH).
-
-      It then executes `python -m script_name` (where script_name is e.g.
-      `flake8`).
-
     - Support for a "executable" setting.
-
-      A set "executable" will take precedence over any other method.
-      It must point to a real, executable binary.
-
     """
 
     @classmethod

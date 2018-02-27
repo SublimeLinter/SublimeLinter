@@ -21,7 +21,8 @@ Here are the most common reasons why a linter does not work:
 
 - The syntax is a variation (e.g. ``"html (django)"``) that isn't mapped
   to a known syntax (e.g. ``"html"``). The detected syntax is printed to the
-  console in debug mode.
+  console in debug mode. Also note that plugins should move to using the
+  selector setting instead of the old syntaxes attribute.
 
 - The linter binary is not installed.
   Be sure to install the linter as documented in the linter plugin’s README.

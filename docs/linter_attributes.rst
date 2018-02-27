@@ -44,6 +44,8 @@ defaults
 --------
 Set this attribute to a dict of setting names and values to provide defaults for the linter's settings.
 
+The most important setting is ``'selector'``, which specifies the scopes for which the linter is run.
+
 If a setting will be passed as an argument to the linter executable,
 you may specify the format of the argument here and
 the setting will automatically be passed as an argument to the executable.
@@ -193,36 +195,6 @@ the pattern should contain the following named capture groups when possible:
 |           | this capture group and SublimeLinter will highlight that text   |
 |           | (stripped of quotes) exactly.                                   |
 +-----------+-----------------------------------------------------------------+
-
-
-.. _selectors:
-
-selectors
----------
-This attribute maps syntax names to embedded scope selectors.
-
-If a linter can be used with embedded code, specify the scope selectors of the embedded code
-to tell SublimeLinter which portions of the code to lint.
-
-
-syntax (mandatory)
-------------------
-This attribute is the primary way that SublimeLinter associates a linter plugin with files of a given syntax.
-See :ref:`Syntax names <syntax-names>` below for info on how to determine the correct syntax names to use.
-
-This may be a single string, or a list/tuple of strings.
-
-If the linter supports embedded syntaxes,
-be sure to make this attribute a list/tuple,
-one of whose values should match one of the keys in the :ref:`selectors <selectors>` dict.
-
-
-.. _syntax-names:
-
-Syntax names
-~~~~~~~~~~~~
-The syntax names SublimeLinter uses are based on the **internal** syntax name used by SublimeText.
-The internal syntax name of the current file is reported by SublimeLinter in :ref:`debug mode <debug-mode>`
 
 
 .. _tempfile_suffix:

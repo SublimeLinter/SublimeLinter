@@ -397,6 +397,8 @@ def update_panel_selection(active_view, current_pos, **kwargs):
         return
 
     if panel_lines[0] == panel_lines[1]:
+        draw_position_marker(panel, panel_lines[0], is_full_line)
+
         region = get_panel_region(panel_lines[0], panel, is_full_line)
     else:  # multiple panel lines
         is_full_line = True
@@ -410,3 +412,15 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     # simulate scrolling to enforce rerendering of panel,
     # otherwise selection is not updated (ST core bug)
     panel.run_command("scroll_lines")
+
+
+def draw_position_marker(panel, line, error_under_cursor):
+    if error_under_cursor:
+        panel.erase_regions('SL.PanelMarker')
+    else:
+        line_start = panel.text_point(line - 1, 0)
+        region = sublime.Region(line_start, line_start)
+        scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+        flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+                 sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+        panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)

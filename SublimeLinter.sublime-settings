@@ -7,14 +7,14 @@
     "delay": 0.3,
 
     // Available gutter themes:
-    // Blueberry/Blueberry - cross.gutter-theme
-    // Blueberry/Blueberry - round.gutter-theme
+    // Blueberry Cross
+    // Blueberry Round
     // Circle
     // Danish Royalty
     // Default
     // Hands
-    // Knob/Knob - simple.gutter-theme
-    // Knob/Knob - symbol.gutter-theme
+    // Knob
+    // Knob Symbol
     // Koloria
     // ProjectIcons
     // Note that you may need to change the "icon" property in "styles"

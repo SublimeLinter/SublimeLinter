@@ -976,6 +976,9 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
+        if len(text) < 3:
+            return text
+
         first = text[0]
 
         if first in ('\'', '"') and text[-1] == first:

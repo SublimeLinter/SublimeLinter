@@ -68,7 +68,7 @@ class Settings:
             style.StyleParser()()
 
         if self.has_changed('gutter_theme'):
-            style.load_gutter_icons()
+            style.check_icon_colorization()
 
         from .. import sublime_linter
         sublime_linter.lint_all_views()

@@ -6,11 +6,8 @@ import os
 
 
 logger = logging.getLogger(__name__)
-
-GUTTER_ICONS = {}
-
-
 linter_style_stores = {}
+COLORIZE = True
 
 
 def get_linter_style_store(name):
@@ -21,9 +18,7 @@ def get_linter_style_store(name):
         return store
 
 
-def load_gutter_icons():
-    """Update the gutter mark info based on the the current "gutter_theme" setting."""
-    new_gutter_dict = {"icons": {}}
+def check_icon_colorization():
     theme_path = persist.settings.get('gutter_theme')
     theme_file = os.path.basename(theme_path)
 
@@ -35,17 +30,9 @@ def load_gutter_icons():
     if theme_files:
         theme_file = theme_files[0]
         opts = util.load_json(theme_file)
-        if not opts:
-            colorize = True
-        else:
-            colorize = opts.get("colorize", True)
-    else:
-        colorize = True
-
-    new_gutter_dict["colorize"] = colorize
-
-    global GUTTER_ICONS
-    GUTTER_ICONS = new_gutter_dict
+        if opts:
+            global COLORIZE
+            COLORIZE = opts.get("colorize", True)
 
 
 class HighlightStyleStore:

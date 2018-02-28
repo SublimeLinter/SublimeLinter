@@ -28,7 +28,7 @@
     // Essentially picks a predicate fn from `highlights.py` to hide some
     // lint errors while editing (busy). These errors appear after
     // `time_to_idle` seconds or immediately on save.
-    "highlights.demote_while_editing": "ws_regions",
+    "highlights.demote_while_editing": "none",
 
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change

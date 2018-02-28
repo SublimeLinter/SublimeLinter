@@ -77,10 +77,7 @@ class HighlightStyleStore:
                     return res
                 else:
                     theme = persist.settings.get('gutter_theme')
-                    icon_resouces = sublime.find_resources(res + ".png")
-                    for resource in icon_resouces:
-                        if theme in resource:
-                            return resource
+                    return 'Packages/SublimeLinter/gutter-themes/{}/{}.png'.format(theme, res)
 
         return wrapper
 

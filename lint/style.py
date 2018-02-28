@@ -18,7 +18,7 @@ def get_linter_style_store(name):
         return store
 
 
-def check_icon_colorization():
+def read_gutter_theme():
     theme_path = persist.settings.get('gutter_theme')
     theme_file = os.path.basename(theme_path)
 

@@ -61,7 +61,7 @@ def plugin_loaded():
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
-    style.check_icon_colorization()
+    style.read_gutter_theme()
     style.StyleParser()()
 
     # Lint the visible views from the active window on startup

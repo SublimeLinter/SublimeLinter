@@ -75,6 +75,8 @@ class HighlightStyleStore:
             else:
                 if res in ("circle", "dot", "bookmark", "none"):  # Sublime Text has some default icons
                     return res
+                elif res != os.path.basename(res):
+                    return res
                 else:
                     theme = persist.settings.get('gutter_theme')
                     return 'Packages/SublimeLinter/gutter-themes/{}/{}.png'.format(theme, res)

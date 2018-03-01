@@ -349,7 +349,7 @@ def get_mark_style(style, error_type, **kwargs):
 
 
 def get_icon_scope(icon, error):
-    if style_stores.GUTTER_ICONS.get('colorize', True):
+    if style_stores.COLORIZE:
         return get_scope(**error)
     else:
         return " "  # set scope to non-existent one

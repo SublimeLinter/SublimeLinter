@@ -3,15 +3,11 @@ from . import persist, util
 
 import logging
 import os
-from glob import glob
 
 
 logger = logging.getLogger(__name__)
-
-GUTTER_ICONS = {}
-
-
 linter_style_stores = {}
+COLORIZE = True
 
 
 def get_linter_style_store(name):
@@ -22,13 +18,11 @@ def get_linter_style_store(name):
         return store
 
 
-def load_gutter_icons():
-    """Update the gutter mark info based on the the current "gutter_theme" setting."""
-    new_gutter_dict = {"icons": {}}
-
+def read_gutter_theme():
     theme_path = persist.settings.get('gutter_theme')
-
     theme_file = os.path.basename(theme_path)
+    global COLORIZE
+    COLORIZE = True
 
     if not theme_file.endswith(".gutter-theme"):
         theme_file += ".gutter-theme"
@@ -38,27 +32,8 @@ def load_gutter_icons():
     if theme_files:
         theme_file = theme_files[0]
         opts = util.load_json(theme_file)
-        if not opts:
-            colorize = True
-        else:
-            colorize = opts.get("colorize", True)
-    else:
-        colorize = True
-
-    new_gutter_dict["colorize"] = colorize
-    dir_path, _ = os.path.split(theme_file)
-    pck_path = sublime.packages_path().split("/Packages")[0]
-    abs_dir = os.path.join(pck_path, dir_path)
-
-    png_files = glob(os.path.join(abs_dir, "*.png"))
-    for png in png_files:
-        png_file = os.path.basename(png)
-        name, ext = os.path.splitext(png_file)
-
-        new_gutter_dict["icons"][name] = os.path.join(dir_path, png_file)
-
-    global GUTTER_ICONS
-    GUTTER_ICONS = new_gutter_dict
+        if opts:
+            COLORIZE = opts.get("colorize", True)
 
 
 class HighlightStyleStore:
@@ -78,7 +53,6 @@ class HighlightStyleStore:
         def wrapper(*args):
             res = f(*args)
             key = args[1]
-            error_type = args[3]
 
             if not res:
                 logger.error("Styles are invalid. Please check your settings and restart Sublime Text.")
@@ -87,16 +61,13 @@ class HighlightStyleStore:
             if key != "icon":
                 return res
             else:
-                # returning paths
                 if res in ("circle", "dot", "bookmark", "none"):  # Sublime Text has some default icons
                     return res
                 elif res != os.path.basename(res):
                     return res
                 else:
-                    icon_path = GUTTER_ICONS["icons"].get(res)
-                    if icon_path:
-                        return icon_path
-                return GUTTER_ICONS["icons"][error_type]
+                    theme = persist.settings.get('gutter_theme')
+                    return 'Packages/SublimeLinter/gutter-themes/{}/{}.png'.format(theme, res)
 
         return wrapper
 

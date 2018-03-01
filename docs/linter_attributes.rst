@@ -19,7 +19,7 @@ cmd (mandatory)
 A tuple or callable that returns a tuple,
 containing the command line (with arguments) used to lint.
 
-- If ``cmd`` is ``None``, it is assumed the plugin overrides the :ref:`run` method.
+- If ``cmd`` is ``None``, it is assumed the plugin overrides the ``run`` method.
 - A ``${file}`` argument will be replaced with the full filename,
   which allows you to guarantee that certain arguments will be passed after the filename.
 - When :ref:`tempfile_suffix` is set, the filename will be the temp filename.

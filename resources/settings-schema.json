@@ -18,6 +18,9 @@
             "type":"string",
             "pattern":"^(none|ws_regions|warnings)$"
         },
+        "highlights.demote_scope": {
+            "type":"string"
+        },
         "lint_mode":{
             "type":"string",
             "pattern":"^(background|load_save|manual)$"

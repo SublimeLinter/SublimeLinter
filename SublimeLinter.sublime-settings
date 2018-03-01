@@ -25,10 +25,15 @@
     "highlights.time_to_idle": 5,
 
     // EXPERIMENTAL: One of 'none', 'ws_regions', 'warnings'
-    // Essentially picks a predicate fn from `highlights.py` to hide some
-    // lint errors while editing (busy). These errors appear after
-    // `time_to_idle` seconds or immediately on save.
+    // Essentially picks a predicate fn from `highlights.py` to demote the
+    // visibility of some lint errors while editing (busy). These errors
+    // appear after `time_to_idle` seconds or immediately on save.
     "highlights.demote_while_editing": "none",
+
+    // EXPERIMENTAL: A typical Sublime scope which gets applied to
+    // the regions while busy. Use the empty string to actually hide
+    // the regions. E.g. try 'comment' to get a soft gray.
+    "highlights.demote_scope": "",
 
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change

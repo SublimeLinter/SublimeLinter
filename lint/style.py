@@ -21,6 +21,7 @@ def get_linter_style_store(name):
 def read_gutter_theme():
     theme_path = persist.settings.get('gutter_theme')
     theme_file = os.path.basename(theme_path)
+    COLORIZE = True
 
     if not theme_file.endswith(".gutter-theme"):
         theme_file += ".gutter-theme"

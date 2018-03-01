@@ -58,4 +58,4 @@ please consider making a donation for all the coffee and beer involved in this p
 Thank you!
 
 Donate via: 
-* [**Paypal**](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FK7SKD3X8N7BU)
+* [**Paypal**](https://paypal.me/pools/c/82jmBQtUbY)

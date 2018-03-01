@@ -19,7 +19,7 @@ Settings are merged in the following order:
 Project settings
 ----------------
 Only the "linters" settings in can be changed in a project.
-All other settings (e.g. "debug", "delay", etc.) can only be changed in your user settings.
+All other settings can only be changed in your user settings.
 
 SublimeLinter project settings are defined by a ``"SublimeLinter"`` object
 within Sublime Text’s sublime-project file.

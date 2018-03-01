@@ -3,28 +3,26 @@ SublimeLinter
 
 [![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter)
 
-A framework for interactive code linting in [Sublime Text 3](http://sublimetext.com/3).
+The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
 
 
-## SublimeLinter 4 is imminent!
+## Upgrading from SublimeLinter 3
 
-We've made big improvements to SublimeLinter. You can read more about it [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt).
+You can read about all the changes [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt). If you're not ready for this, you can manually install the last [SL3 release](https://github.com/SublimeLinter/SublimeLinter/releases/tag/v3.10.10).
 
-Participate in the beta right now by editing your Package Control preferences and adding SublimeLinter to the "install_prereleases" key:  
-```json
-"install_prereleases":
-[
-  "SublimeLinter"
-]
-```
+Perhaps most important are changes to settings.
+Inline settings and .sublimelinterrc configurations files no longer work. 
+If you need inline or per-directory overrides, most linters provide features for that. 
+[Project settings](https://github.com/SublimeLinter/SublimeLinter/blob/master/docs/settings.rst#project-settings) are still there though,
+and you can use several [variables](https://github.com/SublimeLinter/SublimeLinter/blob/master/docs/settings.rst#settings-expansion) in them now.
 
-To opt-out of an automatic upgrade (so you can do it later at your leasure), add SublimeLinter to the "auto_upgrade_ignore" key:
-```json
-"auto_upgrade_ignore":
-[
-  "SublimeLinter"
-]
-```
+There is no longer a global ["python"](https://github.com/SublimeLinter/SublimeLinter/blob/master/docs/linter_settings.rst#python) setting,
+but it can be set per linter. 
+Linters now also have ["executable"](https://github.com/SublimeLinter/SublimeLinter/blob/master/docs/linter_settings.rst#executable) settings,
+and styles can be customized per linter (and even per error code).
+The default settings have a lot of documentation in them to help you tweak them. Also be sure to check the keybindings, they have several options too.
+
+
 
 <img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
 

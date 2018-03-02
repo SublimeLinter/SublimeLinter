@@ -72,6 +72,7 @@ def plugin_loaded():
 
 def plugin_unloaded():
     queue.unload()
+    persist.settings.unobserve()
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):

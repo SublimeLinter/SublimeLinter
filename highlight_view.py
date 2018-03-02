@@ -116,6 +116,10 @@ def get_demote_predicate():
         return demote_warnings
 
 
+def get_demote_scope():
+    return persist.settings.get('highlights.demote_scope')
+
+
 def demote_nothing(*args, **kwargs):
     return False
 
@@ -176,7 +180,9 @@ def toggle_demoted_regions(view, show):
     for key in region_keys:
         if DEMOTE_WHILE_BUSY_MARKER in key:
             _namespace, scope, flags = key.split('|')
-            flags = int(flags) if show else sublime.HIDDEN
+            flags = int(flags)
+            if not show:
+                scope = get_demote_scope()
 
             regions = view.get_regions(key)
             view.add_regions(key, regions, scope=scope, flags=flags)
@@ -388,7 +394,7 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
         if not idle and DEMOTE_WHILE_BUSY_MARKER in region_id:
-            flags = sublime.HIDDEN
+            scope = get_demote_scope()
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
     if persist.settings.has('gutter_theme'):

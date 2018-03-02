@@ -124,6 +124,10 @@ class BackendController(sublime_plugin.EventListener):
         if has_syntax_changed(view):
             hit(view)
 
+    def on_load_async(self, view):
+        if util.is_lintable(view):
+            hit(view)
+
     def on_post_save_async(self, view):
         if persist.settings.get('lint_mode') == 'manual':
             return

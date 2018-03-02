@@ -70,6 +70,10 @@ def plugin_loaded():
             hit(view)
 
 
+def plugin_unloaded():
+    queue.unload()
+
+
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
     def run(self):
         reloader.reload_everything()

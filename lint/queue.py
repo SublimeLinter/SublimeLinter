@@ -29,6 +29,16 @@ def cleanup(vid):
         pass
 
 
+def unload():
+    while True:
+        try:
+            _vid, timer = timers.popitem()
+        except KeyError:
+            return
+        else:
+            timer.cancel()
+
+
 def get_delay():
     """Return the delay between a lint request and when it will be processed.
 

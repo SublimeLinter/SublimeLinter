@@ -1,0 +1,14 @@
+SublimeLinter 4.0.1
+======================
+
+Introduces highlights.demote_scope
+
+Did you see the settings "highlights.*"? We have a new one:
+
+"highlights.demote_scope"
+
+Set it to the empty string to actually hide regions while editing.
+Set it to a scope to change their appearance, e.g. "comment" to draw
+them in a soft color.
+
+

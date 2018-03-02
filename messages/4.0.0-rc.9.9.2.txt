@@ -1,9 +1,0 @@
-SublimeLinter 4.0 Pre-Release 9.9.2
-===========================================
-
-There is a new linter setting, "env", allowing you to set environment variables.
-
-Renamed setting "chdir" to "working_dir".
-The new default is "${folder:$file_path}", which means it chooses the project
-root if available, and falls back to use the directory of the file you're
-currently editing.

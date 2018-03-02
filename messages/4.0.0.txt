@@ -2,7 +2,7 @@ SublimeLinter 4.0
 ===========================================
 
 You can find this text at
-https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt
+https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0.txt
 
 ####################################################
 #                                                  #

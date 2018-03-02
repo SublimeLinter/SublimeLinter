@@ -49,6 +49,10 @@ class Settings:
         settings.clear_on_change('sublimelinter-persist-settings')
         settings.add_on_change('sublimelinter-persist-settings', self.on_update)
 
+    def unobserve(self):
+        settings = sublime.load_settings("SublimeLinter.sublime-settings")
+        settings.clear_on_change('sublimelinter-persist-settings')
+
     def on_update(self):
         """
         Update state when the user settings change.

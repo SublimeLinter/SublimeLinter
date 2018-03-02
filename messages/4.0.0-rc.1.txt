@@ -85,8 +85,8 @@ How to upgrade
 -------------------------------
 
 Your old settings will be backed up to SublimeLinter old.sublime-settings.
-You may want to compare them to the new settings and check if you want to
-migrate anything.
+You may want to compare them to the new default settings and check if you want
+to migrate anything.
 
 To migrate your settings, first remove the "user" level and un-indent/flatten
 everything a level. Check the default settings to remove settings that don't

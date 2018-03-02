@@ -162,7 +162,7 @@ def has_syntax_changed(view):
     try:
         old_value = buffer_syntaxes[bid]
     except KeyError:
-        return False
+        return True
     else:
         return old_value != current_syntax
     finally:

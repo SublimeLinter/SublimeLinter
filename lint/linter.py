@@ -1164,7 +1164,7 @@ class Linter(metaclass=LinterMeta):
             cmd[cmd.index('${file}')] = self.filename
         elif '@' in cmd:  # legacy SL3 crypto-identifier
             cmd[cmd.index('@')] = self.filename
-        elif not code:
+        elif code is None:
             cmd.append(self.filename)
 
         settings = self.get_view_settings()

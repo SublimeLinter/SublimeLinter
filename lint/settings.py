@@ -83,7 +83,7 @@ def get_settings_objects():
         try:
             yield name, util.load_json(name, from_sl_dir=False)
         except IOError:
-            logger.error("Settings file not found: {}".format(name))
+            pass
         except ValueError:
             logger.error("Settings file corrupt: {}".format(name))
 

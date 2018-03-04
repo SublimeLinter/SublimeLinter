@@ -83,11 +83,10 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
     else:
         status = ""
 
-    if messages and counters:
-        if msgs:
+    if msgs:
+        if messages and counters:
             status += " - {}".format("; ".join(msgs))
-    elif messages:
-        if msgs:
+        elif messages:
             status += "{}".format("; ".join(msgs))
 
     if status != active_view.get_status(STATUS_KEY):

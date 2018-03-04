@@ -88,6 +88,12 @@
     // Highlight problems in the minimap.
     "show_marks_in_minimap": true,
 
+    // Show the number of errors and warnings in the current view
+    "statusbar.counters": true,
+
+    // Show the messages for problems at your cursor position
+    "statusbar.messages": true,
+
     // Global styles for all linters.
     // - mark_style options:
     //   "fill", "outline",

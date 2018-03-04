@@ -97,6 +97,12 @@
         "syntax_map":{
             "type":"object"
         },
+        "statusbar.counters":{
+            "type":"boolean"
+        },
+        "statusbar.messages":{
+            "type":"boolean"
+        },
         "styles":{
             "type":"array",
             "items":{

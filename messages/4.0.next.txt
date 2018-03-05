@@ -1,0 +1,9 @@
+SublimeLinter 4.0.next
+======================
+
+Introduces settings to customize the information in the status bar
+
+- "statusbar.counters_template"
+  configure if and how how W:/E: counters appear in the status bar
+- "statusbar.messages_template"
+  configure that for the messages for the problem at your cursor

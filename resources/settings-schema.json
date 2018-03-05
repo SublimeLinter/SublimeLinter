@@ -97,10 +97,10 @@
         "syntax_map":{
             "type":"object"
         },
-        "statusbar.counters":{
+        "statusbar.counters_template":{
             "type":"string"
         },
-        "statusbar.messages":{
+        "statusbar.messages_template":{
             "type":"string"
         },
         "styles":{

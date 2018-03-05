@@ -91,12 +91,12 @@
     // Display counters in the status bar.
     // {warning} and {error} will be replaced with the actual numbers.
     // Set to "" to display nothing
-    "statusbar.counters": "W: {warning} E: {error}",
+    "statusbar.counters_template": "W: {warning} E: {error}",
 
     // Show the messages for problems at your cursor position
     // {message} will be replaced by the actual messages.
     // Set to "" to display nothing
-    "statusbar.messages": "{messages}",
+    "statusbar.messages_template": "{messages}",
 
     // Global styles for all linters.
     // - mark_style options:

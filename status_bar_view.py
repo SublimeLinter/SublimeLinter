@@ -73,14 +73,16 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
     if we_count and persist.settings.get('statusbar.counters'):
         counter_template = persist.settings.get('statusbar.counters.template')
         counter = counter_template.format(warning=we_count[0], error=we_count[1])
-        active_view.set_status(STATUS_COUNTER_KEY, counter)
+        if counter != active_view.get_status(STATUS_COUNTER_KEY):
+            active_view.set_status(STATUS_COUNTER_KEY, counter)
     else:
         active_view.erase_status(STATUS_COUNTER_KEY)
 
     msgs = messages_under_cursor(errors_per_line, current_pos)
     if msgs and persist.settings.get('statusbar.messages'):
         message = "; ".join(msgs)
-        active_view.set_status(STATUS_MSG_KEY, message)
+        if message != active_view.get_status(STATUS_MSG_KEY):
+            active_view.set_status(STATUS_MSG_KEY, message)
     else:
         active_view.erase_status(STATUS_MSG_KEY)
 

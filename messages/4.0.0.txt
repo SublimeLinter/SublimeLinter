@@ -104,7 +104,7 @@ exist anymore:
 
 You can keep the "linters" settings block if it contains customizations that
 you need. It's also safe to remove it otherwise.
-Note that "@disabled" is now "disable", without the "@" and the "d"
+Note that "@disable" is now "disable", without the "@" and the "d"
 
 If you use the ${project} settings token you should change that to ${folder}.
 

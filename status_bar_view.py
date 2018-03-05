@@ -4,9 +4,12 @@ import sublime_plugin
 from collections import defaultdict
 
 from .lint import persist
-from .lint.const import STATUS_COUNTER_KEY, STATUS_MSG_KEY, WARNING, ERROR
+from .lint.const import WARNING, ERROR
 from .lint import events
 
+
+STATUS_COUNTER_KEY = "sublime_linter_status_counter"
+STATUS_MSG_KEY = "sublime_linter_status_messages"
 
 State = {
     'we_count': {},

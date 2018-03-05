@@ -3,14 +3,13 @@ import sublime_plugin
 
 import time
 
-from .lint.const import STATUS_BUSY_KEY
 from .lint import events
 
 
 INITIAL_DELAY = 2
 CYCLE_TIME = 200
 TIMEOUT = 20
-
+STATUS_BUSY_KEY = "sublime_linter_status_busy"
 
 State = {
     'active_view': None,

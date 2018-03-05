@@ -8,7 +8,7 @@ The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
 
 ## Upgrading from SublimeLinter 3
 
-You can read about all the changes [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0-rc.1.txt). If you're not ready for this, you can manually install the last [SL3 release](https://github.com/SublimeLinter/SublimeLinter/releases/tag/v3.10.10).
+You can read about all the changes [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0.txt). If you're not ready for this, you can manually install the last [SL3 release](https://github.com/SublimeLinter/SublimeLinter/releases/tag/v3.10.10).
 
 Perhaps most important are changes to settings.
 Inline settings and .sublimelinterrc configurations files no longer work. 

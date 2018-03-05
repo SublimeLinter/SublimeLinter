@@ -91,6 +91,9 @@
     // Show the number of errors and warnings in the current view
     "statusbar.counters": true,
 
+    // Show the number of errors and warnings in the current view
+    "statusbar.counters.template": "W: {} E: {}",
+
     // Show the messages for problems at your cursor position
     "statusbar.messages": true,
 

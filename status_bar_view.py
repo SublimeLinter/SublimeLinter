@@ -4,7 +4,7 @@ import sublime_plugin
 from collections import defaultdict
 
 from .lint import persist
-from .lint.const import STATUS_KEY, WARNING, ERROR
+from .lint.const import STATUS_COUNTER_KEY, STATUS_MSG_KEY, WARNING, ERROR
 from .lint import events
 
 
@@ -70,27 +70,19 @@ class UpdateState(sublime_plugin.EventListener):
 
 
 def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
-    show_counters = persist.settings.get('statusbar.counters')
-    show_messages = persist.settings.get('statusbar.messages')
-    msgs = messages_under_cursor(errors_per_line, current_pos)
-
-    if not we_count or (not show_counters and not show_messages):
-        active_view.erase_status(STATUS_KEY)
-        return
-
-    if show_counters:
-        status = "W: {} E: {}".format(*we_count)
+    if we_count and persist.settings.get('statusbar.counters'):
+        counter_template = persist.settings.get('statusbar.counters.template')
+        counter = counter_template.format(*we_count)
+        active_view.set_status(STATUS_COUNTER_KEY, counter)
     else:
-        status = ""
+        active_view.erase_status(STATUS_COUNTER_KEY)
 
-    if msgs:
-        if show_messages and show_counters:
-            status += " - {}".format("; ".join(msgs))
-        elif show_messages:
-            status += "{}".format("; ".join(msgs))
-
-    if status != active_view.get_status(STATUS_KEY):
-        active_view.set_status(STATUS_KEY, status)
+    msgs = messages_under_cursor(errors_per_line, current_pos)
+    if msgs and persist.settings.get('statusbar.messages'):
+        message = "{}".format("; ".join(msgs))
+        active_view.set_status(STATUS_MSG_KEY, message)
+    else:
+        active_view.erase_status(STATUS_MSG_KEY)
 
 
 def messages_under_cursor(errors, current_pos):

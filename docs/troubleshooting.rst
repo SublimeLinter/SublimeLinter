@@ -21,8 +21,10 @@ Here are the most common reasons why a linter does not work:
 
 - The syntax is a variation (e.g. ``"html (django)"``) that isn't mapped
   to a known syntax (e.g. ``"html"``). The detected syntax is printed to the
-  console in debug mode. Also note that plugins should move to using the
-  selector setting instead of the old syntaxes attribute.
+  console in debug mode.
+  Also note that plugins should move to using the selector setting 
+  instead of the old syntaxes attribute. You can use the "selector" linter
+  setting right now instead of the "syntax_map".
 
 - The linter binary is not installed.
   Be sure to install the linter as documented in the linter plugin’s README.
@@ -50,6 +52,18 @@ If a linter’s executable cannot be found, the debug output will include a ``ca
 
 A linter may have additional dependencies (e.g. NodeJS) that may be missing.
 The console should also have information about that.
+
+On macOS
+~~~~~~~~
+
+SublimeLinter can run before the environment variables have been loaded,
+in which case it will not be able to find the right executable.
+This is a known issue in Sublime Text (`#1877 <https://github.com/SublimeTextIssues/Core/issues/1877>`_).
+There is currently no API that let's us wait for the environment.
+
+- This problem goes away by itself, but you may get some error messages until it does.
+- You can lunch Sublime Text from the console, the environment will then be available immediately.
+- All linters take an executable setting. Setting that will allow SL to always find it, bypassing the PATH entirely.
 
 
 Finding a linter executable

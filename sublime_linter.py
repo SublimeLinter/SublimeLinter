@@ -114,8 +114,12 @@ class BackendController(sublime_plugin.EventListener):
         # we get an 'activated' event right after. Since, it is very likely
         # that the linters change as well, we 'hit' immediately for users
         # convenience.
+        # We also use this instead of the `on_load_async` event as 'load'
+        # event, bc 'on_load' fires for preview buffers which is way too
+        # early. This fires a bit too often for 'load_save' mode but it is
+        # good enough.
 
-        if persist.settings.get('lint_mode') != 'background':
+        if persist.settings.get('lint_mode') == 'manual':
             return
 
         if not util.is_lintable(view):

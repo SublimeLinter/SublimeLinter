@@ -88,15 +88,15 @@
     // Highlight problems in the minimap.
     "show_marks_in_minimap": true,
 
-    // Show the number of errors and warnings in the current view.
-    "statusbar.counters": true,
-
-    // How to display the counters.
+    // Display counters in the status bar.
     // {warning} and {error} will be replaced with the actual numbers.
-    "statusbar.counters.template": "W: {warning} E: {error}",
+    // Set to "" to display nothing
+    "statusbar.counters": "W: {warning} E: {error}",
 
     // Show the messages for problems at your cursor position
-    "statusbar.messages": true,
+    // {message} will be replaced by the actual messages.
+    // Set to "" to display nothing
+    "statusbar.messages": "{messages}",
 
     // Global styles for all linters.
     // - mark_style options:

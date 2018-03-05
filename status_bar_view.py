@@ -73,8 +73,8 @@ class UpdateState(sublime_plugin.EventListener):
 
 
 def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
-    if we_count and persist.settings.get('statusbar.counters'):
-        counter_template = persist.settings.get('statusbar.counters.template')
+    counter_template = persist.settings.get('statusbar.counters')
+    if we_count:
         counter = counter_template.format(warning=we_count[0], error=we_count[1])
         if counter != active_view.get_status(STATUS_COUNTER_KEY):
             active_view.set_status(STATUS_COUNTER_KEY, counter)
@@ -82,8 +82,9 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
         active_view.erase_status(STATUS_COUNTER_KEY)
 
     msgs = messages_under_cursor(errors_per_line, current_pos)
-    if msgs and persist.settings.get('statusbar.messages'):
-        message = "; ".join(msgs)
+    message_template = persist.settings.get('statusbar.messages')
+    if msgs:
+        message = message_template.format(messages="; ".join(msgs))
         if message != active_view.get_status(STATUS_MSG_KEY):
             active_view.set_status(STATUS_MSG_KEY, message)
     else:

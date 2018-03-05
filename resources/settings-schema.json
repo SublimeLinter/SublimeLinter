@@ -98,13 +98,10 @@
             "type":"object"
         },
         "statusbar.counters":{
-            "type":"boolean"
-        },
-        "statusbar.counters.template":{
             "type":"string"
         },
         "statusbar.messages":{
-            "type":"boolean"
+            "type":"string"
         },
         "styles":{
             "type":"array",

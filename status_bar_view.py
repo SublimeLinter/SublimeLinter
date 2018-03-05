@@ -79,7 +79,7 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
 
     msgs = messages_under_cursor(errors_per_line, current_pos)
     if msgs and persist.settings.get('statusbar.messages'):
-        message = "{}".format("; ".join(msgs))
+        message = "; ".join(msgs)
         active_view.set_status(STATUS_MSG_KEY, message)
     else:
         active_view.erase_status(STATUS_MSG_KEY)

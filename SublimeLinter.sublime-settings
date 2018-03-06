@@ -76,9 +76,6 @@
         "windows": []
     },
 
-    // How much time to allow for reading $PATH from the shell.
-    "shell_timeout": 10,
-
     // Show a report for problems on a line by hovering over the gutter.
     "show_hover_line_report": true,
 

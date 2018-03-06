@@ -82,9 +82,6 @@
         "paths":{
             "type":"object"
         },
-        "shell_timeout":{
-            "type":"number"
-        },
         "show_hover_line_report":{
             "type":"boolean"
         },

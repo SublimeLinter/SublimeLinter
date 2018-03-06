@@ -1,4 +1,4 @@
-SublimeLinter 4.0.next
+SublimeLinter 4.0.3
 ======================
 
 Introduces settings to customize the information in the status bar

@@ -100,9 +100,12 @@
 
     // Global styles for all linters.
     // - mark_style options:
+    //   "none"
     //   "fill", "outline",
     //   "solid_underline", "squiggly_underline", "stippled_underline"
-    //   "none"
+    //   The underline styles are replaced with outlines when there is
+    //   whitespace in the problem region, because underlines aren't drawn
+    //   on whitespace (ST issue #137).
     // - priority determines which mark is show in the gutter;
     //   error marks will still always override warning marks.
     // - scope is used to determine the color;

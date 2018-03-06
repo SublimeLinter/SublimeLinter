@@ -4,6 +4,11 @@ Settings
 The settings are documented in the default settings file, so you can refer to
 them while editing your settings.
 
+.. note::
+
+    Settings are checked for correctness, a message will display with errors.
+    You need to fix or remove incorrect settings, like typos and deprecated settings.
+
 This page covers some extra tricks and how to work with project specific settings.
 
 Settings stack

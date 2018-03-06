@@ -19,7 +19,7 @@
 
 
     // You can also trigger the line report with a keybinding:
-    // { "keys": ["ctrl+k", "r"], "command": "sublime_linter_line_report" }z
+    // { "keys": ["ctrl+k", "r"], "command": "sublime_linter_line_report" }
 
 
     // Goto next/previous errors from your position, in the current file:

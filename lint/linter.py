@@ -871,6 +871,9 @@ class Linter(metaclass=LinterMeta):
         line = match_dict["line"]
         if line:
             match_dict["line"] = int(line) - self.line_col_base[0]
+        else:
+            logger.info("'line' is not optional. {}".format(match_dict))
+            return None  # log but do not err for now
 
         col = match_dict["col"]
         if col:
@@ -879,6 +882,9 @@ class Linter(metaclass=LinterMeta):
             else:
                 col = len(col)
             match_dict["col"] = col
+        else:
+            # `col` is optional, so we exchange an empty string with None
+            match_dict["col"] = None
 
         return LintMatch(**match_dict)
 

@@ -104,7 +104,7 @@
     //   "solid_underline", "squiggly_underline", "stippled_underline"
     //   "none"
     // - priority determines which mark is show in the gutter;
-    //   error marks will still always overwrite warning marks.
+    //   error marks will still always override warning marks.
     // - scope is used to determine the color;
     //   region.<colorish> are automatically generated scopes in ST > 3148.
     // - types is an array which can contain "warning" and/or "error".

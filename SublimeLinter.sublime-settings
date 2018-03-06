@@ -103,7 +103,7 @@
     //   The underline styles are replaced with outlines when there is
     //   whitespace in the problem region, because underlines aren't drawn
     //   on whitespace (ST issue #137).
-    // - priority determines which mark is show in the gutter;
+    // - priority determines which mark is shown in the gutter;
     //   error marks will still always override warning marks.
     // - scope is used to determine the color;
     //   region.<colorish> are automatically generated scopes in ST > 3148.

@@ -152,5 +152,11 @@
         "php": "html",
         "python django": "python",
         "pythonimproved": "python"
-    }
+    },
+
+    // Tell us what scope is a white color in your color scheme.
+    // This is used to render pre-colored icons (e.g. from the Hands gutter theme)
+    // in their original color.
+    // For most dark color schemes, " " should be correct.
+    "white_scope": " "
 }

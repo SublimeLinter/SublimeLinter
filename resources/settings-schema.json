@@ -139,7 +139,9 @@
                 "additionalProperties":false
             }
         },
-        "white_scope": "string"
+        "white_scope": {
+            "type": "string"
+        }
     },
     "additionalProperties": false
 }

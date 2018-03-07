@@ -158,7 +158,7 @@
     // This is used to render pre-colored icons (e.g. from the Hands gutter theme)
     // in their original color.
     // For most dark color schemes, you probably don't need to change this.
-    // You can also put the "SublimeLinterWhiteScope" scope in your color scheme
+    // You can also put the "sublime_linter.white" scope in your color scheme
     // and set its foreground to white (#FFFFFF).
-    "white_scope": "SublimeLinterWhiteScope"
+    "white_scope": "sublime_linter.white"
 }

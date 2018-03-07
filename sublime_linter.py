@@ -133,7 +133,7 @@ class BackendController(sublime_plugin.EventListener):
             return
 
         # check if the project settings changed
-        if view.window().project_file_name() == view.file_name():
+        if view.window() and view.window().project_file_name() == view.file_name():
             lint_all_views()
             return
 

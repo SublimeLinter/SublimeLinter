@@ -58,10 +58,10 @@ def open_tooltip(active_view, point=None, line_report=False):
     if active_view.is_popup_visible():
         return
 
-    if point:  # provided by hover
-        line, col = active_view.rowcol(point)
-    else:
+    if point is None:
         line, col = get_current_pos(active_view)
+    else:  # provided by hover
+        line, col = active_view.rowcol(point)
 
     bid = active_view.buffer_id()
 

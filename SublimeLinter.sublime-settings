@@ -154,9 +154,11 @@
         "pythonimproved": "python"
     },
 
-    // Tell us what scope is a white color in your color scheme.
+    // Tells us what scope is a white color in your color scheme.
     // This is used to render pre-colored icons (e.g. from the Hands gutter theme)
     // in their original color.
-    // For most dark color schemes, " " should be correct.
-    "white_scope": " "
+    // For most dark color schemes, you probably don't need to change this.
+    // You can also put the "SublimeLinterWhiteScope" scope in your color scheme
+    // and set its foreground to white (#FFFFFF).
+    "white_scope": "SublimeLinterWhiteScope"
 }

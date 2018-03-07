@@ -15,7 +15,7 @@ State = {
     'we_count': {},
     'active_view': None,
     'current_pos': (-1, -1),
-    'errors_per_line': {}
+    'errors_per_line': defaultdict(list)
 }
 
 

@@ -46,20 +46,20 @@
     // What settings are available is documented in the readme of the
     // specific linter plugin.
     // "linters": {
-    //     "csslint": {
+    //     "somelinter": {
     //         "disable": false,
     //         "args": [],
     //         "excludes": []
     //     },
-    //     "flake8": {
+    //     "somepythonlinter": {
     //         "python": null,
     //         "disable": false,
-    //         "args": [],
+    //         "args": [
+    //             "--max-complexity", "-1",
+    //             "--max-line-length", "100",
+    //             "--ignore", "E731,E402"
+    //         ],
     //         "excludes": [],
-    //         "ignore": "",
-    //         "max-complexity": -1,
-    //         "max-line-length": null,
-    //         "select": ""
     //     }
     // }
     "linters": {},

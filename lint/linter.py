@@ -872,8 +872,10 @@ class Linter(metaclass=LinterMeta):
         if line:
             match_dict["line"] = int(line) - self.line_col_base[0]
         else:
-            logger.info("'line' is not optional. {}".format(match_dict))
-            return None  # log but do not err for now
+            # `line` is not optional, but if a user implements `split_match`
+            # and calls `super` first, she has still the chance to fill in
+            # a value on her own.
+            match_dict["line"] = None
 
         col = match_dict["col"]
         if col:

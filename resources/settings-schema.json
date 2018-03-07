@@ -138,6 +138,9 @@
                 ],
                 "additionalProperties":false
             }
+        },
+        "white_scope": {
+            "type": "string"
         }
     },
     "additionalProperties": false

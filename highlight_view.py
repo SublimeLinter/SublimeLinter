@@ -358,7 +358,7 @@ def get_icon_scope(icon, error):
     if style_stores.COLORIZE:
         return get_scope(**error)
     else:
-        return " "  # set scope to non-existent one
+        return persist.settings.get('white_scope')
 
 
 def draw(view, linter_name, highlight_regions, gutter_regions,

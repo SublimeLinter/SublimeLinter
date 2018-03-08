@@ -26,6 +26,9 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_begin_linting)
     events.off(on_finished_linting)
+    for window in sublime.windows():
+        for view in window.views():
+            view.erase_status(STATUS_BUSY_KEY)
 
 
 @events.on(events.LINT_START)

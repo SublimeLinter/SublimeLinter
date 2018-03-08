@@ -44,8 +44,9 @@ def plugin_unloaded():
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
-        if buffer_id in buffer_ids_per_window(window):
-            fill_panel(window, update=True)
+        if window.find_output_panel(PANEL_NAME):
+            if buffer_id in buffer_ids_per_window(window):
+                fill_panel(window, update=True)
 
 
 class UpdateState(sublime_plugin.EventListener):

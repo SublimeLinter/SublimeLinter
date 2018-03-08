@@ -1,6 +1,12 @@
+import sublime
 import sublime_plugin
 
 PANEL_NAME = "SublimeLinter Messages"
+
+
+def plugin_unloaded():
+    for window in sublime.windows():
+        window.destroy_output_panel(PANEL_NAME)
 
 
 class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):

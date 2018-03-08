@@ -30,7 +30,6 @@ UNDERLINE_STYLES = (
 )
 
 SOME_WS = re.compile('\s')
-FALLBACK_MARK_STYLE = 'outline'
 
 WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
@@ -310,10 +309,12 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         selected_text = view.substr(region)
 
         demote_while_busy = demote_predicate(selected_text, **error)
+        fallback_style = persist.settings.get('highlights.fallback')
 
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
-            mark_style = FALLBACK_MARK_STYLE
+            if fallback_style != 'none':
+                mark_style = fallback_style
 
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):

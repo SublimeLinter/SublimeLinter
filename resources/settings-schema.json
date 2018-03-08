@@ -91,6 +91,10 @@
         "show_marks_in_minimap":{
             "type":"boolean"
         },
+        "show_panel_on_save":{
+            "type":"string",
+            "pattern":"^(never|view|window)$"
+        },
         "syntax_map":{
             "type":"object"
         },

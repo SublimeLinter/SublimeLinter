@@ -1,0 +1,10 @@
+SublimeLinter 4.0.next
+======================
+
+Introduces a setting to show the output panel if there are problems:
+
+"show_panel_on_save"
+
+- Set to "window" to check if the window has problems.
+- Set to "view" to only check the current file.
+- Set to "never" to disable this feature. This is the default

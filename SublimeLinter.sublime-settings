@@ -85,6 +85,12 @@
     // Highlight problems in the minimap.
     "show_marks_in_minimap": true,
 
+    // Show the output panel on save if there are problems.
+    // Set to "window" to check if the window has problems.
+    // Set to "view" to only check the current file.
+    // Set to "never" to disable this feature.
+    "show_panel_on_save": "never",
+
     // Display counters in the status bar.
     // {warning} and {error} will be replaced with the actual numbers.
     // Set to "" to display nothing

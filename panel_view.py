@@ -72,6 +72,27 @@ class UpdateState(sublime_plugin.EventListener):
         if window:
             sublime.set_timeout_async(lambda: fill_panel(window, update=True))
 
+    def on_post_save_async(self, view):
+        if persist.settings.get('show_panel_on_save') == 'never':
+            return
+
+        window = view.window()
+        panel = ensure_panel(window)
+        # If we're here and the user actually closed the window in the meantime,
+        # we cannot create a panel anymore, and just pass.
+        if not panel:
+            return
+
+        errors_by_bid = get_window_errors(window, persist.errors)
+
+        if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
+            window.run_command('show_panel', {'panel': 'output.' + PANEL_NAME})
+        else:
+            for bid in errors_by_bid:
+                if bid is view.buffer_id():
+                    window.run_command('show_panel', {'panel': 'output.' + PANEL_NAME})
+                    return
+
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     def run(self, force_show=False, **kwargs):
@@ -208,7 +229,7 @@ def filter_and_sort(buf_errors, panel_filter):
     return sort_errors(buf_errors)
 
 
-def get_window_errors(window, all_errors, panel_filter):
+def get_window_errors(window, all_errors, panel_filter=None):
     bid_error_pairs = (
         (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )

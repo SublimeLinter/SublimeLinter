@@ -50,6 +50,9 @@ def on_lint_result(buffer_id, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if not has_panel(active_view):
+            return
+
         State.update({
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)
@@ -57,6 +60,9 @@ class UpdateState(sublime_plugin.EventListener):
         update_panel_selection(**State)
 
     def on_selection_modified_async(self, _primary_view_):
+        if not has_panel(_primary_view_):
+            return
+
         active_view = State['active_view']
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
@@ -66,6 +72,9 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
     def on_pre_close(self, view):
+        if not has_panel(view):
+            return
+
         window = view.window()
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
@@ -141,6 +150,13 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
                 sel.add(new_selected_region)
                 return
         sel.add(0)
+
+
+def has_panel(view):
+    if view.window():
+        return view.window().find_output_panel(PANEL_NAME)
+    else:
+        return False
 
 
 def get_current_pos(view):

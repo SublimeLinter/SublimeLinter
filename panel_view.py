@@ -223,18 +223,12 @@ def sort_errors(errors):
         errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
 
 
-def filter_and_sort(buf_errors, panel_filter):
-    """Filter errors through white- and blacklisting, then sort them."""
-    buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
-    return sort_errors(buf_errors)
-
-
-def get_window_errors(window, all_errors, panel_filter=None):
+def get_window_errors(window, all_errors):
     bid_error_pairs = (
         (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )
     return {
-        bid: filter_and_sort(errors, panel_filter)
+        bid: sort_errors(errors)
         for bid, errors in bid_error_pairs
         if errors
     }
@@ -264,36 +258,8 @@ def format_row(item):
     return tmpl.format(LINE=line, START=start, **item)
 
 
-def passes_listing(error, panel_filter):
-    """Check value against white- and blacklisting and return bool."""
-    # check whitelisting
-    if not panel_filter:
-        return True
-
-    COMMAND_ARG_TO_ERROR_KEY = {
-        "types": "error_type",
-        "codes": "code",
-        "linter": "linter"
-    }
-
-    for key, check_val in COMMAND_ARG_TO_ERROR_KEY.items():
-        # check whitelisting
-        if key in panel_filter:
-            if error[check_val] not in panel_filter[key]:
-                return False
-
-        # check blacklisting
-        exclude_key = "exclude_" + key
-        if exclude_key in panel_filter:
-            if error[check_val] in panel_filter[exclude_key]:
-                return False
-
-    # if all checks passed return True
-    return True
-
-
-def fill_panel(window, update=False, **panel_filter):
-    errors_by_bid = get_window_errors(window, persist.errors, panel_filter)
+def fill_panel(window, update=False):
+    errors_by_bid = get_window_errors(window, persist.errors)
 
     path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
 
@@ -302,14 +268,6 @@ def fill_panel(window, update=False, **panel_filter):
     # we cannot create a panel anymore, and just pass.
     if not panel:
         return
-
-    settings = panel.settings()
-    settings.set("result_base_dir", base_dir)
-
-    if update:
-        panel_filter = settings.get("sublime_linter_panel_filter")
-    else:
-        settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = []
     for bid, buf_errors in errors_by_bid.items():

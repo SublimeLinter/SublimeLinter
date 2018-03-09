@@ -20,7 +20,6 @@ New features
 - The statusbar shows the error for your cursor position instead of all errors
   for that line.
 - A panel displays errors in all open files.
-- The panel can be filtered to just show specific types or severity level.
 - Jump between errors in the current file with sublime_linter_goto_error.
 - A new "styles" setting to configure error highlighting.
 - Each linter setting now accepts such a "styles" setting, so colors, icons and
@@ -72,9 +71,6 @@ Your linter should have settings to modify the rules or severity levels.
 
 Settings tokens (e.g. ${folder}) are now expanded using SublimeText features,
 so there are more tokens you can use. The docs covers this in more detail.
-
-The new output panel and filtering have supplanted the "make_warnings_passive"
-and "show_errors_on_save" features.
 
 Settings can be specified in your user settings, or in project configuration
 (*.sublime-project files). Inline settings, inline overrides, shebang settings

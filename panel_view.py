@@ -86,11 +86,11 @@ class UpdateState(sublime_plugin.EventListener):
         errors_by_bid = get_window_errors(window, persist.errors)
 
         if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
-            window.run_command('show_panel', {'panel': 'output.' + PANEL_NAME})
+            window.run_command("sublime_linter_panel_toggle", {"force_show": True})
         else:
             for bid in errors_by_bid:
                 if bid is view.buffer_id():
-                    window.run_command('show_panel', {'panel': 'output.' + PANEL_NAME})
+                    window.run_command("sublime_linter_panel_toggle", {"force_show": True})
                     return
 
 

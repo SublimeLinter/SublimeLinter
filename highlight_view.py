@@ -365,11 +365,9 @@ def get_icon_scope(icon, error):
 
 
 def undraw(view):
-    current_region_keys = get_regions_keys(view)
-    current_linter_keys = {key for key in current_region_keys
-                           if key.startswith('SL.')}
-    for key in current_linter_keys:
+    for key in get_regions_keys(view):
         view.erase_regions(key)
+    remember_region_keys(view, set())
 
 
 def draw(view, linter_name, highlight_regions, gutter_regions,

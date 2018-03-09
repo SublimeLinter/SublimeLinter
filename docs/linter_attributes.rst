@@ -165,6 +165,7 @@ The pattern must contain at least the following named capture groups:
 | Name      | Description                                                     |
 +===========+=================================================================+
 | line      | The line number on which the problem occurred                   |
++-----------+-----------------------------------------------------------------+
 | message   | The description of the problem                                  |
 +-----------+-----------------------------------------------------------------+
 
@@ -194,6 +195,8 @@ the pattern should contain the following named capture groups when possible:
 |           | linter provides a column number, you may still use              |
 |           | this capture group and SublimeLinter will highlight that text   |
 |           | (stripped of quotes) exactly.                                   |
++-----------+-----------------------------------------------------------------+
+| code      | The corresponding error code given by the linter, if supported. |
 +-----------+-----------------------------------------------------------------+
 
 

@@ -21,6 +21,9 @@
         "highlights.demote_scope": {
             "type":"string"
         },
+        "highlights.fallback": {
+            "pattern":"^(fill|outline|none)$"
+        },
         "lint_mode":{
             "type":"string",
             "pattern":"^(background|load_save|manual)$"

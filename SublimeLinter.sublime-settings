@@ -35,6 +35,11 @@
     // the regions. E.g. try 'comment' to get a soft gray.
     "highlights.demote_scope": "",
 
+    // Fall back to "fill" or "outline" when using *_underline mark styles.
+    // Sublime Text doesn't draw underlines on whitespace, so you might
+    // miss information otherwise. Set to "none" to disable the fallback.
+    "highlights.fallback": "outline",
+
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
     // load_save: when a file is opened and every time it's saved

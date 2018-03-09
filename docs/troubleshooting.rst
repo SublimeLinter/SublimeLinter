@@ -62,7 +62,7 @@ This is a known issue in Sublime Text (`#1877 <https://github.com/SublimeTextIss
 There is currently no API that let's us wait for the environment.
 
 - This problem goes away by itself, but you may get some error messages until it does.
-- You can lunch Sublime Text from the console, the environment will then be available immediately.
+- You can launch Sublime Text from the console, the environment will then be available immediately.
 - All linters take an executable setting. Setting that will allow SL to always find it, bypassing the PATH entirely.
 
 

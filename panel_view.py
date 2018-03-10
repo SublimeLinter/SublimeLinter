@@ -350,6 +350,10 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     If current position is past last error, place empty selection on the panel line following that of last error.
 
     """
+    panel = get_panel(sublime.active_window())
+    if not panel:
+        return
+
     if current_pos == (-1, -1):
         return
 
@@ -388,9 +392,6 @@ def update_panel_selection(active_view, current_pos, **kwargs):
         panel_lines = get_next_panel_line(line, col, errors or all_errors)
 
     # logic for changing panel selection
-    panel = get_panel(sublime.active_window())
-    if not panel:
-        return
 
     if panel_lines[0] == panel_lines[1]:
         draw_position_marker(panel, panel_lines[0], is_full_line)

@@ -275,15 +275,14 @@ def format_row(item):
 
 
 def fill_panel(window, update=False):
-    errors_by_bid = get_window_errors(window, persist.errors)
-
-    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
-
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
     # we cannot create a panel anymore, and just pass.
     if not panel:
         return
+
+    errors_by_bid = get_window_errors(window, persist.errors)
+    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)

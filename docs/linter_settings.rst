@@ -106,7 +106,7 @@ selector
 --------
 
 This takes precedence over deprecated `syntax` property.
-This allows override when given linter is activated for specfic file types.
+This allows override when given linter is activated for specific file types.
 It should be a string containing a list of comma separated selectors.
 
 For example, by default yamllint is activated only for YAML files (`source.yaml`)
@@ -125,10 +125,10 @@ To do that, we can override syntax selector for given linter:
         },
     }
 
-To find out what selector to use for given file type, install `PackageDev` and
-use the `Tools`, `Developer`, `Show Scope Name` and copy value from popup window.
+To find out what selector to use for given file type, see menu
+`Tools`, `Developer`, `Show Scope Name` and copy value from pop-up window.
 
-Or you can open specific file, place cursor in it and  thn run below code
+Or you can open specific file, place cursor in it and then run below code
 in SublimeText3 console.
 
 .. code-block:: python

@@ -82,6 +82,7 @@ class UpdateState(sublime_plugin.EventListener):
             sublime.set_timeout_async(lambda: fill_panel(window, update=True))
 
     def on_post_save_async(self, view):
+        """Show the panel if the view or window has problems, depending on settings."""
         if persist.settings.get('show_panel_on_save') == 'never':
             return
 

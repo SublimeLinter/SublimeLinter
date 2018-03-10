@@ -275,6 +275,7 @@ def format_row(item):
 
 
 def fill_panel(window, update=False):
+    """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
     # we cannot create a panel anymore, and just pass.

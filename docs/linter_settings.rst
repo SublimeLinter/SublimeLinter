@@ -15,7 +15,9 @@ At any time you can manually set the executable a linter should use.
 
 .. code-block:: json
 
-    "executable": "${folder}/node_modules/bin/eslint"
+    {
+        "executable": "${folder}/node_modules/bin/eslint"
+    }
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
@@ -26,8 +28,9 @@ Set additional environment variables.
 
 .. code-block:: json
 
-    "env": "{'GEM_HOME': '~/foo/bar'}"
-
+    {
+        "env": "{'GEM_HOME': '~/foo/bar'}"
+    }
 
 args
 ----
@@ -117,12 +120,14 @@ To do that, we can override syntax selector for given linter:
 
 .. code-block:: json
 
-    "linters": {
-        "yamllint":
-        {
-            "selector": "source.yaml,source.ansible"
+    {
+        "linters": {
+            "yamllint":
+            {
+                "selector": "source.yaml,source.ansible"
 
-        },
+            },
+        }
     }
 
 To find out what selector to use for given file type, see menu
@@ -134,3 +139,4 @@ in SublimeText3 console.
 .. code-block:: python
 
     print (view.scope_name(view.sel()[0].b))
+

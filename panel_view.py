@@ -285,6 +285,9 @@ def fill_panel(window, update=False):
     if not panel:
         return
 
+    settings = panel.settings()
+    settings.set("result_base_dir", base_dir)
+
     to_render = []
     for bid, buf_errors in errors_by_bid.items():
         # append header

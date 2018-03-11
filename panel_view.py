@@ -345,10 +345,6 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.
-
-
-
-
     If current position is past last error, place empty selection on the panel line following that of last error.
 
     """

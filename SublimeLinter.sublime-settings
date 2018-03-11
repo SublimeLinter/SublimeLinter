@@ -19,7 +19,7 @@
     // ProjectIcons
     // Note that you may need to change the "icon" property in "styles"
     // to an icon in the theme (they usually include "warning" and "error")
-    "gutter_theme": "none",
+    "gutter_theme": "Default",
 
     // EXPERIMENTAL: See below `demote_while_editing`.
     "highlights.time_to_idle": 5,

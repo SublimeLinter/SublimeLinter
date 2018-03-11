@@ -9,7 +9,8 @@
             "type":"number"
         },
         "gutter_theme":{
-            "type":"string"
+            "type":"string",
+            "pattern":"^(Blueberry Cross|Blueberry Round|Circle|Danish Royalty|Default|Hands|Knob|Knob Symbol|Koloria|ProjectIcons)$"
         },
         "highlights.time_to_idle":{
             "type":"number"

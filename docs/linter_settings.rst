@@ -15,7 +15,9 @@ At any time you can manually set the executable a linter should use.
 
 .. code-block:: json
 
-    "executable": "${folder}/node_modules/bin/eslint"
+    {
+        "executable": "${folder}/node_modules/bin/eslint"
+    }
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
@@ -26,8 +28,9 @@ Set additional environment variables.
 
 .. code-block:: json
 
-    "env": "{'GEM_HOME': '~/foo/bar'}"
-
+    {
+        "env": "{'GEM_HOME': '~/foo/bar'}"
+    }
 
 args
 ----

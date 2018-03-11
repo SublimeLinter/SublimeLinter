@@ -25,5 +25,5 @@ If ``rvm-auto-ruby`` is installed, ``(rvm-auto-ruby [, gem])`` will be executed.
 
 Otherwise ``ruby`` or ``gem`` will be executed.
 
-.. _rbenv: https://github.com/sstephenson/rbenv
+.. _rbenv: https://github.com/rbenv/rbenv
 .. _rvm: http://rvm.io

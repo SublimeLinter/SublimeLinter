@@ -26,11 +26,6 @@ class RubyLinter(linter.Linter):
 
     """
 
-    @classmethod
-    def can_lint(cls):
-        """Assume the linter can lint."""
-        return True
-
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the gem and ruby specified in cmd, return new cmd list.

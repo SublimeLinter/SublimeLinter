@@ -62,6 +62,9 @@ def plugin_loaded():
 
 def plugin_unloaded():
     events.off(on_lint_result)
+    for window in sublime.windows():
+        for view in window.views():
+            undraw(view)
 
 
 @events.on(events.LINT_RESULT)
@@ -359,6 +362,12 @@ def get_icon_scope(icon, error):
         return get_scope(**error)
     else:
         return "region.whitish"  # hopefully a white color
+
+
+def undraw(view):
+    for key in get_regions_keys(view):
+        view.erase_regions(key)
+    remember_region_keys(view, set())
 
 
 def draw(view, linter_name, highlight_regions, gutter_regions,

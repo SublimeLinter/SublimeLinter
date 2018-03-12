@@ -27,6 +27,10 @@ def plugin_loaded():
 
 def plugin_unloaded():
     events.off(on_lint_result)
+    for window in sublime.windows():
+        for view in window.views():
+            view.erase_status(STATUS_COUNTER_KEY)
+            view.erase_status(STATUS_MSG_KEY)
 
 
 @events.on(events.LINT_RESULT)

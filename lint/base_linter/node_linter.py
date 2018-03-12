@@ -3,11 +3,15 @@
 import codecs
 import json
 import hashlib
+import logging
 import os
 
 import sublime
 
 from .. import linter, util
+
+
+logger = logging.getLogger(__name__)
 
 
 class NodeLinter(linter.Linter):
@@ -61,9 +65,8 @@ class NodeLinter(linter.Linter):
         if global_cmd:
             return True, global_cmd
         else:
-            msg = 'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0])
-            util.printf(msg)
-            util.message(msg)
+            logger.warning(
+                'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0]))
             return True, None
 
     def get_manifest_path(self):

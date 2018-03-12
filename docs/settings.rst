@@ -18,8 +18,72 @@ Settings are merged in the following order:
 
 #. Default settings
 #. User settings
-#. Project settings
+#. :ref:`Project settings <project>` (only "linters" settings)
 
+
+Styles (colors)
+---------------
+Colors are applied to highlights and gutter icons using **scopes**.
+
+Scopes are how Sublime Text manages color.
+Regions of code (and sections of the gutter) are labelled with scopes.
+You can think of scopes as class names in an HTML file.
+These scopes then receive color from the color scheme, which is kinda like a CSS stylesheet.
+
+SublimeLinter expects the scopes ``markup.warning`` and ``markup.error`` to get
+correct colors from most color schemes.
+We have some fallbacks, and SublimeText > 3149 helps us with scopes like ``region.redish``.
+
+However, sometimes that doesn't work and your icon is white.
+In this case you need to use a scope that *does* get the color you want.
+
+Take this code snippet as a starting point to extact colors from:
+
+.. image:: colors/1.png
+
+If I put the cursor just before the ``=`` I can then use the
+"Tools > Developer > Show Scope Name" menu item to find out what scope that is:
+
+.. image:: colors/2.png
+
+.. image:: colors/3.png
+
+So, let's hit "copy" here and put that into the "scope" for errors.
+Do the same thing for the yellowish color in ``getElementById``.
+This gets me the following styles:
+
+.. code-block:: json
+
+    {
+        "styles": [
+            {
+                "mark_style": "stippled_underline",
+                "priority": 1,
+                "scope": "source.js meta.function-call.method.js support.function.dom.js",
+                "icon": "pointer",
+                "types": [
+                    "warning"
+                ]
+            },
+            {
+                "mark_style": "stippled_underline",
+                "priority": 1,
+                "scope": "source.js meta.block.js keyword.operator.assignment.js",
+                "icon": "pointer",
+                "types": [
+                    "error"
+                ]
+            }
+        ]
+    }
+
+
+Which looks like this:
+
+.. image:: colors/4.png
+
+
+.. _project:
 
 Project settings
 ----------------

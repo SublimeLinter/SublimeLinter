@@ -8,3 +8,4 @@ coverage.xml
 _build/
 .mypy_cache/
 .ropeproject/
+docs-out

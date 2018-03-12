@@ -74,8 +74,7 @@ class Settings:
         if self.has_changed('gutter_theme'):
             style.read_gutter_theme()
 
-        from .. import sublime_linter
-        sublime_linter.lint_all_views()
+        sublime.run_command('sublime_linter_config_changed')
 
 
 def get_settings_objects():

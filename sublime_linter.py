@@ -173,6 +173,11 @@ def has_syntax_changed(view):
         buffer_syntaxes[bid] = current_syntax
 
 
+class SublimeLinterConfigChanged(sublime_plugin.ApplicationCommand):
+    def run(self):
+        lint_all_views()
+
+
 def lint_all_views():
     """Mimic a modification of all views, which will trigger a relint."""
     for window in sublime.windows():

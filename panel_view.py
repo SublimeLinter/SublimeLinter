@@ -132,13 +132,6 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
         sel.add(0)
 
 
-def has_panel(view):
-    if view.window():
-        return view.window().find_output_panel(PANEL_NAME)
-    else:
-        return False
-
-
 def get_current_pos(view):
     try:
         return view.rowcol(view.sel()[0].begin())

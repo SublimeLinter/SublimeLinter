@@ -178,7 +178,7 @@ class LinterMeta(type):
 
         # The sublime plugin API is not available until plugin_loaded is executed
         if persist.api_ready:
-            persist.settings.load()
+            sublime.run_command('sublime_linter_config_changed')
             logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):

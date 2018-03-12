@@ -50,26 +50,22 @@ def on_lint_result(buffer_id, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        if not panel_is_active(active_view.window()):
-            return
-
         State.update({
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)
         })
-        update_panel_selection(**State)
+        if panel_is_active(active_view.window()):
+            update_panel_selection(**State)
 
     def on_selection_modified_async(self, _primary_view_):
-        if not has_panel(_primary_view_.window()):
-            return
-
         active_view = State['active_view']
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
                 'current_pos': current_pos
             })
-            update_panel_selection(**State)
+            if panel_is_active(_primary_view_.window()):
+                update_panel_selection(**State)
 
     def on_pre_close(self, view):
         if not panel_is_active(view.window()):

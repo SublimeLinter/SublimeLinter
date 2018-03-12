@@ -10,4 +10,5 @@ install:
 
 script:
   - flake8
-  - sphinx-build docs docs-out
+  - sphinx-build -j auto docs docs-out
+  - sphinx-build -j auto -b linkcheck docs docs-out

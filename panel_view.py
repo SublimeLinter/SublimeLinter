@@ -45,7 +45,7 @@ def plugin_unloaded():
 def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if window.find_output_panel(PANEL_NAME) and buffer_id in buffer_ids_per_window(window):
-            fill_panel(window, update=True)
+            fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -79,7 +79,7 @@ class UpdateState(sublime_plugin.EventListener):
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
         if window:
-            sublime.set_timeout_async(lambda: fill_panel(window, update=True))
+            sublime.set_timeout_async(lambda: fill_panel(window))
 
     def on_post_save_async(self, view):
         """Show the panel if the view or window has problems, depending on settings."""
@@ -273,7 +273,7 @@ def format_row(item):
     return tmpl.format(LINE=line, START=start, **item)
 
 
-def fill_panel(window, update=False):
+def fill_panel(window):
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,

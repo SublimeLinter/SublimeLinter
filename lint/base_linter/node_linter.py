@@ -53,11 +53,9 @@ class NodeLinter(linter.Linter):
             local_cmd = self.find_local_cmd_path(cmd[0])
             if local_cmd:
                 return True, local_cmd
-            elif self.get_view_settings().get('disable_if_not_dependency', False):
-                util.printf(
-                    "Disabled {}. Did you `npm install {}`?."
-                    .format(self.name, cmd[0]))
-                return True, None
+
+        if self.get_view_settings().get('disable_if_not_dependency', False):
+            return True, None
 
         global_cmd = util.which(cmd[0])
         if global_cmd:

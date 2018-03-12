@@ -109,12 +109,12 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         is_active_panel = (active_panel == "output." + PANEL_NAME)
 
         if is_active_panel and not force_show:
-            self.toggle_panel(PANEL_NAME, show=False)
+            self.toggle_panel(show=False)
         else:
             fill_panel(self.window, **kwargs)
-            self.toggle_panel(PANEL_NAME)
+            self.toggle_panel()
 
-    def toggle_panel(self, name, show=True):
+    def toggle_panel(self, show=True):
         """
         Change visibility of panel with given name.
 
@@ -126,7 +126,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         else:
             cmd = "hide_panel"
 
-        self.window.run_command(cmd, {"panel": "output." + name or ""})
+        self.window.run_command(cmd, {"panel": "output." + PANEL_NAME})
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):

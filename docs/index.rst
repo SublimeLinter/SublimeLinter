@@ -1,9 +1,9 @@
 Welcome to SublimeLinter
 ==========================
 
-SublimeLinter is a plugin for `Sublime Text`_ that provides a framework for linting code.
+SublimeLinter is a plugin for `Sublime Text <https://www.sublimetext.com/>`_ that provides a framework for linting code.
 
-SublimeLinter repo and issues can be reached on `github`_.
+SublimeLinter repo and issues can be reached on `GitHub <https://github.com/SublimeLinter/SublimeLinter>`_.
 
 .. image:: screenshot.png
 
@@ -26,7 +26,3 @@ SublimeLinter repo and issues can be reached on `github`_.
     linter_methods
     python_linter
     ruby_linter
-
-
-.. _github: https://github.com/SublimeLinter/SublimeLinter
-.. _Sublime Text: https://www.sublimetext.com/

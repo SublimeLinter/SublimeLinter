@@ -390,10 +390,6 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     update_selection(panel, region)
     panel.show_at_center(region)
 
-    # simulate scrolling to enforce rerendering of panel,
-    # otherwise selection is not updated (ST core bug)
-    panel.run_command("scroll_lines")
-
 
 def draw_position_marker(panel, line, error_under_cursor):
     if error_under_cursor:

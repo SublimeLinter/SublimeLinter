@@ -68,13 +68,10 @@ class UpdateState(sublime_plugin.EventListener):
                 update_panel_selection(**State)
 
     def on_pre_close(self, view):
-        if not panel_is_active(view.window()):
-            return
-
         window = view.window()
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
-        if window:
+        if window and panel_is_active(window):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
     def on_post_save_async(self, view):

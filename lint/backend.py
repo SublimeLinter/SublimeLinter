@@ -181,12 +181,16 @@ def filter_linters(linters, view):
             matched = False
 
             for pattern in excludes:
-                if fnmatch(filename, pattern):
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
+
+                if matched:
                     logger.info(
-                        '{} skipped \'{}\', excluded by \'{}\''
+                        "{} skipped '{}', excluded by '{}'"
                         .format(linter.name, filename, pattern)
                     )
-                    matched = True
                     break
 
             if matched:

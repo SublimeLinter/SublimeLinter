@@ -159,9 +159,9 @@ def create_path_dict(window, bids):
 
     rel_paths = {
         bid: (
-            abs_path
-            if abs_path.startswith('<untitled')
-            else os.path.relpath(abs_path, base_dir)
+            os.path.relpath(abs_path, base_dir)
+            if base_dir and not abs_path.startswith('<untitled')
+            else abs_path
         )
         for bid, abs_path in file_names_by_bid.items()
     }

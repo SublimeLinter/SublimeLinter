@@ -44,13 +44,13 @@ def plugin_unloaded():
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
-        if window.find_output_panel(PANEL_NAME) and buffer_id in buffer_ids_per_window(window):
+        if panel_is_active(window) and buffer_id in buffer_ids_per_window(window):
             fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        if not has_panel(active_view):
+        if not panel_is_active(active_view.window()):
             return
 
         State.update({
@@ -60,7 +60,7 @@ class UpdateState(sublime_plugin.EventListener):
         update_panel_selection(**State)
 
     def on_selection_modified_async(self, _primary_view_):
-        if not has_panel(_primary_view_):
+        if not has_panel(_primary_view_.window()):
             return
 
         active_view = State['active_view']
@@ -72,7 +72,7 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
     def on_pre_close(self, view):
-        if not has_panel(view):
+        if not panel_is_active(view.window()):
             return
 
         window = view.window()
@@ -83,14 +83,8 @@ class UpdateState(sublime_plugin.EventListener):
 
     def on_post_save_async(self, view):
         """Show the panel if the view or window has problems, depending on settings."""
-        if persist.settings.get('show_panel_on_save') == 'never':
-            return
-
         window = view.window()
-        panel = ensure_panel(window)
-        # If we're here and the user actually closed the window in the meantime,
-        # we cannot create a panel anymore, and just pass.
-        if not panel:
+        if persist.settings.get('show_panel_on_save') == 'never' or panel_is_active(window):
             return
 
         errors_by_bid = get_window_errors(window, persist.errors)
@@ -116,12 +110,6 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             self.toggle_panel()
 
     def toggle_panel(self, show=True):
-        """
-        Change visibility of panel with given name.
-
-        Panel will be shown by default.
-        Pass show=False for hiding.
-        """
         if show:
             self.window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
         else:
@@ -203,6 +191,16 @@ def create_path_dict(window, bids):
     }
 
     return rel_paths, base_dir
+
+
+def panel_is_active(window):
+    if not window:
+        return False
+
+    if window.active_panel() == "output." + PANEL_NAME:
+        return True
+    else:
+        return False
 
 
 def create_panel(window):
@@ -347,6 +345,9 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.
+
+
+
 
     If current position is past last error, place empty selection on the panel line following that of last error.
 

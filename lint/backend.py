@@ -161,6 +161,7 @@ def get_selectors(linter, wanted_syntax):
 
 def filter_linters(linters, view):
     filename = view.file_name()
+    filename = os.path.realpath(filename) if filename else '<untitled>'
 
     enabled, disabled = [], []
     for linter in linters:
@@ -175,25 +176,26 @@ def filter_linters(linters, view):
             disabled.append(linter)
             continue
 
-        if filename:
-            filename = os.path.realpath(filename)
-            excludes = util.convert_type(view_settings.get('excludes', []), [])
+        excludes = util.convert_type(view_settings.get('excludes', []), [])
+        if excludes:
+            matched = False
 
-            if excludes:
-                matched = False
-
-                for pattern in excludes:
-                    if fnmatch(filename, pattern):
-                        logger.info(
-                            '{} skipped \'{}\', excluded by \'{}\''
-                            .format(linter.name, filename, pattern)
-                        )
-                        matched = True
-                        break
+            for pattern in excludes:
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
 
                 if matched:
-                    disabled.append(linter)
-                    continue
+                    logger.info(
+                        "{} skipped '{}', excluded by '{}'"
+                        .format(linter.name, filename, pattern)
+                    )
+                    break
+
+            if matched:
+                disabled.append(linter)
+                continue
 
         enabled.append((linter, view_settings))
 

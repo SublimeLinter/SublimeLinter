@@ -1,5 +1,4 @@
 from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
-from distutils.versionpredicate import VersionPredicate
 from functools import lru_cache
 from numbers import Number
 import threading
@@ -138,7 +137,7 @@ class LinterMeta(type):
             setattr(cls, 'disabled', True)
 
         if not cls.disabled:
-            for regex in ('regex', 'word_re', 'version_re'):
+            for regex in ('regex', 'word_re'):
                 attr = getattr(cls, regex)
 
                 if isinstance(attr, str):
@@ -240,25 +239,6 @@ class Linter(metaclass=LinterMeta):
     # Subclasses should consider this read only.
     executable_path = None
 
-    # Some linter plugins have version requirements as far as the linter executable.
-    # The following three attributes can be defined to define the requirements.
-    # version_args is a string/list/tuple that represents the args used to get
-    # the linter executable's version as a string.
-    version_args = None
-
-    # A regex pattern or compiled regex used to match the numeric portion of the version
-    # from the output of version_args. It must contain a named capture group called
-    # "version" that captures only the version, including dots but excluding a prefix
-    # such as "v".
-    version_re = None
-
-    # A string which describes the version requirements, suitable for passing to
-    # the distutils.versionpredicate.VersionPredicate constructor, as documented here:
-    # http://pydoc.org/2.5.1/distutils.versionpredicate.html
-    # Only the version requirements (what is inside the parens) should be
-    # specified here, do not include the package name or parens.
-    version_requirement = None
-
     # A regex pattern used to extract information from the executable's output.
     regex = ''
 
@@ -346,7 +326,6 @@ class Linter(metaclass=LinterMeta):
     # Internal class storage, do not set
     #
     disabled = False
-    executable_version = None
 
     def __init__(self, view, syntax):
         self.view = view
@@ -1063,69 +1042,7 @@ class Linter(metaclass=LinterMeta):
             logger.warning(status)
             return False
 
-        if cls.executable_path:
-            can = cls.fulfills_version_requirement()
-
         return can
-
-    @classmethod
-    def fulfills_version_requirement(cls):
-        """
-        Return whether the executable fulfills version_requirement.
-
-        When this is called, cls.executable_path has been set.
-        """
-        if not(cls.version_args is not None and cls.version_re and cls.version_requirement):
-            return True
-
-        cls.executable_version = cls.get_executable_version()
-
-        if cls.executable_version:
-            predicate = VersionPredicate(
-                '{} ({})'.format(cls.name.replace('-', '.'), cls.version_requirement)
-            )
-
-            if predicate.satisfied_by(cls.executable_version):
-                logger.info(
-                    '{}: ({}) satisfied by {}'
-                    .format(cls.name, cls.version_requirement, cls.executable_version)
-                )
-                return True
-            else:
-                warning = '{} deactivated, version requirement ({}) not fulfilled by {}'
-                msg = warning.format(cls.name, cls.version_requirement, cls.executable_version)
-                logger.warning(msg)
-
-        return False
-
-    @classmethod
-    def get_executable_version(cls):
-        """Extract and return the string version of the linter executable."""
-        args = cls.version_args
-
-        if isinstance(args, str):
-            args = shlex.split(args)
-        else:
-            args = list(args)
-
-        if isinstance(cls.executable_path, str):
-            cmd = [cls.executable_path]
-        else:
-            cmd = list(cls.executable_path)
-
-        cmd += args
-        logger.info('{} version query: {}'.format(cls.name, ' '.join(cmd)))
-
-        version = util.communicate(cmd, output_stream=util.STREAM_BOTH)
-        match = cls.version_re.search(version)
-
-        if match:
-            version = match.group('version')
-            logger.info('{} version: {}'.format(cls.name, version))
-            return version
-        else:
-            logger.warning('no {} version could be extracted from:\n{}'.format(cls.name, version))
-            return None
 
     def run(self, cmd, code):
         """

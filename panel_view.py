@@ -388,7 +388,7 @@ def update_panel_selection(active_view, current_pos, **kwargs):
         region = sublime.Region(region_a.begin(), region_b.end())
 
     update_selection(panel, region)
-    panel.show_at_center(region)
+    sublime.set_timeout_async(lambda: panel.show_at_center(region))
 
 
 def draw_position_marker(panel, line, error_under_cursor):

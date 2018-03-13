@@ -5,6 +5,7 @@ import sublime_plugin
 from .lint import persist, events
 
 PANEL_NAME = "SublimeLinter"
+OUTPUT_PANEL = "output." + PANEL_NAME
 OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,
@@ -97,7 +98,7 @@ class UpdateState(sublime_plugin.EventListener):
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     def run(self, force_show=False, **kwargs):
         active_panel = self.window.active_panel()
-        is_active_panel = (active_panel == "output." + PANEL_NAME)
+        is_active_panel = (active_panel == OUTPUT_PANEL)
 
         if is_active_panel and not force_show:
             self.toggle_panel(show=False)
@@ -110,7 +111,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             active_group = self.window.active_group()
             active_view = self.window.active_view()
 
-            self.window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
+            self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
             # Apply focus fix to ensure `next_result` is bound to our panel.
             panel = self.window.find_output_panel(PANEL_NAME)
@@ -119,7 +120,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             self.window.focus_group(active_group)
             self.window.focus_view(active_view)
         else:
-            self.window.run_command("hide_panel", {"panel": "output." + PANEL_NAME})
+            self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
@@ -196,7 +197,7 @@ def panel_is_active(window):
     if not window:
         return False
 
-    if window.active_panel() == "output." + PANEL_NAME:
+    if window.active_panel() == OUTPUT_PANEL:
         return True
     else:
         return False

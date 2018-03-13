@@ -112,20 +112,11 @@ class UpdateState(sublime_plugin.EventListener):
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
     def run(self, force_show=False, **kwargs):
-        active_panel = self.window.active_panel()
-        is_active_panel = (active_panel == OUTPUT_PANEL)
-
-        if is_active_panel and not force_show:
-            self.toggle_panel(show=False)
+        if panel_is_active(self.window) and not force_show:
+            self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
             fill_panel(self.window)
-            self.toggle_panel()
-
-    def toggle_panel(self, show=True):
-        if show:
             self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-        else:
-            self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):

@@ -51,6 +51,9 @@ def on_lint_result(buffer_id, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if active_view.settings().get('is_widget'):
+            return
+
         State.update({
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)

@@ -103,7 +103,7 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         if is_active_panel and not force_show:
             self.toggle_panel(show=False)
         else:
-            fill_panel(self.window, **kwargs)
+            fill_panel(self.window)
             self.toggle_panel()
 
     def toggle_panel(self, show=True):

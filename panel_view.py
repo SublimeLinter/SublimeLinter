@@ -94,10 +94,10 @@ class UpdateState(sublime_plugin.EventListener):
         errors_by_bid = get_window_errors(window, persist.errors)
 
         if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
-            window.run_command("sublime_linter_panel_toggle", {"force_show": True})
+            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
         else:
             if view.buffer_id() in errors_by_bid:
-                window.run_command("sublime_linter_panel_toggle", {"force_show": True})
+                window.run_command("show_panel", {"panel": OUTPUT_PANEL})
                 return
 
     def on_post_window_command(self, window, command_name, args):
@@ -120,8 +120,8 @@ class UpdateState(sublime_plugin.EventListener):
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self, force_show=False, **kwargs):
-        if panel_is_active(self.window) and not force_show:
+    def run(self):
+        if panel_is_active(self.window):
             self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
             self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})

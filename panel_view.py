@@ -57,14 +57,17 @@ class UpdateState(sublime_plugin.EventListener):
         if panel_is_active(active_view.window()):
             update_panel_selection(**State)
 
-    def on_selection_modified_async(self, _primary_view_):
+    def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        if active_view.buffer_id() != view.buffer_id():
+            return
+
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
                 'current_pos': current_pos
             })
-            if panel_is_active(_primary_view_.window()):
+            if panel_is_active(active_view.window()):
                 update_panel_selection(**State)
 
     def on_pre_close(self, view):

@@ -30,9 +30,11 @@ State = {
 
 
 def plugin_loaded():
+    active_window = sublime.active_window()
     State.update({
-        'active_view': sublime.active_window().active_view()
+        'active_view': active_window.active_view()
     })
+    ensure_panel(active_window)
 
 
 def plugin_unloaded():
@@ -58,7 +60,9 @@ class UpdateState(sublime_plugin.EventListener):
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)
         })
-        if panel_is_active(active_view.window()):
+        window = active_view.window()
+        ensure_panel(window)
+        if panel_is_active(window):
             update_panel_selection(**State)
 
     def on_selection_modified_async(self, view):
@@ -102,6 +106,8 @@ class UpdateState(sublime_plugin.EventListener):
 
         panel_name = args.get('panel')
         if panel_name == OUTPUT_PANEL:
+            fill_panel(window)
+
             # Apply focus fix to ensure `next_result` is bound to our panel.
             active_group = window.active_group()
             active_view = window.active_view()
@@ -118,7 +124,6 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         if panel_is_active(self.window) and not force_show:
             self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
-            fill_panel(self.window)
             self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 

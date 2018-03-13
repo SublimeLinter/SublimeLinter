@@ -107,9 +107,19 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
 
     def toggle_panel(self, show=True):
         if show:
+            active_group = self.window.active_group()
+            active_view = self.window.active_view()
+
             self.window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
+
+            # Apply focus fix to ensure `next_result` is bound to our panel.
+            panel = self.window.find_output_panel(PANEL_NAME)
+            self.window.focus_view(panel)
+
+            self.window.focus_group(active_group)
+            self.window.focus_view(active_view)
         else:
-            self.window.destroy_output_panel(PANEL_NAME)
+            self.window.run_command("hide_panel", {"panel": "output." + PANEL_NAME})
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):

@@ -92,7 +92,10 @@ For example, to exclude any python files whose name begins with “foo”, you w
         "excludes": "*/foo*.py"
     }
 
-The default value is an empty array.
+The default value is an empty array. 
+Untitled views can be ignored with ``<untitled>``,
+and you can use ``!`` to negate a pattern. 
+Note that :ref:`settings expansion <settings-expansion>` can be used here as well.
 
 
 python

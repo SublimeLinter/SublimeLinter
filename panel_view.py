@@ -88,17 +88,16 @@ class UpdateState(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
         """Show the panel if the view or window has problems, depending on settings."""
         window = view.window()
-        if persist.settings.get('show_panel_on_save') == 'never' or panel_is_active(window):
+        show_panel_on_save = persist.settings.get('show_panel_on_save')
+        if show_panel_on_save == 'never' or panel_is_active(window):
             return
 
         errors_by_bid = get_window_errors(window, persist.errors)
 
-        if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
+        if show_panel_on_save == 'window' and errors_by_bid:
             window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-        else:
-            if view.buffer_id() in errors_by_bid:
-                window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-                return
+        elif view.buffer_id() in errors_by_bid:
+            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
     def on_post_window_command(self, window, command_name, args):
         if command_name != 'show_panel':

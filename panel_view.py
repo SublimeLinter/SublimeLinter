@@ -313,42 +313,6 @@ def fill_panel(window):
         update_panel_selection(**State)
 
 
-# logic for updating panel selection
-
-def get_next_panel_line(line, col, errors):
-    """Get panel line for next error in buffer.
-
-    If not found this means the current line is past last error's buffer line.
-    In that case return last error's panel line incremented by one, which will
-    place panel selection in empty space between buffer sections.
-    """
-    for error in sort_errors(errors):
-        if error["line"] == line and error["start"] > col:
-            panel_line = error["panel_line"]
-            break
-        elif error["line"] > line:
-            panel_line = error["panel_line"]
-            break
-    else:
-        panel_line = errors[-1]["panel_line"] + 1
-
-    return panel_line, panel_line
-
-
-def update_selection(panel, region=None):
-    selection = panel.sel()
-    selection.clear()
-    if region is not None:
-        selection.add(region)
-
-
-def get_panel_region(row, panel, is_full_line=False):
-    region = sublime.Region(panel.text_point(row, -1))
-    if is_full_line:
-        region = panel.line(region)
-    return region
-
-
 def update_panel_selection(active_view, current_pos, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
@@ -356,70 +320,78 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     If current position is past last error, place empty selection on the panel line following that of last error.
 
     """
-    panel = get_panel(sublime.active_window())
+    panel = get_panel(active_view.window())
     if not panel:
         return
 
-    if current_pos == (-1, -1):
+    line, col = current_pos
+    if (line, col) == (-1, -1):
         return
 
-    all_errors = persist.errors.get(active_view.buffer_id())
-    if not all_errors:
+    bid = active_view.buffer_id()
+    if not persist.errors[bid]:
         return
-    all_errors = [
-        e for e in all_errors
-        if "panel_line" in e
+
+    # Take only errors under or after the cursor
+    all_errors = sort_errors(
+        error for error in persist.errors[bid]
+        if (
+            error['line'] > line or
+            error['line'] == line and col <= error['end']
+        )
+    )
+
+    errors_under_cursor = [
+        error for error in all_errors
+        if error['line'] == line and error['start'] <= col <= error['end']
     ]
-    if not all_errors:
-        return
 
-    (line, col) = current_pos
+    if errors_under_cursor:
+        panel_lines = [error['panel_line'] for error in errors_under_cursor]
 
-    errors = [
-        e for e in all_errors
-        if e["line"] == line
-    ]
+        start = panel.text_point(panel_lines[0], 0)
+        end = panel.text_point(panel_lines[-1], 0)
+        region = panel.line(sublime.Region(start, end))
 
-    panel_lines = None
-    is_full_line = False
+        clear_position_marker(panel)
+        update_selection(panel, region)
 
-    if errors:
-        # we got line dict, now check if current position has errors
-        region_panel_lines = [
-            e["panel_line"]
-            for e in errors
-            if e["start"] <= col <= e["end"]
-        ]
-        if region_panel_lines:
-            panel_lines = min(region_panel_lines), max(region_panel_lines)
-            is_full_line = True
-
-    if not panel_lines:  # fallback: take next panel line
-        panel_lines = get_next_panel_line(line, col, errors or all_errors)
-
-    # logic for changing panel selection
-
-    if panel_lines[0] == panel_lines[1]:
-        draw_position_marker(panel, panel_lines[0], is_full_line)
-
-        region = get_panel_region(panel_lines[0], panel, is_full_line)
-    else:  # multiple panel lines
-        is_full_line = True
-        region_a = get_panel_region(panel_lines[0], panel)
-        region_b = get_panel_region(panel_lines[1], panel, is_full_line)
-        region = sublime.Region(region_a.begin(), region_b.end())
-
-    update_selection(panel, region)
-    sublime.set_timeout_async(lambda: panel.show_at_center(region))
-
-
-def draw_position_marker(panel, line, error_under_cursor):
-    if error_under_cursor:
-        panel.erase_regions('SL.PanelMarker')
     else:
-        line_start = panel.text_point(line - 1, 0)
-        region = sublime.Region(line_start, line_start)
-        scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
-        flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-                 sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-        panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+        if all_errors:
+            next_error = all_errors[0]
+            panel_line = next_error['panel_line']
+        else:
+            last_error = max(persist.errors[bid], key=lambda e: e['panel_line'])
+            panel_line = last_error['panel_line'] + 1
+
+        start = panel.text_point(panel_line, 0)
+        region = sublime.Region(start)
+
+        draw_position_marker(panel, panel_line)
+        update_selection(panel, region)
+
+
+def update_selection(panel, region=None):
+    panel.run_command(
+        '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
+
+
+class _sublime_linter_update_selection(sublime_plugin.TextCommand):
+    def run(self, edit, a, b):
+        region = sublime.Region(a, b)
+        self.view.sel().clear()
+        self.view.sel().add(region)
+        self.view.show_at_center(region)
+
+
+def draw_position_marker(panel, line):
+    line_start = panel.text_point(line - 1, 0)
+    region = sublime.Region(line_start, line_start)
+    scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+    flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+             sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+    panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+
+
+def clear_position_marker(panel):
+    panel.erase_regions('SL.PanelMarker')

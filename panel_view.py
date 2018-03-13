@@ -212,6 +212,11 @@ def create_panel(window):
     panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
+    try:  # Try the resource first, in case we're in the middle of an upgrade
+        sublime.load_resource(syntax_path)
+    except Exception:
+        return
+
     panel.assign_syntax(syntax_path)
     # Call create_output_panel a second time after assigning the above
     # settings, so that it'll be picked up as a result buffer

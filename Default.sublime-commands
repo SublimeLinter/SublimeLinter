@@ -20,6 +20,11 @@
         }
     },
     {
+        "caption": "SublimeLinter: Toggle highlighted regions",
+        "command": "sublime_linter_toggle_highlights"
+
+    },
+    {
         "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",
         "command": "sublime_linter_reload"
 

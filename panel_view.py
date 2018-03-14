@@ -5,6 +5,7 @@ import sublime_plugin
 from .lint import persist, events
 
 PANEL_NAME = "SublimeLinter"
+OUTPUT_PANEL = "output." + PANEL_NAME
 OUTPUT_PANEL_SETTINGS = {
     "auto_indent": False,
     "draw_indent_guides": False,
@@ -29,9 +30,11 @@ State = {
 
 
 def plugin_loaded():
+    active_window = sublime.active_window()
     State.update({
-        'active_view': sublime.active_window().active_view()
+        'active_view': active_window.active_view()
     })
+    ensure_panel(active_window)
 
 
 def plugin_unloaded():
@@ -44,59 +47,83 @@ def plugin_unloaded():
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
-        if buffer_id in buffer_ids_per_window(window):
-            fill_panel(window, update=True)
+        if panel_is_active(window) and buffer_id in buffer_ids_per_window(window):
+            fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if active_view.settings().get('is_widget'):
+            return
+
         State.update({
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)
         })
-        update_panel_selection(**State)
+        window = active_view.window()
+        ensure_panel(window)
+        if panel_is_active(window):
+            update_panel_selection(**State)
 
-    def on_selection_modified_async(self, _primary_view_):
+    def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        if active_view.buffer_id() != view.buffer_id():
+            return
+
         current_pos = get_current_pos(active_view)
         if current_pos != State['current_pos']:
             State.update({
                 'current_pos': current_pos
             })
-            update_panel_selection(**State)
+            if panel_is_active(active_view.window()):
+                update_panel_selection(**State)
 
     def on_pre_close(self, view):
         window = view.window()
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
-        if window:
-            sublime.set_timeout_async(lambda: fill_panel(window, update=True))
+        if window and panel_is_active(window):
+            sublime.set_timeout_async(lambda: fill_panel(window))
+
+    def on_post_save_async(self, view):
+        """Show the panel if the view or window has problems, depending on settings."""
+        window = view.window()
+        show_panel_on_save = persist.settings.get('show_panel_on_save')
+        if show_panel_on_save == 'never' or panel_is_active(window):
+            return
+
+        errors_by_bid = get_window_errors(window, persist.errors)
+
+        if show_panel_on_save == 'window' and errors_by_bid:
+            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+        elif view.buffer_id() in errors_by_bid:
+            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+
+    def on_post_window_command(self, window, command_name, args):
+        if command_name != 'show_panel':
+            return
+
+        panel_name = args.get('panel')
+        if panel_name == OUTPUT_PANEL:
+            fill_panel(window)
+
+            # Apply focus fix to ensure `next_result` is bound to our panel.
+            active_group = window.active_group()
+            active_view = window.active_view()
+
+            panel = get_panel(window)
+            window.focus_view(panel)
+
+            window.focus_group(active_group)
+            window.focus_view(active_view)
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self, force_show=False, **kwargs):
-        active_panel = self.window.active_panel()
-        is_active_panel = (active_panel == "output." + PANEL_NAME)
-
-        if is_active_panel and not force_show:
-            self.show_panel(PANEL_NAME, show=False)
+    def run(self):
+        if panel_is_active(self.window):
+            self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
-            fill_panel(self.window, **kwargs)
-            self.show_panel(PANEL_NAME)
-
-    def show_panel(self, name, show=True):
-        """
-        Change visibility of panel with given name.
-
-        Panel will be shown by default.
-        Pass show=False for hiding.
-        """
-        if show:
-            cmd = "show_panel"
-        else:
-            cmd = "hide_panel"
-
-        self.window.run_command(cmd, {"panel": "output." + name or ""})
+            self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
@@ -169,6 +196,16 @@ def create_path_dict(window, bids):
     return rel_paths, base_dir
 
 
+def panel_is_active(window):
+    if not window:
+        return False
+
+    if window.active_panel() == OUTPUT_PANEL:
+        return True
+    else:
+        return False
+
+
 def create_panel(window):
     panel = window.create_output_panel(PANEL_NAME)
     settings = panel.settings()
@@ -182,6 +219,11 @@ def create_panel(window):
     panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
+    try:  # Try the resource first, in case we're in the middle of an upgrade
+        sublime.load_resource(syntax_path)
+    except Exception:
+        return
+
     panel.assign_syntax(syntax_path)
     # Call create_output_panel a second time after assigning the above
     # settings, so that it'll be picked up as a result buffer
@@ -202,18 +244,12 @@ def sort_errors(errors):
         errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
 
 
-def filter_and_sort(buf_errors, panel_filter):
-    """Filter errors through white- and blacklisting, then sort them."""
-    buf_errors = [e for e in buf_errors if passes_listing(e, panel_filter)]
-    return sort_errors(buf_errors)
-
-
-def get_window_errors(window, all_errors, panel_filter):
+def get_window_errors(window, all_errors):
     bid_error_pairs = (
         (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
     )
     return {
-        bid: filter_and_sort(errors, panel_filter)
+        bid: sort_errors(errors)
         for bid, errors in bid_error_pairs
         if errors
     }
@@ -243,52 +279,19 @@ def format_row(item):
     return tmpl.format(LINE=line, START=start, **item)
 
 
-def passes_listing(error, panel_filter):
-    """Check value against white- and blacklisting and return bool."""
-    # check whitelisting
-    if not panel_filter:
-        return True
-
-    COMMAND_ARG_TO_ERROR_KEY = {
-        "types": "error_type",
-        "codes": "code",
-        "linter": "linter"
-    }
-
-    for key, check_val in COMMAND_ARG_TO_ERROR_KEY.items():
-        # check whitelisting
-        if key in panel_filter:
-            if error[check_val] not in panel_filter[key]:
-                return False
-
-        # check blacklisting
-        exclude_key = "exclude_" + key
-        if exclude_key in panel_filter:
-            if error[check_val] in panel_filter[exclude_key]:
-                return False
-
-    # if all checks passed return True
-    return True
-
-
-def fill_panel(window, update=False, **panel_filter):
-    errors_by_bid = get_window_errors(window, persist.errors, panel_filter)
-
-    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
-
+def fill_panel(window):
+    """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
     # we cannot create a panel anymore, and just pass.
     if not panel:
         return
 
+    errors_by_bid = get_window_errors(window, persist.errors)
+    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
+
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
-
-    if update:
-        panel_filter = settings.get("sublime_linter_panel_filter")
-    else:
-        settings.set("sublime_linter_panel_filter", panel_filter)
 
     to_render = []
     for bid, buf_errors in errors_by_bid.items():
@@ -310,117 +313,85 @@ def fill_panel(window, update=False, **panel_filter):
         update_panel_selection(**State)
 
 
-# logic for updating panel selection
-
-def get_next_panel_line(line, col, errors):
-    """Get panel line for next error in buffer.
-
-    If not found this means the current line is past last error's buffer line.
-    In that case return last error's panel line incremented by one, which will
-    place panel selection in empty space between buffer sections.
-    """
-    for error in sort_errors(errors):
-        if error["line"] == line and error["start"] > col:
-            panel_line = error["panel_line"]
-            break
-        elif error["line"] > line:
-            panel_line = error["panel_line"]
-            break
-    else:
-        panel_line = errors[-1]["panel_line"] + 1
-
-    return panel_line, panel_line
-
-
-def update_selection(panel, region=None):
-    selection = panel.sel()
-    selection.clear()
-    if region is not None:
-        selection.add(region)
-
-
-def get_panel_region(row, panel, is_full_line=False):
-    region = sublime.Region(panel.text_point(row, -1))
-    if is_full_line:
-        region = panel.line(region)
-    return region
-
-
 def update_panel_selection(active_view, current_pos, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.
-
     If current position is past last error, place empty selection on the panel line following that of last error.
 
     """
-    if current_pos == (-1, -1):
-        return
-
-    all_errors = persist.errors.get(active_view.buffer_id())
-    if not all_errors:
-        return
-    all_errors = [
-        e for e in all_errors
-        if "panel_line" in e
-    ]
-    if not all_errors:
-        return
-
-    (line, col) = current_pos
-
-    errors = [
-        e for e in all_errors
-        if e["line"] == line
-    ]
-
-    panel_lines = None
-    is_full_line = False
-
-    if errors:
-        # we got line dict, now check if current position has errors
-        region_panel_lines = [
-            e["panel_line"]
-            for e in errors
-            if e["start"] <= col <= e["end"]
-        ]
-        if region_panel_lines:
-            panel_lines = min(region_panel_lines), max(region_panel_lines)
-            is_full_line = True
-
-    if not panel_lines:  # fallback: take next panel line
-        panel_lines = get_next_panel_line(line, col, errors or all_errors)
-
-    # logic for changing panel selection
-    panel = get_panel(sublime.active_window())
+    panel = get_panel(active_view.window())
     if not panel:
         return
 
-    if panel_lines[0] == panel_lines[1]:
-        draw_position_marker(panel, panel_lines[0], is_full_line)
+    line, col = current_pos
+    if (line, col) == (-1, -1):
+        return
 
-        region = get_panel_region(panel_lines[0], panel, is_full_line)
-    else:  # multiple panel lines
-        is_full_line = True
-        region_a = get_panel_region(panel_lines[0], panel)
-        region_b = get_panel_region(panel_lines[1], panel, is_full_line)
-        region = sublime.Region(region_a.begin(), region_b.end())
+    bid = active_view.buffer_id()
+    if not persist.errors[bid]:
+        return
 
-    update_selection(panel, region)
-    panel.show_at_center(region)
+    # Take only errors under or after the cursor
+    all_errors = sort_errors(
+        error for error in persist.errors[bid]
+        if (
+            error['line'] > line or
+            error['line'] == line and col <= error['end']
+        )
+    )
 
-    # simulate scrolling to enforce rerendering of panel,
-    # otherwise selection is not updated (ST core bug)
-    panel.run_command("scroll_lines")
+    errors_under_cursor = [
+        error for error in all_errors
+        if error['line'] == line and error['start'] <= col <= error['end']
+    ]
 
+    if errors_under_cursor:
+        panel_lines = [error['panel_line'] for error in errors_under_cursor]
 
-def draw_position_marker(panel, line, error_under_cursor):
-    if error_under_cursor:
-        panel.erase_regions('SL.PanelMarker')
+        start = panel.text_point(panel_lines[0], 0)
+        end = panel.text_point(panel_lines[-1], 0)
+        region = panel.line(sublime.Region(start, end))
+
+        clear_position_marker(panel)
+        update_selection(panel, region)
+
     else:
-        line_start = panel.text_point(line - 1, 0)
-        region = sublime.Region(line_start, line_start)
-        scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
-        flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-                 sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-        panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+        if all_errors:
+            next_error = all_errors[0]
+            panel_line = next_error['panel_line']
+        else:
+            last_error = max(persist.errors[bid], key=lambda e: e['panel_line'])
+            panel_line = last_error['panel_line'] + 1
+
+        start = panel.text_point(panel_line, 0)
+        region = sublime.Region(start)
+
+        draw_position_marker(panel, panel_line)
+        update_selection(panel, region)
+
+
+def update_selection(panel, region=None):
+    panel.run_command(
+        '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
+
+
+class _sublime_linter_update_selection(sublime_plugin.TextCommand):
+    def run(self, edit, a, b):
+        region = sublime.Region(a, b)
+        self.view.sel().clear()
+        self.view.sel().add(region)
+        self.view.show_at_center(region)
+
+
+def draw_position_marker(panel, line):
+    line_start = panel.text_point(line - 1, 0)
+    region = sublime.Region(line_start, line_start)
+    scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+    flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+             sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+    panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+
+
+def clear_position_marker(panel):
+    panel.erase_regions('SL.PanelMarker')

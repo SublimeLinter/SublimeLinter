@@ -5,18 +5,6 @@
 
     // Show all errors
     { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle" },
-    // To display filtered results in the panel add arguments:
-    // { "keys": ["ctrl+super+a"], "command": "sublime_linter_panel_toggle", "args": {
-    // whitelist via:
-    //         "types": ["error", "warning"],
-    //         "codes": [],
-    //         "linter": [],
-    // blacklist via:
-    //          "exclude_codes": [],
-    //          "exclude_linter": []
-    //     }
-    // }
-
 
     // You can also trigger the line report with a keybinding:
     // { "keys": ["ctrl+super+r"], "command": "sublime_linter_line_report" }

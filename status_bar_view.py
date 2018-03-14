@@ -86,10 +86,10 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
         active_view.erase_status(STATUS_COUNTER_KEY)
 
     message = messages_under_cursor(errors_per_line, current_pos)
-    if message != active_view.get_status(STATUS_MSG_KEY):
-        active_view.set_status(STATUS_MSG_KEY, message)
-    else:
+    if not message:
         active_view.erase_status(STATUS_MSG_KEY)
+    elif message != active_view.get_status(STATUS_MSG_KEY):
+        active_view.set_status(STATUS_MSG_KEY, message)
 
 
 def messages_under_cursor(errors, current_pos):

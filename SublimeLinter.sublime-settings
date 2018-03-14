@@ -86,6 +86,7 @@
     "show_marks_in_minimap": true,
 
     // Show the output panel on save if there are problems.
+    // Note: currently works best with lint_mode "background", See #1200
     // Set to "window" to check if the window has problems.
     // Set to "view" to only check the current file.
     // Set to "never" to disable this feature.

@@ -20,7 +20,7 @@
         }
     },
     {
-        "caption": "SublimeLinter: Toggle highlighted regions",
+        "caption": "SublimeLinter: Toggle Highlights",
         "command": "sublime_linter_toggle_highlights"
 
     },

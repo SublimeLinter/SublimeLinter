@@ -223,30 +223,6 @@ File-only linters will only run on files that have not been modified since their
 ensuring that what the user sees and what the linter executable sees is in sync.
 
 
-.. _version_args:
-
-version_args
-------------
-This attribute defines the arguments that should be passed to the linter executable to get its version.
-It may be a string, in which case it may contains multiple arguments separated by spaces,
-or it may be a list or tuple containing one argument per element.
-
-
-version_re
-----------
-This attribute should be a regex pattern or compiled regex used to match the
-numeric portion of the version returned by executing the linter binary with :ref:`version_args`.
-
-It must contain a named capture group called “version” that captures only the version,
-including dots but excluding a prefix such as “v”.
-
-
-version_requirement
--------------------
-This attribute should be a string which describes the version requirements,
-suitable for passing to the `distutils.versionpredicate.VersionPredicate constructor <http://epydoc.sourceforge.net/stdlib/distutils.versionpredicate.VersionPredicate-class.html>`_.
-
-
 word_re
 -------
 If a linter reports a column position, SublimeLinter highlights the nearest word at that point.

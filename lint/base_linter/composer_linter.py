@@ -173,8 +173,3 @@ class ComposerLinter(linter.Linter):
         """Calculate the hash of the manifest file."""
         f = codecs.open(self.manifest_path, 'r', 'utf-8')
         return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
-
-    @classmethod
-    def can_lint(cls):
-        """Assume the linter can lint."""
-        return True

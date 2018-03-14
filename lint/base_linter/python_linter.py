@@ -25,11 +25,6 @@ class PythonLinter(linter.Linter):
     - Support for a "executable" setting.
     """
 
-    @classmethod
-    def can_lint(cls):
-        """Assume the linter can lint."""
-        return True
-
     def context_sensitive_executable_path(self, cmd):
         """Try to find an executable for a given cmd."""
         # The default implementation will look for a user defined `executable`

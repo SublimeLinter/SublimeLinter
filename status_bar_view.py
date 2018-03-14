@@ -96,15 +96,19 @@ def messages_under_cursor(errors, current_pos):
     line, col = current_pos
     msgs = []
     message_template = persist.settings.get('statusbar.messages_template')
-    for error in errors[line]:
-        if error["start"] <= col <= error["end"]:
-            msgs.append(message_template.format(
-                linter=error["linter"],
-                type=error["error_type"],
-                message=error["msg"],
-                code=error["code"]
-            ))
-    return "; ".join(msgs)
+
+    if message_template != "":
+        for error in errors[line]:
+            if error["start"] <= col <= error["end"]:
+                msgs.append(message_template.format(
+                    linter=error["linter"],
+                    type=error["error_type"],
+                    message=error["msg"],
+                    code=error["code"]
+                ))
+        return "; ".join(msgs)
+    else:
+        return ""
 
 
 def errors_per_line(errors):

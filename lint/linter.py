@@ -468,6 +468,11 @@ class Linter(metaclass=LinterMeta):
         else:
             cmd = list(cmd)
 
+        # Basic guard against `which is None` for plugins that return
+        # the deprecated `self.executable_path` as executable.
+        if cmd[0] is None:
+            cmd[0] = self.executable
+
         # For backwards compatibility: SL3 allowed a '@python' suffix which,
         # when set, triggered special handling. SL4 doesn't need this marker,
         # bc all the special handling is just done in the subclass.

@@ -85,22 +85,26 @@ def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
     else:
         active_view.erase_status(STATUS_COUNTER_KEY)
 
-    msgs = messages_under_cursor(errors_per_line, current_pos)
-    message_template = persist.settings.get('statusbar.messages_template')
-    if msgs:
-        message = message_template.format(messages="; ".join(msgs))
-        if message != active_view.get_status(STATUS_MSG_KEY):
-            active_view.set_status(STATUS_MSG_KEY, message)
+    message = messages_under_cursor(errors_per_line, current_pos)
+    if message != active_view.get_status(STATUS_MSG_KEY):
+        active_view.set_status(STATUS_MSG_KEY, message)
     else:
         active_view.erase_status(STATUS_MSG_KEY)
 
 
 def messages_under_cursor(errors, current_pos):
     line, col = current_pos
-    return [
-        error['msg'] for error in errors[line]
-        if error["start"] <= col <= error["end"]
-    ]
+    msgs = []
+    message_template = persist.settings.get('statusbar.messages_template')
+    for error in errors[line]:
+        if error["start"] <= col <= error["end"]:
+            msgs.append(message_template.format(
+                linter=error["linter"],
+                type=error["error_type"],
+                message=error["msg"],
+                code=error["code"]
+            ))
+    return "; ".join(msgs)
 
 
 def errors_per_line(errors):

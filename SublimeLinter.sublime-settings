@@ -99,8 +99,11 @@
 
     // Show the messages for problems at your cursor position
     // {message} will be replaced by the actual messages.
+    // {linter} will be replaced by the linter reporting the error.
+    // {type} will be replaced by either warning or error.
+    // {code} will be replaced by the error code.
     // Set to "" to display nothing
-    "statusbar.messages_template": "{messages}",
+    "statusbar.messages_template": "{message}",
 
     // Global styles for all linters.
     // - mark_style options:

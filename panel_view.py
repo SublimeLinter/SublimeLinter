@@ -56,13 +56,19 @@ def on_lint_result(buffer_id, **kwargs):
 def on_finished_linting(buffer_id, **kwargs):
     show_panel_on_save = persist.settings.get('show_panel_on_save')
     lint_mode = persist.settings.get('lint_mode')
+    save_only_linter = False
+    linters = persist.view_linters.get(buffer_id, [])
 
-    if show_panel_on_save == 'never' or lint_mode == 'background':
-        return
+    for lint in linters:
+        if lint.tempfile_suffix == '-':
+            save_only_linter = True
+            break
 
-    for window in sublime.windows():
-        if buffer_id in buffer_ids_per_window(window) and not panel_is_active(window):
-            show_panel_if_errors(window, buffer_id)
+    if show_panel_on_save != 'never' and (lint_mode != 'background' or save_only_linter):
+        for window in sublime.windows():
+            if buffer_id in buffer_ids_per_window(window) and not panel_is_active(window):
+                show_panel_if_errors(window, buffer_id)
+                break
 
 
 class UpdateState(sublime_plugin.EventListener):

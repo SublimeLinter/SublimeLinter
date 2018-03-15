@@ -39,6 +39,7 @@ def plugin_loaded():
 
 def plugin_unloaded():
     events.off(on_lint_result)
+    events.off(on_finished_linting)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
@@ -49,6 +50,19 @@ def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if panel_is_active(window) and buffer_id in buffer_ids_per_window(window):
             fill_panel(window)
+
+
+@events.on(events.LINT_END)
+def on_finished_linting(buffer_id, **kwargs):
+    show_panel_on_save = persist.settings.get('show_panel_on_save')
+    lint_mode = persist.settings.get('lint_mode')
+
+    if show_panel_on_save == 'never' or lint_mode == 'background':
+        return
+
+    for window in sublime.windows():
+        if buffer_id in buffer_ids_per_window(window) and not panel_is_active(window):
+            show_panel_if_errors(window, buffer_id)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -94,12 +108,7 @@ class UpdateState(sublime_plugin.EventListener):
         if not window or show_panel_on_save == 'never' or panel_is_active(window):
             return
 
-        errors_by_bid = get_window_errors(window, persist.errors)
-
-        if show_panel_on_save == 'window' and errors_by_bid:
-            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-        elif view.buffer_id() in errors_by_bid:
-            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+        show_panel_if_errors(window, view.buffer_id())
 
     def on_post_window_command(self, window, command_name, args):
         if command_name != 'show_panel':
@@ -259,6 +268,14 @@ def get_window_errors(window, all_errors):
 
 def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
+
+
+def show_panel_if_errors(window, bid):
+    errors_by_bid = get_window_errors(window, persist.errors)
+    if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+    elif bid in errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 def format_header(f_path):

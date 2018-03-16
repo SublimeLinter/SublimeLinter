@@ -25,7 +25,8 @@ OUTPUT_PANEL_SETTINGS = {
 
 State = {
     'active_view': None,
-    'current_pos': (-1, -1)
+    'current_pos': (-1, -1),
+    'awaited_views': set()
 }
 
 
@@ -54,21 +55,15 @@ def on_lint_result(buffer_id, **kwargs):
 
 @events.on(events.LINT_END)
 def on_finished_linting(buffer_id, **kwargs):
-    show_panel_on_save = persist.settings.get('show_panel_on_save')
-    lint_mode = persist.settings.get('lint_mode')
-    save_only_linter = False
-    linters = persist.view_linters.get(buffer_id, [])
+    if (
+        persist.settings.get('lint_mode') == 'manual' or
+        buffer_id in State['awaited_views']
+    ):
+        State['awaited_views'].discard(buffer_id)
 
-    for lint in linters:
-        if lint.tempfile_suffix == '-':
-            save_only_linter = True
-            break
-
-    if show_panel_on_save != 'never' and (lint_mode != 'background' or save_only_linter):
         for window in sublime.windows():
-            if buffer_id in buffer_ids_per_window(window) and not panel_is_active(window):
+            if buffer_id in buffer_ids_per_window(window):
                 show_panel_if_errors(window, buffer_id)
-                break
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -114,7 +109,15 @@ class UpdateState(sublime_plugin.EventListener):
         if not window or show_panel_on_save == 'never' or panel_is_active(window):
             return
 
-        show_panel_if_errors(window, view.buffer_id())
+        bid = view.buffer_id()
+        State['awaited_views'].add(bid)
+
+        if buffers_effective_lint_mode_is_background(bid):
+            show_panel_if_errors(window, bid)
+
+    def on_modified_async(self, view):
+        bid = view.buffer_id()
+        State['awaited_views'].discard(bid)
 
     def on_post_window_command(self, window, command_name, args):
         if command_name != 'show_panel':
@@ -133,6 +136,24 @@ class UpdateState(sublime_plugin.EventListener):
 
             window.focus_group(active_group)
             window.focus_view(active_view)
+
+
+def buffers_effective_lint_mode_is_background(bid):
+    return (
+        persist.settings.get('lint_mode') == 'background' and
+        any(
+            True for linter in persist.view_linters.get(bid, [])
+            if linter.tempfile_suffix != '-'
+        )
+    )
+
+
+def show_panel_if_errors(window, bid):
+    errors_by_bid = get_window_errors(window, persist.errors)
+    if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+    elif bid in errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
@@ -274,14 +295,6 @@ def get_window_errors(window, all_errors):
 
 def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
-
-
-def show_panel_if_errors(window, bid):
-    errors_by_bid = get_window_errors(window, persist.errors)
-    if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
-        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-    elif bid in errors_by_bid:
-        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 def format_header(f_path):

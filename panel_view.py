@@ -53,14 +53,16 @@ def on_lint_result(buffer_id, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        if active_view.settings().get('is_widget'):
+        window = active_view.window()
+        # Sometimes a view is activated and then destructed before we get here
+        # and then it doesn't have a window anymore
+        if not window or active_view.settings().get('is_widget'):
             return
 
         State.update({
             'active_view': active_view,
             'current_pos': get_current_pos(active_view)
         })
-        window = active_view.window()
         ensure_panel(window)
         if panel_is_active(window):
             update_panel_selection(**State)
@@ -89,7 +91,7 @@ class UpdateState(sublime_plugin.EventListener):
         """Show the panel if the view or window has problems, depending on settings."""
         window = view.window()
         show_panel_on_save = persist.settings.get('show_panel_on_save')
-        if show_panel_on_save == 'never' or panel_is_active(window):
+        if not window or show_panel_on_save == 'never' or panel_is_active(window):
             return
 
         errors_by_bid = get_window_errors(window, persist.errors)

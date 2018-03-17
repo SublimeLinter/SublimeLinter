@@ -23,7 +23,7 @@
         },
         "lint_mode":{
             "type":"string",
-            "pattern":"^(background|load_save|manual)$"
+            "pattern":"^(background|load_save|manual|save)$"
         },
         "linters":{
             "type":"object",

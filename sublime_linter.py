@@ -119,7 +119,7 @@ class BackendController(sublime_plugin.EventListener):
         # early. This fires a bit too often for 'load_save' mode but it is
         # good enough.
 
-        if persist.settings.get('lint_mode') == 'manual':
+        if persist.settings.get('lint_mode') in ('manual', 'save'):
             return
 
         if not util.is_lintable(view):

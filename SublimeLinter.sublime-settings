@@ -39,6 +39,7 @@
     // background: asynchronously on every change
     // load_save: when a file is opened and every time it's saved
     // manual: only when calling the Lint This View command
+    // save: only when a file is saved
     "lint_mode": "background",
 
     // Example of linter specific settings.

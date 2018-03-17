@@ -140,7 +140,7 @@ def demote_warnings(selected_text, error_type, **kwargs):
 class IdleViewController(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         previous_view = State['active_view']
-        if previous_view.id() != active_view.id():
+        if previous_view and previous_view.id() != active_view.id():
             set_idle(previous_view, True)
 
         State.update({'active_view': active_view})

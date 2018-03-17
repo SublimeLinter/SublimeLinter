@@ -51,11 +51,12 @@ def on_finished_linting(buffer_id, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        State.update({
-            'active_view': active_view
-        })
+        if active_view:
+            State.update({
+                'active_view': active_view
+            })
 
-        draw(**State)
+            draw(**State)
 
 
 indicators = [

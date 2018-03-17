@@ -139,6 +139,8 @@ def demote_warnings(selected_text, error_type, **kwargs):
 
 class IdleViewController(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if not active_view:
+            return
         previous_view = State['active_view']
         if previous_view.id() != active_view.id():
             set_idle(previous_view, True)
@@ -148,17 +150,23 @@ class IdleViewController(sublime_plugin.EventListener):
     # Called multiple times (once per buffer) but provided *view* is always
     # the same, the primary one.
     def on_modified_async(self, view):
+        if not view:
+            return
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
             invalidate_regions_under_cursor(active_view)
             set_idle(active_view, False)
 
     def on_post_save_async(self, view):
+        if not view:
+            return
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, True)
 
     def on_selection_modified_async(self, view):
+        if not view:
+            return
         active_view = State['active_view']
         time_to_idle = persist.settings.get('highlights.time_to_idle')
         if view.buffer_id() == active_view.buffer_id():

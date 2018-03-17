@@ -50,13 +50,14 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         bid = active_view.buffer_id()
 
-        State.update({
-            'active_view': active_view,
-            'we_count': get_we_count(bid),
-            'errors_per_line': errors_per_line(persist.errors[bid]),
-            'current_pos': get_current_pos(active_view)
-        })
-        draw(**State)
+        if bid:
+            State.update({
+                'active_view': active_view,
+                'we_count': get_we_count(bid),
+                'errors_per_line': errors_per_line(persist.errors[bid]),
+                'current_pos': get_current_pos(active_view)
+            })
+            draw(**State)
 
     # Triggers multiple times for each view into the same buffer.
     # But the argument is always the same view, the primary.
@@ -65,7 +66,7 @@ class UpdateState(sublime_plugin.EventListener):
         active_view = State['active_view']
         # It is possible that views (e.g. panels) update in the background.
         # So we check here and return early.
-        if active_view.buffer_id() != view.buffer_id():
+        if not view or active_view.buffer_id() != view.buffer_id():
             return
 
         current_pos = get_current_pos(active_view)

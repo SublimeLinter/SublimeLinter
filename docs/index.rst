@@ -11,6 +11,7 @@ SublimeLinter repo and issues can be reached on `GitHub <https://github.com/Subl
     :caption: User Documentation
     :name: toc_user
 
+    installation
     settings
     linter_settings
     troubleshooting

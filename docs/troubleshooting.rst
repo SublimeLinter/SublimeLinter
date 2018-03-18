@@ -23,15 +23,18 @@ Here are the most common reasons why a linter does not work:
   to a known syntax (e.g. ``"html"``). The detected syntax is printed to the
   console in debug mode.
   Also note that plugins should move to using the selector setting
-  instead of the old syntaxes attribute. You can use the "selector" linter
+  instead of the old syntaxes attribute. You can use the :ref:`selector` linter
   setting right now instead of the "syntax_map".
 
-- The linter binary is not installed.
+- The linter binary or it dependencies are not installed.
   Be sure to install the linter as documented in the linter plugin’s README.
 
 - The linter binary is installed,
   but its path is not available to SublimeLinter.
   Follow the steps in :ref:`debugging-path-problems` below.
+
+Anythng else should be searched across GitHub issues and if not found then
+reported.
 
 
 .. _debugging-path-problems:

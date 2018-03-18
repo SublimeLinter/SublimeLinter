@@ -13,4 +13,4 @@ Linters are not included, they must be installed separately.
 For complete documentation on how to use and configure SublimeLinter,
 please see: http://www.sublimelinter.com
 
-To report issues: https://github.com/SublimeLinter/SublimeLinter3
+To report issues: https://github.com/SublimeLinter/SublimeLinter

@@ -44,6 +44,28 @@ Set additional environment variables.
     }
 
 
+excludes
+--------
+This setting specifies a list of path patterns to exclude from linting.
+If there is only a single pattern, the value may be a string.
+Otherwise it must be an array of patterns.
+
+Patterns are matched against a file’s **absolute path** with all symlinks/shortcuts resolved.
+This means to match a filename, you must match everything in the path before the filename.
+For example, to exclude any python files whose name begins with “foo”, you would use this pattern:
+
+.. code-block:: json
+
+    {
+        "excludes": "*/foo*.py"
+    }
+
+The default value is an empty array.
+Untitled views can be ignored with ``<untitled>``,
+and you can use ``!`` to negate a pattern.
+Note that :ref:`Settings Expansion <settings-expansion>` can be used here as well.
+
+
 executable
 ----------
 
@@ -75,28 +97,6 @@ Here the linter will get invoked from the ``${folder}`` directory
 or the file's directory if it is not contained within a project folder.
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
-
-
-excludes
---------
-This setting specifies a list of path patterns to exclude from linting.
-If there is only a single pattern, the value may be a string.
-Otherwise it must be an array of patterns.
-
-Patterns are matched against a file’s **absolute path** with all symlinks/shortcuts resolved.
-This means to match a filename, you must match everything in the path before the filename.
-For example, to exclude any python files whose name begins with “foo”, you would use this pattern:
-
-.. code-block:: json
-
-    {
-        "excludes": "*/foo*.py"
-    }
-
-The default value is an empty array. 
-Untitled views can be ignored with ``<untitled>``,
-and you can use ``!`` to negate a pattern. 
-Note that :ref:`Settings Expansion <settings-expansion>` can be used here as well.
 
 
 python

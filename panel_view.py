@@ -103,21 +103,12 @@ class UpdateState(sublime_plugin.EventListener):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
     def on_post_save_async(self, view):
-        """Show the panel if the view or window has problems, depending on settings."""
+        # In background mode most of the time the errors are already up-to-date
+        # on save, so we (maybe) show the panel immediately.
         window = view.window()
-        show_panel_on_save = persist.settings.get('show_panel_on_save')
-        if not window or show_panel_on_save == 'never' or panel_is_active(window):
-            return
-
         bid = view.buffer_id()
-        State['awaited_views'].add(bid)
-
         if buffers_effective_lint_mode_is_background(bid):
             show_panel_if_errors(window, bid)
-
-    def on_modified_async(self, view):
-        bid = view.buffer_id()
-        State['awaited_views'].discard(bid)
 
     def on_post_window_command(self, window, command_name, args):
         if command_name != 'show_panel':
@@ -138,6 +129,20 @@ class UpdateState(sublime_plugin.EventListener):
             window.focus_view(active_view)
 
 
+class JustSavedBufferController(sublime_plugin.EventListener):
+    def on_post_save_async(self, view):
+        bid = view.buffer_id()
+        State['awaited_views'].add(bid)
+
+    def on_pre_close(self, view):
+        bid = view.buffer_id()
+        State['awaited_views'].discard(bid)
+
+    def on_modified_async(self, view):
+        bid = view.buffer_id()
+        State['awaited_views'].discard(bid)
+
+
 def buffers_effective_lint_mode_is_background(bid):
     return (
         persist.settings.get('lint_mode') == 'background' and
@@ -149,6 +154,7 @@ def buffers_effective_lint_mode_is_background(bid):
 
 
 def show_panel_if_errors(window, bid):
+    """Show the panel if the view or window has problems, depending on settings."""
     if window is None:
         return
 

@@ -3,35 +3,6 @@ Linter Settings
 Each linter plugin can provide its own settings. SublimeLinter already provides these for every linter:
 
 
-disable
--------
-Disables the linter.
-
-
-executable
-----------
-
-At any time you can manually set the executable a linter should use.
-
-.. code-block:: json
-
-    {
-        "executable": "${folder}/node_modules/bin/eslint"
-    }
-
-See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
-
-
-env
----
-Set additional environment variables.
-
-.. code-block:: json
-
-    {
-        "env": "{'GEM_HOME': '~/foo/bar'}"
-    }
-
 args
 ----
 Specifies extra arguments to pass to an external binary.
@@ -57,23 +28,20 @@ For example, these values are equivalent:
 The default value is an empty array.
 
 
-working_dir
------------
-This setting specifies the linter working directory.
-The value must be a string, corresponding to a valid directory path.
+disable
+-------
+Disables the linter.
 
-For example (this is also the default):
+
+env
+---
+Set additional environment variables.
 
 .. code-block:: json
 
     {
-        "working_dir": "${folder:$file_path}"
+        "env": "{'GEM_HOME': '~/foo/bar'}"
     }
-
-Here the linter will get invoked from the ``${folder}`` directory
-or the file's directory if it is not contained within a project folder.
-
-See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
 
 excludes
@@ -92,10 +60,24 @@ For example, to exclude any python files whose name begins with “foo”, you w
         "excludes": "*/foo*.py"
     }
 
-The default value is an empty array. 
+The default value is an empty array.
 Untitled views can be ignored with ``<untitled>``,
-and you can use ``!`` to negate a pattern. 
+and you can use ``!`` to negate a pattern.
 Note that :ref:`Settings Expansion <settings-expansion>` can be used here as well.
+
+
+executable
+----------
+
+At any time you can manually set the executable a linter should use.
+
+.. code-block:: json
+
+    {
+        "executable": "${folder}/node_modules/bin/eslint"
+    }
+
+See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
 
 python
@@ -141,3 +123,22 @@ To do that, we can override the selector for this linter:
 
 To find out what selector to use for given file type, use the
 "Tools > Developer > Show Scope Name" menu entry.
+
+
+working_dir
+-----------
+This setting specifies the linter working directory.
+The value must be a string, corresponding to a valid directory path.
+
+For example (this is also the default):
+
+.. code-block:: json
+
+    {
+        "working_dir": "${folder:$file_path}"
+    }
+
+Here the linter will get invoked from the ``${folder}`` directory
+or the file's directory if it is not contained within a project folder.
+
+See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.

@@ -106,14 +106,16 @@ class TaskNumberFormatter(logging.Formatter):
     def format(self, record):
         thread_name = record.threadName
         if thread_name.startswith('LintTask|'):
-            _, task_number, linter_name, filename = thread_name.split('|')
+            _, task_number, linter_name, filename, vid = thread_name.split('|')
             record.TASK_NUMBER = '#{} '.format(task_number)
             record.LINTER_NAME = linter_name + ' '
             record.FILENAME = filename + ' '
+            record.VIEW = sublime.View(int(vid))
         else:
             record.TASK_NUMBER = ''
             record.LINTER_NAME = ''
             record.FILENAME = ''
+            record.VIEW = None
 
         levelno = record.levelno
         if levelno > logging.INFO:
@@ -134,7 +136,10 @@ class ErrorPanelHandler(logging.Handler):
             lines = msg.splitlines()
             header, rest = lines[0], '\n'.join(lines[1:])
 
-            window = sublime.active_window()
+            window = record.VIEW.window() if record.VIEW else sublime.active_window()
+            if not window:
+                return
+
             wid = window.id()
             if rest in shown_error_messages[wid]:
                 return
@@ -154,7 +159,10 @@ class StatusBarHandler(logging.Handler):
 
         try:
             msg = self.format(record)
-            window = sublime.active_window()
+            window = record.VIEW.window() if record.VIEW else sublime.active_window()
+            if not window:
+                return
+
             window.status_message(msg)
         except Exception:
             self.handleError(record)

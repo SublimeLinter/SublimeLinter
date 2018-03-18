@@ -45,7 +45,10 @@ def install_std_handler():
 
     settings = sublime.load_settings("SublimeLinter.sublime-settings")
     level = settings.get('debug', False)
+    _install_std_handler(level)
 
+
+def _install_std_handler(level=False):
     if level is False:
         level = DEBUG_FALSE_LEVEL
         formatter = TaskNumberFormatter(
@@ -166,3 +169,6 @@ class StatusBarHandler(logging.Handler):
             window.status_message(msg)
         except Exception:
             self.handleError(record)
+
+
+_install_std_handler()

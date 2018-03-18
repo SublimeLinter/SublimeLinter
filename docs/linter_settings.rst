@@ -33,6 +33,17 @@ disable
 Disables the linter.
 
 
+env
+---
+Set additional environment variables.
+
+.. code-block:: json
+
+    {
+        "env": "{'GEM_HOME': '~/foo/bar'}"
+    }
+
+
 executable
 ----------
 
@@ -45,17 +56,6 @@ At any time you can manually set the executable a linter should use.
     }
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
-
-
-env
----
-Set additional environment variables.
-
-.. code-block:: json
-
-    {
-        "env": "{'GEM_HOME': '~/foo/bar'}"
-    }
 
 
 working_dir

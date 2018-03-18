@@ -1,6 +1,6 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from functools import partial
 import logging
 import os
@@ -119,6 +119,7 @@ def visible_views():
             yield view
 
 
+global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)
 buffer_syntaxes = {}
 
@@ -246,10 +247,11 @@ def hit(view):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
+    delay = get_delay()
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
     fn = partial(lint, view, view_has_changed, lock)
-    queue.debounce(fn, key=bid)
+    queue.debounce(fn, delay=delay, key=bid)
 
 
 def lint(view, view_has_changed, lock):
@@ -279,11 +281,15 @@ def lint(view, view_has_changed, lock):
         return
 
     bid = view.buffer_id()
+
     events.broadcast(events.LINT_START, {'buffer_id': bid})
+    start_time = time.time()
 
     next = partial(update_buffer_errors, bid, view_has_changed)
     backend.lint_view(linters, view, view_has_changed, next)
 
+    end_time = time.time()
+    remember_runtime(end_time - start_time)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
@@ -407,3 +413,23 @@ def environment_is_ready():
         return True
 
     return False
+
+
+elapsed_runtimes = deque([0.6] * 3, maxlen=10)
+
+
+def get_delay():
+    """Return the delay between a lint request and when it will be processed."""
+    if persist.settings.get('lint_mode') != 'background':
+        return 0
+
+    runtimes = sorted(elapsed_runtimes)
+    middle = runtimes[len(runtimes) // 2]
+    return max(
+        persist.settings.get('delay'),
+        middle / 2)
+
+
+def remember_runtime(elapsed_runtime):
+    with global_lock:
+        elapsed_runtimes.append(elapsed_runtime)

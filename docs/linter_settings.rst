@@ -3,6 +3,31 @@ Linter Settings
 Each linter plugin can provide its own settings. SublimeLinter already provides these for every linter:
 
 
+args
+----
+Specifies extra arguments to pass to an external binary.
+
+The value may be a string or an array. If it is a string,
+it will be parsed as if it were passed on a command line.
+For example, these values are equivalent:
+
+.. code-block:: json
+
+    {
+        "args": "--foo=bar --bar=7 --no-baz"
+    }
+
+    {
+        "args": [
+            "--foo=bar",
+            "--bar=7",
+            "--no-baz"
+        ]
+    }
+
+The default value is an empty array.
+
+
 disable
 -------
 Disables the linter.
@@ -31,30 +56,6 @@ Set additional environment variables.
     {
         "env": "{'GEM_HOME': '~/foo/bar'}"
     }
-
-args
-----
-Specifies extra arguments to pass to an external binary.
-
-The value may be a string or an array. If it is a string,
-it will be parsed as if it were passed on a command line.
-For example, these values are equivalent:
-
-.. code-block:: json
-
-    {
-        "args": "--foo=bar --bar=7 --no-baz"
-    }
-
-    {
-        "args": [
-            "--foo=bar",
-            "--bar=7",
-            "--no-baz"
-        ]
-    }
-
-The default value is an empty array.
 
 
 working_dir

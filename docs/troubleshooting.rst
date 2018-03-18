@@ -23,15 +23,37 @@ Here are the most common reasons why a linter does not work:
   to a known syntax (e.g. ``"html"``). The detected syntax is printed to the
   console in debug mode.
   Also note that plugins should move to using the selector setting
-  instead of the old syntaxes attribute. You can use the "selector" linter
+  instead of the old syntaxes attribute. You can use the :ref:`selector` linter
   setting right now instead of the "syntax_map".
 
-- The linter binary is not installed.
+- The linter binary or it dependencies are not installed.
   Be sure to install the linter as documented in the linter plugin’s README.
 
 - The linter binary is installed,
   but its path is not available to SublimeLinter.
   Follow the steps in :ref:`debugging-path-problems` below.
+
+Less common reasons:
+
+- Extra SublimeLinter plugin is not compatible with SublimeLinter 4.x.
+  Such plugin should be updated according to the new API. First, search
+  PackageControl for updates, or check out corresponding repos of the plugins.
+  You may need to create issue to request update of the plugin.
+  Example: SublimeLinter-eslint.
+  You may need to read `how to upgrade <https://github.com/SublimeLinter/SublimeLinter/blob/master/messages/4.0.0.txt#L80>`_ secion.
+
+- Only gutter theme icons are not working.
+  This usually happens when you upgrade. If you want to use another gutter
+  theme, you have to update your styles to use the correct icons
+  (``warning`` and ``error`` usually).
+
+- Other plugins are blocking SublimeText features, such as popups or gutter
+  icons. Usually you can see in the console that SublimeLinter works and it
+  should show some output, but some events are blocked. This usually happens
+  due to other plugins - you can temporarily disable selected plugins and
+  restart SublimeText until you find the offending plugin.
+  Example: plugin `network_tech #11 <https://github.com/heyglen/network_tech/issues/11>`_
+  or GitGutter (usually reinstalling offending plugin helps).
 
 
 .. _debugging-path-problems:

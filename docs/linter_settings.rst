@@ -80,25 +80,6 @@ At any time you can manually set the executable a linter should use.
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
 
-working_dir
------------
-This setting specifies the linter working directory.
-The value must be a string, corresponding to a valid directory path.
-
-For example (this is also the default):
-
-.. code-block:: json
-
-    {
-        "working_dir": "${folder:$file_path}"
-    }
-
-Here the linter will get invoked from the ``${folder}`` directory
-or the file's directory if it is not contained within a project folder.
-
-See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
-
-
 python
 ------
 
@@ -139,3 +120,22 @@ To do that, we can override the selector for this linter:
 
 To find out what selector to use for given file type, use the
 "Tools > Developer > Show Scope Name" menu entry.
+
+
+working_dir
+-----------
+This setting specifies the linter working directory.
+The value must be a string, corresponding to a valid directory path.
+
+For example (this is also the default):
+
+.. code-block:: json
+
+    {
+        "working_dir": "${folder:$file_path}"
+    }
+
+Here the linter will get invoked from the ``${folder}`` directory
+or the file's directory if it is not contained within a project folder.
+
+See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.

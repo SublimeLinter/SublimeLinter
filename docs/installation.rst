@@ -7,3 +7,5 @@ First install PackageControl and then see its `usage <https://packagecontrol.io/
 which explains how to install plugins to SublimeText.
 
 Notice, that it may be required to restart SublimeText after plugin installation.
+
+Make sure to read `SublimeLinter messages <https://github.com/SublimeLinter/SublimeLinter/tree/master/messages>`_.

@@ -33,27 +33,8 @@ Here are the most common reasons why a linter does not work:
   but its path is not available to SublimeLinter.
   Follow the steps in :ref:`debugging-path-problems` below.
 
-Less common reasons:
-
-- Extra SublimeLinter plugin is not compatible with SublimeLinter 4.x.
-  Such plugin should be updated according to the new API. First, search
-  PackageControl for updates, or check out corresponding repos of the plugins.
-  You may need to create issue to request update of the plugin.
-  Example: SublimeLinter-eslint.
-  You may need to read `how to upgrade <https://github.com/SublimeLinter/SublimeLinter/blob/master/messages/4.0.0.txt#L80>`_ secion.
-
-- Only gutter theme icons are not working.
-  This usually happens when you upgrade. If you want to use another gutter
-  theme, you have to update your styles to use the correct icons
-  (``warning`` and ``error`` usually).
-
-- Other plugins are blocking SublimeText features, such as popups or gutter
-  icons. Usually you can see in the console that SublimeLinter works and it
-  should show some output, but some events are blocked. This usually happens
-  due to other plugins - you can temporarily disable selected plugins and
-  restart SublimeText until you find the offending plugin.
-  Example: plugin `network_tech #11 <https://github.com/heyglen/network_tech/issues/11>`_
-  or GitGutter (usually reinstalling offending plugin helps).
+Anythng else should be searched across GitHub issues and if not found then
+reported.
 
 
 .. _debugging-path-problems:

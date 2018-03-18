@@ -26,7 +26,7 @@ OUTPUT_PANEL_SETTINGS = {
 State = {
     'active_view': None,
     'current_pos': (-1, -1),
-    'awaited_views': set()
+    'just_saved_buffers': set()
 }
 
 
@@ -57,9 +57,9 @@ def on_lint_result(buffer_id, **kwargs):
 def on_finished_linting(buffer_id, **kwargs):
     if (
         persist.settings.get('lint_mode') == 'manual' or
-        buffer_id in State['awaited_views']
+        buffer_id in State['just_saved_buffers']
     ):
-        State['awaited_views'].discard(buffer_id)
+        State['just_saved_buffers'].discard(buffer_id)
 
         for window in sublime.windows():
             if buffer_id in buffer_ids_per_window(window):
@@ -132,15 +132,15 @@ class UpdateState(sublime_plugin.EventListener):
 class JustSavedBufferController(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
         bid = view.buffer_id()
-        State['awaited_views'].add(bid)
+        State['just_saved_buffers'].add(bid)
 
     def on_pre_close(self, view):
         bid = view.buffer_id()
-        State['awaited_views'].discard(bid)
+        State['just_saved_buffers'].discard(bid)
 
     def on_modified_async(self, view):
         bid = view.buffer_id()
-        State['awaited_views'].discard(bid)
+        State['just_saved_buffers'].discard(bid)
 
 
 def buffers_effective_lint_mode_is_background(bid):

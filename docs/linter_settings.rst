@@ -90,6 +90,7 @@ binary on your system matching that version (using PATH).
 It then executes ``python -m script_name``
 (where script_name is e.g. ``flake8``).
 
+
 selector
 --------
 

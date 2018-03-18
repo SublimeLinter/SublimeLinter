@@ -25,7 +25,8 @@ OUTPUT_PANEL_SETTINGS = {
 
 State = {
     'active_view': None,
-    'current_pos': (-1, -1)
+    'current_pos': (-1, -1),
+    'just_saved_buffers': set()
 }
 
 
@@ -39,6 +40,7 @@ def plugin_loaded():
 
 def plugin_unloaded():
     events.off(on_lint_result)
+    events.off(on_finished_linting)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
@@ -49,6 +51,19 @@ def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if panel_is_active(window) and buffer_id in buffer_ids_per_window(window):
             fill_panel(window)
+
+
+@events.on(events.LINT_END)
+def on_finished_linting(buffer_id, **kwargs):
+    if (
+        persist.settings.get('lint_mode') == 'manual' or
+        buffer_id in State['just_saved_buffers']
+    ):
+        State['just_saved_buffers'].discard(buffer_id)
+
+        for window in sublime.windows():
+            if buffer_id in buffer_ids_per_window(window):
+                show_panel_if_errors(window, buffer_id)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -88,18 +103,12 @@ class UpdateState(sublime_plugin.EventListener):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
     def on_post_save_async(self, view):
-        """Show the panel if the view or window has problems, depending on settings."""
+        # In background mode most of the time the errors are already up-to-date
+        # on save, so we (maybe) show the panel immediately.
         window = view.window()
-        show_panel_on_save = persist.settings.get('show_panel_on_save')
-        if not window or show_panel_on_save == 'never' or panel_is_active(window):
-            return
-
-        errors_by_bid = get_window_errors(window, persist.errors)
-
-        if show_panel_on_save == 'window' and errors_by_bid:
-            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-        elif view.buffer_id() in errors_by_bid:
-            window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+        bid = view.buffer_id()
+        if buffers_effective_lint_mode_is_background(bid):
+            show_panel_if_errors(window, bid)
 
     def on_post_window_command(self, window, command_name, args):
         if command_name != 'show_panel':
@@ -118,6 +127,49 @@ class UpdateState(sublime_plugin.EventListener):
 
             window.focus_group(active_group)
             window.focus_view(active_view)
+
+
+class JustSavedBufferController(sublime_plugin.EventListener):
+    def on_post_save_async(self, view):
+        bid = view.buffer_id()
+        State['just_saved_buffers'].add(bid)
+
+    def on_pre_close(self, view):
+        bid = view.buffer_id()
+        State['just_saved_buffers'].discard(bid)
+
+    def on_modified_async(self, view):
+        bid = view.buffer_id()
+        State['just_saved_buffers'].discard(bid)
+
+
+def buffers_effective_lint_mode_is_background(bid):
+    return (
+        persist.settings.get('lint_mode') == 'background' and
+        any(
+            True for linter in persist.view_linters.get(bid, [])
+            if linter.tempfile_suffix != '-'
+        )
+    )
+
+
+def show_panel_if_errors(window, bid):
+    """Show the panel if the view or window has problems, depending on settings."""
+    if window is None:
+        return
+
+    if panel_is_active(window):
+        return
+
+    show_panel_on_save = persist.settings.get('show_panel_on_save')
+    if show_panel_on_save == 'never':
+        return
+
+    errors_by_bid = get_window_errors(window, persist.errors)
+    if show_panel_on_save == 'window' and errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+    elif bid in errors_by_bid:
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):

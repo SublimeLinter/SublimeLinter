@@ -26,15 +26,15 @@ Here are the most common reasons why a linter does not work:
   instead of the old syntaxes attribute. You can use the :ref:`selector` linter
   setting right now instead of the "syntax_map".
 
-- The linter binary or it dependencies are not installed.
+- The linter binary or its dependencies are not installed.
   Be sure to install the linter as documented in the linter plugin’s README.
 
 - The linter binary is installed,
   but its path is not available to SublimeLinter.
   Follow the steps in :ref:`debugging-path-problems` below.
 
-Anythng else should be searched across GitHub issues and if not found then
-reported.
+Anything else should be searched across GitHub open and closed issues.
+If nothing found then please report new issue.
 
 
 .. _debugging-path-problems:

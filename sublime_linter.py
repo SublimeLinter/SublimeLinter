@@ -49,10 +49,10 @@ def plugin_loaded():
     try:
         from package_control import events
         if events.install('SublimeLinter'):
-            util.message(
+            util.show_message(
                 'SublimeLinter has been installed. Please restart Sublime Text.')
         elif events.post_upgrade('SublimeLinter'):
-            util.message(
+            util.show_message(
                 'SublimeLinter has been upgraded. Please restart Sublime Text.')
     except ImportError:
         pass

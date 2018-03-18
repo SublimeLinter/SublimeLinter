@@ -29,8 +29,9 @@ def printf(*args):
     print()
 
 
-def message(message):
-    window = sublime.active_window()
+def show_message(message, window=None):
+    if window is None:
+        window = sublime.active_window()
     window.run_command("sublime_linter_display_panel", {"msg": message})
 
 

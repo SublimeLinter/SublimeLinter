@@ -127,7 +127,7 @@ class ErrorPanelHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            util.message(msg)
+            util.show_message(msg)
         except Exception:
             self.handleError(record)
 

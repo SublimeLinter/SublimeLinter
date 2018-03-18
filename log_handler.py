@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import sublime
 
@@ -79,7 +80,7 @@ def install_error_panel_handler():
 
     formatter = TaskNumberFormatter(
         fmt="SublimeLinter: {TASK_NUMBER}{LINTER_NAME}{FILENAME}{levelname}:\n\n"
-            " {message}",
+            "{message}",
         style='{')
     error_panel_handler = ErrorPanelHandler()
     error_panel_handler.setFormatter(formatter)
@@ -123,11 +124,25 @@ class TaskNumberFormatter(logging.Formatter):
         return super().format(record)
 
 
+shown_error_messages = defaultdict(set)
+
+
 class ErrorPanelHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            util.show_message(msg)
+            lines = msg.splitlines()
+            header, rest = lines[0], '\n'.join(lines[1:])
+
+            window = sublime.active_window()
+            wid = window.id()
+            if rest in shown_error_messages[wid]:
+                return
+
+            shown_error_messages[wid].add(rest)
+
+            beaty_msg = '\n'.join([header, '=' * len(header), rest])
+            util.show_message(beaty_msg, window)
         except Exception:
             self.handleError(record)
 

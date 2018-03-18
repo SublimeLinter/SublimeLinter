@@ -149,8 +149,18 @@ def buffers_effective_lint_mode_is_background(bid):
 
 
 def show_panel_if_errors(window, bid):
+    if window is None:
+        return
+
+    if panel_is_active(window):
+        return
+
+    show_panel_on_save = persist.settings.get('show_panel_on_save')
+    if show_panel_on_save == 'never':
+        return
+
     errors_by_bid = get_window_errors(window, persist.errors)
-    if persist.settings.get('show_panel_on_save') == 'window' and errors_by_bid:
+    if show_panel_on_save == 'window' and errors_by_bid:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
     elif bid in errors_by_bid:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})

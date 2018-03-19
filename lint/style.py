@@ -67,10 +67,14 @@ class HighlightStyleStore:
                     return res
                 elif persist.settings.get('gutter_theme').endswith('.gutter-theme'):
                     theme_path = os.path.dirname(persist.settings.get('gutter_theme'))
-                    return '{}/{}.png'.format(theme_path, res)
+                    if not res.endswith('.png'):
+                        res += '.png'
+                    return '{}/{}'.format(theme_path, res)
                 else:
                     theme = persist.settings.get('gutter_theme')
-                    return 'Packages/SublimeLinter/gutter-themes/{}/{}.png'.format(theme, res)
+                    if not res.endswith('.png'):
+                        res += '.png'
+                    return 'Packages/SublimeLinter/gutter-themes/{}/{}'.format(theme, res)
 
         return wrapper
 

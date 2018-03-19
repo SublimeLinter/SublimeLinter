@@ -1,6 +1,15 @@
 Troubleshooting
 ===============
 
+This page covers a number of common problems and how to debug them.
+If this doesn't help you, look in the
+`GitHub issues <https://github.com/SublimeLinter/SublimeLinter/issues>`_
+for similar issues (also look in the closed issues).
+
+If you end up opening a new issue, please include (relevant) settings and a
+:ref:`debug log <debug-mode>`.
+
+
 .. _debug-mode:
 
 Debug mode
@@ -32,9 +41,6 @@ Here are the most common reasons why a linter does not work:
 - The linter binary is installed,
   but its path is not available to SublimeLinter.
   Follow the steps in :ref:`debugging-path-problems` below.
-
-Anything else should be searched across GitHub open and closed issues.
-If nothing found then please report new issue.
 
 
 .. _debugging-path-problems:

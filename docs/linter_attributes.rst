@@ -68,8 +68,6 @@ The format specification is as follows:
   terminate the setting with ``+``.
 
 
-
-
 After the format is parsed, the prefix and suffix are removed and the setting key is replaced with ``name``.
 
 .. note::
@@ -90,20 +88,6 @@ for example a bad command line argument or some internal error.
 Usually linters will report their own errors on ``stderr``.
 To ensure you capture both regular linter output and internal linter errors,
 you need to determine on which stream the linter writes reports and errors.
-
-
-executable
-----------
-
-Only if you're ``cmd`` is a callable (hence we cannot just peek at it) **and**
-you're only supporting globally available executables (t.i. they are
-available in PATH), you can set this and SublimeLinter will lookup that
-executable eager, and disable the linter plugin if it's not available.
-
-
-.. note::
-
-   Usually you don't set this.
 
 
 line_col_base

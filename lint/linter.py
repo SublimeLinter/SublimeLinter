@@ -331,6 +331,13 @@ class Linter(metaclass=LinterMeta):
         """Return the view's file path or '' if unsaved."""
         return self.view.file_name() or ''
 
+    @property
+    def executable_path(self):
+        logger.info(
+            "'executable_path' has been deprecated. "
+            "Just use an ordinary binary name instead. ")
+        return self.executable
+
     @staticmethod
     def _get_settings(linter, window=None):
         defaults = linter.defaults or {}
@@ -468,11 +475,6 @@ class Linter(metaclass=LinterMeta):
         else:
             cmd = list(cmd)
 
-        # Basic guard against `which is None` for plugins that return
-        # the deprecated `self.executable_path` as executable.
-        if cmd[0] is None:
-            cmd[0] = self.executable
-
         # For backwards compatibility: SL3 allowed a '@python' suffix which,
         # when set, triggered special handling. SL4 doesn't need this marker,
         # bc all the special handling is just done in the subclass.
@@ -502,11 +504,8 @@ class Linter(metaclass=LinterMeta):
                 # logged already.
                 return None
         else:
-            # Basic guard against `which is None` for plugins that return
-            # the deprecated `self.executable_path` as executable.
-            if which and util.can_exec(which):
-                # If `cmd` is a method, it can try to find an executable on
-                # its own.
+            # If `cmd` is a method, it can try to find an executable on its own.
+            if util.can_exec(which):
                 path = which
             else:
                 path = self.which(which)

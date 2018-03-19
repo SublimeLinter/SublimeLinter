@@ -122,8 +122,9 @@
     // - codes is an array which can contain error codes provided by a linter.
     // - icon can be:
     //   one of the default icons: "circle", "dot" or "bookmark"
-    //   or a path to an icon file like (e.g. "Packages/icons/warning.png")
     //   or "none" to remove the icon
+    //   or a path to an icon file like
+    //      "Packages/SublimeLinter/gutter-themes/Blueberry Cross/error.png"
     //   or one provided by a gutter theme (e.g. "warning" or "error")
     //      in theme Default: "warning", "error", "cog", "x",
     //      and "diamond", "heart", "pointer", "square", "star", "triangle" all

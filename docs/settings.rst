@@ -37,7 +37,7 @@ We have some fallbacks, and SublimeText > 3149 helps us with scopes like ``regio
 However, sometimes that doesn't work and your icon is white.
 In this case you need to use a scope that *does* get the color you want.
 
-Take this code snippet as a starting point to extact colors from:
+Take this code snippet as a starting point to exact colors from:
 
 .. image:: colors/1.png
 
@@ -91,7 +91,7 @@ Only the "linters" settings in can be changed in a project.
 All other settings can only be changed in your user settings.
 
 SublimeLinter project settings are defined by a ``"SublimeLinter"`` object
-within Sublime Text’s sublime-project file.
+within Sublime Text's sublime-project file.
 
 .. note::
 

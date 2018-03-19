@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import sublime
 
@@ -44,7 +45,10 @@ def install_std_handler():
 
     settings = sublime.load_settings("SublimeLinter.sublime-settings")
     level = settings.get('debug', False)
+    _install_std_handler(level)
 
+
+def _install_std_handler(level=False):
     if level is False:
         level = DEBUG_FALSE_LEVEL
         formatter = TaskNumberFormatter(
@@ -79,7 +83,7 @@ def install_error_panel_handler():
 
     formatter = TaskNumberFormatter(
         fmt="SublimeLinter: {TASK_NUMBER}{LINTER_NAME}{FILENAME}{levelname}:\n\n"
-            " {message}",
+            "{message}",
         style='{')
     error_panel_handler = ErrorPanelHandler()
     error_panel_handler.setFormatter(formatter)
@@ -105,14 +109,16 @@ class TaskNumberFormatter(logging.Formatter):
     def format(self, record):
         thread_name = record.threadName
         if thread_name.startswith('LintTask|'):
-            _, task_number, linter_name, filename = thread_name.split('|')
+            _, task_number, linter_name, filename, vid = thread_name.split('|')
             record.TASK_NUMBER = '#{} '.format(task_number)
             record.LINTER_NAME = linter_name + ' '
             record.FILENAME = filename + ' '
+            record.VIEW = sublime.View(int(vid))
         else:
             record.TASK_NUMBER = ''
             record.LINTER_NAME = ''
             record.FILENAME = ''
+            record.VIEW = None
 
         levelno = record.levelno
         if levelno > logging.INFO:
@@ -123,11 +129,28 @@ class TaskNumberFormatter(logging.Formatter):
         return super().format(record)
 
 
+shown_error_messages = defaultdict(set)
+
+
 class ErrorPanelHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            util.message(msg)
+            lines = msg.splitlines()
+            header, rest = lines[0], '\n'.join(lines[1:])
+
+            window = record.VIEW.window() if record.VIEW else sublime.active_window()
+            if not window:
+                return
+
+            wid = window.id()
+            if rest in shown_error_messages[wid]:
+                return
+
+            shown_error_messages[wid].add(rest)
+
+            beaty_msg = '\n'.join([header, '=' * len(header), rest])
+            util.show_message(beaty_msg, window)
         except Exception:
             self.handleError(record)
 
@@ -139,7 +162,13 @@ class StatusBarHandler(logging.Handler):
 
         try:
             msg = self.format(record)
-            window = sublime.active_window()
+            window = record.VIEW.window() if record.VIEW else sublime.active_window()
+            if not window:
+                return
+
             window.status_message(msg)
         except Exception:
             self.handleError(record)
+
+
+_install_std_handler()

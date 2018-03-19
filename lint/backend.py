@@ -79,8 +79,8 @@ def get_lint_tasks(linters, view, view_has_changed):
             canonical_filename = (
                 os.path.basename(view.file_name()) if view.file_name()
                 else '<untitled {}>'.format(view.buffer_id()))
-            task_name = 'LintTask|{}|{}|{}'.format(
-                task_number, linter.name, canonical_filename)
+            task_name = 'LintTask|{}|{}|{}|{}'.format(
+                task_number, linter.name, canonical_filename, view.id())
 
             tasks.append(partial(
                 execute_lint_task, linter, code, offset, view_has_changed,

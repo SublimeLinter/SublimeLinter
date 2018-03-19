@@ -365,7 +365,7 @@ def make_view_has_changed_fn(view):
 
         changed = view.change_count() != initial_change_count
         if changed:
-            persist.debug(
+            logger.info(
                 'Buffer {} inconsistent. Aborting lint.'
                 .format(view.buffer_id()))
 

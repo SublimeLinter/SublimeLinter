@@ -248,6 +248,7 @@ def hit(view):
     bid = view.buffer_id()
 
     delay = get_delay()
+    logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
     fn = partial(lint, view, view_has_changed, lock)
@@ -289,7 +290,9 @@ def lint(view, view_has_changed, lock):
     backend.lint_view(linters, view, view_has_changed, next)
 
     end_time = time.time()
-    remember_runtime(end_time - start_time)
+    runtime = end_time - start_time
+    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
+    remember_runtime(runtime)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 

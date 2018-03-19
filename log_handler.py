@@ -39,16 +39,16 @@ def plugin_unloaded():
 
 
 def install_std_handler():
-    global handler
-    if handler:
-        logger.removeHandler(handler)
-
     settings = sublime.load_settings("SublimeLinter.sublime-settings")
     level = settings.get('debug', False)
     _install_std_handler(level)
 
 
 def _install_std_handler(level=False):
+    global handler
+    if handler:
+        logger.removeHandler(handler)
+
     if level is False:
         level = DEBUG_FALSE_LEVEL
         formatter = TaskNumberFormatter(

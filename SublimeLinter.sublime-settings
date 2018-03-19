@@ -4,7 +4,7 @@
 
     // When in the "background" lint mode, this value determines
     // the minimum delay before a request is send to the linter
-    "delay": 0.3,
+    "delay": 0.1,
 
     // Available gutter themes:
     // Blueberry Cross

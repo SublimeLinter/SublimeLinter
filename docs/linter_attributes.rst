@@ -58,6 +58,9 @@ The format specification is as follows:
 - **prefix** – Either ``@``, ``-`` or ``--``.
 - **name** – The name of the setting.
 - **joiner** – Either ``=`` or ``:``.
+  If ``prefix`` is ``@``, this attribute is ignored (but may not be omitted).
+  Otherwise, if this is ``=``, the setting value is joined with ``name`` by ``=`` and passed as a single argument.
+  If ``:``, ``name`` and the value are passed as separate arguments.
 - **sep** – If the argument accepts a list of values,
   ``sep`` specifies the character used to delimit the list (usually ``,``).
 - **+** – If the setting can be a list of values,
@@ -65,9 +68,6 @@ The format specification is as follows:
   terminate the setting with ``+``.
 
 
-If ``prefix`` is ``@``, this attribute is ignored (but may not be omitted).
-Otherwise, if this is ``=``, the setting value is joined with ``name`` by ``=`` and passed as a single argument.
-If ``:``, ``name`` and the value are passed as separate arguments.
 
 
 After the format is parsed, the prefix and suffix are removed and the setting key is replaced with ``name``.

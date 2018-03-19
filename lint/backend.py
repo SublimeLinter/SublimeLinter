@@ -5,6 +5,8 @@ from itertools import chain, count
 from functools import partial
 import logging
 import os
+import multiprocessing
+import time
 import threading
 
 from . import util, linter as linter_module
@@ -13,10 +15,12 @@ from . import util, linter as linter_module
 logger = logging.getLogger(__name__)
 
 WILDCARD_SYNTAX = '*'
+MAX_CONCURRENT_TASKS = (multiprocessing.cpu_count() or 1) * 5
 
 
 task_count = count(start=1)
 counter_lock = threading.Lock()
+reduced_concurrency = threading.BoundedSemaphore(MAX_CONCURRENT_TASKS)
 
 
 def lint_view(linters, view, view_has_changed, next):
@@ -72,19 +76,26 @@ def get_lint_tasks(linters, view, view_has_changed):
 
 
 def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
-    try:
-        # We 'name' our threads, for logging purposes.
-        threading.current_thread().name = task_name
+    start_time = time.time()
+    with reduced_concurrency:
+        try:
+            # We 'name' our threads, for logging purposes.
+            threading.current_thread().name = task_name
 
-        errors = linter.lint(code, view_has_changed, settings) or []
-        translate_lineno_and_column(errors, offset)
+            end_time = time.time()
+            waittime = end_time - start_time
+            if waittime > 0.1:
+                logger.warning('Waited in queue for {:.2f}s'.format(waittime))
 
-        return errors
-    except BaseException:
-        linter.notify_failure()
-        # Log while multi-threaded to get a nicer log message
-        logger.exception('Linter crashed.\n\n')
-        return []  # Empty list here to clear old errors
+            errors = linter.lint(code, view_has_changed, settings) or []
+            translate_lineno_and_column(errors, offset)
+
+            return errors
+        except BaseException:
+            linter.notify_failure()
+            # Log while multi-threaded to get a nicer log message
+            logger.exception('Linter crashed.\n\n')
+            return []  # Empty list here to clear old errors
 
 
 def translate_lineno_and_column(errors, offset):

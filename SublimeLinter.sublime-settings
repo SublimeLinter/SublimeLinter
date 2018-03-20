@@ -83,6 +83,9 @@
     // Show a report for problems on a region by hovering over it.
     "show_hover_region_report": true,
 
+    // Show report for all problems on the cursor's line
+    "show_cursor_line_report": false,
+
     // Highlight problems in the minimap.
     "show_marks_in_minimap": true,
 

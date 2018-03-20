@@ -8,6 +8,19 @@ from .lint.const import WARNING, ERROR
 
 
 class TooltipController(sublime_plugin.EventListener):
+    def on_selection_modified(self, view):
+      """Fired whenever selection is modified or cursor is moved
+
+        Arguments:
+            view (View): The view which received the event.
+      """
+
+      # In addition to the preference, don't display if any text is selected.
+      if (len(view.sel()) == 1 and
+          view.sel()[0].empty() and
+          persist.settings.get('show_cursor_line_report')):
+        open_tooltip(view, None, True)
+
     def on_hover(self, view, point, hover_zone):
         """On mouse hover event hook.
 

@@ -88,6 +88,9 @@
         "show_hover_region_report":{
             "type":"boolean"
         },
+        "show_cursor_line_report":{
+            "type":"boolean"
+        },
         "show_marks_in_minimap":{
             "type":"boolean"
         },

@@ -7,6 +7,7 @@ from .settings import Settings
 
 
 api_ready = False
+kill_switch = True
 
 settings = Settings()
 

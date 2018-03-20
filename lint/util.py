@@ -192,7 +192,9 @@ def combine_output(out, sep=''):
     return ANSI_COLOR_RE.sub('', output)
 
 
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
+def communicate(
+        cmd, code=None, output_stream=STREAM_STDOUT,
+        env=None, cwd=None, bid=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -216,14 +218,27 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
     else:
         stdout = stderr = None
 
-    out = popen(cmd, stdout=stdout, stderr=stderr,
-                output_stream=output_stream, env=env, cwd=cwd)
+    proc = popen(cmd, stdout=stdout, stderr=stderr,
+                 output_stream=output_stream, env=env, cwd=cwd)
 
-    if out is not None:
+    if proc is not None:
+        from . import persist
+
         if code is not None:
             code = code.encode('utf8')
 
-        out = out.communicate(code)
+        if bid is not None:
+            with persist.global_lock:
+                persist.active_popen_calls[bid].append(proc)
+
+        try:
+            out = proc.communicate(code)
+        except BrokenPipeError:  # If we kill a proc, we break it!
+            return ''
+        finally:
+            if bid is not None:
+                with persist.global_lock:
+                    persist.active_popen_calls[bid].remove(proc)
 
         if code is None and os.name == 'nt':
             out = list(out)
@@ -280,6 +295,9 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
         info.wShowWindow = subprocess.SW_HIDE
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        creationflags = 0
 
     if output_stream == STREAM_BOTH:
         stdout = stdout or subprocess.PIPE
@@ -303,6 +321,7 @@ def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cw
             startupinfo=info,
             env=env,
             cwd=cwd,
+            creationflags=creationflags
         )
     except Exception as err:
         msg = 'could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')

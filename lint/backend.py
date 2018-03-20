@@ -8,7 +8,7 @@ import logging
 import os
 import threading
 
-from . import util
+from . import persist, util
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,8 @@ def lint_view(linters, view, view_has_changed, next):
     aggregated, and for each selector, if it occurs in sections,
     the corresponding section is linted as embedded code.
     """
+    kill_active_popen_calls(view.buffer_id())
+
     enabled_linters, disabled_linters = filter_linters(linters, view)
 
     # The contract here is that we MUST fire 'updates' for every linter, so
@@ -52,6 +54,14 @@ def lint_view(linters, view, view_has_changed, next):
         partial(run_tasks, tasks, next=partial(next, linter))
         for linter, tasks in lint_tasks
     )
+
+
+def kill_active_popen_calls(bid):
+    with persist.global_lock:
+        active_popen = persist.active_popen_calls[bid][:]
+
+    for popen in active_popen:
+        popen.kill()
 
 
 def run_tasks(tasks, next):

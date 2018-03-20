@@ -49,6 +49,11 @@ def plugin_loaded():
     try:
         from package_control import events
         if events.install('SublimeLinter') or events.post_upgrade('SublimeLinter'):
+            # In case the user has an old version installed without the below
+            # `unload`, we 'unload' here.
+            persist.kill_switch = True
+            persist.linter_classes.clear()
+
             util.show_message(
                 'SublimeLinter has been installed or upgraded. '
                 'Please restart Sublime Text.')

@@ -48,16 +48,21 @@ def plugin_loaded():
 
     try:
         from package_control import events
-        if events.install('SublimeLinter'):
+        if events.install('SublimeLinter') or events.post_upgrade('SublimeLinter'):
+            # In case the user has an old version installed without the below
+            # `unload`, we 'unload' here.
+            persist.kill_switch = True
+            persist.linter_classes.clear()
+
             util.show_message(
-                'SublimeLinter has been installed. Please restart Sublime Text.')
-        elif events.post_upgrade('SublimeLinter'):
-            util.show_message(
-                'SublimeLinter has been upgraded. Please restart Sublime Text.')
+                'SublimeLinter has been installed or upgraded. '
+                'Please restart Sublime Text.')
+            return
     except ImportError:
         pass
 
     persist.api_ready = True
+    persist.kill_switch = False
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
@@ -71,6 +76,16 @@ def plugin_loaded():
 
 
 def plugin_unloaded():
+    try:
+        from package_control import events
+
+        if events.pre_upgrade('SublimeLinter') or events.remove('SublimeLinter'):
+            logger.info("Enable kill_switch.")
+            persist.kill_switch = True
+            persist.linter_classes.clear()
+    except ImportError:
+        pass
+
     queue.unload()
     persist.settings.unobserve()
 
@@ -234,22 +249,26 @@ def lint(view, view_has_changed, lock):
     This method is called asynchronously by queue.Daemon when a lint
     request is pulled off the queue.
     """
+    # We call `get_linters_for_view` first and unconditionally for its
+    # side-effect. Yeah, it's a *getter* LOL.
+    with lock:  # We're already debounced, so races are actually unlikely.
+        linters = get_linters_for_view(view)
+
+    if not linters:
+        return
+
+    # Very, very unlikely that `view_has_changed` is already True at this
+    # point, but it also implements the kill_switch, so we ask here
     if view_has_changed():  # abort early
         return
 
     bid = view.buffer_id()
+    events.broadcast(events.LINT_START, {'buffer_id': bid})
 
-    # We're already debounced, so races are actually unlikely
-    with lock:
-        linters = get_linters_for_view(view)
+    next = partial(update_buffer_errors, bid, view_has_changed)
+    backend.lint_view(linters, view, view_has_changed, next)
 
-    if linters:
-        events.broadcast(events.LINT_START, {'buffer_id': bid})
-
-        next = partial(update_buffer_errors, bid, view_has_changed)
-        backend.lint_view(linters, view, view_has_changed, next)
-
-        events.broadcast(events.LINT_END, {'buffer_id': bid})
+    events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):
@@ -304,6 +323,11 @@ def make_view_has_changed_fn(view):
     initial_change_count = view.change_count()
 
     def view_has_changed():
+        if persist.kill_switch:
+            logger.warning(
+                'Aborting lint. SublimeLinter needs a restart of Sublime.')
+            return True
+
         changed = view.change_count() != initial_change_count
         if changed:
             persist.debug(

@@ -61,7 +61,7 @@ def kill_active_popen_calls(bid):
         active_popen = persist.active_popen_calls[bid][:]
 
     for popen in active_popen:
-        popen.kill()
+        popen.terminate()
 
 
 def run_tasks(tasks, next):

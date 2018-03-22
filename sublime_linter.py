@@ -18,6 +18,7 @@ from .lint import reloader
 
 
 logger = logging.getLogger(__name__)
+kill_switch = False
 
 
 def backup_old_settings():
@@ -43,6 +44,7 @@ def backup_old_settings():
 
 
 def plugin_loaded():
+    global kill_switch
     log_handler.install()
     backup_old_settings()
 
@@ -51,18 +53,16 @@ def plugin_loaded():
         if events.install('SublimeLinter') or events.post_upgrade('SublimeLinter'):
             # In case the user has an old version installed without the below
             # `unload`, we 'unload' here.
-            persist.kill_switch = True
+            restart_message()
+            kill_switch = True
             persist.linter_classes.clear()
 
-            util.show_message(
-                'SublimeLinter has been installed or upgraded. '
-                'Please restart Sublime Text.')
             return
     except ImportError:
         pass
 
     persist.api_ready = True
-    persist.kill_switch = False
+    kill_switch = False
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
@@ -81,13 +81,26 @@ def plugin_unloaded():
 
         if events.pre_upgrade('SublimeLinter') or events.remove('SublimeLinter'):
             logger.info("Enable kill_switch.")
-            persist.kill_switch = True
+            global kill_switch
+            kill_switch = True
             persist.linter_classes.clear()
     except ImportError:
         pass
 
     queue.unload()
     persist.settings.unobserve()
+
+
+def restart_message():
+    name = 'SublimeLinter Restart'
+    msg = 'SublimeLinter has been installed or upgraded.\nPlease restart Sublime Text.'
+    window = sublime.active_window()
+    panel_view = window.create_output_panel(name, True)
+    panel_view.set_read_only(False)
+    panel_view.run_command('append', {'characters': msg})
+    panel_view.set_read_only(True)
+    panel_view.show(0)
+    window.run_command("show_panel", {"panel": "output.{}".format(name)})
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
@@ -323,7 +336,7 @@ def make_view_has_changed_fn(view):
     initial_change_count = view.change_count()
 
     def view_has_changed():
-        if persist.kill_switch:
+        if kill_switch:
             logger.warning(
                 'Aborting lint. SublimeLinter needs a restart of Sublime.')
             return True

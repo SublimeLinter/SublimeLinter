@@ -54,9 +54,7 @@ def plugin_loaded():
             persist.kill_switch = True
             persist.linter_classes.clear()
 
-            util.show_message(
-                'SublimeLinter has been installed or upgraded. '
-                'Please restart Sublime Text.')
+            sublime.set_timeout_async(show_restart_message, 100)
             return
     except ImportError:
         pass
@@ -93,6 +91,16 @@ def plugin_unloaded():
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
     def run(self):
         reloader.reload_everything()
+
+
+def show_restart_message():
+    window = sublime.active_window()
+    window.run_command("sublime_linter_display_panel", {
+        'msg': (
+            'SublimeLinter has been installed or upgraded. '
+            'Please restart Sublime Text.'
+        )
+    })
 
 
 def visible_views():

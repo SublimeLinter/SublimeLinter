@@ -228,6 +228,10 @@ def toggle_all_regions(view, show):
 
 
 def invalidate_regions_under_cursor(view):
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
     selections = view.sel()
     region_keys = get_regions_keys(view)
     for key in region_keys:

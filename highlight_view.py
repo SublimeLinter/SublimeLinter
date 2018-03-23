@@ -114,6 +114,9 @@ def get_demote_predicate():
     if setting == 'none':
         return demote_nothing
 
+    if setting == 'all':
+        return demote_all
+
     if setting == 'ws_regions':
         return demote_ws_regions
 
@@ -127,6 +130,10 @@ def get_demote_scope():
 
 def demote_nothing(*args, **kwargs):
     return False
+
+
+def demote_all(*args, **kwargs):
+    return True
 
 
 def demote_ws_regions(selected_text, **kwargs):
@@ -228,6 +235,10 @@ def toggle_all_regions(view, show):
 
 
 def invalidate_regions_under_cursor(view):
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
     selections = view.sel()
     region_keys = get_regions_keys(view)
     for key in region_keys:

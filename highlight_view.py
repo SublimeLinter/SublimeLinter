@@ -23,8 +23,7 @@ MARK_STYLES = {
     'fill': sublime.DRAW_NO_OUTLINE,
     'solid_underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
     'squiggly_underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
-    'none': sublime.HIDDEN
+    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS
 }
 UNDERLINE_STYLES = (
     'solid_underline', 'squiggly_underline', 'stippled_underline'
@@ -357,6 +356,14 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
     by_id = defaultdict(list)
     for error in errors:
+        scope = get_scope(**error)
+        if not scope:
+            continue
+
+        mark_style = get_mark_style(**error)
+        if not mark_style or mark_style == 'none':
+            continue
+
         line_start = get_line_start(view, error['line'])
         region = sublime.Region(line_start + error['start'], line_start + error['end'])
         # Ensure a region length of 1, otherwise we get visual distortion:
@@ -364,8 +371,6 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         if len(region) == 0:
             region.b = region.b + 1
 
-        scope = get_scope(**error)
-        mark_style = get_mark_style(**error)
         selected_text = view.substr(region)
 
         demote_while_busy = demote_predicate(selected_text, **error)

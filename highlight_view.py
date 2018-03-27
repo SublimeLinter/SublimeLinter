@@ -484,7 +484,11 @@ class TooltipController(sublime_plugin.EventListener):
             hover_zone (int): The context the event was triggered in
         """
         if hover_zone == sublime.HOVER_GUTTER:
-            if persist.settings.get('show_hover_line_report'):
+            if persist.settings.get('show_hover_line_report') and any(
+                region.contains(point)
+                for key in get_regions_keys(view) if '.Gutter.' in key
+                for region in view.get_regions(key)
+            ):
                 open_tooltip(view, point, True)
 
         elif hover_zone == sublime.HOVER_TEXT:

@@ -735,9 +735,6 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        if self.disabled:
-            return []
-
         canonical_filename = (
             os.path.basename(self.view.file_name()) if self.view.file_name()
             else '<untitled {}>'.format(self.view.buffer_id()))
@@ -756,7 +753,14 @@ class Linter(metaclass=LinterMeta):
             output = self.run(None, code)
         else:
             cmd = self.get_cmd()
-            if not cmd:  # We couldn't find a executable
+            if not cmd:  # We couldn't find an executable
+                window = self.view.window()
+                if window:
+                    vid = self.view.id()
+                    window.run_command('sublime_linter_deactivated', {
+                        'vid': vid,
+                        'linter_name': self.name
+                    })
                 return []
             output = self.run(cmd, code)
 

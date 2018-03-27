@@ -43,8 +43,15 @@ def lint_view(linters, view, view_has_changed, next):
 
     # The contract here is that we MUST fire 'updates' for every linter, so
     # that the views (status bar etc) actually update.
+    window = view.window()
+    vid = view.id()
     for linter in disabled_linters:
         next(linter, [])
+        if window:
+            window.run_command('sublime_linter_deactivated', {
+                'vid': vid,
+                'linter_name': linter.name
+            })
 
     lint_tasks = get_lint_tasks(enabled_linters, view, view_has_changed)
 
@@ -168,7 +175,11 @@ def filter_linters(linters, view):
 
     enabled, disabled = [], []
     for linter in linters:
-        # First check to see if the linter can run in the current lint mode.
+        if linter.disabled:
+            disabled.append(linter)
+            continue
+
+        # Check if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
             # Do *not* add to disabled to not invalidate errors `on_modified`
             continue

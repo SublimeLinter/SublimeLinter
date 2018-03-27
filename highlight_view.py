@@ -354,6 +354,10 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
     for error in errors:
         line_start = get_line_start(view, error['line'])
         region = sublime.Region(line_start + error['start'], line_start + error['end'])
+        # Ensure a region length of 1, otherwise we get visual distortion:
+        # outlines are not drawn at all, and underlines get thicker.
+        if len(region) == 0:
+            region.b = region.b + 1
 
         scope = get_scope(**error)
         mark_style = get_mark_style(**error)

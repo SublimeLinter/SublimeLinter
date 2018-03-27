@@ -36,15 +36,17 @@ WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 
 highlight_store = style_stores.HighlightStyleStore()
-REGION_KEYS = 'SL.{}.region_keys'
+STORAGE_KEY = 'SL.{}.region_keys'
 
 
 def remember_region_keys(view, keys):
-    view.settings().set(REGION_KEYS.format(view.id()), list(keys))
+    setting_key = STORAGE_KEY.format(view.id())
+    view.settings().set(setting_key, list(keys))
 
 
 def get_regions_keys(view):
-    return set(view.settings().get(REGION_KEYS.format(view.id())) or [])
+    setting_key = STORAGE_KEY.format(view.id())
+    return set(view.settings().get(setting_key) or [])
 
 
 State = {

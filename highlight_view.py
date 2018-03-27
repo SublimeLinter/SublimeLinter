@@ -492,7 +492,10 @@ class TooltipController(sublime_plugin.EventListener):
                 open_tooltip(view, point, True)
 
         elif hover_zone == sublime.HOVER_TEXT:
-            if persist.settings.get('show_hover_region_report'):
+            if (
+                persist.settings.get('show_hover_region_report') and
+                view.id() not in State['quiet_views']
+            ):
                 open_tooltip(view, point)
 
 

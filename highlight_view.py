@@ -180,8 +180,6 @@ class IdleViewController(sublime_plugin.EventListener):
 
 def set_idle(view, idle):
     vid = view.id()
-    if vid in State['quiet_views']:
-        return
 
     current_idle = vid in State['idle_views']
     if idle != current_idle:
@@ -194,6 +192,10 @@ def set_idle(view, idle):
 
 
 def toggle_demoted_regions(view, show):
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if DEMOTE_WHILE_BUSY_MARKER in key:

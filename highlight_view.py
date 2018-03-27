@@ -498,7 +498,19 @@ class TooltipController(sublime_plugin.EventListener):
                 persist.settings.get('show_hover_region_report') and
                 view.id() not in State['quiet_views']
             ):
-                open_tooltip(view, point)
+                idle = view.id() in State['idle_views']
+                if any(
+                    region.contains(point)
+                    for key in get_regions_keys(view)
+                    if (
+                        '.Highlights.' in key and
+                        # Select visible highlights; when `idle` all regions
+                        # are visible, otherwise all *not* demoted regions.
+                        (idle or DEMOTE_WHILE_BUSY_MARKER not in key)
+                    )
+                    for region in view.get_regions(key)
+                ):
+                    open_tooltip(view, point)
 
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):

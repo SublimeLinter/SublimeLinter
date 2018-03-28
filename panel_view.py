@@ -56,15 +56,9 @@ def on_lint_result(buffer_id, **kwargs):
 
 @events.on(events.LINT_END)
 def on_finished_linting(buffer_id, **kwargs):
-    if (
-        persist.settings.get('lint_mode') == 'manual' or
-        buffer_id in State['just_saved_buffers']
-    ):
-        State['just_saved_buffers'].discard(buffer_id)
-
-        for window in sublime.windows():
-            if buffer_id in buffer_ids_per_window(window):
-                toggle_panel_if_errors(window, buffer_id)
+    for window in sublime.windows():
+        if buffer_id in buffer_ids_per_window(window):
+            toggle_panel_if_errors(window, buffer_id)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -172,7 +166,12 @@ def toggle_panel_if_errors(window, bid):
         show_panel_on_save == 'window' and errors_by_bid or
         bid in errors_by_bid)
 
-    if not panel_is_active(window) and has_relevant_errors:
+    if (
+        not panel_is_active(window) and
+        has_relevant_errors and
+        bid in State['just_saved_buffers'] or
+        persist.settings.get('lint_mode') == 'manual'
+    ):
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
         State['panel_opened_automatically'].add(window.id())
 

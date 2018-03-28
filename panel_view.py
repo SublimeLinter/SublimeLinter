@@ -26,7 +26,8 @@ OUTPUT_PANEL_SETTINGS = {
 State = {
     'active_view': None,
     'current_pos': (-1, -1),
-    'just_saved_buffers': set()
+    'just_saved_buffers': set(),
+    'panel_opened_automatically': set()
 }
 
 
@@ -63,7 +64,7 @@ def on_finished_linting(buffer_id, **kwargs):
 
         for window in sublime.windows():
             if buffer_id in buffer_ids_per_window(window):
-                show_panel_if_errors(window, buffer_id)
+                toggle_panel_if_errors(window, buffer_id)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -108,9 +109,13 @@ class UpdateState(sublime_plugin.EventListener):
         window = view.window()
         bid = view.buffer_id()
         if buffers_effective_lint_mode_is_background(bid):
-            show_panel_if_errors(window, bid)
+            toggle_panel_if_errors(window, bid)
 
     def on_post_window_command(self, window, command_name, args):
+        if command_name == 'hide_panel':
+            State['panel_opened_automatically'].discard(window.id())
+            return
+
         if command_name != 'show_panel':
             return
 
@@ -153,12 +158,9 @@ def buffers_effective_lint_mode_is_background(bid):
     )
 
 
-def show_panel_if_errors(window, bid):
-    """Show the panel if the view or window has problems, depending on settings."""
+def toggle_panel_if_errors(window, bid):
+    """Toggle the panel if the view or window has problems, depending on settings."""
     if window is None:
-        return
-
-    if panel_is_active(window):
         return
 
     show_panel_on_save = persist.settings.get('show_panel_on_save')
@@ -166,10 +168,20 @@ def show_panel_if_errors(window, bid):
         return
 
     errors_by_bid = get_window_errors(window, persist.errors)
-    if show_panel_on_save == 'window' and errors_by_bid:
+    has_relevant_errors = (
+        show_panel_on_save == 'window' and errors_by_bid or
+        bid in errors_by_bid)
+
+    if not panel_is_active(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
-    elif bid in errors_by_bid:
-        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+        State['panel_opened_automatically'].add(window.id())
+
+    elif (
+        panel_is_active(window) and
+        not has_relevant_errors and
+        window.id() in State['panel_opened_automatically']
+    ):
+        window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):

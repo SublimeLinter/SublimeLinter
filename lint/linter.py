@@ -107,6 +107,25 @@ def get_linter_settings(linter, window=None):
     return ChainMap({}, project_settings, user_settings, defaults)
 
 
+def guess_project_path(window, filename):
+    if not window:
+        return None
+
+    folders = window.folders()
+    if not folders:
+        return None
+
+    if not filename:
+        return folders[0]
+
+    for folder in folders:
+        # Take the first one; should we take the deepest one? The shortest?
+        if filename.startswith(folder + os.path.sep):
+            return folder
+
+    return None
+
+
 def substitute_variables(variables, value):
     if isinstance(value, str):
         value = sublime.expand_variables(value, variables)
@@ -403,14 +422,14 @@ class Linter(metaclass=LinterMeta):
         and supports placeholders (`${varname:placeholder}`).
 
         Note that we ship a enhanced version for 'folder' if you have multiple
-        folders open in a window. See `_guess_project_path`.
+        folders open in a window. See `guess_project_path`.
         """
         window = self.view.window()
         variables = ChainMap(
             {}, window.extract_variables() if window else {}, os.environ)
 
         filename = self.view.file_name()
-        project_folder = self._guess_project_path(window, filename)
+        project_folder = guess_project_path(window, filename)
         if project_folder:
             variables['folder'] = project_folder
 
@@ -429,25 +448,6 @@ class Linter(metaclass=LinterMeta):
             variables['file_extension'] = file_extension
 
         return substitute_variables(variables, settings)
-
-    @staticmethod
-    def _guess_project_path(window, filename):
-        if not window:
-            return None
-
-        folders = window.folders()
-        if not folders:
-            return None
-
-        if not filename:
-            return folders[0]
-
-        for folder in folders:
-            # Take the first one; should we take the deepest one? The shortest?
-            if filename.startswith(folder + os.path.sep):
-                return folder
-
-        return None
 
     def which(self, cmd):
         """Return full path to a given executable.
@@ -712,7 +712,7 @@ class Linter(metaclass=LinterMeta):
 
         filename = self.view.file_name()
         return (
-            self._guess_project_path(self.view.window(), filename) or
+            guess_project_path(self.view.window(), filename) or
             (os.path.dirname(filename) if filename else None)
         )
 

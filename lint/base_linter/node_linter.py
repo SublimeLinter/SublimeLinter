@@ -74,7 +74,7 @@ class NodeLinter(linter.Linter):
         filename = self.view.file_name()
         cwd = (
             os.path.dirname(filename) if filename else
-            linter.guess_project_path(self.view.window(), filename)
+            linter.guess_project_root_of_view(self.view)
         )
         return self.rev_parse_manifest_path(cwd) if cwd else None
 

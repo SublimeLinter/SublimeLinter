@@ -107,7 +107,8 @@ def get_linter_settings(linter, window=None):
     return ChainMap({}, project_settings, user_settings, defaults)
 
 
-def guess_project_path(window, filename):
+def guess_project_root_of_view(view):
+    window = view.window()
     if not window:
         return None
 
@@ -115,6 +116,7 @@ def guess_project_path(window, filename):
     if not folders:
         return None
 
+    filename = view.file_name()
     if not filename:
         return folders[0]
 
@@ -422,14 +424,13 @@ class Linter(metaclass=LinterMeta):
         and supports placeholders (`${varname:placeholder}`).
 
         Note that we ship a enhanced version for 'folder' if you have multiple
-        folders open in a window. See `guess_project_path`.
+        folders open in a window. See `guess_project_root_of_view`.
         """
         window = self.view.window()
         variables = ChainMap(
             {}, window.extract_variables() if window else {}, os.environ)
 
-        filename = self.view.file_name()
-        project_folder = guess_project_path(window, filename)
+        project_folder = guess_project_root_of_view(self.view)
         if project_folder:
             variables['folder'] = project_folder
 
@@ -437,6 +438,7 @@ class Linter(metaclass=LinterMeta):
         # `active_view`, so we need to pass in all the relevant data around
         # the filename manually in case the user switches to a different
         # view, before we're done here.
+        filename = self.view.file_name()
         if filename:
             basename = os.path.basename(filename)
             file_base_name, file_extension = os.path.splitext(basename)
@@ -712,7 +714,7 @@ class Linter(metaclass=LinterMeta):
 
         filename = self.view.file_name()
         return (
-            guess_project_path(self.view.window(), filename) or
+            guess_project_root_of_view(self.view) or
             (os.path.dirname(filename) if filename else None)
         )
 

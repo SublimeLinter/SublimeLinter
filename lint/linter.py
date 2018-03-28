@@ -129,6 +129,9 @@ def guess_project_root_of_view(view):
 
 
 def get_view_context(view):
+    # Note that we ship a enhanced version for 'folder' if you have multiple
+    # folders open in a window. See `guess_project_root_of_view`.
+
     window = view.window()
     context = ChainMap(
         {}, window.extract_variables() if window else {}, os.environ)
@@ -156,6 +159,9 @@ def get_view_context(view):
 
 
 def substitute_variables(variables, value):
+    # Utilizes Sublime Text's `expand_variables` API, which uses the
+    # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
+
     if isinstance(value, str):
         value = sublime.expand_variables(value, variables)
         return os.path.expanduser(value)
@@ -438,21 +444,6 @@ class Linter(metaclass=LinterMeta):
         # it can happen that they are linted without having a window.
         window = self.view.window()
         settings = get_linter_settings(self, window)
-        return self.replace_settings_tokens(settings)
-
-    def replace_settings_tokens(self, settings):
-        """Replace tokens with values in settings.
-
-        Settings can be a string, a mapping or a sequence,
-        and replacement is recursive.
-
-        Utilizes Sublime Text's `expand_variables` API,
-        which uses the `${varname}` syntax
-        and supports placeholders (`${varname:placeholder}`).
-
-        Note that we ship a enhanced version for 'folder' if you have multiple
-        folders open in a window. See `guess_project_root_of_view`.
-        """
         context = get_view_context(self.view)
         return substitute_variables(context, settings)
 

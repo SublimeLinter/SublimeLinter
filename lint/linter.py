@@ -92,6 +92,21 @@ class VirtualView:
     # def rowcol(self, point) => (row, col)
 
 
+def get_linter_settings(linter, window=None):
+    # Note: linter can be a linter class or a linter instance
+
+    defaults = linter.defaults or {}
+    user_settings = persist.settings.get('linters', {}).get(linter.name, {})
+
+    if window:
+        data = window.project_data() or {}
+        project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
+    else:
+        project_settings = {}
+
+    return ChainMap({}, project_settings, user_settings, defaults)
+
+
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 
@@ -338,19 +353,6 @@ class Linter(metaclass=LinterMeta):
             "Just use an ordinary binary name instead. ")
         return self.executable
 
-    @staticmethod
-    def _get_settings(linter, window=None):
-        defaults = linter.defaults or {}
-        user_settings = persist.settings.get('linters', {}).get(linter.name, {})
-
-        if window:
-            data = window.project_data() or {}
-            project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
-        else:
-            project_settings = {}
-
-        return ChainMap({}, project_settings, user_settings, defaults)
-
     def get_view_settings(self):
         try:
             return lint_context.settings
@@ -373,7 +375,7 @@ class Linter(metaclass=LinterMeta):
         # Note that when files are loaded during quick panel preview,
         # it can happen that they are linted without having a window.
         window = self.view.window()
-        settings = self._get_settings(self, window)
+        settings = get_linter_settings(self, window)
         return self.replace_settings_tokens(settings)
 
     def replace_settings_tokens(self, settings):
@@ -964,7 +966,8 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        selector = cls._get_settings(cls, view.window()).get('selector')
+        settings = get_linter_settings(cls, view.window())
+        selector = settings.get('selector')
         if selector:
             return (
                 view.score_selector(0, selector) or

@@ -128,6 +128,33 @@ def guess_project_root_of_view(view):
     return None
 
 
+def get_view_context(view):
+    window = view.window()
+    context = ChainMap(
+        {}, window.extract_variables() if window else {}, os.environ)
+
+    project_folder = guess_project_root_of_view(view)
+    if project_folder:
+        context['folder'] = project_folder
+
+    # `window.extract_variables` actually resembles data from the
+    # `active_view`, so we need to pass in all the relevant data around
+    # the filename manually in case the user switches to a different
+    # view, before we're done here.
+    filename = view.file_name()
+    if filename:
+        basename = os.path.basename(filename)
+        file_base_name, file_extension = os.path.splitext(basename)
+
+        context['file'] = filename
+        context['file_path'] = os.path.dirname(filename)
+        context['file_name'] = basename
+        context['file_base_name'] = file_base_name
+        context['file_extension'] = file_extension
+
+    return context
+
+
 def substitute_variables(variables, value):
     if isinstance(value, str):
         value = sublime.expand_variables(value, variables)
@@ -426,30 +453,8 @@ class Linter(metaclass=LinterMeta):
         Note that we ship a enhanced version for 'folder' if you have multiple
         folders open in a window. See `guess_project_root_of_view`.
         """
-        window = self.view.window()
-        variables = ChainMap(
-            {}, window.extract_variables() if window else {}, os.environ)
-
-        project_folder = guess_project_root_of_view(self.view)
-        if project_folder:
-            variables['folder'] = project_folder
-
-        # `window.extract_variables` actually resembles data from the
-        # `active_view`, so we need to pass in all the relevant data around
-        # the filename manually in case the user switches to a different
-        # view, before we're done here.
-        filename = self.view.file_name()
-        if filename:
-            basename = os.path.basename(filename)
-            file_base_name, file_extension = os.path.splitext(basename)
-
-            variables['file'] = filename
-            variables['file_path'] = os.path.dirname(filename)
-            variables['file_name'] = basename
-            variables['file_base_name'] = file_base_name
-            variables['file_extension'] = file_extension
-
-        return substitute_variables(variables, settings)
+        context = get_view_context(self.view)
+        return substitute_variables(context, settings)
 
     def which(self, cmd):
         """Return full path to a given executable.

@@ -107,6 +107,20 @@ def get_linter_settings(linter, window=None):
     return ChainMap({}, project_settings, user_settings, defaults)
 
 
+def substitute_variables(variables, value):
+    if isinstance(value, str):
+        value = sublime.expand_variables(value, variables)
+        return os.path.expanduser(value)
+    elif isinstance(value, Mapping):
+        return {key: substitute_variables(variables, val)
+                for key, val in value.items()}
+    elif isinstance(value, Sequence):
+        return [substitute_variables(variables, item)
+                for item in value]
+    else:
+        return value
+
+
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 
@@ -391,19 +405,6 @@ class Linter(metaclass=LinterMeta):
         Note that we ship a enhanced version for 'folder' if you have multiple
         folders open in a window. See `_guess_project_path`.
         """
-        def recursive_replace(variables, value):
-            if isinstance(value, str):
-                value = sublime.expand_variables(value, variables)
-                return os.path.expanduser(value)
-            elif isinstance(value, Mapping):
-                return {key: recursive_replace(variables, val)
-                        for key, val in value.items()}
-            elif isinstance(value, Sequence):
-                return [recursive_replace(variables, item)
-                        for item in value]
-            else:
-                return value
-
         window = self.view.window()
         variables = ChainMap(
             {}, window.extract_variables() if window else {}, os.environ)
@@ -427,7 +428,7 @@ class Linter(metaclass=LinterMeta):
             variables['file_base_name'] = file_base_name
             variables['file_extension'] = file_extension
 
-        return recursive_replace(variables, settings)
+        return substitute_variables(variables, settings)
 
     @staticmethod
     def _guess_project_path(window, filename):

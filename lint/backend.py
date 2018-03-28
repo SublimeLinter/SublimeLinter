@@ -170,7 +170,7 @@ def filter_linters(linters, view):
     for linter in linters:
         # First check to see if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
-            disabled.append(linter)
+            # Do *not* add to disabled to not invalidate errors `on_modified`
             continue
 
         view_settings = linter._get_view_settings()

@@ -22,7 +22,7 @@ def plugin_unloaded():
             view.erase_status(STATUS_ACTIVE_KEY)
 
 
-@events.on(events.LINT_END)
+@events.on(events.LINT_RESULT)
 def redraw_bid(buffer_id, **kwargs):
     if buffer_id not in State['needs_redraw']:
         return

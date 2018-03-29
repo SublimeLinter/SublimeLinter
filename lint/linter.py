@@ -115,6 +115,14 @@ def get_raw_linter_settings(linter, window=None):
     return ChainMap({}, project_settings, user_settings, defaults)
 
 
+def get_linter_settings(linter, view):
+    """Return 'final' linter settings with all variables expanded."""
+    # Note: linter can be a linter class or a linter instance
+    settings = get_raw_linter_settings(linter, view.window())
+    context = get_view_context(view)
+    return substitute_variables(context, settings)
+
+
 def guess_project_root_of_view(view):
     window = view.window()
     if not window:
@@ -436,24 +444,6 @@ class Linter(metaclass=LinterMeta):
             raise RuntimeError(
                 "CRITICAL: {}: Calling 'get_view_settings' outside "
                 "of lint context".format(self.name))
-
-    def _get_view_settings(self):
-        """Return a union of all settings specific to this view's linter.
-
-        The settings are merged in the following order:
-
-        default settings
-        user settings
-        project settings
-
-        After merging, tokens in the settings are replaced.
-        """
-        # Note that when files are loaded during quick panel preview,
-        # it can happen that they are linted without having a window.
-        window = self.view.window()
-        settings = get_raw_linter_settings(self, window)
-        context = get_view_context(self.view)
-        return substitute_variables(context, settings)
 
     def which(self, cmd):
         """Return full path to a given executable.

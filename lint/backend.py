@@ -8,7 +8,7 @@ import logging
 import os
 import threading
 
-from . import util
+from . import util, linter as linter_module
 
 
 logger = logging.getLogger(__name__)
@@ -184,7 +184,7 @@ def filter_linters(linters, view):
             # Do *not* add to disabled to not invalidate errors `on_modified`
             continue
 
-        view_settings = linter._get_view_settings()
+        view_settings = linter_module.get_linter_settings(linter, view)
 
         if view_settings.get('disable'):
             disabled.append(linter)

@@ -425,6 +425,11 @@ class Linter(metaclass=LinterMeta):
         # bc some ruby linters rely on that behavior.
         self.env = {}
 
+        # Ensure instances have their own copy in case a plugin author
+        # mangles it.
+        if self.defaults is not None:
+            self.defaults = self.defaults.copy()
+
     @property
     def filename(self):
         """Return the view's file path or '' if unsaved."""

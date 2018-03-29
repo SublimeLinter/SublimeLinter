@@ -303,10 +303,7 @@ def get_linters_for_view(view):
     wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
-        if (
-            not linter_class.disabled and
-            linter_class.can_lint_view(view)
-        )
+        if linter_class.can_lint_view(view)
     }
     current_linter_classes = {linter.__class__ for linter in linters}
 

@@ -2,6 +2,7 @@ from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
 from numbers import Number
 import threading
 
+from fnmatch import fnmatch
 import logging
 import os
 import re
@@ -968,7 +969,38 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        settings = get_raw_linter_settings(cls, view.window())
+        if cls.disabled:
+            return False
+
+        settings = get_linter_settings(cls, view)
+
+        if settings.get('disable'):
+            return False
+
+        if not cls.matches_selector(view, settings):
+            return False
+
+        filename = view.file_name()
+        filename = os.path.realpath(filename) if filename else '<untitled>'
+        excludes = util.convert_type(settings.get('excludes', []), [])
+        if excludes:
+            for pattern in excludes:
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
+
+                if matched:
+                    logger.info(
+                        "{} skipped '{}', excluded by '{}'"
+                        .format(cls.name, filename, pattern)
+                    )
+                    return False
+
+        return True
+
+    @classmethod
+    def matches_selector(cls, view, settings):
         selector = settings.get('selector')
         if selector:
             return (

@@ -185,13 +185,6 @@ def decode(bytes):
         return bytes.decode(locale.getpreferredencoding(), errors='replace')
 
 
-def combine_output(out, sep=''):
-    """Return stdout and/or stderr combined into a string, stripped of ANSI colors."""
-    output = sep.join((decode(out[0]), decode(out[1])))
-
-    return ANSI_COLOR_RE.sub('', output)
-
-
 def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
     """
     Return the result of sending code via stdin to an executable.
@@ -201,41 +194,38 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
     If env is None, the result of create_environment is used.
 
     """
-    # On Windows, using subprocess.PIPE with Popen() is broken when not
-    # sending input through stdin. So we use temp files instead of a pipe.
-    if code is None and os.name == 'nt':
-        if output_stream != STREAM_STDERR:
-            stdout = tempfile.TemporaryFile()
-        else:
-            stdout = None
+    if code is not None:
+        code = code.encode('utf8')
+    if env is None:
+        env = create_environment()
 
-        if output_stream != STREAM_STDOUT:
-            stderr = tempfile.TemporaryFile()
-        else:
-            stderr = None
-    else:
-        stdout = stderr = None
+    try:
+        proc = subprocess.Popen(
+            cmd, env=env, cwd=cwd,
+            stdin=subprocess.PIPE if code is not None else None,
+            stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
+            stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
+            startupinfo=create_startupinfo()
+        )
+    except Exception as err:
+        msg = 'could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
+        logger.error(msg)
 
-    out = popen(cmd, stdout=stdout, stderr=stderr,
-                output_stream=output_stream, env=env, cwd=cwd)
-
-    if out is not None:
-        if code is not None:
-            code = code.encode('utf8')
-
-        out = out.communicate(code)
-
-        if code is None and os.name == 'nt':
-            out = list(out)
-
-            for f, index in ((stdout, 0), (stderr, 1)):
-                if f is not None:
-                    f.seek(0)
-                    out[index] = f.read()
-
-        return combine_output(out)
-    else:
         return ''
+
+    out = proc.communicate(code)
+
+    if output_stream == STREAM_STDOUT:
+        return _post_process_fh(out[0])
+    if output_stream == STREAM_STDERR:
+        return _post_process_fh(out[1])
+    if output_stream == STREAM_BOTH:
+        return ''.join(_post_process_fh(fh) for fh in out)
+
+
+def _post_process_fh(fh):
+    as_string = decode(fh)
+    return ANSI_COLOR_RE.sub('', as_string)
 
 
 def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None, cwd=None):
@@ -272,42 +262,14 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
         os.remove(path)
 
 
-def popen(cmd, stdout=None, stderr=None, output_stream=STREAM_BOTH, env=None, cwd=None):
-    """Open a pipe to an external process and return a Popen object."""
-    info = None
-
+def create_startupinfo():
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
         info.wShowWindow = subprocess.SW_HIDE
+        return info
 
-    if output_stream == STREAM_BOTH:
-        stdout = stdout or subprocess.PIPE
-        stderr = stderr or subprocess.PIPE
-    elif output_stream == STREAM_STDOUT:
-        stdout = stdout or subprocess.PIPE
-        stderr = subprocess.DEVNULL
-    else:  # STREAM_STDERR
-        stdout = subprocess.DEVNULL
-        stderr = stderr or subprocess.PIPE
-
-    if env is None:
-        env = create_environment()
-
-    try:
-        return subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=stderr,
-            startupinfo=info,
-            env=env,
-            cwd=cwd,
-        )
-    except Exception as err:
-        msg = 'could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
-        logger.error(msg)
-
+    return None
 
 # misc utils
 

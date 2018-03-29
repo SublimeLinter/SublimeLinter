@@ -20,39 +20,12 @@ counter_lock = threading.Lock()
 
 
 def lint_view(linters, view, view_has_changed, next):
-    """
-    Lint the given view.
+    """Lint the given view.
 
     This is the top level lint dispatcher. It is called
-    asynchronously. The following checks are done for each linter
-    assigned to the view:
-
-    - Check if the linter has been disabled in settings.
-    - Check if the filename matches any patterns in the "excludes" setting.
-
-    If a linter fails the checks, it is disabled for this run.
-    Otherwise, if the mapped syntax is not in the linter's selectors,
-    the linter is run on the entirety of code.
-
-    Then the set of selectors for all linters assigned to the view is
-    aggregated, and for each selector, if it occurs in sections,
-    the corresponding section is linted as embedded code.
+    asynchronously.
     """
-    enabled_linters, disabled_linters = filter_linters(linters, view)
-
-    # The contract here is that we MUST fire 'updates' for every linter, so
-    # that the views (status bar etc) actually update.
-    window = view.window()
-    vid = view.id()
-    for linter in disabled_linters:
-        next(linter, [])
-        if window:
-            window.run_command('sublime_linter_deactivated', {
-                'vid': vid,
-                'linter_name': linter.name
-            })
-
-    lint_tasks = get_lint_tasks(enabled_linters, view, view_has_changed)
+    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
 
     run_concurrently(
         partial(run_tasks, tasks, next=partial(next, linter))
@@ -132,7 +105,8 @@ def translate_lineno_and_column(errors, offset):
 
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
-    for (linter, settings) in linters:
+    for linter in linters:
+        settings = linter_module.get_linter_settings(linter, view)
         selector = settings.get('selector')
         if selector:
             # Inspecting just the first char is faster
@@ -166,15 +140,6 @@ def get_selectors(linter, wanted_syntax):
             yield linter.selectors[syntax]
         except KeyError:
             pass
-
-
-def filter_linters(linters, view):
-    enabled, disabled = [], []
-    for linter in linters:
-        settings = linter_module.get_linter_settings(linter, view)
-        enabled.append((linter, settings))
-
-    return enabled, disabled
 
 
 def run_concurrently(tasks, max_workers=5):

@@ -185,7 +185,47 @@ def decode(bytes):
         return bytes.decode(locale.getpreferredencoding(), errors='replace')
 
 
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
+RUNNING_TEMPLATE = """{headline}
+
+  {cwd}  (working dir)
+  {prompt}{pipe} {cmd}
+
+"""
+PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
+ENV_TEMPLATE = """  Modified environment:
+
+  {env}
+
+  Type: `import os; os.environ` in the Sublime console to get the full environment.
+"""
+
+
+def make_nice_log_message(headline, cmd, cwd, is_stdin, filename, env):
+    import pprint
+    import textwrap
+
+    exec_msg = RUNNING_TEMPLATE.format(
+        headline=headline,
+        cwd=cwd,
+        prompt='>' if os.name == 'nt' else '$',
+        pipe=PIPE_TEMPLATE.format(
+            os.path.relpath(filename, cwd) if filename else '<unsaved>'
+        ) if is_stdin else '',
+        cmd=' '.join(cmd)
+    )
+
+    env_msg = ENV_TEMPLATE.format(
+        env=textwrap.indent(
+            pprint.pformat(env, indent=2),
+            '  ',
+            predicate=lambda line: not line.startswith('{')
+        )
+    ) if env else ''
+
+    return exec_msg + env_msg
+
+
+def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None, _filename=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -208,10 +248,17 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None)
             startupinfo=create_startupinfo()
         )
     except Exception as err:
-        msg = 'could not launch ' + repr(cmd) + '\nReason: ' + str(err) + '\nPATH: ' + env.get('PATH', '')
-        logger.error(msg)
+        from collections import ChainMap
+        logger.error(make_nice_log_message(
+            '  Execution failed\n\n  {}'.format(str(err)),
+            cmd, cwd, code is not None, _filename,
+            dict(ChainMap(*env.maps[0:-1])) if env else None))
 
         return ''
+
+    if logger.isEnabledFor(logging.INFO):
+        logger.info(make_nice_log_message(
+            'Running ...', cmd, cwd, code is not None, _filename, None))
 
     out = proc.communicate(code)
 

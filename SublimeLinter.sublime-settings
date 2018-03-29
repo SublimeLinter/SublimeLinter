@@ -108,6 +108,8 @@
     // Set to "" to display nothing
     "statusbar.messages_template": "{message}",
 
+    "statusbar.show_active_linters": true,
+
     // Global styles for all linters.
     // - mark_style options:
     //   "none"

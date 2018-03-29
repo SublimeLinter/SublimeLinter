@@ -3,7 +3,7 @@ from collections import defaultdict
 import sublime
 import sublime_plugin
 
-from .lint import events
+from .lint import events, persist
 
 
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
@@ -66,4 +66,7 @@ def set_active_status(bid, linter_name, active):
 
 
 def draw(view, active_linters):
-    view.set_status(STATUS_ACTIVE_KEY, ', '.join(sorted(active_linters)))
+    if persist.settings.get('statusbar.show_active_linters'):
+        view.set_status(STATUS_ACTIVE_KEY, ', '.join(sorted(active_linters)))
+    else:
+        view.erase_status(STATUS_ACTIVE_KEY)

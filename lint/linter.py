@@ -92,7 +92,15 @@ class VirtualView:
     # def rowcol(self, point) => (row, col)
 
 
-def get_linter_settings(linter, window=None):
+def get_raw_linter_settings(linter, window=None):
+    """Return 'raw' linter settings without variables substituted.
+
+    Settings are merged in the following order:
+
+    default settings (on the class or instance)
+    user settings
+    project settings
+    """
     # Note: linter can be a linter class or a linter instance
 
     defaults = linter.defaults or {}
@@ -443,7 +451,7 @@ class Linter(metaclass=LinterMeta):
         # Note that when files are loaded during quick panel preview,
         # it can happen that they are linted without having a window.
         window = self.view.window()
-        settings = get_linter_settings(self, window)
+        settings = get_raw_linter_settings(self, window)
         context = get_view_context(self.view)
         return substitute_variables(context, settings)
 
@@ -965,7 +973,7 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        settings = get_linter_settings(cls, view.window())
+        settings = get_raw_linter_settings(cls, view.window())
         selector = settings.get('selector')
         if selector:
             return (

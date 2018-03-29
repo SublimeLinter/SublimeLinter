@@ -331,14 +331,13 @@ def get_linters_for_view(view):
             for linter_class in wanted_linter_classes
         }
         persist.view_linters[bid] = linters
-        window = view.window()
-        if window:
-            vid = view.id()
-            for linter in linters:
-                window.run_command('sublime_linter_activated', {
-                    'vid': vid,
-                    'linter_name': linter.name
-                })
+
+    window = view.window()
+    if window:
+        window.run_command('sublime_linter_assigned', {
+            'bid': bid,
+            'linter_names': [linter.name for linter in linters]
+        })
 
     return linters
 

@@ -171,10 +171,6 @@ def get_selectors(linter, wanted_syntax):
 def filter_linters(linters, view):
     enabled, disabled = [], []
     for linter in linters:
-        if linter.disabled:
-            disabled.append(linter)
-            continue
-
         # Check if the linter can run in the current lint mode.
         if linter.tempfile_suffix == '-' and view.is_dirty():
             # Do *not* add to disabled to not invalidate errors `on_modified`

@@ -262,6 +262,9 @@ def lint(view, view_has_changed, lock):
     with lock:  # We're already debounced, so races are actually unlikely.
         linters = get_linters_for_view(view)
 
+    linters = [
+        linter for linter in linters
+        if not skip_linter(linter, view)]
     if not linters:
         return
 
@@ -277,6 +280,14 @@ def lint(view, view_has_changed, lock):
     backend.lint_view(linters, view, view_has_changed, next)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
+
+
+def skip_linter(linter, view):
+    # A 'saved-file-only' linter does not run on unsaved views
+    if linter.tempfile_suffix == '-' and view.is_dirty():
+        return True
+
+    return False
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

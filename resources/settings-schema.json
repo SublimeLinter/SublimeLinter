@@ -104,6 +104,9 @@
         "statusbar.messages_template":{
             "type":"string"
         },
+        "statusbar.show_active_linters":{
+            "type":"boolean"
+        },
         "styles":{
             "type":"array",
             "items":{

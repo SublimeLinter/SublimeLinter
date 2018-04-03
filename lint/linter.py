@@ -2,6 +2,7 @@ from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
 from numbers import Number
 import threading
 
+from fnmatch import fnmatch
 import logging
 import os
 import re
@@ -90,6 +91,105 @@ class VirtualView:
     # def substr(self, region)
     # def text_point(self, row, col) => Point
     # def rowcol(self, point) => (row, col)
+
+
+def get_raw_linter_settings(linter, window=None):
+    """Return 'raw' linter settings without variables substituted.
+
+    Settings are merged in the following order:
+
+    default settings (on the class or instance)
+    user settings
+    project settings
+    """
+    # Note: linter can be a linter class or a linter instance
+
+    defaults = linter.defaults or {}
+    user_settings = persist.settings.get('linters', {}).get(linter.name, {})
+
+    if window:
+        data = window.project_data() or {}
+        project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
+    else:
+        project_settings = {}
+
+    return ChainMap({}, project_settings, user_settings, defaults)
+
+
+def get_linter_settings(linter, view):
+    """Return 'final' linter settings with all variables expanded."""
+    # Note: linter can be a linter class or a linter instance
+    settings = get_raw_linter_settings(linter, view.window())
+    context = get_view_context(view)
+    return substitute_variables(context, settings)
+
+
+def guess_project_root_of_view(view):
+    window = view.window()
+    if not window:
+        return None
+
+    folders = window.folders()
+    if not folders:
+        return None
+
+    filename = view.file_name()
+    if not filename:
+        return folders[0]
+
+    for folder in folders:
+        # Take the first one; should we take the deepest one? The shortest?
+        if filename.startswith(folder + os.path.sep):
+            return folder
+
+    return None
+
+
+def get_view_context(view):
+    # Note that we ship a enhanced version for 'folder' if you have multiple
+    # folders open in a window. See `guess_project_root_of_view`.
+
+    window = view.window()
+    context = ChainMap(
+        {}, window.extract_variables() if window else {}, os.environ)
+
+    project_folder = guess_project_root_of_view(view)
+    if project_folder:
+        context['folder'] = project_folder
+
+    # `window.extract_variables` actually resembles data from the
+    # `active_view`, so we need to pass in all the relevant data around
+    # the filename manually in case the user switches to a different
+    # view, before we're done here.
+    filename = view.file_name()
+    if filename:
+        basename = os.path.basename(filename)
+        file_base_name, file_extension = os.path.splitext(basename)
+
+        context['file'] = filename
+        context['file_path'] = os.path.dirname(filename)
+        context['file_name'] = basename
+        context['file_base_name'] = file_base_name
+        context['file_extension'] = file_extension
+
+    return context
+
+
+def substitute_variables(variables, value):
+    # Utilizes Sublime Text's `expand_variables` API, which uses the
+    # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
+
+    if isinstance(value, str):
+        value = sublime.expand_variables(value, variables)
+        return os.path.expanduser(value)
+    elif isinstance(value, Mapping):
+        return {key: substitute_variables(variables, val)
+                for key, val in value.items()}
+    elif isinstance(value, Sequence):
+        return [substitute_variables(variables, item)
+                for item in value]
+    else:
+        return value
 
 
 class LinterMeta(type):
@@ -326,6 +426,11 @@ class Linter(metaclass=LinterMeta):
         # bc some ruby linters rely on that behavior.
         self.env = {}
 
+        # Ensure instances have their own copy in case a plugin author
+        # mangles it.
+        if self.defaults is not None:
+            self.defaults = self.defaults.copy()
+
     @property
     def filename(self):
         """Return the view's file path or '' if unsaved."""
@@ -338,19 +443,6 @@ class Linter(metaclass=LinterMeta):
             "Just use an ordinary binary name instead. ")
         return self.executable
 
-    @staticmethod
-    def _get_settings(linter, window=None):
-        defaults = linter.defaults or {}
-        user_settings = persist.settings.get('linters', {}).get(linter.name, {})
-
-        if window:
-            data = window.project_data() or {}
-            project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
-        else:
-            project_settings = {}
-
-        return ChainMap({}, project_settings, user_settings, defaults)
-
     def get_view_settings(self):
         try:
             return lint_context.settings
@@ -358,93 +450,6 @@ class Linter(metaclass=LinterMeta):
             raise RuntimeError(
                 "CRITICAL: {}: Calling 'get_view_settings' outside "
                 "of lint context".format(self.name))
-
-    def _get_view_settings(self):
-        """Return a union of all settings specific to this view's linter.
-
-        The settings are merged in the following order:
-
-        default settings
-        user settings
-        project settings
-
-        After merging, tokens in the settings are replaced.
-        """
-        # Note that when files are loaded during quick panel preview,
-        # it can happen that they are linted without having a window.
-        window = self.view.window()
-        settings = self._get_settings(self, window)
-        return self.replace_settings_tokens(settings)
-
-    def replace_settings_tokens(self, settings):
-        """Replace tokens with values in settings.
-
-        Settings can be a string, a mapping or a sequence,
-        and replacement is recursive.
-
-        Utilizes Sublime Text's `expand_variables` API,
-        which uses the `${varname}` syntax
-        and supports placeholders (`${varname:placeholder}`).
-
-        Note that we ship a enhanced version for 'folder' if you have multiple
-        folders open in a window. See `_guess_project_path`.
-        """
-        def recursive_replace(variables, value):
-            if isinstance(value, str):
-                value = sublime.expand_variables(value, variables)
-                return os.path.expanduser(value)
-            elif isinstance(value, Mapping):
-                return {key: recursive_replace(variables, val)
-                        for key, val in value.items()}
-            elif isinstance(value, Sequence):
-                return [recursive_replace(variables, item)
-                        for item in value]
-            else:
-                return value
-
-        window = self.view.window()
-        variables = ChainMap(
-            {}, window.extract_variables() if window else {}, os.environ)
-
-        filename = self.view.file_name()
-        project_folder = self._guess_project_path(window, filename)
-        if project_folder:
-            variables['folder'] = project_folder
-
-        # `window.extract_variables` actually resembles data from the
-        # `active_view`, so we need to pass in all the relevant data around
-        # the filename manually in case the user switches to a different
-        # view, before we're done here.
-        if filename:
-            basename = os.path.basename(filename)
-            file_base_name, file_extension = os.path.splitext(basename)
-
-            variables['file'] = filename
-            variables['file_path'] = os.path.dirname(filename)
-            variables['file_name'] = basename
-            variables['file_base_name'] = file_base_name
-            variables['file_extension'] = file_extension
-
-        return recursive_replace(variables, settings)
-
-    @staticmethod
-    def _guess_project_path(window, filename):
-        if not window:
-            return None
-
-        folders = window.folders()
-        if not folders:
-            return None
-
-        if not filename:
-            return folders[0]
-
-        for folder in folders:
-            # Take the first one; should we take the deepest one? The shortest?
-            if filename.startswith(folder + os.path.sep):
-                return folder
-
-        return None
 
     def which(self, cmd):
         """Return full path to a given executable.
@@ -709,7 +714,7 @@ class Linter(metaclass=LinterMeta):
 
         filename = self.view.file_name()
         return (
-            self._guess_project_path(self.view.window(), filename) or
+            guess_project_root_of_view(self.view) or
             (os.path.dirname(filename) if filename else None)
         )
 
@@ -735,9 +740,6 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        if self.disabled:
-            return []
-
         canonical_filename = (
             os.path.basename(self.view.file_name()) if self.view.file_name()
             else '<untitled {}>'.format(self.view.buffer_id()))
@@ -756,8 +758,14 @@ class Linter(metaclass=LinterMeta):
             output = self.run(None, code)
         else:
             cmd = self.get_cmd()
-            if not cmd:  # We couldn't find a executable
-                return []
+            if not cmd:  # We couldn't find an executable
+                window = self.view.window()
+                if window:
+                    window.run_command('sublime_linter_deactivated', {
+                        'bid': self.view.buffer_id(),
+                        'linter_name': self.name
+                    })
+                return None  # ABORT
             output = self.run(cmd, code)
 
         if not output:
@@ -960,7 +968,39 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        selector = cls._get_settings(cls, view.window()).get('selector')
+        if cls.disabled:
+            return False
+
+        settings = get_linter_settings(cls, view)
+
+        if settings.get('disable'):
+            return False
+
+        if not cls.matches_selector(view, settings):
+            return False
+
+        filename = view.file_name()
+        filename = os.path.realpath(filename) if filename else '<untitled>'
+        excludes = util.convert_type(settings.get('excludes', []), [])
+        if excludes:
+            for pattern in excludes:
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
+
+                if matched:
+                    logger.info(
+                        "{} skipped '{}', excluded by '{}'"
+                        .format(cls.name, filename, pattern)
+                    )
+                    return False
+
+        return True
+
+    @classmethod
+    def matches_selector(cls, view, settings):
+        selector = settings.get('selector')
         if selector:
             return (
                 view.score_selector(0, selector) or

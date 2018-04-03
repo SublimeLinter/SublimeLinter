@@ -95,10 +95,9 @@
     // Set to "never" to disable this feature.
     "show_panel_on_save": "never",
 
-    // Display counters in the status bar.
-    // {warning} and {error} will be replaced with the actual numbers.
-    // Set to "" to display nothing
-    "statusbar.counters_template": "W: {warning} E: {error}",
+    // DEPRECATED: If you've modified this in your user settings,
+    // remove it now to avoid future breakage.
+    "statusbar.counters_template": "",
 
     // Show the messages for problems at your cursor position
     // {message} will be replaced by the actual messages.

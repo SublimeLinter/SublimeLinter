@@ -201,7 +201,8 @@ ENV_TEMPLATE = """  Modified environment:
 """
 
 
-def make_nice_log_message(headline, cmd, cwd, is_stdin, filename, env):
+def make_nice_log_message(headline, cmd, is_stdin,
+                          cwd=None, filename=None, env=None):
     import pprint
     import textwrap
 
@@ -255,14 +256,14 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         from collections import ChainMap
         logger.error(make_nice_log_message(
             '  Execution failed\n\n  {}'.format(str(err)),
-            cmd, cwd, code is not None, _filename,
+            cmd, code is not None, cwd, _filename,
             dict(ChainMap(*env.maps[0:-1])) if env else None))
 
         return ''
 
     if logger.isEnabledFor(logging.INFO):
         logger.info(make_nice_log_message(
-            'Running ...', cmd, cwd, code is not None, _filename, None))
+            'Running ...', cmd, code is not None, cwd, _filename, None))
 
     out = proc.communicate(code)
 

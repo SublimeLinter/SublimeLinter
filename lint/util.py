@@ -191,6 +191,7 @@ RUNNING_TEMPLATE = """{headline}
   {prompt}{pipe} {cmd}
 
 """
+
 PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
 ENV_TEMPLATE = """  Modified environment:
 
@@ -204,13 +205,16 @@ def make_nice_log_message(headline, cmd, cwd, is_stdin, filename, env):
     import pprint
     import textwrap
 
+    if filename and cwd:
+        rel_filename = os.path.relpath(filename, cwd)
+    elif not filename:
+        rel_filename = '<unsaved>'
+
     exec_msg = RUNNING_TEMPLATE.format(
         headline=headline,
         cwd=cwd,
         prompt='>' if os.name == 'nt' else '$',
-        pipe=PIPE_TEMPLATE.format(
-            os.path.relpath(filename, cwd) if filename else '<unsaved>'
-        ) if is_stdin else '',
+        pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
         cmd=' '.join(cmd)
     )
 

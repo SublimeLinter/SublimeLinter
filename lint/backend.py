@@ -81,6 +81,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
 
         return errors
     except BaseException:
+        linter.notify_failure()
         # Log while multi-threaded to get a nicer log message
         logger.exception('Linter crashed.\n\n')
         return []  # Empty list here to clear old errors

@@ -1,14 +1,13 @@
 import sublime
 
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
-from fnmatch import fnmatch
 from itertools import chain, count
 from functools import partial
 import logging
 import os
 import threading
 
-from . import util
+from . import util, linter as linter_module
 
 
 logger = logging.getLogger(__name__)
@@ -21,32 +20,12 @@ counter_lock = threading.Lock()
 
 
 def lint_view(linters, view, view_has_changed, next):
-    """
-    Lint the given view.
+    """Lint the given view.
 
     This is the top level lint dispatcher. It is called
-    asynchronously. The following checks are done for each linter
-    assigned to the view:
-
-    - Check if the linter has been disabled in settings.
-    - Check if the filename matches any patterns in the "excludes" setting.
-
-    If a linter fails the checks, it is disabled for this run.
-    Otherwise, if the mapped syntax is not in the linter's selectors,
-    the linter is run on the entirety of code.
-
-    Then the set of selectors for all linters assigned to the view is
-    aggregated, and for each selector, if it occurs in sections,
-    the corresponding section is linted as embedded code.
+    asynchronously.
     """
-    enabled_linters, disabled_linters = filter_linters(linters, view)
-
-    # The contract here is that we MUST fire 'updates' for every linter, so
-    # that the views (status bar etc) actually update.
-    for linter in disabled_linters:
-        next(linter, [])
-
-    lint_tasks = get_lint_tasks(enabled_linters, view, view_has_changed)
+    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
 
     run_concurrently(
         partial(run_tasks, tasks, next=partial(next, linter))
@@ -102,6 +81,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
 
         return errors
     except BaseException:
+        linter.notify_failure()
         # Log while multi-threaded to get a nicer log message
         logger.exception('Linter crashed.\n\n')
         return []  # Empty list here to clear old errors
@@ -126,7 +106,8 @@ def translate_lineno_and_column(errors, offset):
 
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
-    for (linter, settings) in linters:
+    for linter in linters:
+        settings = linter_module.get_linter_settings(linter, view)
         selector = settings.get('selector')
         if selector:
             # Inspecting just the first char is faster
@@ -160,49 +141,6 @@ def get_selectors(linter, wanted_syntax):
             yield linter.selectors[syntax]
         except KeyError:
             pass
-
-
-def filter_linters(linters, view):
-    filename = view.file_name()
-    filename = os.path.realpath(filename) if filename else '<untitled>'
-
-    enabled, disabled = [], []
-    for linter in linters:
-        # First check to see if the linter can run in the current lint mode.
-        if linter.tempfile_suffix == '-' and view.is_dirty():
-            # Do *not* add to disabled to not invalidate errors `on_modified`
-            continue
-
-        view_settings = linter._get_view_settings()
-
-        if view_settings.get('disable'):
-            disabled.append(linter)
-            continue
-
-        excludes = util.convert_type(view_settings.get('excludes', []), [])
-        if excludes:
-            matched = False
-
-            for pattern in excludes:
-                if pattern.startswith('!'):
-                    matched = not fnmatch(filename, pattern[1:])
-                else:
-                    matched = fnmatch(filename, pattern)
-
-                if matched:
-                    logger.info(
-                        "{} skipped '{}', excluded by '{}'"
-                        .format(linter.name, filename, pattern)
-                    )
-                    break
-
-            if matched:
-                disabled.append(linter)
-                continue
-
-        enabled.append((linter, view_settings))
-
-    return enabled, disabled
 
 
 def run_concurrently(tasks, max_workers=5):

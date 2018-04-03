@@ -4,7 +4,6 @@ import sublime_plugin
 from collections import defaultdict
 
 from .lint import persist
-from .lint.const import WARNING, ERROR
 from .lint import events
 
 
@@ -12,7 +11,6 @@ STATUS_COUNTER_KEY = "sublime_linter_status_counter"
 STATUS_MSG_KEY = "sublime_linter_status_messages"
 
 State = {
-    'we_count': {},
     'active_view': None,
     'current_pos': (-1, -1),
     'errors_per_line': defaultdict(list)
@@ -38,7 +36,6 @@ def on_lint_result(buffer_id, **kwargs):
     active_view = State['active_view']
     if active_view.buffer_id() == buffer_id:
         State.update({
-            'we_count': get_we_count(buffer_id),
             'errors_per_line': errors_per_line(persist.errors[buffer_id]),
         })
 
@@ -52,7 +49,6 @@ class UpdateState(sublime_plugin.EventListener):
 
         State.update({
             'active_view': active_view,
-            'we_count': get_we_count(bid),
             'errors_per_line': errors_per_line(persist.errors[bid]),
             'current_pos': get_current_pos(active_view)
         })
@@ -76,15 +72,7 @@ class UpdateState(sublime_plugin.EventListener):
             draw(**State)
 
 
-def draw(active_view, we_count, current_pos, errors_per_line, **kwargs):
-    counter_template = persist.settings.get('statusbar.counters_template')
-    if we_count:
-        counter = counter_template.format(warning=we_count[0], error=we_count[1])
-        if counter != active_view.get_status(STATUS_COUNTER_KEY):
-            active_view.set_status(STATUS_COUNTER_KEY, counter)
-    else:
-        active_view.erase_status(STATUS_COUNTER_KEY)
-
+def draw(active_view, current_pos, errors_per_line, **kwargs):
     message = messages_under_cursor(errors_per_line, current_pos)
     if not message:
         active_view.erase_status(STATUS_MSG_KEY)
@@ -116,17 +104,6 @@ def errors_per_line(errors):
     for error in errors:
         rv[error['line']].append(error)
     return rv
-
-
-def get_we_count(bid):
-    warnings, errors = 0, 0
-    for error in persist.errors[bid]:
-        error_type = error['error_type']
-        if error_type == WARNING:
-            warnings += 1
-        elif error_type == ERROR:
-            errors += 1
-    return (warnings, errors)
 
 
 def get_current_pos(view):

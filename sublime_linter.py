@@ -263,6 +263,9 @@ def lint(view, view_has_changed, lock):
     with lock:  # We're already debounced, so races are actually unlikely.
         linters = get_linters_for_view(view)
 
+    linters = [
+        linter for linter in linters
+        if not skip_linter(linter, view)]
     if not linters:
         return
 
@@ -282,6 +285,14 @@ def lint(view, view_has_changed, lock):
     backend.lint_view(linters, view, view_has_changed, next)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
+
+
+def skip_linter(linter, view):
+    # A 'saved-file-only' linter does not run on unsaved views
+    if linter.tempfile_suffix == '-' and view.is_dirty():
+        return True
+
+    return False
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):
@@ -308,12 +319,17 @@ def get_linters_for_view(view):
     wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
-        if (
-            not linter_class.disabled and
-            linter_class.can_lint_view(view)
-        )
+        if linter_class.can_lint_view(view)
     }
     current_linter_classes = {linter.__class__ for linter in linters}
+
+    window = view.window()
+    if window:
+        window.run_command('sublime_linter_assigned', {
+            'bid': bid,
+            'linter_names': [
+                linter_class.name for linter_class in wanted_linter_classes]
+        })
 
     if current_linter_classes != wanted_linter_classes:
         unchanged_buffer = lambda: False  # noqa: E731

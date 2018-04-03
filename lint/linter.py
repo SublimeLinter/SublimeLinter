@@ -451,6 +451,14 @@ class Linter(metaclass=LinterMeta):
                 "CRITICAL: {}: Calling 'get_view_settings' outside "
                 "of lint context".format(self.name))
 
+    def notify_failure(self):
+        window = self.view.window()
+        if window:
+            window.run_command('sublime_linter_failed', {
+                'bid': self.view.buffer_id(),
+                'linter_name': self.name
+            })
+
     def which(self, cmd):
         """Return full path to a given executable.
 
@@ -759,12 +767,7 @@ class Linter(metaclass=LinterMeta):
         else:
             cmd = self.get_cmd()
             if not cmd:  # We couldn't find an executable
-                window = self.view.window()
-                if window:
-                    window.run_command('sublime_linter_failed', {
-                        'bid': self.view.buffer_id(),
-                        'linter_name': self.name
-                    })
+                self.notify_failure()
                 return None  # ABORT
             output = self.run(cmd, code)
 

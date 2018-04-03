@@ -1051,7 +1051,8 @@ class Linter(metaclass=LinterMeta):
             code,
             output_stream=self.error_stream,
             env=env,
-            cwd=cwd)
+            cwd=cwd,
+            _filename=self.filename)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""

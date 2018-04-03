@@ -167,23 +167,6 @@ def find_executables(executable):
 
 # popen utils
 
-def decode(bytes):
-    """
-    Decode and return a byte string using utf8, falling back to system's encoding if that fails.
-
-    So far we only have to do this because javac is so utterly hopeless it uses CP1252
-    for its output on Windows instead of UTF8, even if the input encoding is specified as UTF8.
-    Brilliant! But then what else would you expect from Oracle?
-
-    """
-    if not bytes:
-        return ''
-
-    try:
-        return bytes.decode('utf8')
-    except UnicodeError:
-        return bytes.decode(locale.getpreferredencoding(), errors='replace')
-
 
 RUNNING_TEMPLATE = """{headline}
 
@@ -278,6 +261,24 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
 def _post_process_fh(fh):
     as_string = decode(fh)
     return ANSI_COLOR_RE.sub('', as_string)
+
+
+def decode(bytes):
+    """
+    Decode and return a byte string using utf8, falling back to system's encoding if that fails.
+
+    So far we only have to do this because javac is so utterly hopeless it uses CP1252
+    for its output on Windows instead of UTF8, even if the input encoding is specified as UTF8.
+    Brilliant! But then what else would you expect from Oracle?
+
+    """
+    if not bytes:
+        return ''
+
+    try:
+        return bytes.decode('utf8')
+    except UnicodeError:
+        return bytes.decode(locale.getpreferredencoding(), errors='replace')
 
 
 def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None, cwd=None):

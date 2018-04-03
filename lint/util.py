@@ -213,7 +213,8 @@ def make_nice_log_message(headline, cmd, is_stdin,
     return exec_msg + env_msg
 
 
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None, _filename=None):
+def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
+                _filename=None):
     """
     Return the result of sending code via stdin to an executable.
 

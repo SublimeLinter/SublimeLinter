@@ -761,7 +761,7 @@ class Linter(metaclass=LinterMeta):
             if not cmd:  # We couldn't find an executable
                 window = self.view.window()
                 if window:
-                    window.run_command('sublime_linter_deactivated', {
+                    window.run_command('sublime_linter_failed', {
                         'bid': self.view.buffer_id(),
                         'linter_name': self.name
                     })

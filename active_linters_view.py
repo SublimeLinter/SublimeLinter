@@ -70,7 +70,7 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['failed_linters_per_bid'][bid] = set()
 
 
-class sublime_linter_deactivated(sublime_plugin.WindowCommand):
+class sublime_linter_failed(sublime_plugin.WindowCommand):
     def run(self, bid, linter_name):
         State['failed_linters_per_bid'][bid].add(linter_name)
 

@@ -1,6 +1,7 @@
 """This module provides persistent global storage for other modules."""
 
 from collections import defaultdict
+import threading
 
 from .util import printf
 from .settings import Settings
@@ -20,6 +21,11 @@ linter_classes = {}
 
 # A mapping between buffer ids and a set of linter instances
 view_linters = {}
+
+# Dict[buffer_id, [Popen]]
+active_popen_calls = defaultdict(list)
+
+global_lock = threading.RLock()
 
 
 def debug_mode():

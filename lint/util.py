@@ -231,6 +231,8 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     if env is None:
         env = create_environment()
 
+    view = _linter.view if _linter else None
+
     try:
         proc = subprocess.Popen(
             cmd, env=env, cwd=cwd,
@@ -246,8 +248,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             augmented_env = None
         logger.error(make_nice_log_message(
             '  Execution failed\n\n  {}'.format(str('err')),
-            cmd, code is not None, cwd,
-            _linter.view if _linter else None, augmented_env))
+            cmd, code is not None, cwd, view, augmented_env))
 
         if _linter:
             _linter.notify_failure()
@@ -256,9 +257,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
 
     if logger.isEnabledFor(logging.INFO):
         logger.info(make_nice_log_message(
-            'Running ...',
-            cmd, code is not None, cwd,
-            _linter.view if _linter else None, None))
+            'Running ...', cmd, code is not None, cwd, view, None))
 
     out = proc.communicate(code)
 

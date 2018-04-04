@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import sublime
+import tempfile
 
 from . import persist, util
 from .const import WARNING, ERROR
@@ -1080,26 +1081,36 @@ class Linter(metaclass=LinterMeta):
         cwd = self.get_working_dir(settings)
         env = self.get_environment(settings)
 
-        return util.communicate(
-            cmd,
-            code,
-            output_stream=self.error_stream,
-            env=env,
-            cwd=cwd,
-            _view=self.view)
+        return util.communicate(cmd, code, output_stream=self.error_stream,
+                                env=env, cwd=cwd, _view=self.view)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
-        settings = self.get_view_settings()
-        cwd = self.get_working_dir(settings)
-        env = self.get_environment(settings)
+        if not suffix:
+            suffix = self.get_tempfile_suffix()
 
-        return util.tmpfile(
-            cmd,
-            code,
-            self.filename,
-            suffix or self.get_tempfile_suffix(),
-            output_stream=self.error_stream,
-            env=env,
-            cwd=cwd,
-            _view=self.view)
+        file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        path = file.name
+
+        try:
+            file.write(bytes(code, 'UTF-8'))
+            file.close()
+
+            if '${file}' in cmd:
+                cmd[cmd.index('${file}')] = self.filename
+
+            if '${temp_file}' in cmd:
+                cmd[cmd.index('${temp_file}')] = path
+            elif '@' in cmd:  # legacy SL3 crypto-identifier
+                cmd[cmd.index('@')] = path
+            else:
+                cmd.append(path)
+
+            settings = self.get_view_settings()
+            cwd = self.get_working_dir(settings)
+            env = self.get_environment(settings)
+
+            return util.communicate(cmd, output_stream=self.error_stream,
+                                    env=env, cwd=cwd, _view=self.view)
+        finally:
+            os.remove(path)

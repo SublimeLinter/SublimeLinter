@@ -8,7 +8,6 @@ import os
 import re
 import sublime
 import subprocess
-import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -287,42 +286,6 @@ def decode(bytes):
         return bytes.decode('utf8')
     except UnicodeError:
         return bytes.decode(locale.getpreferredencoding(), errors='replace')
-
-
-def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT,
-            env=None, cwd=None, _view=None):
-    """
-    Return the result of running an executable against a temporary file containing code.
-
-    It is assumed that the executable launched by cmd can take one more argument
-    which is a filename to process.
-
-    The result is a string combination of stdout and stderr.
-    If env is None, the result of create_environment is used.
-    """
-    file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    path = file.name
-
-    try:
-        file.write(bytes(code, 'UTF-8'))
-        file.close()
-
-        cmd = list(cmd)
-
-        if '${file}' in cmd:
-            cmd[cmd.index('${file}')] = filename
-
-        if '${temp_file}' in cmd:
-            cmd[cmd.index('${temp_file}')] = path
-        elif '@' in cmd:  # legacy SL3 crypto-identifier
-            cmd[cmd.index('@')] = path
-        else:
-            cmd.append(path)
-
-        return communicate(cmd, output_stream=output_stream,
-                           env=env, cwd=cwd, _view=_view)
-    finally:
-        os.remove(path)
 
 
 def create_startupinfo():

@@ -362,7 +362,8 @@ def make_view_has_changed_fn(view):
 
     def view_has_changed():
         if persist.kill_switch:
-            logger.warning(
+            window = sublime.active_window()
+            window.status_message(
                 'Aborting lint. SublimeLinter needs a restart of Sublime.')
             return True
 

@@ -231,7 +231,10 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     if env is None:
         env = create_environment()
 
+    from . import persist
+
     view = _linter.view if _linter else None
+    bid = view.buffer_id() if view else None
     uses_stdin = code is not None
 
     try:
@@ -240,8 +243,15 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             stdin=subprocess.PIPE if uses_stdin else None,
             stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
             stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
-            startupinfo=create_startupinfo()
+            startupinfo=create_startupinfo(),
+            creationflags=get_creationflags()
         )
+
+        with persist.active_procs_lock:
+            persist.active_procs[bid].append(proc)
+
+    except BrokenPipeError:  # If we kill a proc, we break it!
+        return ''
 
     except Exception as err:
         try:
@@ -270,6 +280,10 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             return _post_process_fh(out[1])
         if output_stream == STREAM_BOTH:
             return ''.join(_post_process_fh(fh) for fh in out)
+
+    finally:
+        with persist.active_procs_lock:
+            persist.active_procs[bid].remove(proc)
 
 
 def _post_process_fh(fh):
@@ -303,6 +317,14 @@ def create_startupinfo():
         return info
 
     return None
+
+
+def get_creationflags():
+    if os.name == 'nt':
+        return subprocess.CREATE_NEW_PROCESS_GROUP
+
+    return 0
+
 
 # misc utils
 

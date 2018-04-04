@@ -216,7 +216,7 @@ def make_nice_log_message(headline, cmd, is_stdin,
 
 
 def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
-                _view=None):
+                _linter=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -246,14 +246,16 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             augmented_env = None
         logger.error(make_nice_log_message(
             '  Execution failed\n\n  {}'.format(str('err')),
-            cmd, code is not None, cwd, _view,
-            augmented_env))
+            cmd, code is not None, cwd,
+            _linter.view if _linter else None, augmented_env))
 
         return ''
 
     if logger.isEnabledFor(logging.INFO):
         logger.info(make_nice_log_message(
-            'Running ...', cmd, code is not None, cwd, _view, None))
+            'Running ...',
+            cmd, code is not None, cwd,
+            _linter.view if _linter else None, None))
 
     out = proc.communicate(code)
 

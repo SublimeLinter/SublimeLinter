@@ -1082,7 +1082,7 @@ class Linter(metaclass=LinterMeta):
         env = self.get_environment(settings)
 
         return util.communicate(cmd, code, output_stream=self.error_stream,
-                                env=env, cwd=cwd, _view=self.view)
+                                env=env, cwd=cwd, _linter=self)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
@@ -1111,6 +1111,6 @@ class Linter(metaclass=LinterMeta):
             env = self.get_environment(settings)
 
             return util.communicate(cmd, output_stream=self.error_stream,
-                                    env=env, cwd=cwd, _view=self.view)
+                                    env=env, cwd=cwd, _linter=self)
         finally:
             os.remove(path)

@@ -232,11 +232,12 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         env = create_environment()
 
     view = _linter.view if _linter else None
+    uses_stdin = code is not None
 
     try:
         proc = subprocess.Popen(
             cmd, env=env, cwd=cwd,
-            stdin=subprocess.PIPE if code is not None else None,
+            stdin=subprocess.PIPE if uses_stdin else None,
             stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
             stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
             startupinfo=create_startupinfo()
@@ -248,7 +249,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             augmented_env = None
         logger.error(make_nice_log_message(
             '  Execution failed\n\n  {}'.format(str('err')),
-            cmd, code is not None, cwd, view, augmented_env))
+            cmd, uses_stdin, cwd, view, augmented_env))
 
         if _linter:
             _linter.notify_failure()
@@ -257,7 +258,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
 
     if logger.isEnabledFor(logging.INFO):
         logger.info(make_nice_log_message(
-            'Running ...', cmd, code is not None, cwd, view, None))
+            'Running ...', cmd, uses_stdin, cwd, view, None))
 
     out = proc.communicate(code)
 

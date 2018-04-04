@@ -172,11 +172,11 @@ RUNNING_TEMPLATE = """{headline}
 
   {cwd}  (working dir)
   {prompt}{pipe} {cmd}
-
 """
 
 PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
-ENV_TEMPLATE = """  Modified environment:
+ENV_TEMPLATE = """
+  Modified environment:
 
   {env}
 

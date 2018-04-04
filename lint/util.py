@@ -249,6 +249,9 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             cmd, code is not None, cwd,
             _linter.view if _linter else None, augmented_env))
 
+        if _linter:
+            _linter.notify_failure()
+
         return ''
 
     if logger.isEnabledFor(logging.INFO):

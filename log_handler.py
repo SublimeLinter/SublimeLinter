@@ -8,19 +8,16 @@ from .lint import util
 DEBUG_FALSE_LEVEL = logging.WARNING
 DEBUG_TRUE_LEVEL = logging.INFO
 ERROR_PANEL_LEVEL = logging.ERROR
-STATUS_BAR_LEVEL = logging.WARNING
 
 logger = logging.getLogger('SublimeLinter')
 logger.setLevel(logging.DEBUG)
 handler = None
 error_panel_handler = None
-status_bar_handler = None
 
 
 def install():
     install_std_handler()
     install_error_panel_handler()
-    install_status_bar_handler()
 
     settings = sublime.load_settings("SublimeLinter.sublime-settings")
     settings.add_on_change('SublimeLinter._logging', install_std_handler)
@@ -31,8 +28,6 @@ def plugin_unloaded():
         logger.removeHandler(handler)
     if error_panel_handler:
         logger.removeHandler(error_panel_handler)
-    if status_bar_handler:
-        logger.removeHandler(status_bar_handler)
 
     settings = sublime.load_settings("SublimeLinter.sublime-settings")
     settings.clear_on_change('SublimeLinter._logging')
@@ -70,7 +65,7 @@ def _install_std_handler(level=False):
 
     handler.setLevel(level)
     logger.addHandler(handler)
-    logger.setLevel(min(ERROR_PANEL_LEVEL, STATUS_BAR_LEVEL, level))
+    logger.setLevel(min(ERROR_PANEL_LEVEL, level))
     logger.info(
         'Logging installed; log level {}'.format(logging.getLevelName(level))
     )
@@ -90,19 +85,6 @@ def install_error_panel_handler():
     error_panel_handler.setLevel(ERROR_PANEL_LEVEL)
 
     logger.addHandler(error_panel_handler)
-
-
-def install_status_bar_handler():
-    global status_bar_handler
-    if status_bar_handler:
-        logger.removeHandler(status_bar_handler)
-
-    formatter = TaskNumberFormatter(fmt="SublimeLinter: {message}", style="{")
-    status_bar_handler = StatusBarHandler()
-    status_bar_handler.setFormatter(formatter)
-    status_bar_handler.setLevel(STATUS_BAR_LEVEL)
-
-    logger.addHandler(status_bar_handler)
 
 
 class TaskNumberFormatter(logging.Formatter):
@@ -151,22 +133,6 @@ class ErrorPanelHandler(logging.Handler):
 
             beaty_msg = '\n'.join([header, '=' * len(header), rest])
             util.show_message(beaty_msg, window)
-        except Exception:
-            self.handleError(record)
-
-
-class StatusBarHandler(logging.Handler):
-    def emit(self, record):
-        if record.levelno != STATUS_BAR_LEVEL:
-            return
-
-        try:
-            msg = self.format(record)
-            window = record.VIEW.window() if record.VIEW else sublime.active_window()
-            if not window:
-                return
-
-            window.status_message(msg)
         except Exception:
             self.handleError(record)
 

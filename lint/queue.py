@@ -1,5 +1,3 @@
-from . import persist
-
 import threading
 
 
@@ -7,11 +5,7 @@ import threading
 timers = {}
 
 
-def debounce(callback, delay=None, key=None):
-    if delay is None:
-        delay = get_delay()
-    key = key or callback
-
+def debounce(callback, delay, key):
     try:
         timers[key].cancel()
     except KeyError:
@@ -37,15 +31,3 @@ def unload():
             return
         else:
             timer.cancel()
-
-
-def get_delay():
-    """Return the delay between a lint request and when it will be processed.
-
-    If the lint mode is not background, there is no delay. Otherwise, if
-    a "delay" setting is not available in any of the settings, MIN_DELAY is used.
-    """
-    if persist.settings.get('lint_mode') != 'background':
-        return 0
-
-    return persist.settings.get('delay')

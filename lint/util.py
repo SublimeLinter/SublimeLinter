@@ -185,14 +185,15 @@ ENV_TEMPLATE = """
 
 
 def make_nice_log_message(headline, cmd, is_stdin,
-                          cwd=None, filename=None, env=None):
+                          cwd=None, view=None, env=None):
     import pprint
     import textwrap
 
+    filename = view.file_name() if view else None
     if filename and cwd:
         rel_filename = os.path.relpath(filename, cwd)
     elif not filename:
-        rel_filename = '<unsaved>'
+        rel_filename = '<buffer {}>'.format(view.buffer_id()) if view else '<?>'
 
     real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
 
@@ -216,7 +217,7 @@ def make_nice_log_message(headline, cmd, is_stdin,
 
 
 def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
-                _filename=None):
+                _view=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -246,14 +247,14 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             augmented_env = None
         logger.error(make_nice_log_message(
             '  Execution failed\n\n  {}'.format(str('err')),
-            cmd, code is not None, cwd, _filename,
+            cmd, code is not None, cwd, _view,
             augmented_env))
 
         return ''
 
     if logger.isEnabledFor(logging.INFO):
         logger.info(make_nice_log_message(
-            'Running ...', cmd, code is not None, cwd, _filename, None))
+            'Running ...', cmd, code is not None, cwd, _view, None))
 
     out = proc.communicate(code)
 

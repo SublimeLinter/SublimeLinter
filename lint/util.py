@@ -242,6 +242,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
             startupinfo=create_startupinfo()
         )
+
     except Exception as err:
         try:
             augmented_env = dict(ChainMap(*env.maps[0:-1]))
@@ -256,18 +257,19 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
 
         return ''
 
-    if logger.isEnabledFor(logging.INFO):
-        logger.info(make_nice_log_message(
-            'Running ...', cmd, uses_stdin, cwd, view, None))
+    else:
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(make_nice_log_message(
+                'Running ...', cmd, uses_stdin, cwd, view, None))
 
-    out = proc.communicate(code)
+        out = proc.communicate(code)
 
-    if output_stream == STREAM_STDOUT:
-        return _post_process_fh(out[0])
-    if output_stream == STREAM_STDERR:
-        return _post_process_fh(out[1])
-    if output_stream == STREAM_BOTH:
-        return ''.join(_post_process_fh(fh) for fh in out)
+        if output_stream == STREAM_STDOUT:
+            return _post_process_fh(out[0])
+        if output_stream == STREAM_STDERR:
+            return _post_process_fh(out[1])
+        if output_stream == STREAM_BOTH:
+            return ''.join(_post_process_fh(fh) for fh in out)
 
 
 def _post_process_fh(fh):

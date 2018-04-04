@@ -194,9 +194,11 @@ def make_nice_log_message(headline, cmd, is_stdin,
     elif not filename:
         rel_filename = '<unsaved>'
 
+    real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
+
     exec_msg = RUNNING_TEMPLATE.format(
         headline=headline,
-        cwd=cwd,
+        cwd=real_cwd,
         prompt='>' if os.name == 'nt' else '$',
         pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
         cmd=' '.join(cmd)

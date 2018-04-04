@@ -59,7 +59,7 @@ class PythonLinter(linter.Linter):
                     return True, None
 
                 logger.info(
-                    "{}: Using {} for given python '{}'"
+                    "{}: Using '{}' for given python '{}'"
                     .format(self.name, python_bin, python)
                 )
                 return True, [python_bin, '-m', cmd_name]

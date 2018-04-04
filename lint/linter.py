@@ -1080,15 +1080,6 @@ class Linter(metaclass=LinterMeta):
         cwd = self.get_working_dir(settings)
         env = self.get_environment(settings)
 
-        if logger.isEnabledFor(logging.INFO):
-            logger.info('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
-            if cwd:
-                logger.info('{}: cwd: {}'.format(self.name, cwd))
-
         return util.communicate(
             cmd,
             code,
@@ -1102,15 +1093,6 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         cwd = self.get_working_dir(settings)
         env = self.get_environment(settings)
-
-        if logger.isEnabledFor(logging.INFO):
-            logger.info('{}: {} {}'.format(
-                self.name,
-                os.path.basename(self.filename or '<unsaved>'),
-                cmd)
-            )
-            if cwd:
-                logger.info('{}: cwd: {}'.format(self.name, cwd))
 
         return util.tmpfile(
             cmd,

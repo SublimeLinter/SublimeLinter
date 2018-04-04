@@ -1,5 +1,4 @@
 from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
-from numbers import Number
 import threading
 
 from fnmatch import fnmatch
@@ -16,7 +15,7 @@ from .const import WARNING, ERROR
 logger = logging.getLogger(__name__)
 
 
-ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
@@ -593,82 +592,49 @@ class Linter(metaclass=LinterMeta):
         return args
 
     def build_args(self, settings):
-        """
-        Return a list of args to add to cls.cmd.
+        """Return a list of args to add to cls.cmd.
 
-        First any args specified in the "args" linter setting are retrieved.
-        Then the args map (built by map_args during class construction) is
-        iterated. For each item in the args map:
+        This basically implements our DSL around arguments on the command
+        line. See `ARG_RE` and `LinterMeta.map_args`. All potential args
+        are defined in `cls.defaults` with a prefix of `-` or `--`.
+        (All other defaults are just normal settings.)
 
-        - Check to see if the arg is in settings, which is the aggregated
-          default/user/view settings. If arg is not in settings or is a meta
-          setting (beginning with '@'), it is skipped.
-
-        - If the arg has no prefix, it is skipped.
-
-        - Get the setting value. If it is None or an empty string/list, skip this arg.
-
-        - If the setting value is a non-empty list and the arg was specified
-          as taking a single list of values, join the values.
-
-        - If the setting value is a non-empty string or the boolean True,
-          convert it into a single-element list with that value.
-
-        Once a list of values is built, iterate over the values to build
-        the args list:
-
-        - Start with the prefix and arg name.
-        - If the joiner is '=', join '=' and the value and append to the args.
-        - If the joiner is ':', append the arg and value as separate args.
-
+        Note that all falsy values except the Zero are skipped. The value
+        `True` acts as a flag. In all other cases args are key value pairs.
         """
         args = self.get_user_args(settings)
         args_map = getattr(self, 'args_map', {})
 
         for setting, arg_info in args_map.items():
             prefix = arg_info['prefix']
-
-            if setting not in settings or setting[0] == '@' or prefix is None:
+            if prefix is None:
                 continue
 
-            values = settings[setting]
+            values = settings.get(setting, None)
+            if not values and not values == 0:
+                continue
 
-            if values is None:
+            arg = prefix + arg_info['name']
+
+            # The value 'True' should act like a flag
+            if values is True:
+                args.append(arg)
                 continue
             elif isinstance(values, (list, tuple)):
-                if values:
-                    # If the values can be passed as a single list, join them now
-                    if arg_info['sep'] and not arg_info['multiple']:
-                        values = [str(value) for value in values]
-                        values = [arg_info['sep'].join(values)]
-                else:
-                    continue
-            elif isinstance(values, str):
-                if values:
-                    values = [values]
-                else:
-                    continue
-            elif isinstance(values, Number):
-                if values is False:
-                    continue
-                else:
-                    values = [values]
+                # If the values can be passed as a single list, join them now
+                if arg_info['sep'] and not arg_info['multiple']:
+                    values = [str(value) for value in values]
+                    values = [arg_info['sep'].join(values)]
             else:
-                # Unknown type
-                continue
+                values = [values]
 
+            joiner = arg_info['joiner']
             for value in values:
-                if prefix == '@':
+                if joiner == '=':
+                    args.append('{}={}'.format(arg, value))
+                else:  # joiner == ':' or ''
+                    args.append(arg)
                     args.append(str(value))
-                else:
-                    arg = prefix + arg_info['name']
-                    joiner = arg_info['joiner']
-
-                    if joiner == '=':
-                        args.append('{}={}'.format(arg, value))
-                    elif joiner == ':':
-                        args.append(arg)
-                        args.append(str(value))
 
         return args
 

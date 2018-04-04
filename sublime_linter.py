@@ -428,7 +428,7 @@ def get_delay(reason=None):
     if reason == 'on_user_request':
         return 0
 
-    # Need to debounce on_save bc Sublime will fire the event per buffer
+    # Need to debounce on_save bc Sublime will fire the event per view
     if reason == 'on_save':
         return MIN_DEBOUNCE_DELAY
 

@@ -119,8 +119,8 @@ def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for linter in linters:
         settings = linter_module.get_linter_settings(linter, view)
-        selector = settings.get('selector')
-        if selector:
+        selector = settings.get('selector', None)
+        if selector is not None:
             # Inspecting just the first char is faster
             if view.score_selector(0, selector):
                 yield linter, settings, [sublime.Region(0, view.size())]

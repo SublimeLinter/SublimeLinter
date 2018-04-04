@@ -1003,12 +1003,9 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def matches_selector(cls, view, settings):
-        selector = settings.get('selector')
-        if selector:
-            return (
-                view.score_selector(0, selector) or
-                view.find_by_selector(selector)
-            )
+        selector = settings.get('selector', None)
+        if selector is not None:
+            return bool(view.find_by_selector(selector))
 
         # Fallback using deprecated `cls.syntax`
         syntax = util.get_syntax(view).lower()

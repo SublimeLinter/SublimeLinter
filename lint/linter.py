@@ -1119,4 +1119,5 @@ class Linter(metaclass=LinterMeta):
             suffix or self.get_tempfile_suffix(),
             output_stream=self.error_stream,
             env=env,
-            cwd=cwd)
+            cwd=cwd,
+            _view=self.view)

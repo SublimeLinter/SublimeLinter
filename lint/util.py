@@ -289,7 +289,8 @@ def decode(bytes):
         return bytes.decode(locale.getpreferredencoding(), errors='replace')
 
 
-def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None, cwd=None):
+def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT,
+            env=None, cwd=None, _view=None):
     """
     Return the result of running an executable against a temporary file containing code.
 
@@ -318,7 +319,8 @@ def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=Non
         else:
             cmd.append(path)
 
-        return communicate(cmd, output_stream=output_stream, env=env, cwd=cwd)
+        return communicate(cmd, output_stream=output_stream,
+                           env=env, cwd=cwd, _view=_view)
     finally:
         os.remove(path)
 

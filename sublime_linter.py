@@ -420,7 +420,7 @@ def environment_is_ready():
 
 elapsed_runtimes = deque([0.6] * 3, maxlen=10)
 MIN_DEBOUNCE_DELAY = 0.05
-MAX_DEBOUNCE_DELAY = 2.0
+MAX_AUTOMATIC_DELAY = 2.0
 
 
 def get_delay(reason=None):
@@ -436,7 +436,7 @@ def get_delay(reason=None):
     middle = runtimes[len(runtimes) // 2]
     return max(
         max(MIN_DEBOUNCE_DELAY, persist.settings.get('delay')),
-        min(MAX_DEBOUNCE_DELAY, middle / 2)
+        min(MAX_AUTOMATIC_DELAY, middle / 2)
     )
 
 

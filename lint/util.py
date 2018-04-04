@@ -1,5 +1,6 @@
 """This module provides general utility methods."""
 
+from collections import ChainMap
 from functools import lru_cache
 import locale
 import logging
@@ -239,7 +240,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             startupinfo=create_startupinfo()
         )
     except Exception as err:
-        from collections import ChainMap
         try:
             augmented_env = dict(ChainMap(*env.maps[0:-1]))
         except AttributeError:

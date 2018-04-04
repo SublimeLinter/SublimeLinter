@@ -240,10 +240,14 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         )
     except Exception as err:
         from collections import ChainMap
+        try:
+            augmented_env = dict(ChainMap(*env.maps[0:-1]))
+        except AttributeError:
+            augmented_env = None
         logger.error(make_nice_log_message(
-            '  Execution failed\n\n  {}'.format(str(err)),
+            '  Execution failed\n\n  {}'.format(str('err')),
             cmd, code is not None, cwd, _filename,
-            dict(ChainMap(*env.maps[0:-1])) if env else None))
+            augmented_env))
 
         return ''
 

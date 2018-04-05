@@ -17,12 +17,7 @@ class SublimeLinterGotoError(sublime_plugin.WindowCommand):
 
 def goto(view, direction, count, wrap):
     bid = view.buffer_id()
-
-    try:
-        errors = persist.errors[bid]
-    except KeyError:
-        flash(view, 'No problems')
-        return
+    errors = persist.errors[bid]
 
     if len(errors) == 0:
         flash(view, 'No problems')

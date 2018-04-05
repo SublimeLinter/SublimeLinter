@@ -570,38 +570,34 @@ def extract_uid_from_key(key):
 
 
 def get_errors_where(view, fn):
-    uids = {extract_uid_from_key(key)
-            for key in get_region_keys_where_any(view, fn)}
+    uids = {
+        extract_uid_from_key(key)
+        for key in get_region_keys_where_any(view, fn)}
 
     bid = view.buffer_id()
-    return [error
-            for error in persist.errors[bid]
-            if error['uid'] in uids]
+    return [error for error in persist.errors[bid] if error['uid'] in uids]
 
 
-def open_tooltip(active_view, point, line_report=False):
+def open_tooltip(view, point, line_report=False):
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
-    if active_view.is_popup_visible():
+    if view.is_popup_visible():
         return
 
     if line_report:
-        line = active_view.line(point)
+        line = view.line(point)
         errors = get_errors_where(
-            active_view, lambda region: region.intersects(line))
+            view, lambda region: region.intersects(line))
     else:
         errors = get_errors_where(
-            active_view, lambda region: region.contains(point))
+            view, lambda region: region.contains(point))
 
     if not errors:
         return
 
     tooltip_message = join_msgs(errors, line_report)
-    if not tooltip_message:
-        return
-
-    active_view.show_popup(
+    view.show_popup(
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,

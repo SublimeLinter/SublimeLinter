@@ -112,13 +112,6 @@ def move_to(view, point):
         window.open_file(target, sublime.ENCODED_POSITION)
 
 
-def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1
-
-
 def flash(view, msg):
     window = view.window() or sublime.active_window()
     window.status_message(msg)

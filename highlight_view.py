@@ -2,6 +2,7 @@ from collections import defaultdict, ChainMap
 import html
 from itertools import chain
 from functools import partial
+import uuid
 import re
 
 import sublime
@@ -200,7 +201,7 @@ def toggle_demoted_regions(view, show):
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if DEMOTE_WHILE_BUSY_MARKER in key:
-            _namespace, scope, flags = key.split('|')
+            _namespace, _uid, scope, flags = key.split('|')
             flags = int(flags)
             if not show:
                 scope = get_demote_scope()
@@ -231,7 +232,7 @@ def toggle_all_regions(view, show):
         if '.Highlights.' not in key:
             continue
 
-        _namespace, scope, flags = key.split('|')
+        _namespace, _uid, scope, flags = key.split('|')
         flags = int(flags)
         if not show:
             scope = HIDDEN_SCOPE
@@ -258,7 +259,7 @@ def invalidate_regions_under_cursor(view):
             if not any(region.contains(selection) for selection in selections)
         }
         if len(filtered) != len(regions):
-            _namespace, scope, flags = key.split('|')
+            _namespace, _uid, scope, flags = key.split('|')
             flags = int(flags)
 
             filtered_regions = [sublime.Region(a, b) for a, b in filtered]
@@ -281,8 +282,12 @@ def all_views_into_buffer(buffer_id):
 def prepare_data(errors):
     errors_augmented = []
     for error in errors:
-        style = get_base_error_style(**error)
+        try:
+            error['uid']
+        except KeyError:
+            error['uid'] = uuid.uuid4().hex
 
+        style = get_base_error_style(**error)
         priority = int(highlight_store.get(style).get('priority', 0))
         errors_augmented.append(
             ChainMap({'style': style, 'priority': priority}, error))
@@ -384,19 +389,20 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
-        id = (scope, flags, demote_while_busy, hidden)
+        uid = error['uid']
+        id = (uid, scope, flags, demote_while_busy, hidden)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (scope, flags, demote_while_busy, hidden), regions in by_id.items():
+    for (uid, scope, flags, demote_while_busy, hidden), regions in by_id.items():
         dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demote_while_busy else ''
         hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
         region_id = (
-            'SL.{}.Highlights.{}{}|{}|{}'
-            .format(linter_name, dwb_marker, hidden_marker, scope, flags))
+            'SL.{}.Highlights.{}{}|{}|{}|{}'
+            .format(linter_name, dwb_marker, hidden_marker, uid, scope, flags))
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -548,6 +554,31 @@ TOOLTIP_TEMPLATE = '''
 '''
 
 
+def get_region_keys_where_any(view, fn):
+    return (
+        key for key in get_regions_keys(view)
+        if (
+            '.Highlights.' in key and
+            any(map(fn, view.get_regions(key)))
+        )
+    )
+
+
+def extract_uid_from_key(key):
+    _namespace, uid, _scope, _flags = key.split('|')
+    return uid
+
+
+def get_errors_where(view, fn):
+    uids = {extract_uid_from_key(key)
+            for key in get_region_keys_where_any(view, fn)}
+
+    bid = view.buffer_id()
+    return [error
+            for error in persist.errors[bid]
+            if error['uid'] in uids]
+
+
 def open_tooltip(active_view, point, line_report=False):
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
@@ -555,13 +586,14 @@ def open_tooltip(active_view, point, line_report=False):
     if active_view.is_popup_visible():
         return
 
-    bid = active_view.buffer_id()
-    line, col = active_view.rowcol(point)
+    if line_report:
+        line = active_view.line(point)
+        errors = get_errors_where(
+            active_view, lambda region: region.intersects(line))
+    else:
+        errors = get_errors_where(
+            active_view, lambda region: region.contains(point))
 
-    errors = persist.errors[bid]
-    errors = [e for e in errors if e["line"] == line]
-    if not line_report:
-        errors = [e for e in errors if e["start"] <= col <= e["end"]]
     if not errors:
         return
 

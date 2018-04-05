@@ -66,11 +66,13 @@ def goto(view, direction, count, wrap):
     if not jump_positions:
         if wrap:
             error = errors[-1] if reverse else errors[0]
+            flash(
+                view,
+                'Jumped to {} problem'.format('last' if reverse else 'first'))
         else:
             flash(
                 view,
-                'No more problems {}'.format('above' if reverse else 'below')
-            )
+                'No more problems {}'.format('above' if reverse else 'below'))
             return
     elif len(jump_positions) <= count:
         # If we cannot jump wide enough, do not wrap, but jump as wide as

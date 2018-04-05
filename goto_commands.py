@@ -2,7 +2,6 @@ import sublime
 import sublime_plugin
 
 from itertools import dropwhile, takewhile
-from .lint import persist
 
 
 """
@@ -15,43 +14,50 @@ class SublimeLinterGotoError(sublime_plugin.WindowCommand):
         goto(self.window.active_view(), direction, count, wrap)
 
 
-def goto(view, direction, count, wrap):
-    bid = view.buffer_id()
-    errors = persist.errors[bid]
+STORAGE_KEY = 'SL.{vid}.region_keys'
 
-    if len(errors) == 0:
+
+def get_region_keys(view):
+    setting_key = STORAGE_KEY.format(vid=view.id())
+    return set(view.settings().get(setting_key) or [])
+
+
+def get_highlighted_regions(view):
+    return [
+        region
+        for key in get_region_keys(view)
+        if '.Highlights.' in key
+        for region in view.get_regions(key)
+    ]
+
+
+def goto(view, direction, count, wrap):
+    cursor = view.sel()[0].begin()
+
+    regions = get_highlighted_regions(view)
+    if not regions:
         flash(view, 'No problems')
         return
 
-    current_line, current_col = get_current_pos(view)
-    if (current_line, current_col) == (-1, -1):
-        return
-
-    # Filter out duplicates on the same position. Also filter out errors
-    # under the cursor, bc we don't want to jump to them.
-    errors = {(error['line'], error['start'])
-              for error in errors
-              if not(error['line'] == current_line and
-                     error['start'] <= current_col <= error['end'])}
-    errors = sorted(errors)
+    # Filter regions under the cursor, bc we don't want to jump to them.
+    # Also filter duplicate start positions.
+    all_jump_positions = sorted({
+        region.a
+        for region in regions
+        if not region.contains(cursor)})
 
     # Edge case: Since we filtered, it is possible we get here with nothing
     # left. That is the case if we sit on the last remaining error, where we
     # don't have anything to jump to and even `wrap` becomes a no-op.
-    if len(errors) == 0:
+    if len(all_jump_positions) == 0:
         flash(view, 'No more problems')
         return
 
-    def before_current_pos(error):
-        line, start = error
-        return (
-            line < current_line or
-            # `start < current_col` is only safe bc we already
-            # filtered errors directly under cursor (!)
-            line == current_line and start < current_col)
+    def before_current_pos(pos):
+        return pos < cursor
 
-    next_positions = dropwhile(before_current_pos, errors)
-    previous_positions = takewhile(before_current_pos, errors)
+    next_positions = dropwhile(before_current_pos, all_jump_positions)
+    previous_positions = takewhile(before_current_pos, all_jump_positions)
 
     reverse = direction == 'previous'
     jump_positions = list(previous_positions if reverse else next_positions)
@@ -60,7 +66,7 @@ def goto(view, direction, count, wrap):
 
     if not jump_positions:
         if wrap:
-            error = errors[-1] if reverse else errors[0]
+            point = all_jump_positions[-1] if reverse else all_jump_positions[0]
             flash(
                 view,
                 'Jumped to {} problem'.format('last' if reverse else 'first'))
@@ -72,24 +78,22 @@ def goto(view, direction, count, wrap):
     elif len(jump_positions) <= count:
         # If we cannot jump wide enough, do not wrap, but jump as wide as
         # possible to reduce disorientation.
-        error = jump_positions[-1]
+        point = jump_positions[-1]
     else:
-        error = jump_positions[count - 1]
+        point = jump_positions[count - 1]
 
-    line, start = error
-    move_to(view, line, start)
+    move_to(view, point)
 
 
 class _sublime_linter_goto_line(sublime_plugin.TextCommand):
 
-    def run(self, edit, line, col):
-        pt = self.view.text_point(line, col)
+    def run(self, edit, point):
         self.view.sel().clear()
-        self.view.sel().add(pt)
-        self.view.show(pt)
+        self.view.sel().add(point)
+        self.view.show(point)
 
 
-def move_to(view, line, col):
+def move_to(view, point):
     window = view.window()
     if view == window.active_view():
         # If the region we're moving to is already visible, then we don't want
@@ -100,9 +104,10 @@ def move_to(view, line, col):
         # * SL requires that on_selection_modified events MUST be triggered for
         #   each move.
         # See https://github.com/SublimeLinter/SublimeLinter/pull/867.
-        view.run_command('_sublime_linter_goto_line', {'line': line, 'col': col})
+        view.run_command('_sublime_linter_goto_line', {'point': point})
     else:
         filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
+        line, col = view.rowcol(point)
         target = "{}:{}:{}".format(filename, line + 1, col + 1)
         window.open_file(target, sublime.ENCODED_POSITION)
 

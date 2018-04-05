@@ -524,29 +524,30 @@ class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
         open_tooltip(self.window.active_view(), line_report=True)
 
 
+TOOLTIP_STYLES = '''
+    body {
+        word-wrap: break-word;
+    }
+    .error {
+        color: var(--redish);
+        font-weight: bold;
+    }
+    .warning {
+        color: var(--yellowish);
+        font-weight: bold;
+    }
+'''
+
+TOOLTIP_TEMPLATE = '''
+    <body id="sublimelinter-tooltip">
+        <style>{stylesheet}</style>
+        <div>{message}</div>
+    </body>
+'''
+
+
 def open_tooltip(active_view, point=None, line_report=False):
     """Show a tooltip containing all linting errors on a given line."""
-    stylesheet = '''
-        body {
-            word-wrap: break-word;
-        }
-        .error {
-            color: var(--redish);
-            font-weight: bold;
-        }
-        .warning {
-            color: var(--yellowish);
-            font-weight: bold;
-        }
-    '''
-
-    template = '''
-        <body id="sublimelinter-tooltip">
-            <style>{stylesheet}</style>
-            <div>{message}</div>
-        </body>
-    '''
-
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
     if active_view.is_popup_visible():
@@ -572,7 +573,7 @@ def open_tooltip(active_view, point=None, line_report=False):
 
     location = active_view.text_point(line, col)
     active_view.show_popup(
-        template.format(stylesheet=stylesheet, message=tooltip_message),
+        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=location,
         max_width=1000

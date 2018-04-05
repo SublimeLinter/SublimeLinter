@@ -496,7 +496,7 @@ class TooltipController(sublime_plugin.EventListener):
                 for key in get_regions_keys(view) if '.Gutter.' in key
                 for region in view.get_regions(key)
             ):
-                open_tooltip(view, point, True)
+                open_tooltip(view, point, line_report=True)
 
         elif hover_zone == sublime.HOVER_TEXT:
             if (
@@ -516,12 +516,14 @@ class TooltipController(sublime_plugin.EventListener):
                     )
                     for region in view.get_regions(key)
                 ):
-                    open_tooltip(view, point)
+                    open_tooltip(view, point, line_report=False)
 
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
-        open_tooltip(self.window.active_view(), line_report=True)
+        view = self.window.active_view()
+        point = view.sel()[0].begin()
+        open_tooltip(self.window.active_view(), point, line_report=True)
 
 
 TOOLTIP_STYLES = '''
@@ -546,19 +548,15 @@ TOOLTIP_TEMPLATE = '''
 '''
 
 
-def open_tooltip(active_view, point=None, line_report=False):
+def open_tooltip(active_view, point, line_report=False):
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
     if active_view.is_popup_visible():
         return
 
-    if point is None:
-        line, col = get_current_pos(active_view)
-    else:  # provided by hover
-        line, col = active_view.rowcol(point)
-
     bid = active_view.buffer_id()
+    line, col = active_view.rowcol(point)
 
     errors = persist.errors[bid]
     errors = [e for e in errors if e["line"] == line]
@@ -571,17 +569,15 @@ def open_tooltip(active_view, point=None, line_report=False):
     if not tooltip_message:
         return
 
-    location = active_view.text_point(line, col)
     active_view.show_popup(
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-        location=location,
+        location=point,
         max_width=1000
     )
 
 
 def join_msgs(errors, show_count=False):
-
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -622,10 +618,3 @@ def join_msgs(errors, show_count=False):
             messages='<br />'.join(filled_templates)
         )
     return all_msgs
-
-
-def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1

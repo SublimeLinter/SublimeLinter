@@ -155,6 +155,11 @@ def head(iterable):
     return next(iter(iterable), None)
 
 
+def extract_uid_from_key(key):
+    _namespace, uid, _scope, _flags = key.split('|')
+    return uid
+
+
 def get_demote_predicate():
     setting = persist.settings.get('highlights.demote_while_editing')
     if setting == 'none':
@@ -585,28 +590,12 @@ TOOLTIP_TEMPLATE = '''
 '''
 
 
-def get_region_keys_where_any(view, fn):
-    return (
-        key for key in get_regions_keys(view)
-        if (
-            '.Highlights.' in key and
-            any(map(fn, view.get_regions(key)))
-        )
-    )
-
-
-def extract_uid_from_key(key):
-    _namespace, uid, _scope, _flags = key.split('|')
-    return uid
-
-
 def get_errors_where(view, fn):
-    uids = {
-        extract_uid_from_key(key)
-        for key in get_region_keys_where_any(view, fn)}
-
     bid = view.buffer_id()
-    return [error for error in persist.errors[bid] if error['uid'] in uids]
+    return [
+        error for error in persist.errors[bid]
+        if fn(error['region'])
+    ]
 
 
 def open_tooltip(view, point, line_report=False):

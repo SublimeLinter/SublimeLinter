@@ -113,6 +113,48 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         )
 
 
+class UpdateErrorRegions(sublime_plugin.EventListener):
+    def on_modified_async(self, view):
+        bid = view.buffer_id()
+        queue.debounce(
+            lambda: update_error_regions(view),
+            delay=0.05,
+            key='SL.update_error_regions.{}'.format(bid))
+
+
+def update_error_regions(view):
+    bid = view.buffer_id()
+    errors = persist.errors.get(bid)
+    if not errors:
+        return
+
+    uid_region_map = {
+        extract_uid_from_key(key): head(view.get_regions(key))
+        for key in get_regions_keys(view)
+        if '.Highlights.' in key
+    }
+
+    for error in errors:
+        uid = error['uid']
+        region = uid_region_map.get(uid, None)
+        if region is None:
+            continue
+
+        line, start = view.rowcol(region.begin())
+        endLine, end = view.rowcol(region.end())
+        error.update({
+            'region': region,
+            'line': line,
+            'start': start,
+            'endLine': endLine,
+            'end': end
+        })
+
+
+def head(iterable):
+    return next(iter(iterable), None)
+
+
 def get_demote_predicate():
     setting = persist.settings.get('highlights.demote_while_editing')
     if setting == 'none':

@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events
+from .lint import persist, events, queue
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
@@ -82,6 +82,15 @@ class UpdateState(sublime_plugin.EventListener):
         ensure_panel(window)
         if panel_is_active(window):
             update_panel_selection(**State)
+
+    def on_modified_async(self, view):
+        bid = view.buffer_id()
+        window = view.window()
+        if panel_is_active(window) and bid in buffer_ids_per_window(window):
+            queue.debounce(
+                lambda: fill_panel(window),
+                delay=0.025,
+                key='SL.fill_panel_after_modified.{}'.format(window.id()))
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']

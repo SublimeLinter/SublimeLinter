@@ -118,7 +118,7 @@ class UpdateErrorRegions(sublime_plugin.EventListener):
         bid = view.buffer_id()
         queue.debounce(
             lambda: update_error_regions(view),
-            delay=0.05,
+            delay=0.02,
             key='SL.update_error_regions.{}'.format(bid))
 
 

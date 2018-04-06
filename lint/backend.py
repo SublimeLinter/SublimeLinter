@@ -4,10 +4,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from itertools import chain, count
 from functools import partial
 import logging
-import os
 import multiprocessing
+import os
 import time
 import threading
+import uuid
 
 from . import util, linter as linter_module
 
@@ -88,7 +89,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
                 logger.warning('Waited in queue for {:.2f}s'.format(waittime))
 
             errors = linter.lint(code, view_has_changed, settings) or []
-            translate_lineno_and_column(errors, offset)
+            finalize_errors(linter.view, errors, offset)
 
             return errors
         except BaseException:
@@ -98,21 +99,26 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
             return []  # Empty list here to clear old errors
 
 
-def translate_lineno_and_column(errors, offset):
-    if offset == (0, 0):
-        return
-
+def finalize_errors(view, errors, offset):
     line_offset, col_offset = offset
 
     for error in errors:
-        line = error['line']
-        error['line'] = line + line_offset
+        line = error['line'] + line_offset
+        start = error['start'] + col_offset
+        end = error['end'] + col_offset
 
-        if line == 0:
-            error.update({
-                'start': error['start'] + col_offset,
-                'end': error['end'] + col_offset
-            })
+        line_start = view.text_point(line, 0)
+        region = sublime.Region(line_start + start, line_start + end)
+        if len(region) == 0:
+            region.b = region.b + 1
+
+        error.update({
+            'uid': uuid.uuid4().hex,
+            'line': line,
+            'start': start,
+            'end': end,
+            'region': region
+        })
 
 
 def get_lint_regions(linters, view):

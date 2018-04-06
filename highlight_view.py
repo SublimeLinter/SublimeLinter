@@ -2,7 +2,6 @@ from collections import defaultdict, ChainMap
 import html
 from itertools import chain
 from functools import partial
-import uuid
 import re
 
 import sublime
@@ -282,11 +281,6 @@ def all_views_into_buffer(buffer_id):
 def prepare_data(errors):
     errors_augmented = []
     for error in errors:
-        try:
-            error['uid']
-        except KeyError:
-            error['uid'] = uuid.uuid4().hex
-
         style = get_base_error_style(**error)
         priority = int(highlight_store.get(style).get('priority', 0))
         errors_augmented.append(
@@ -368,12 +362,7 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         if not mark_style:
             mark_style == 'none'
 
-        line_start = get_line_start(view, error['line'])
-        region = sublime.Region(line_start + error['start'], line_start + error['end'])
-        # Ensure a region length of 1, otherwise we get visual distortion:
-        # outlines are not drawn at all, and underlines get thicker.
-        if len(region) == 0:
-            region.b = region.b + 1
+        region = error['region']
 
         selected_text = view.substr(region)
         # Work around Sublime bug, which cannot draw 'underlines' on spaces

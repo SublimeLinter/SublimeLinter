@@ -1,8 +1,6 @@
 import sublime
 import sublime_plugin
 
-from collections import defaultdict
-
 from .lint import persist
 from .lint import events
 
@@ -12,8 +10,7 @@ STATUS_MSG_KEY = "sublime_linter_status_messages"
 
 State = {
     'active_view': None,
-    'current_pos': (-1, -1),
-    'errors_per_line': defaultdict(list)
+    'current_pos': -1
 }
 
 
@@ -35,21 +32,14 @@ def plugin_unloaded():
 def on_lint_result(buffer_id, **kwargs):
     active_view = State['active_view']
     if active_view.buffer_id() == buffer_id:
-        State.update({
-            'errors_per_line': errors_per_line(persist.errors[buffer_id]),
-        })
-
         draw(**State)
 
 
 class UpdateState(sublime_plugin.EventListener):
     # Fires once per view with the actual view, not necessary the primary
     def on_activated_async(self, active_view):
-        bid = active_view.buffer_id()
-
         State.update({
             'active_view': active_view,
-            'errors_per_line': errors_per_line(persist.errors[bid]),
             'current_pos': get_current_pos(active_view)
         })
         draw(**State)
@@ -72,22 +62,20 @@ class UpdateState(sublime_plugin.EventListener):
             draw(**State)
 
 
-def draw(active_view, current_pos, errors_per_line, **kwargs):
-    message = messages_under_cursor(errors_per_line, current_pos)
+def draw(active_view, current_pos, **kwargs):
+    message = messages_under_cursor(active_view, current_pos)
     if not message:
         active_view.erase_status(STATUS_MSG_KEY)
     elif message != active_view.get_status(STATUS_MSG_KEY):
         active_view.set_status(STATUS_MSG_KEY, message)
 
 
-def messages_under_cursor(errors, current_pos):
-    line, col = current_pos
-    msgs = []
+def messages_under_cursor(active_view, current_pos):
     message_template = persist.settings.get('statusbar.messages_template')
-
     if message_template != "":
-        for error in errors[line]:
-            if error["start"] <= col <= error["end"]:
+        msgs = []
+        for error in persist.errors.get(active_view.buffer_id()):
+            if error['region'].contains(current_pos):
                 msgs.append(message_template.format(
                     linter=error["linter"],
                     type=error["error_type"],
@@ -99,15 +87,8 @@ def messages_under_cursor(errors, current_pos):
         return ""
 
 
-def errors_per_line(errors):
-    rv = defaultdict(list)
-    for error in errors:
-        rv[error['line']].append(error)
-    return rv
-
-
 def get_current_pos(view):
     try:
-        return view.rowcol(view.sel()[0].begin())
+        return view.sel()[0].begin()
     except (AttributeError, IndexError):
-        return -1, -1
+        return -1

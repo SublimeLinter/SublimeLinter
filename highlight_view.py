@@ -23,7 +23,8 @@ MARK_STYLES = {
     'fill': sublime.DRAW_NO_OUTLINE,
     'solid_underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
     'squiggly_underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS
+    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
+    'none': sublime.HIDDEN
 }
 UNDERLINE_STYLES = (
     'solid_underline', 'squiggly_underline', 'stippled_underline'
@@ -34,6 +35,7 @@ FALLBACK_MARK_STYLE = 'outline'
 
 WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
+HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
 highlight_store = style_stores.HighlightStyleStore()
 STORAGE_KEY = 'SL.{}.region_keys'
@@ -357,12 +359,9 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
     by_id = defaultdict(list)
     for error in errors:
         scope = get_scope(**error)
-        if not scope:
-            continue
-
         mark_style = get_mark_style(**error)
-        if not mark_style or mark_style == 'none':
-            continue
+        if not mark_style:
+            mark_style == 'none'
 
         line_start = get_line_start(view, error['line'])
         region = sublime.Region(line_start + error['start'], line_start + error['end'])
@@ -372,9 +371,6 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
             region.b = region.b + 1
 
         selected_text = view.substr(region)
-
-        demote_while_busy = demote_predicate(selected_text, **error)
-
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
             mark_style = FALLBACK_MARK_STYLE
@@ -383,20 +379,24 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
 
+        demote_while_busy = demote_predicate(selected_text, **error)
+        hidden = mark_style == 'none' or not scope
+
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
-        id = (scope, flags, demote_while_busy)
+        id = (scope, flags, demote_while_busy, hidden)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (scope, flags, demote_while_busy), regions in by_id.items():
+    for (scope, flags, demote_while_busy, hidden), regions in by_id.items():
         dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demote_while_busy else ''
+        hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
         region_id = (
-            'SL.{}.Highlights.{}|{}|{}'
-            .format(linter_name, dwb_marker, scope, flags))
+            'SL.{}.Highlights.{}{}|{}|{}'
+            .format(linter_name, dwb_marker, hidden_marker, scope, flags))
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -509,6 +509,7 @@ class TooltipController(sublime_plugin.EventListener):
                     for key in get_regions_keys(view)
                     if (
                         '.Highlights.' in key and
+                        HIDDEN_STYLE_MARKER not in key and
                         # Select visible highlights; when `idle` all regions
                         # are visible, otherwise all *not* demoted regions.
                         (idle or DEMOTE_WHILE_BUSY_MARKER not in key)

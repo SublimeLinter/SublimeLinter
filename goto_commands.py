@@ -3,6 +3,8 @@ import sublime_plugin
 
 from itertools import dropwhile, takewhile
 
+from .lint import persist
+
 
 """
 Implement typical Goto Next Previous Error Commands.
@@ -14,37 +16,21 @@ class SublimeLinterGotoError(sublime_plugin.WindowCommand):
         goto(self.window.active_view(), direction, count, wrap)
 
 
-STORAGE_KEY = 'SL.{vid}.region_keys'
-
-
-def get_region_keys(view):
-    setting_key = STORAGE_KEY.format(vid=view.id())
-    return set(view.settings().get(setting_key) or [])
-
-
-def get_highlighted_regions(view):
-    return [
-        region
-        for key in get_region_keys(view)
-        if '.Highlights.' in key
-        for region in view.get_regions(key)
-    ]
-
-
 def goto(view, direction, count, wrap):
-    cursor = view.sel()[0].begin()
-
-    regions = get_highlighted_regions(view)
-    if not regions:
+    bid = view.buffer_id()
+    errors = persist.errors.get(bid)
+    if not errors:
         flash(view, 'No problems')
         return
+
+    cursor = view.sel()[0].begin()
 
     # Filter regions under the cursor, bc we don't want to jump to them.
     # Also filter duplicate start positions.
     all_jump_positions = sorted({
-        region.a
-        for region in regions
-        if not region.contains(cursor)})
+        error['region'].begin()
+        for error in errors
+        if not error['region'].contains(cursor)})
 
     # Edge case: Since we filtered, it is possible we get here with nothing
     # left. That is the case if we sit on the last remaining error, where we

@@ -70,21 +70,28 @@ def draw(active_view, current_pos, **kwargs):
         active_view.set_status(STATUS_MSG_KEY, message)
 
 
-def messages_under_cursor(active_view, current_pos):
+def messages_under_cursor(view, current_pos):
     message_template = persist.settings.get('statusbar.messages_template')
     if message_template != "":
-        msgs = []
-        for error in persist.errors.get(active_view.buffer_id(), []):
-            if error['region'].contains(current_pos):
-                msgs.append(message_template.format(
-                    linter=error["linter"],
-                    type=error["error_type"],
-                    message=error["msg"],
-                    code=error["code"]
-                ))
+        msgs = (
+            message_template.format(
+                linter=error["linter"],
+                type=error["error_type"],
+                message=error["msg"],
+                code=error["code"]
+            )
+            for error in get_errors_under_cursor(view.buffer_id(), current_pos)
+        )
         return "; ".join(msgs)
     else:
         return ""
+
+
+def get_errors_under_cursor(bid, cursor):
+    return (
+        error for error in persist.errors.get(bid, [])
+        if error['region'].contains(cursor)
+    )
 
 
 def get_current_pos(view):

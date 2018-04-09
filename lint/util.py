@@ -1,5 +1,6 @@
 """This module provides general utility methods."""
 
+from collections import ChainMap
 from functools import lru_cache
 import locale
 import logging
@@ -8,7 +9,6 @@ import os
 import re
 import sublime
 import subprocess
-import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -172,11 +172,11 @@ RUNNING_TEMPLATE = """{headline}
 
   {cwd}  (working dir)
   {prompt}{pipe} {cmd}
-
 """
 
 PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
-ENV_TEMPLATE = """  Modified environment:
+ENV_TEMPLATE = """
+  Modified environment:
 
   {env}
 
@@ -185,18 +185,21 @@ ENV_TEMPLATE = """  Modified environment:
 
 
 def make_nice_log_message(headline, cmd, is_stdin,
-                          cwd=None, filename=None, env=None):
+                          cwd=None, view=None, env=None):
     import pprint
     import textwrap
 
+    filename = view.file_name() if view else None
     if filename and cwd:
         rel_filename = os.path.relpath(filename, cwd)
     elif not filename:
-        rel_filename = '<unsaved>'
+        rel_filename = '<buffer {}>'.format(view.buffer_id()) if view else '<?>'
+
+    real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
 
     exec_msg = RUNNING_TEMPLATE.format(
         headline=headline,
-        cwd=cwd,
+        cwd=real_cwd,
         prompt='>' if os.name == 'nt' else '$',
         pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
         cmd=' '.join(cmd)
@@ -214,7 +217,7 @@ def make_nice_log_message(headline, cmd, is_stdin,
 
 
 def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
-                _filename=None):
+                _linter=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -228,35 +231,59 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     if env is None:
         env = create_environment()
 
+    from . import persist
+
+    view = _linter.view if _linter else None
+    bid = view.buffer_id() if view else None
+    uses_stdin = code is not None
+
     try:
         proc = subprocess.Popen(
             cmd, env=env, cwd=cwd,
-            stdin=subprocess.PIPE if code is not None else None,
+            stdin=subprocess.PIPE if uses_stdin else None,
             stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
             stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
-            startupinfo=create_startupinfo()
+            startupinfo=create_startupinfo(),
+            creationflags=get_creationflags()
         )
+
+        with persist.active_procs_lock:
+            persist.active_procs[bid].append(proc)
+
+    except BrokenPipeError:  # If we kill a proc, we break it!
+        return ''
+
     except Exception as err:
-        from collections import ChainMap
+        try:
+            augmented_env = dict(ChainMap(*env.maps[0:-1]))
+        except AttributeError:
+            augmented_env = None
         logger.error(make_nice_log_message(
-            '  Execution failed\n\n  {}'.format(str(err)),
-            cmd, code is not None, cwd, _filename,
-            dict(ChainMap(*env.maps[0:-1])) if env else None))
+            '  Execution failed\n\n  {}'.format(str('err')),
+            cmd, uses_stdin, cwd, view, augmented_env))
+
+        if _linter:
+            _linter.notify_failure()
 
         return ''
 
-    if logger.isEnabledFor(logging.INFO):
-        logger.info(make_nice_log_message(
-            'Running ...', cmd, code is not None, cwd, _filename, None))
+    else:
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(make_nice_log_message(
+                'Running ...', cmd, uses_stdin, cwd, view, None))
 
-    out = proc.communicate(code)
+        out = proc.communicate(code)
 
-    if output_stream == STREAM_STDOUT:
-        return _post_process_fh(out[0])
-    if output_stream == STREAM_STDERR:
-        return _post_process_fh(out[1])
-    if output_stream == STREAM_BOTH:
-        return ''.join(_post_process_fh(fh) for fh in out)
+        if output_stream == STREAM_STDOUT:
+            return _post_process_fh(out[0])
+        if output_stream == STREAM_STDERR:
+            return _post_process_fh(out[1])
+        if output_stream == STREAM_BOTH:
+            return ''.join(_post_process_fh(fh) for fh in out)
+
+    finally:
+        with persist.active_procs_lock:
+            persist.active_procs[bid].remove(proc)
 
 
 def _post_process_fh(fh):
@@ -282,40 +309,6 @@ def decode(bytes):
         return bytes.decode(locale.getpreferredencoding(), errors='replace')
 
 
-def tmpfile(cmd, code, filename, suffix='', output_stream=STREAM_STDOUT, env=None, cwd=None):
-    """
-    Return the result of running an executable against a temporary file containing code.
-
-    It is assumed that the executable launched by cmd can take one more argument
-    which is a filename to process.
-
-    The result is a string combination of stdout and stderr.
-    If env is None, the result of create_environment is used.
-    """
-    file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    path = file.name
-
-    try:
-        file.write(bytes(code, 'UTF-8'))
-        file.close()
-
-        cmd = list(cmd)
-
-        if '${file}' in cmd:
-            cmd[cmd.index('${file}')] = filename
-
-        if '${temp_file}' in cmd:
-            cmd[cmd.index('${temp_file}')] = path
-        elif '@' in cmd:  # legacy SL3 crypto-identifier
-            cmd[cmd.index('@')] = path
-        else:
-            cmd.append(path)
-
-        return communicate(cmd, output_stream=output_stream, env=env, cwd=cwd)
-    finally:
-        os.remove(path)
-
-
 def create_startupinfo():
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
@@ -324,6 +317,14 @@ def create_startupinfo():
         return info
 
     return None
+
+
+def get_creationflags():
+    if os.name == 'nt':
+        return subprocess.CREATE_NEW_PROCESS_GROUP
+
+    return 0
+
 
 # misc utils
 

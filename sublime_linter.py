@@ -283,6 +283,9 @@ def lint(view, view_has_changed, lock):
 
     bid = view.buffer_id()
 
+    if persist.settings.get('kill_old_processes'):
+        kill_active_popen_calls(bid)
+
     events.broadcast(events.LINT_START, {'buffer_id': bid})
     start_time = time.time()
 
@@ -302,6 +305,14 @@ def skip_linter(linter, view):
         return True
 
     return False
+
+
+def kill_active_popen_calls(bid):
+    with persist.active_procs_lock:
+        procs = persist.active_procs[bid][:]
+
+    for proc in procs:
+        proc.terminate()
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

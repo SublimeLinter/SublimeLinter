@@ -18,6 +18,9 @@
             "type":"string",
             "pattern":"^(none|ws_regions|warnings|all)$"
         },
+        "kill_old_processes":{
+            "type":"boolean"
+        },
         "highlights.demote_scope": {
             "type":"string"
         },

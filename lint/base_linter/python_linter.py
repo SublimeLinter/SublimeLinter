@@ -59,7 +59,7 @@ class PythonLinter(linter.Linter):
                     return True, None
 
                 logger.info(
-                    "{}: Using {} for given python '{}'"
+                    "{}: Using '{}' for given python '{}'"
                     .format(self.name, python_bin, python)
                 )
                 return True, [python_bin, '-m', cmd_name]
@@ -201,7 +201,7 @@ def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
     try:
         # Different python versions use different output streams, so check both
-        output = util.communicate((path, '-V'), '', output_stream=util.STREAM_BOTH)
+        output = util.communicate((path, '-V'), output_stream=util.STREAM_BOTH)
 
         # 'python -V' returns 'Python <version>', extract the version number
         return extract_major_minor_version(output.split(' ')[1])

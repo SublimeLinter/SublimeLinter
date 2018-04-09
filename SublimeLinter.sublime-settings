@@ -37,6 +37,10 @@
     // the regions. E.g. try 'comment' to get a soft gray.
     "highlights.demote_scope": "",
 
+    // Send `terminate` signal to old lint processes, if their result would
+    // be thrown away. If false we fire-and-forget processes instead.
+    "kill_old_processes": false,
+
     // Lint Modes determine when the linter is run
     // background: asynchronously on every change
     // load_save: when a file is opened and every time it's saved

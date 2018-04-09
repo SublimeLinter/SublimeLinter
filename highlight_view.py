@@ -23,7 +23,8 @@ MARK_STYLES = {
     'fill': sublime.DRAW_NO_OUTLINE,
     'solid_underline': sublime.DRAW_SOLID_UNDERLINE | UNDERLINE_FLAGS,
     'squiggly_underline': sublime.DRAW_SQUIGGLY_UNDERLINE | UNDERLINE_FLAGS,
-    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS
+    'stippled_underline': sublime.DRAW_STIPPLED_UNDERLINE | UNDERLINE_FLAGS,
+    'none': sublime.HIDDEN
 }
 UNDERLINE_STYLES = (
     'solid_underline', 'squiggly_underline', 'stippled_underline'
@@ -34,6 +35,7 @@ FALLBACK_MARK_STYLE = 'outline'
 
 WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
+HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
 highlight_store = style_stores.HighlightStyleStore()
 STORAGE_KEY = 'SL.{}.region_keys'
@@ -109,6 +111,69 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
             idle=(view.id() in State['idle_views']),
             quiet=(view.id() in State['quiet_views'])
         )
+
+
+class UpdateErrorRegions(sublime_plugin.EventListener):
+    def on_modified_async(self, view):
+        update_error_regions(view)
+
+
+def distinct_until_buffer_changed(fn):
+    last = None
+
+    def wrapped_fn(view):
+        nonlocal last
+
+        bid = view.buffer_id()
+        change_count = view.change_count()
+        if last == (bid, change_count):
+            return
+
+        last = (bid, change_count)
+        fn(view)
+
+    return wrapped_fn
+
+
+@distinct_until_buffer_changed
+def update_error_regions(view):
+    bid = view.buffer_id()
+    errors = persist.errors.get(bid)
+    if not errors:
+        return
+
+    uid_region_map = {
+        extract_uid_from_key(key): head(view.get_regions(key))
+        for key in get_regions_keys(view)
+        if '.Highlights.' in key
+    }
+
+    for error in errors:
+        uid = error['uid']
+        region = uid_region_map.get(uid, None)
+        if region is None:
+            continue
+
+        line, start = view.rowcol(region.begin())
+        endLine, end = view.rowcol(region.end())
+        error.update({
+            'region': region,
+            'line': line,
+            'start': start,
+            'endLine': endLine,
+            'end': end
+        })
+
+    events.broadcast('updated_error_positions', {'view': view, 'bid': bid})
+
+
+def head(iterable):
+    return next(iter(iterable), None)
+
+
+def extract_uid_from_key(key):
+    _namespace, uid, _scope, _flags = key.split('|')
+    return uid
 
 
 def get_demote_predicate():
@@ -198,7 +263,7 @@ def toggle_demoted_regions(view, show):
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if DEMOTE_WHILE_BUSY_MARKER in key:
-            _namespace, scope, flags = key.split('|')
+            _namespace, _uid, scope, flags = key.split('|')
             flags = int(flags)
             if not show:
                 scope = get_demote_scope()
@@ -229,7 +294,7 @@ def toggle_all_regions(view, show):
         if '.Highlights.' not in key:
             continue
 
-        _namespace, scope, flags = key.split('|')
+        _namespace, _uid, scope, flags = key.split('|')
         flags = int(flags)
         if not show:
             scope = HIDDEN_SCOPE
@@ -256,7 +321,7 @@ def invalidate_regions_under_cursor(view):
             if not any(region.contains(selection) for selection in selections)
         }
         if len(filtered) != len(regions):
-            _namespace, scope, flags = key.split('|')
+            _namespace, _uid, scope, flags = key.split('|')
             flags = int(flags)
 
             filtered_regions = [sublime.Region(a, b) for a, b in filtered]
@@ -280,7 +345,6 @@ def prepare_data(errors):
     errors_augmented = []
     for error in errors:
         style = get_base_error_style(**error)
-
         priority = int(highlight_store.get(style).get('priority', 0))
         errors_augmented.append(
             ChainMap({'style': style, 'priority': priority}, error))
@@ -357,24 +421,13 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
     by_id = defaultdict(list)
     for error in errors:
         scope = get_scope(**error)
-        if not scope:
-            continue
-
         mark_style = get_mark_style(**error)
-        if not mark_style or mark_style == 'none':
-            continue
+        if not mark_style:
+            mark_style == 'none'
 
-        line_start = get_line_start(view, error['line'])
-        region = sublime.Region(line_start + error['start'], line_start + error['end'])
-        # Ensure a region length of 1, otherwise we get visual distortion:
-        # outlines are not drawn at all, and underlines get thicker.
-        if len(region) == 0:
-            region.b = region.b + 1
+        region = error['region']
 
         selected_text = view.substr(region)
-
-        demote_while_busy = demote_predicate(selected_text, **error)
-
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
             mark_style = FALLBACK_MARK_STYLE
@@ -383,20 +436,25 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         if not persist.settings.get('show_marks_in_minimap'):
                 flags |= sublime.HIDE_ON_MINIMAP
 
+        demote_while_busy = demote_predicate(selected_text, **error)
+        hidden = mark_style == 'none' or not scope
+
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
-        id = (scope, flags, demote_while_busy)
+        uid = error['uid']
+        id = (uid, scope, flags, demote_while_busy, hidden)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (scope, flags, demote_while_busy), regions in by_id.items():
+    for (uid, scope, flags, demote_while_busy, hidden), regions in by_id.items():
         dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demote_while_busy else ''
+        hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
         region_id = (
-            'SL.{}.Highlights.{}|{}|{}'
-            .format(linter_name, dwb_marker, scope, flags))
+            'SL.{}.Highlights.{}{}|{}|{}|{}'
+            .format(linter_name, dwb_marker, hidden_marker, uid, scope, flags))
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -496,7 +554,7 @@ class TooltipController(sublime_plugin.EventListener):
                 for key in get_regions_keys(view) if '.Gutter.' in key
                 for region in view.get_regions(key)
             ):
-                open_tooltip(view, point, True)
+                open_tooltip(view, point, line_report=True)
 
         elif hover_zone == sublime.HOVER_TEXT:
             if (
@@ -509,77 +567,81 @@ class TooltipController(sublime_plugin.EventListener):
                     for key in get_regions_keys(view)
                     if (
                         '.Highlights.' in key and
+                        HIDDEN_STYLE_MARKER not in key and
                         # Select visible highlights; when `idle` all regions
                         # are visible, otherwise all *not* demoted regions.
                         (idle or DEMOTE_WHILE_BUSY_MARKER not in key)
                     )
                     for region in view.get_regions(key)
                 ):
-                    open_tooltip(view, point)
+                    open_tooltip(view, point, line_report=False)
 
 
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
-        open_tooltip(self.window.active_view(), line_report=True)
+        view = self.window.active_view()
+        point = view.sel()[0].begin()
+        open_tooltip(self.window.active_view(), point, line_report=True)
 
 
-def open_tooltip(active_view, point=None, line_report=False):
+TOOLTIP_STYLES = '''
+    body {
+        word-wrap: break-word;
+    }
+    .error {
+        color: var(--redish);
+        font-weight: bold;
+    }
+    .warning {
+        color: var(--yellowish);
+        font-weight: bold;
+    }
+'''
+
+TOOLTIP_TEMPLATE = '''
+    <body id="sublimelinter-tooltip">
+        <style>{stylesheet}</style>
+        <div>{message}</div>
+    </body>
+'''
+
+
+def get_errors_where(view, fn):
+    bid = view.buffer_id()
+    return [
+        error for error in persist.errors[bid]
+        if fn(error['region'])
+    ]
+
+
+def open_tooltip(view, point, line_report=False):
     """Show a tooltip containing all linting errors on a given line."""
-    stylesheet = '''
-        body {
-            word-wrap: break-word;
-        }
-        .error {
-            color: var(--redish);
-            font-weight: bold;
-        }
-        .warning {
-            color: var(--yellowish);
-            font-weight: bold;
-        }
-    '''
-
-    template = '''
-        <body id="sublimelinter-tooltip">
-            <style>{stylesheet}</style>
-            <div>{message}</div>
-        </body>
-    '''
-
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
-    if active_view.is_popup_visible():
+    if view.is_popup_visible():
         return
 
-    if point is None:
-        line, col = get_current_pos(active_view)
-    else:  # provided by hover
-        line, col = active_view.rowcol(point)
+    if line_report:
+        line = view.line(point)
+        errors = get_errors_where(
+            view, lambda region: region.intersects(line))
+    else:
+        errors = get_errors_where(
+            view, lambda region: region.contains(point))
 
-    bid = active_view.buffer_id()
-
-    errors = persist.errors[bid]
-    errors = [e for e in errors if e["line"] == line]
-    if not line_report:
-        errors = [e for e in errors if e["start"] <= col <= e["end"]]
     if not errors:
         return
 
     tooltip_message = join_msgs(errors, line_report)
-    if not tooltip_message:
-        return
-
-    location = active_view.text_point(line, col)
-    active_view.show_popup(
-        template.format(stylesheet=stylesheet, message=tooltip_message),
+    view.show_popup(
+        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-        location=location,
+        location=point,
         max_width=1000
     )
 
 
 def join_msgs(errors, show_count=False):
-
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -620,10 +682,3 @@ def join_msgs(errors, show_count=False):
             messages='<br />'.join(filled_templates)
         )
     return all_msgs
-
-
-def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1

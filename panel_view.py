@@ -42,6 +42,7 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_lint_result)
     events.off(on_finished_linting)
+    events.off(on_updated_error_positions)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
@@ -65,6 +66,14 @@ def on_finished_linting(buffer_id, **kwargs):
         for window in sublime.windows():
             if buffer_id in buffer_ids_per_window(window):
                 toggle_panel_if_errors(window, buffer_id)
+
+
+@events.on('updated_error_positions')
+def on_updated_error_positions(view, **kwargs):
+    bid = view.buffer_id()
+    window = view.window()
+    if panel_is_active(window) and bid in buffer_ids_per_window(window):
+        fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):

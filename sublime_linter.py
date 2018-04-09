@@ -165,7 +165,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        hit(view)
+        hit(view, reason='on_save')
 
     def on_pre_close(self, view):
         bid = view.buffer_id()
@@ -227,7 +227,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Lint the current view."""
-        hit(self.view)
+        hit(self.view, reason='on_user_request')
 
 
 class SublimeLinterConfigChanged(sublime_plugin.ApplicationCommand):
@@ -243,11 +243,11 @@ def lint_all_views():
                 hit(view)
 
 
-def hit(view):
+def hit(view, reason=None):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
-    delay = get_delay()
+    delay = get_delay(reason)
     logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
@@ -420,19 +420,25 @@ def environment_is_ready():
 
 
 elapsed_runtimes = deque([0.6] * 3, maxlen=10)
-MAX_DEBOUNCE_DELAY = 2.0
+MIN_DEBOUNCE_DELAY = 0.05
+MAX_AUTOMATIC_DELAY = 2.0
 
 
-def get_delay():
+def get_delay(reason=None):
     """Return the delay between a lint request and when it will be processed."""
-    if persist.settings.get('lint_mode') != 'background':
+    if reason == 'on_user_request':
         return 0
+
+    # Need to debounce on_save bc Sublime will fire the event per view
+    if reason == 'on_save':
+        return MIN_DEBOUNCE_DELAY
 
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]
     return max(
-        persist.settings.get('delay'),
-        min(MAX_DEBOUNCE_DELAY, middle / 2))
+        max(MIN_DEBOUNCE_DELAY, persist.settings.get('delay')),
+        min(MAX_AUTOMATIC_DELAY, middle / 2)
+    )
 
 
 def remember_runtime(elapsed_runtime):

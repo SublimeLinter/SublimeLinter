@@ -150,6 +150,8 @@ def update_error_regions(view):
             'end': end
         })
 
+    events.broadcast('updated_error_positions', {'view': view, 'bid': bid})
+
 
 def head(iterable):
     return next(iter(iterable), None)

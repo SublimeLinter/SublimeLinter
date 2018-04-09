@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, queue
+from .lint import persist, events
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
@@ -42,6 +42,7 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_lint_result)
     events.off(on_finished_linting)
+    events.off(on_updated_error_positions)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
@@ -67,6 +68,14 @@ def on_finished_linting(buffer_id, **kwargs):
                 toggle_panel_if_errors(window, buffer_id)
 
 
+@events.on('updated_error_positions')
+def on_updated_error_positions(view, **kwargs):
+    bid = view.buffer_id()
+    window = view.window()
+    if panel_is_active(window) and bid in buffer_ids_per_window(window):
+        fill_panel(window)
+
+
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         window = active_view.window()
@@ -82,15 +91,6 @@ class UpdateState(sublime_plugin.EventListener):
         ensure_panel(window)
         if panel_is_active(window):
             update_panel_selection(**State)
-
-    def on_modified_async(self, view):
-        bid = view.buffer_id()
-        window = view.window()
-        if panel_is_active(window) and bid in buffer_ids_per_window(window):
-            queue.debounce(
-                lambda: fill_panel(window),
-                delay=0.025,
-                key='SL.fill_panel_after_modified.{}'.format(window.id()))
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']

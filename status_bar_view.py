@@ -74,7 +74,7 @@ def messages_under_cursor(active_view, current_pos):
     message_template = persist.settings.get('statusbar.messages_template')
     if message_template != "":
         msgs = []
-        for error in persist.errors.get(active_view.buffer_id()):
+        for error in persist.errors.get(active_view.buffer_id(), []):
             if error['region'].contains(current_pos):
                 msgs.append(message_template.format(
                     linter=error["linter"],

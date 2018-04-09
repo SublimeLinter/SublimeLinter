@@ -279,7 +279,14 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         if output_stream == STREAM_STDERR:
             return _post_process_fh(out[1])
         if output_stream == STREAM_BOTH:
-            return ''.join(_post_process_fh(fh) for fh in out)
+            if _linter and callable(_linter.on_stderr):
+                stdout, stderr = [_post_process_fh(fh) for fh in out]
+                if stderr.strip():
+                    _linter.on_stderr(stderr)
+
+                return stdout
+            else:
+                return ''.join(_post_process_fh(fh) for fh in out)
 
     finally:
         with persist.active_procs_lock:

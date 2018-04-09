@@ -459,6 +459,14 @@ class Linter(metaclass=LinterMeta):
                 'linter_name': self.name
             })
 
+    def on_stderr(self, output):
+        norm_output = output.replace('\r\n', '\n').replace('\r', '\n')
+        logger.warning('{} output:\n{}'.format(self.name, norm_output))
+        logger.info(
+            'Note: above warning will become an error in the future. '
+            'Implement `on_stderr` if you think this is wrong.')
+        self.notify_failure()
+
     def which(self, cmd):
         """Return full path to a given executable.
 

@@ -115,13 +115,27 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
 
 class UpdateErrorRegions(sublime_plugin.EventListener):
     def on_modified_async(self, view):
+        update_error_regions(view)
+
+
+def distinct_until_buffer_changed(fn):
+    last = None
+
+    def wrapped_fn(view):
+        nonlocal last
+
         bid = view.buffer_id()
-        queue.debounce(
-            lambda: update_error_regions(view),
-            delay=0.02,
-            key='SL.update_error_regions.{}'.format(bid))
+        change_count = view.change_count()
+        if last == (bid, change_count):
+            return
+
+        last = (bid, change_count)
+        fn(view)
+
+    return wrapped_fn
 
 
+@distinct_until_buffer_changed
 def update_error_regions(view):
     bid = view.buffer_id()
     errors = persist.errors.get(bid)

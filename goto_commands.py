@@ -71,8 +71,9 @@ def goto(view, direction, count, wrap):
     move_to(view, point)
 
 
-class _sublime_linter_goto_line(sublime_plugin.TextCommand):
-
+class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
+    # We want to ensure that `on_selection_modified` handlers run and the
+    # 'move-back' (editing history) still works.
     def run(self, edit, point):
         self.view.sel().clear()
         self.view.sel().add(point)
@@ -82,15 +83,7 @@ class _sublime_linter_goto_line(sublime_plugin.TextCommand):
 def move_to(view, point):
     window = view.window()
     if view == window.active_view():
-        # If the region we're moving to is already visible, then we don't want
-        # the view to suddenly scroll. If the region is not visible, then we
-        # want the surrounding area of the region to be visible.
-        # We need to a use a custom goto line command for several reasons:
-        # * ST's goto line command doesn't accept a col argument.
-        # * SL requires that on_selection_modified events MUST be triggered for
-        #   each move.
-        # See https://github.com/SublimeLinter/SublimeLinter/pull/867.
-        view.run_command('_sublime_linter_goto_line', {'point': point})
+        view.run_command('_sublime_linter_move_cursor', {'point': point})
     else:
         filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
         line, col = view.rowcol(point)

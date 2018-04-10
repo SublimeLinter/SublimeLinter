@@ -621,7 +621,7 @@ def open_tooltip(view, point, line_report=False):
         return
 
     if line_report:
-        line = view.line(point)
+        line = view.full_line(point)
         errors = get_errors_where(
             view, lambda region: region.intersects(line))
     else:

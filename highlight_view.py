@@ -526,9 +526,8 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
             scope = get_demote_scope()
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
-    if persist.settings.has('gutter_theme'):
-        for region_id, (scope, icon, regions) in gutter_regions.items():
-            view.add_regions(region_id, regions, scope=scope, icon=icon)
+    for region_id, (scope, icon, regions) in gutter_regions.items():
+        view.add_regions(region_id, regions, scope=scope, icon=icon)
 
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys

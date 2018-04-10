@@ -438,7 +438,7 @@ MAX_AUTOMATIC_DELAY = 2.0
 def get_delay(reason=None):
     """Return the delay between a lint request and when it will be processed."""
     if reason == 'on_user_request':
-        return 0
+        return 0.0
 
     # Need to debounce on_save bc Sublime will fire the event per view
     if reason == 'on_save':

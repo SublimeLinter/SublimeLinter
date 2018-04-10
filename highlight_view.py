@@ -508,11 +508,12 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
-    new_linter_keys.add(PROTECTED_REGIONS_KEY)
-    view.add_regions(
-        PROTECTED_REGIONS_KEY,
-        protected_regions
-    )
+    if protected_regions:
+        view.add_regions(
+            PROTECTED_REGIONS_KEY,
+            protected_regions
+        )
+        new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
     # remove unused regions
     for key in current_linter_keys - new_linter_keys:

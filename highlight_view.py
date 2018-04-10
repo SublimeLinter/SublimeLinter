@@ -224,7 +224,6 @@ class IdleViewController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
-            invalidate_regions_under_cursor(active_view)
             set_idle(active_view, False)
 
     def on_post_save_async(self, view):
@@ -303,6 +302,28 @@ def toggle_all_regions(view, show):
         view.add_regions(key, regions, scope=scope, flags=flags)
 
 
+InvalidatedRegions = defaultdict(set)
+
+
+class InvalidateEditedErrorController(sublime_plugin.EventListener):
+    # Called multiple times (once per buffer) but provided *view* is always
+    # the same, the primary one.
+    def on_modified(self, view):
+        active_view = State['active_view']
+        if view.buffer_id() == active_view.buffer_id():
+            invalidate_regions_under_cursor(active_view)
+
+    def on_text_command(self, view, cmd, args):
+        if cmd == 'undo':
+            current = get_regions_keys(view)
+            invalidated = InvalidatedRegions[view.id()]
+            next = current | invalidated
+            remember_region_keys(view, next)
+
+            invalidated.clear()
+
+
+@distinct_until_buffer_changed
 def invalidate_regions_under_cursor(view):
     vid = view.id()
     if vid in State['quiet_views']:
@@ -314,18 +335,13 @@ def invalidate_regions_under_cursor(view):
         if '.Highlights.' not in key:
             continue
 
-        regions = view.get_regions(key)
-        filtered = {
-            (region.a, region.b)
-            for region in regions
-            if not any(region.contains(selection) for selection in selections)
-        }
-        if len(filtered) != len(regions):
-            _namespace, _uid, scope, flags = key.split('|')
-            flags = int(flags)
-
-            filtered_regions = [sublime.Region(a, b) for a, b in filtered]
-            view.add_regions(key, filtered_regions, scope=scope, flags=flags)
+        if any(
+            region.contains(selection)
+            for region in view.get_regions(key)
+            for selection in selections
+        ):
+            view.erase_regions(key)
+            InvalidatedRegions[view.id()].add(key)
 
 
 def prepare_protected_regions(view, errors):

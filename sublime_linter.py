@@ -447,7 +447,7 @@ def get_delay(reason=None):
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]
     return max(
-        max(MIN_DEBOUNCE_DELAY, persist.settings.get('delay')),
+        max(MIN_DEBOUNCE_DELAY, float(persist.settings.get('delay'))),
         min(MAX_AUTOMATIC_DELAY, middle / 2)
     )
 

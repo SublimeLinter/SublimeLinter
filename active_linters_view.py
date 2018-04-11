@@ -61,12 +61,7 @@ def count_problems(errors):
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
     def run(self, bid, linter_names):
-        current_state = State['assigned_linters_per_bid'][bid]
-        next_state = set(linter_names)
-        if current_state == next_state:
-            return
-
-        State['assigned_linters_per_bid'][bid] = next_state
+        State['assigned_linters_per_bid'][bid] = set(linter_names)
         State['failed_linters_per_bid'][bid] = set()
 
 

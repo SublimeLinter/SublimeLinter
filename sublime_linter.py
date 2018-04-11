@@ -158,8 +158,9 @@ class BackendController(sublime_plugin.EventListener):
             return
 
         # check if the project settings changed
-        if view.window() and view.window().project_file_name() == view.file_name():
-            lint_all_views()
+        window = view.window()
+        if window and window.project_file_name() == view.file_name():
+            sublime.run_command('sublime_linter_config_changed')
             return
 
         if not util.is_lintable(view):

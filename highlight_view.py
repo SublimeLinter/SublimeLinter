@@ -81,6 +81,9 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
     errors = persist.errors[buffer_id]
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 
+    view = views[0]  # to calculate regions we can take any of the views
+    protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
+
     # `prepare_data` returns the state of the view as we would like to draw it.
     # But we cannot *redraw* regions as soon as the buffer changed, in fact
     # Sublime already moved all the regions for us.
@@ -92,14 +95,12 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
     errors_for_the_gutter = [error for error in errors_for_the_gutter
                              if error['linter'] == linter_name]
 
-    view = views[0]  # to calculate regions we can take any of the views
     demote_predicate = get_demote_predicate()
     highlight_regions = prepare_highlights_data(
         view, linter_name, errors_for_the_highlights,
         demote_predicate=demote_predicate)
     gutter_regions = prepare_gutter_data(
         view, linter_name, errors_for_the_gutter)
-    protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
 
     for view in views:
         draw(
@@ -504,16 +505,15 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
     other_region_keys = current_region_keys - current_linter_keys
 
     new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
-    if len(gutter_regions):
-        new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
-    # flag might not be neccessary
-    view.add_regions(
-        PROTECTED_REGIONS_KEY,
-        protected_regions
-    )
+    if protected_regions:
+        view.add_regions(
+            PROTECTED_REGIONS_KEY,
+            protected_regions
+        )
+        new_linter_keys.add(PROTECTED_REGIONS_KEY)
 
     # remove unused regions
     for key in current_linter_keys - new_linter_keys:
@@ -527,9 +527,8 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
             scope = get_demote_scope()
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
-    if persist.settings.has('gutter_theme'):
-        for region_id, (scope, icon, regions) in gutter_regions.items():
-            view.add_regions(region_id, regions, scope=scope, icon=icon)
+    for region_id, (scope, icon, regions) in gutter_regions.items():
+        view.add_regions(region_id, regions, scope=scope, icon=icon)
 
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys
@@ -622,7 +621,7 @@ def open_tooltip(view, point, line_report=False):
         return
 
     if line_report:
-        line = view.line(point)
+        line = view.full_line(point)
         errors = get_errors_where(
             view, lambda region: region.intersects(line))
     else:

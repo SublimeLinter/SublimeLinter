@@ -231,7 +231,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         hit(self.view, reason='on_user_request')
 
 
-class SublimeLinterConfigChanged(sublime_plugin.ApplicationCommand):
+class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
     def run(self):
         lint_all_views()
 

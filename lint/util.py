@@ -250,9 +250,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         with persist.active_procs_lock:
             persist.active_procs[bid].append(proc)
 
-    except BrokenPipeError:  # If we kill a proc, we break it!
-        return ''
-
     except Exception as err:
         try:
             augmented_env = dict(ChainMap(*env.maps[0:-1]))

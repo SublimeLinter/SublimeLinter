@@ -4,7 +4,6 @@ from functools import lru_cache
 import logging
 import os
 import re
-import subprocess
 
 import sublime
 from .. import linter, util
@@ -163,32 +162,12 @@ def ask_pipenv(linter_name, cwd):
 @lru_cache(maxsize=None)
 def _ask_pipenv(linter_name, cwd):
     cmd = ['pipenv', '--venv']
-    venv = _check_output(cmd, cwd=cwd).strip().split('\n')[-1]
+    venv = util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
     if not venv:
         return
 
     return find_script_by_python_env(venv, linter_name)
-
-
-def _check_output(cmd, cwd=None):
-    """Short wrapper around subprocess.check_output."""
-    logger.info('Running `{}`'.format(' '.join(cmd)))
-    env = util.create_environment()
-
-    try:
-        output = subprocess.check_output(
-            cmd, env=env, cwd=cwd,
-            stderr=subprocess.STDOUT,
-            startupinfo=util.create_startupinfo()
-        )
-    except Exception as err:
-        logger.warning(
-            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
-        )
-        return ''
-    else:
-        return util.process_popen_output(output)
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
@@ -197,7 +176,7 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 @lru_cache(maxsize=None)
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
-    output = _check_output([path, '-V'])
+    output = util.check_output([path, '-V'])
     return extract_major_minor_version(output.split(' ')[-1])
 
 

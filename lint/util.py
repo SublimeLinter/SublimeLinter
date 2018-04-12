@@ -168,6 +168,25 @@ def find_executables(executable):
 
 # popen utils
 
+def check_output(cmd, cwd=None):
+    """Short wrapper around subprocess.check_output."""
+    logger.info('Running `{}`'.format(' '.join(cmd)))
+    env = create_environment()
+
+    try:
+        output = subprocess.check_output(
+            cmd, env=env, cwd=cwd,
+            stderr=subprocess.STDOUT,
+            startupinfo=create_startupinfo()
+        )
+    except Exception as err:
+        logger.warning(
+            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
+        )
+        return ''
+    else:
+        return process_popen_output(output)
+
 
 RUNNING_TEMPLATE = """{headline}
 

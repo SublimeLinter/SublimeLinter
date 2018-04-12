@@ -709,19 +709,14 @@ class Linter(metaclass=LinterMeta):
             if not cmd:  # We couldn't find an executable
                 self.notify_failure()
                 return None  # ABORT
+
             output = self.run(cmd, code)
 
         if not output:
             return []
 
-        # If the view has been modified since the lint was triggered, no point in continuing.
         if view_has_changed():
             return None  # ABORT
-
-        if logger.isEnabledFor(logging.INFO):
-            import textwrap
-            stripped_output = output.replace('\r', '').rstrip()
-            logger.info('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
 
         virtual_view = VirtualView(code)
         return self.parse_output(output, virtual_view)
@@ -733,6 +728,11 @@ class Linter(metaclass=LinterMeta):
                 self.on_stderr(stderr)
         else:
             output = proc.combined_output
+
+        if logger.isEnabledFor(logging.INFO):
+            import textwrap
+            logger.info('{} output:\n{}'.format(
+                self.name, textwrap.indent(output.strip(), 4 * ' ')))
 
         errors = []
         for m in self.find_errors(output):

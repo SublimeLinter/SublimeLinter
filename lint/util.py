@@ -246,10 +246,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             startupinfo=create_startupinfo(),
             creationflags=get_creationflags()
         )
-
-        with persist.active_procs_lock:
-            persist.active_procs[bid].append(proc)
-
     except Exception as err:
         try:
             augmented_env = dict(ChainMap(*env.maps[0:-1]))
@@ -269,7 +265,14 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             logger.info(make_nice_log_message(
                 'Running ...', cmd, uses_stdin, cwd, view, None))
 
-        out = proc.communicate(code)
+        with persist.active_procs_lock:
+            persist.active_procs[bid].append(proc)
+
+        try:
+            out = proc.communicate(code)
+        finally:
+            with persist.active_procs_lock:
+                persist.active_procs[bid].remove(proc)
 
         if output_stream == STREAM_STDOUT:
             return _post_process_fh(out[0])
@@ -284,10 +287,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
                 return stdout
             else:
                 return ''.join(_post_process_fh(fh) for fh in out)
-
-    finally:
-        with persist.active_procs_lock:
-            persist.active_procs[bid].remove(proc)
 
 
 def _post_process_fh(fh):

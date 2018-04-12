@@ -163,7 +163,7 @@ def ask_pipenv(linter_name, cwd):
 @lru_cache(maxsize=None)
 def _ask_pipenv(linter_name, cwd):
     cmd = ['pipenv', '--venv']
-    venv = _communicate(cmd, cwd=cwd).strip().split('\n')[-1]
+    venv = _check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
     if not venv:
         return
@@ -171,26 +171,24 @@ def _ask_pipenv(linter_name, cwd):
     return find_script_by_python_env(venv, linter_name)
 
 
-def _communicate(cmd, cwd):
-    """Short wrapper around subprocess.check_output to eat all errors."""
+def _check_output(cmd, cwd=None):
+    """Short wrapper around subprocess.check_output."""
+    logger.info('Running `{}`'.format(' '.join(cmd)))
     env = util.create_environment()
-    info = None
-
-    # On Windows, start process without a window
-    if os.name == 'nt':
-        info = subprocess.STARTUPINFO()
-        info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
-        info.wShowWindow = subprocess.SW_HIDE
 
     try:
-        return subprocess.check_output(
-            cmd, env=env, startupinfo=info, universal_newlines=True, cwd=cwd
+        output = subprocess.check_output(
+            cmd, env=env, cwd=cwd,
+            stderr=subprocess.STDOUT,
+            startupinfo=util.create_startupinfo()
         )
     except Exception as err:
-        logger.info(
-            "executing {} failed: reason: {}".format(cmd, str(err))
+        logger.warning(
+            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
         )
         return ''
+    else:
+        return util._post_process_fh(output)
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
@@ -199,18 +197,8 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 @lru_cache(maxsize=None)
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
-    try:
-        # Different python versions use different output streams, so check both
-        output = util.communicate((path, '-V'), output_stream=util.STREAM_BOTH)
-
-        # 'python -V' returns 'Python <version>', extract the version number
-        return extract_major_minor_version(output.split(' ')[1])
-    except Exception as ex:
-        logger.error(
-            'an error occurred retrieving the version for {}: {}'
-            .format(path, str(ex)))
-
-        return {'major': None, 'minor': None}
+    output = _check_output([path, '-V'])
+    return extract_major_minor_version(output.split(' ')[-1])
 
 
 def extract_major_minor_version(version):

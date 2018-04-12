@@ -724,8 +724,18 @@ class Linter(metaclass=LinterMeta):
             stripped_output = output.replace('\r', '').rstrip()
             logger.info('{} output:\n{}'.format(self.name, textwrap.indent(stripped_output, '    ')))
 
+        virtual_view = VirtualView(code)
+        return self.parse_output(output, virtual_view)
+
+    def parse_output(self, proc, virtual_view):
+        if callable(self.on_stderr):
+            output, stderr = proc.stdout, proc.stderr
+            if stderr.strip():
+                self.on_stderr(stderr)
+        else:
+            output = proc.combined_output
+
         errors = []
-        vv = VirtualView(code)
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -734,7 +744,7 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                error = self.process_match(m, vv)
+                error = self.process_match(m, virtual_view)
                 errors.append(error)
 
         return errors

@@ -1,6 +1,7 @@
 """This module provides general utility methods."""
 
 from collections import ChainMap
+from contextlib import contextmanager
 from functools import lru_cache
 import locale
 import logging
@@ -231,8 +232,6 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     if env is None:
         env = create_environment()
 
-    from . import persist
-
     view = _linter.view if _linter else None
     bid = view.buffer_id() if view else None
     uses_stdin = code is not None
@@ -264,14 +263,8 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         logger.info(make_nice_log_message(
             'Running ...', cmd, uses_stdin, cwd, view, None))
 
-    with persist.active_procs_lock:
-        persist.active_procs[bid].append(proc)
-
-    try:
+    with store_proc_while_running(bid, proc):
         out = proc.communicate(code)
-    finally:
-        with persist.active_procs_lock:
-            persist.active_procs[bid].remove(proc)
 
     if output_stream == STREAM_STDOUT:
         return _post_process_fh(out[0])
@@ -286,6 +279,20 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             return stdout
         else:
             return ''.join(_post_process_fh(fh) for fh in out)
+
+
+@contextmanager
+def store_proc_while_running(bid, proc):
+    from . import persist
+
+    with persist.active_procs_lock:
+        persist.active_procs[bid].append(proc)
+
+    try:
+        yield proc
+    finally:
+        with persist.active_procs_lock:
+            persist.active_procs[bid].remove(proc)
 
 
 def _post_process_fh(fh):

@@ -460,8 +460,7 @@ class Linter(metaclass=LinterMeta):
             })
 
     def on_stderr(self, output):
-        norm_output = output.replace('\r\n', '\n').replace('\r', '\n')
-        logger.warning('{} output:\n{}'.format(self.name, norm_output))
+        logger.warning('{} output:\n{}'.format(self.name, output))
         logger.info(
             'Note: above warning will become an error in the future. '
             'Implement `on_stderr` if you think this is wrong.')

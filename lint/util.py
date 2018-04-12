@@ -308,8 +308,10 @@ class popen_output(str):
 
 
 def _post_process_fh(fh):
-    as_string = decode(fh)
-    return ANSI_COLOR_RE.sub('', as_string)
+    output = decode(fh)
+    # universal newlines
+    output = output.replace('\r\n', '\n').replace('\r', '\n')
+    return ANSI_COLOR_RE.sub('', output)
 
 
 def decode(bytes):

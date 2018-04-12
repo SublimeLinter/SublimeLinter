@@ -266,19 +266,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     with store_proc_while_running(bid, proc):
         out = proc.communicate(code)
 
-    if output_stream == STREAM_STDOUT:
-        return _post_process_fh(out[0])
-    if output_stream == STREAM_STDERR:
-        return _post_process_fh(out[1])
-    if output_stream == STREAM_BOTH:
-        if _linter and callable(_linter.on_stderr):
-            stdout, stderr = [_post_process_fh(fh) for fh in out]
-            if stderr.strip():
-                _linter.on_stderr(stderr)
-
-            return stdout
-        else:
-            return ''.join(_post_process_fh(fh) for fh in out)
+    return popen_output(proc, *out)
 
 
 @contextmanager
@@ -293,6 +281,30 @@ def store_proc_while_running(bid, proc):
     finally:
         with persist.active_procs_lock:
             persist.active_procs[bid].remove(proc)
+
+
+class popen_output(str):
+    """Hybrid of a Popen process and its output.
+
+    Small compatibility layer: It is both the decoded output
+    as str and partially the Popen object.
+    """
+    def __new__(cls, proc, stdout, stderr):
+        if stdout is not None:
+            stdout = _post_process_fh(stdout)
+        if stderr is not None:
+            stderr = _post_process_fh(stderr)
+
+        combined_output = ''.join(filter(None, [stdout, stderr]))
+
+        rv = super().__new__(cls, combined_output)
+        rv.combined_output = combined_output
+        rv.stdout = stdout
+        rv.stderr = stderr
+        rv.proc = proc
+        rv.pid = proc.pid
+        rv.returncode = proc.returncode
+        return rv
 
 
 def _post_process_fh(fh):

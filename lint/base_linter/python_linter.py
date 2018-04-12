@@ -188,7 +188,7 @@ def _check_output(cmd, cwd=None):
         )
         return ''
     else:
-        return util._post_process_fh(output)
+        return util.process_popen_output(output)
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')

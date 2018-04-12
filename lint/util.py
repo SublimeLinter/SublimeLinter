@@ -291,9 +291,9 @@ class popen_output(str):
     """
     def __new__(cls, proc, stdout, stderr):
         if stdout is not None:
-            stdout = _post_process_fh(stdout)
+            stdout = process_popen_output(stdout)
         if stderr is not None:
-            stderr = _post_process_fh(stderr)
+            stderr = process_popen_output(stderr)
 
         combined_output = ''.join(filter(None, [stdout, stderr]))
 
@@ -307,10 +307,9 @@ class popen_output(str):
         return rv
 
 
-def _post_process_fh(fh):
-    output = decode(fh)
-    # universal newlines
-    output = output.replace('\r\n', '\n').replace('\r', '\n')
+def process_popen_output(output):
+    # bytes -> string   --> universal newlines
+    output = decode(output).replace('\r\n', '\n').replace('\r', '\n')
     return ANSI_COLOR_RE.sub('', output)
 
 

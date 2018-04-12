@@ -256,7 +256,7 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
         except AttributeError:
             augmented_env = None
         logger.error(make_nice_log_message(
-            '  Execution failed\n\n  {}'.format(str('err')),
+            '  Execution failed\n\n  {}'.format(str(err)),
             cmd, uses_stdin, cwd, view, augmented_env))
 
         if _linter:

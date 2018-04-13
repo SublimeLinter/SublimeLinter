@@ -234,6 +234,7 @@ class popen_output(str):
     Small compatibility layer: It is both the decoded output
     as str and partially the Popen object.
     """
+
     def __new__(cls, proc, stdout, stderr):
         if stdout is not None:
             stdout = process_popen_output(stdout)

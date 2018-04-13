@@ -703,7 +703,7 @@ class Linter(metaclass=LinterMeta):
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
         if self.cmd is None:
-            output = self.run(None, code)
+            output = self.run(None, code)  # type: str!
         else:
             cmd = self.get_cmd()
             if not cmd:  # We couldn't find an executable
@@ -722,17 +722,21 @@ class Linter(metaclass=LinterMeta):
         return self.parse_output(output, virtual_view)
 
     def parse_output(self, proc, virtual_view):
-        output, stderr = proc.stdout, proc.stderr
-        # Try to handle `on_stderr`, but only for STREAM_BOTH linters
-        if (
-            output is not None and
-            stderr is not None and
-            callable(self.on_stderr)
-        ):
-            if stderr.strip():
-                self.on_stderr(stderr)
+        try:
+            output, stderr = proc.stdout, proc.stderr
+        except AttributeError:
+            output = proc
         else:
-            output = proc.combined_output
+            # Try to handle `on_stderr`, but only for STREAM_BOTH linters
+            if (
+                output is not None and
+                stderr is not None and
+                callable(self.on_stderr)
+            ):
+                if stderr.strip():
+                    self.on_stderr(stderr)
+            else:
+                output = proc.combined_output
 
         if logger.isEnabledFor(logging.INFO):
             import textwrap

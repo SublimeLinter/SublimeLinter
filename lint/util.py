@@ -283,7 +283,19 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             'Running ...', cmd, uses_stdin, cwd, view, None))
 
     with store_proc_while_running(bid, proc):
-        out = proc.communicate(code)
+        try:
+            out = proc.communicate(code)
+        except BrokenPipeError as err:
+            friendly_terminated = getattr(proc, 'friendly_terminated', False)
+            # TODO: Consider `raise err from None` for friendly_terminated
+            # Bc this is a somewhat expected failure which should NOT count
+            # as 'no errors'. E.g. it should NOT empty all highlighted regions.
+            if friendly_terminated:
+                logger.warning('Broken pipe in <pid {}>'.format(proc.pid))
+            else:
+                # TODO: Consider `notify_failure()` here
+                logger.warning('Exception: {}'.format(str(err)))
+            return ''
 
     return popen_output(proc, *out)
 

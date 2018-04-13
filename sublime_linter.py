@@ -312,11 +312,12 @@ def kill_active_popen_calls(bid):
         procs = persist.active_procs[bid][:]
 
     if procs:
-        logger.info('Friendly terminate: {}'.format(
+        logger.warning('Friendly terminate: {}'.format(
             ', '.join('<pid {}>'.format(proc.pid) for proc in procs)
         ))
     for proc in procs:
         proc.terminate()
+        proc.friendly_terminated = True
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

@@ -1045,22 +1045,29 @@ class Linter(metaclass=LinterMeta):
             return self._communicate(cmd)
 
     def get_tempfile_suffix(self):
-        """Return the mapped tempfile_suffix."""
-        if self.tempfile_suffix and not self.view.file_name():
-            if isinstance(self.tempfile_suffix, dict):
-                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
-            else:
-                suffix = self.tempfile_suffix
-
-            if not suffix.startswith('.'):
-                suffix = '.' + suffix
-
-            return suffix
-        else:
-            """Attempt to extract extension from filename, return an empty string otherwise."""
+        """Return a good filename suffix."""
+        if self.view.file_name():
             name = self.view.file_name()
             _, suffix = os.path.splitext(name)
-            return suffix
+
+        elif isinstance(self.tempfile_suffix, dict):
+            syntax = util.get_syntax(self.view)
+            try:
+                suffix = self.tempfile_suffix[syntax]
+            except KeyError:
+                logger.info(
+                    'No default filename suffix for the syntax `{}` '
+                    'defined in `tempfile_suffix`.'.format(syntax)
+                )
+                suffix = ''
+
+        else:
+            suffix = self.tempfile_suffix
+
+        if suffix and not suffix.startswith('.'):
+            suffix = '.' + suffix
+
+        return suffix
 
     def _communicate(self, cmd, code=None):
         """Run command and return result."""

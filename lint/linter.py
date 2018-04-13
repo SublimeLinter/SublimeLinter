@@ -1013,24 +1013,6 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.communicate(cmd, code)
 
-    def get_tempfile_suffix(self):
-        """Return the mapped tempfile_suffix."""
-        if self.tempfile_suffix and not self.view.file_name():
-            if isinstance(self.tempfile_suffix, dict):
-                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
-            else:
-                suffix = self.tempfile_suffix
-
-            if not suffix.startswith('.'):
-                suffix = '.' + suffix
-
-            return suffix
-        else:
-            """Attempt to extract extension from filename, return an empty string otherwise."""
-            name = self.view.file_name()
-            _, suffix = os.path.splitext(name)
-            return suffix
-
     # popen wrappers
 
     def communicate(self, cmd, code=None):
@@ -1061,6 +1043,24 @@ class Linter(metaclass=LinterMeta):
                 cmd.append(file.name)
 
             return self._communicate(cmd)
+
+    def get_tempfile_suffix(self):
+        """Return the mapped tempfile_suffix."""
+        if self.tempfile_suffix and not self.view.file_name():
+            if isinstance(self.tempfile_suffix, dict):
+                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
+            else:
+                suffix = self.tempfile_suffix
+
+            if not suffix.startswith('.'):
+                suffix = '.' + suffix
+
+            return suffix
+        else:
+            """Attempt to extract extension from filename, return an empty string otherwise."""
+            name = self.view.file_name()
+            _, suffix = os.path.splitext(name)
+            return suffix
 
     def _communicate(self, cmd, code=None):
         """Run command and return result."""

@@ -1044,31 +1044,23 @@ class Linter(metaclass=LinterMeta):
 
         return self._communicate(cmd, code)
 
-    def tmpfile(self, cmd, code, suffix=''):
-        """Run an external executable using a temp file to pass code and return its output."""
+    def tmpfile(self, cmd, code, suffix=None):
+        """Create temporary file with code and lint it."""
         if not suffix:
             suffix = self.get_tempfile_suffix()
 
-        file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-        path = file.name
-
-        try:
-            file.write(bytes(code, 'UTF-8'))
-            file.close()
-
+        with make_temp_file(suffix, code) as file:
             if '${file}' in cmd:
                 cmd[cmd.index('${file}')] = self.filename
 
             if '${temp_file}' in cmd:
-                cmd[cmd.index('${temp_file}')] = path
+                cmd[cmd.index('${temp_file}')] = file.name
             elif '@' in cmd:  # legacy SL3 crypto-identifier
-                cmd[cmd.index('@')] = path
+                cmd[cmd.index('@')] = file.name
             else:
-                cmd.append(path)
+                cmd.append(file.name)
 
             return self._communicate(cmd)
-        finally:
-            os.remove(path)
 
     def _communicate(self, cmd, code=None):
         """Run command and return result."""
@@ -1129,6 +1121,18 @@ class Linter(metaclass=LinterMeta):
                     raise TransientError('Friendly terminated')
 
         return util.popen_output(proc, *out)
+
+
+@contextmanager
+def make_temp_file(suffix, code):
+    file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        file.write(bytes(code, 'UTF-8'))
+        file.close()
+        yield file
+
+    finally:
+        os.remove(file.name)
 
 
 @contextmanager

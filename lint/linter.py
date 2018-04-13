@@ -1,14 +1,15 @@
 from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
-import threading
-
+from contextlib import contextmanager
 from fnmatch import fnmatch
 import logging
 import os
 import re
 import shlex
-import sublime
+import subprocess
 import tempfile
+import threading
 
+import sublime
 from . import persist, util
 from .const import WARNING, ERROR
 
@@ -1032,12 +1033,7 @@ class Linter(metaclass=LinterMeta):
         elif code is None:
             cmd.append(self.filename)
 
-        settings = self.get_view_settings()
-        cwd = self.get_working_dir(settings)
-        env = self.get_environment(settings)
-
-        return util.communicate(cmd, code, output_stream=self.error_stream,
-                                env=env, cwd=cwd, _linter=self)
+        return self._communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=''):
         """Run an external executable using a temp file to pass code and return its output."""
@@ -1061,11 +1057,124 @@ class Linter(metaclass=LinterMeta):
             else:
                 cmd.append(path)
 
-            settings = self.get_view_settings()
-            cwd = self.get_working_dir(settings)
-            env = self.get_environment(settings)
-
-            return util.communicate(cmd, output_stream=self.error_stream,
-                                    env=env, cwd=cwd, _linter=self)
+            return self._communicate(cmd)
         finally:
             os.remove(path)
+
+    def _communicate(self, cmd, code=None):
+        """Run command and return result."""
+        settings = self.get_view_settings()
+        cwd = self.get_working_dir(settings)
+        env = self.get_environment(settings)
+
+        output_stream = self.error_stream
+        view = self.view
+
+        if code is not None:
+            code = code.encode('utf8')
+
+        uses_stdin = code is not None
+        stdin = subprocess.PIPE if uses_stdin else None
+        stdout = subprocess.PIPE if output_stream & util.STREAM_STDOUT else None
+        stderr = subprocess.PIPE if output_stream & util.STREAM_STDERR else None
+
+        try:
+            proc = subprocess.Popen(
+                cmd, env=env, cwd=cwd,
+                stdin=stdin, stdout=stdout, stderr=stderr,
+                startupinfo=util.create_startupinfo(),
+                creationflags=util.get_creationflags()
+            )
+        except Exception as err:
+            augmented_env = dict(ChainMap(*env.maps[0:-1]))
+            logger.error(make_nice_log_message(
+                '  Execution failed\n\n  {}'.format(str(err)),
+                cmd, uses_stdin, cwd, view, augmented_env))
+
+            self.notify_failure()
+
+            return ''
+
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(make_nice_log_message(
+                'Running ...', cmd, uses_stdin, cwd, view, env=None))
+
+        bid = view.buffer_id()
+        with store_proc_while_running(bid, proc):
+            try:
+                out = proc.communicate(code)
+            except BrokenPipeError as err:
+                friendly_terminated = getattr(proc, 'friendly_terminated', False)
+                # TODO: Consider `raise err from None` for friendly_terminated
+                # Bc this is a somewhat expected failure which should NOT count
+                # as 'no errors'. E.g. it should NOT empty all highlighted regions.
+                if friendly_terminated:
+                    logger.warning('Broken pipe in <pid {}>'.format(proc.pid))
+                else:
+                    # TODO: Consider `notify_failure()` here
+                    logger.warning('Exception: {}'.format(str(err)))
+                return ''
+
+        return util.popen_output(proc, *out)
+
+
+@contextmanager
+def store_proc_while_running(bid, proc):
+    from . import persist
+
+    with persist.active_procs_lock:
+        persist.active_procs[bid].append(proc)
+
+    try:
+        yield proc
+    finally:
+        with persist.active_procs_lock:
+            persist.active_procs[bid].remove(proc)
+
+
+RUNNING_TEMPLATE = """{headline}
+
+  {cwd}  (working dir)
+  {prompt}{pipe} {cmd}
+"""
+
+PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
+ENV_TEMPLATE = """
+  Modified environment:
+
+  {env}
+
+  Type: `import os; os.environ` in the Sublime console to get the full environment.
+"""
+
+
+def make_nice_log_message(headline, cmd, is_stdin,
+                          cwd, view, env=None):
+    import pprint
+    import textwrap
+
+    filename = view.file_name()
+    if filename and cwd:
+        rel_filename = os.path.relpath(filename, cwd)
+    elif not filename:
+        rel_filename = '<buffer {}>'.format(view.buffer_id())
+
+    real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
+
+    exec_msg = RUNNING_TEMPLATE.format(
+        headline=headline,
+        cwd=real_cwd,
+        prompt='>' if os.name == 'nt' else '$',
+        pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
+        cmd=' '.join(cmd)
+    )
+
+    env_msg = ENV_TEMPLATE.format(
+        env=textwrap.indent(
+            pprint.pformat(env, indent=2),
+            '  ',
+            predicate=lambda line: not line.startswith('{')
+        )
+    ) if env else ''
+
+    return exec_msg + env_msg

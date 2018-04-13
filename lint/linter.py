@@ -1014,13 +1014,11 @@ class Linter(metaclass=LinterMeta):
 
     def communicate(self, cmd, code=None):
         """Run an external executable using stdin to pass code and return its output."""
-        if '${file}' in cmd:
-            cmd[cmd.index('${file}')] = self.filename
-        elif '@' in cmd:  # legacy SL3 crypto-identifier
-            cmd[cmd.index('@')] = self.filename
-        elif code is None:
-            cmd.append(self.filename)
+        ctx = get_view_context(self.view)
+        ctx['file_on_disk'] = self.filename
 
+        cmd = self.finalize_cmd(
+            cmd, ctx, at_value=self.filename, auto_append=code is None)
         return self._communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=None):
@@ -1029,17 +1027,31 @@ class Linter(metaclass=LinterMeta):
             suffix = self.get_tempfile_suffix()
 
         with make_temp_file(suffix, code) as file:
-            if '${file}' in cmd:
-                cmd[cmd.index('${file}')] = self.filename
+            ctx = get_view_context(self.view)
+            ctx['file_on_disk'] = self.filename
+            ctx['temp_file'] = file.name
 
-            if '${temp_file}' in cmd:
-                cmd[cmd.index('${temp_file}')] = file.name
-            elif '@' in cmd:  # legacy SL3 crypto-identifier
-                cmd[cmd.index('@')] = file.name
-            else:
-                cmd.append(file.name)
-
+            cmd = self.finalize_cmd(
+                cmd, ctx, at_value=file.name, auto_append=True)
             return self._communicate(cmd)
+
+    def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
+        # Note: Both keyword arguments are deprecated.
+        original_cmd = cmd
+        cmd = substitute_variables(context, cmd)
+        if '@' in cmd:
+            logger.info(
+                'The `@` symbol in cmd has been deprecated. Use $file, '
+                '$temp_file or $file_on_disk instead.')
+            cmd[cmd.index('@')] = at_value
+
+        if cmd == original_cmd and auto_append:
+            logger.info(
+                'Automatically appending the filename to cmd has been '
+                'deprecated. Use $file, $temp_file or $file_on_disk instead.')
+            cmd.append(at_value)
+
+        return cmd
 
     def get_tempfile_suffix(self):
         """Return a good filename suffix."""

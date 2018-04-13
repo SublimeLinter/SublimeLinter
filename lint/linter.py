@@ -722,8 +722,13 @@ class Linter(metaclass=LinterMeta):
         return self.parse_output(output, virtual_view)
 
     def parse_output(self, proc, virtual_view):
-        if callable(self.on_stderr):
-            output, stderr = proc.stdout, proc.stderr
+        output, stderr = proc.stdout, proc.stderr
+        # Try to handle `on_stderr`, but only for STREAM_BOTH linters
+        if (
+            output is not None and
+            stderr is not None and
+            callable(self.on_stderr)
+        ):
             if stderr.strip():
                 self.on_stderr(stderr)
         else:

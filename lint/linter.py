@@ -55,6 +55,10 @@ LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
 lint_context = threading.local()
 
 
+class TransientError(Exception):
+    ...
+
+
 # SublimeLinter can lint partial buffers, e.g. `<script>` tags inside a
 # HTML-file. The tiny `VirtualView` is just enough code, so we can get the
 # source code of a line, the linter reported to be problematic.
@@ -711,7 +715,10 @@ class Linter(metaclass=LinterMeta):
                 self.notify_failure()
                 return None  # ABORT
 
-            output = self.run(cmd, code)
+            try:
+                output = self.run(cmd, code)
+            except TransientError:
+                return None  # ABORT
 
         if not output:
             return []
@@ -1092,7 +1099,6 @@ class Linter(metaclass=LinterMeta):
                 cmd, uses_stdin, cwd, view, augmented_env))
 
             self.notify_failure()
-
             return ''
 
         if logger.isEnabledFor(logging.INFO):
@@ -1103,19 +1109,22 @@ class Linter(metaclass=LinterMeta):
         with store_proc_while_running(bid, proc):
             try:
                 out = proc.communicate(code)
+
             except BrokenPipeError as err:
                 friendly_terminated = getattr(proc, 'friendly_terminated', False)
-                # TODO: Consider `raise err from None` for friendly_terminated
-                # Bc this is a somewhat expected failure which should NOT count
-                # as 'no errors'. E.g. it should NOT empty all highlighted regions.
                 if friendly_terminated:
-                    logger.info(
-                        'Broken pipe after friendly terminating '
-                        '<pid {}>'.format(proc.pid))
+                    logger.info('Broken pipe after friendly terminating '
+                                '<pid {}>'.format(proc.pid))
+                    raise TransientError('Friendly terminated')
                 else:
                     logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
-                return ''
+                    return ''
+
+            else:
+                friendly_terminated = getattr(proc, 'friendly_terminated', False)
+                if friendly_terminated:
+                    raise TransientError('Friendly terminated')
 
         return util.popen_output(proc, *out)
 

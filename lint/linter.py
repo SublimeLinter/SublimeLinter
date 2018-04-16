@@ -713,7 +713,7 @@ class Linter(metaclass=LinterMeta):
             cmd = self.get_cmd()
             if not cmd:  # We couldn't find an executable
                 self.notify_failure()
-                return None  # ABORT
+                return []
 
             try:
                 output = self.run(cmd, code)

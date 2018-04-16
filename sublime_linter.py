@@ -312,7 +312,7 @@ def kill_active_popen_calls(bid):
         procs = persist.active_procs[bid][:]
 
     if procs:
-        logger.warning('Friendly terminate: {}'.format(
+        logger.info('Friendly terminate: {}'.format(
             ', '.join('<pid {}>'.format(proc.pid) for proc in procs)
         ))
     for proc in procs:

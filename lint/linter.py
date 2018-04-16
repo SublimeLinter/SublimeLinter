@@ -1109,7 +1109,9 @@ class Linter(metaclass=LinterMeta):
                 # Bc this is a somewhat expected failure which should NOT count
                 # as 'no errors'. E.g. it should NOT empty all highlighted regions.
                 if friendly_terminated:
-                    logger.warning('Broken pipe in <pid {}>'.format(proc.pid))
+                    logger.info(
+                        'Broken pipe after friendly terminating '
+                        '<pid {}>'.format(proc.pid))
                 else:
                     logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()

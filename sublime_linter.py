@@ -335,36 +335,33 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
 def get_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
+    syntax = util.get_syntax(view)
 
-    linters = persist.view_linters.get(bid, set())
+    current_linters = persist.view_linters.get(bid, set())
+    current_linter_classes = {linter.__class__ for linter in current_linters}
     wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
         if linter_class.can_lint_view(view)
     }
-    current_linter_classes = {linter.__class__ for linter in linters}
 
-    window = view.window()
-    if window:
-        window.run_command('sublime_linter_assigned', {
-            'bid': bid,
-            'linter_names': [
-                linter_class.name for linter_class in wanted_linter_classes]
-        })
+    linters = {
+        linter_class(view, syntax)
+        for linter_class in wanted_linter_classes
+    }
+    persist.view_linters[bid] = linters
+
+    view.window().run_command('sublime_linter_assigned', {
+        'bid': bid,
+        'linter_names': [linter.name for linter in linters]
+    })
 
     if current_linter_classes != wanted_linter_classes:
+        logger.info("detected syntax: {}".format(syntax))
+
         unchanged_buffer = lambda: False  # noqa: E731
         for linter in (current_linter_classes - wanted_linter_classes):
             update_buffer_errors(bid, unchanged_buffer, linter, [])
-
-        syntax = util.get_syntax(view)
-        logger.info("detected syntax: {}".format(syntax))
-
-        linters = {
-            linter_class(view, syntax)
-            for linter_class in wanted_linter_classes
-        }
-        persist.view_linters[bid] = linters
 
     return linters
 

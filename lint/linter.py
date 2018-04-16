@@ -708,7 +708,7 @@ class Linter(metaclass=LinterMeta):
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
         if self.cmd is None:
-            output = self.run(None, code)  # type: str!
+            output = self.run(None, code)     # type: str
         else:
             cmd = self.get_cmd()
             if not cmd:  # We couldn't find an executable
@@ -716,7 +716,7 @@ class Linter(metaclass=LinterMeta):
                 return []
 
             try:
-                output = self.run(cmd, code)
+                output = self.run(cmd, code)  # type: util.popen_output
             except TransientError:
                 return None  # ABORT
 
@@ -730,6 +730,8 @@ class Linter(metaclass=LinterMeta):
         return self.parse_output(output, virtual_view)
 
     def parse_output(self, proc, virtual_view):
+        # Note: We support type str for `proc`. E.g. the user might have
+        # implemented `run`.
         try:
             output, stderr = proc.stdout, proc.stderr
         except AttributeError:

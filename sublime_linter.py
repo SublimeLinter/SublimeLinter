@@ -158,8 +158,9 @@ class BackendController(sublime_plugin.EventListener):
             return
 
         # check if the project settings changed
-        if view.window() and view.window().project_file_name() == view.file_name():
-            lint_all_views()
+        window = view.window()
+        if window and window.project_file_name() == view.file_name():
+            sublime.run_command('sublime_linter_config_changed')
             return
 
         if not util.is_lintable(view):
@@ -230,7 +231,7 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
         hit(self.view, reason='on_user_request')
 
 
-class SublimeLinterConfigChanged(sublime_plugin.ApplicationCommand):
+class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
     def run(self):
         lint_all_views()
 

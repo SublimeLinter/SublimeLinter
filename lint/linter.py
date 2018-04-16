@@ -1111,8 +1111,8 @@ class Linter(metaclass=LinterMeta):
                 if friendly_terminated:
                     logger.warning('Broken pipe in <pid {}>'.format(proc.pid))
                 else:
-                    # TODO: Consider `notify_failure()` here
                     logger.warning('Exception: {}'.format(str(err)))
+                    self.notify_failure()
                 return ''
 
         return util.popen_output(proc, *out)

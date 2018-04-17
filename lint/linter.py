@@ -720,9 +720,6 @@ class Linter(metaclass=LinterMeta):
             except TransientError:
                 return None  # ABORT
 
-        if not output:
-            return []
-
         if view_has_changed():
             return None  # ABORT
 
@@ -747,6 +744,9 @@ class Linter(metaclass=LinterMeta):
                     self.on_stderr(stderr)
             else:
                 output = proc.combined_output
+
+        if not output:
+            return []
 
         if logger.isEnabledFor(logging.INFO):
             import textwrap

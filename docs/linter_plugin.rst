@@ -6,3 +6,5 @@ to get started on your plugin. It contains a howto with all the information you 
 
 The SublimeLinter `package control channel <https://github.com/SublimeLinter/package_control_channel>`_
 lists all existing plugins, you can find examples there too.
+
+To publish your plugin, start a `PR <https://github.com/SublimeLinter/package_control_channel/pulls>`_.

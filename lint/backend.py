@@ -3,12 +3,13 @@ import sublime
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from itertools import chain, count
 from functools import partial
+import hashlib
+import json
 import logging
 import multiprocessing
 import os
 import time
 import threading
-import uuid
 
 from . import util, linter as linter_module
 
@@ -106,6 +107,14 @@ def finalize_errors(view, errors, offset):
         line = error['line'] + line_offset
         start = error['start'] + col_offset
         end = error['end'] + col_offset
+        error.update({
+            'line': line,
+            'start': start,
+            'end': end
+        })
+
+        uid = hashlib.sha256(
+            json.dumps(error, sort_keys=True).encode('utf-8')).hexdigest()
 
         line_start = view.text_point(line, 0)
         region = sublime.Region(line_start + start, line_start + end)
@@ -113,10 +122,7 @@ def finalize_errors(view, errors, offset):
             region.b = region.b + 1
 
         error.update({
-            'uid': uuid.uuid4().hex,
-            'line': line,
-            'start': start,
-            'end': end,
+            'uid': uid,
             'region': region
         })
 

@@ -4,7 +4,6 @@ from functools import lru_cache
 import logging
 import os
 import re
-import subprocess
 
 import sublime
 from .. import linter, util
@@ -163,34 +162,12 @@ def ask_pipenv(linter_name, cwd):
 @lru_cache(maxsize=None)
 def _ask_pipenv(linter_name, cwd):
     cmd = ['pipenv', '--venv']
-    venv = _communicate(cmd, cwd=cwd).strip().split('\n')[-1]
+    venv = util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
     if not venv:
         return
 
     return find_script_by_python_env(venv, linter_name)
-
-
-def _communicate(cmd, cwd):
-    """Short wrapper around subprocess.check_output to eat all errors."""
-    env = util.create_environment()
-    info = None
-
-    # On Windows, start process without a window
-    if os.name == 'nt':
-        info = subprocess.STARTUPINFO()
-        info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
-        info.wShowWindow = subprocess.SW_HIDE
-
-    try:
-        return subprocess.check_output(
-            cmd, env=env, startupinfo=info, universal_newlines=True, cwd=cwd
-        )
-    except Exception as err:
-        logger.info(
-            "executing {} failed: reason: {}".format(cmd, str(err))
-        )
-        return ''
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
@@ -199,18 +176,8 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 @lru_cache(maxsize=None)
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
-    try:
-        # Different python versions use different output streams, so check both
-        output = util.communicate((path, '-V'), output_stream=util.STREAM_BOTH)
-
-        # 'python -V' returns 'Python <version>', extract the version number
-        return extract_major_minor_version(output.split(' ')[1])
-    except Exception as ex:
-        logger.error(
-            'an error occurred retrieving the version for {}: {}'
-            .format(path, str(ex)))
-
-        return {'major': None, 'minor': None}
+    output = util.check_output([path, '-V'])
+    return extract_major_minor_version(output.split(' ')[-1])
 
 
 def extract_major_minor_version(version):

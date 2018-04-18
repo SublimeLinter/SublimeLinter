@@ -1,6 +1,5 @@
 """This module provides general utility methods."""
 
-from collections import ChainMap
 from functools import lru_cache
 import locale
 import logging
@@ -167,57 +166,27 @@ def find_executables(executable):
 
 # popen utils
 
+def check_output(cmd, cwd=None):
+    """Short wrapper around subprocess.check_output."""
+    logger.info('Running `{}`'.format(' '.join(cmd)))
+    env = create_environment()
 
-RUNNING_TEMPLATE = """{headline}
-
-  {cwd}  (working dir)
-  {prompt}{pipe} {cmd}
-"""
-
-PIPE_TEMPLATE = ' type {} |' if os.name == 'nt' else ' cat {} |'
-ENV_TEMPLATE = """
-  Modified environment:
-
-  {env}
-
-  Type: `import os; os.environ` in the Sublime console to get the full environment.
-"""
-
-
-def make_nice_log_message(headline, cmd, is_stdin,
-                          cwd=None, view=None, env=None):
-    import pprint
-    import textwrap
-
-    filename = view.file_name() if view else None
-    if filename and cwd:
-        rel_filename = os.path.relpath(filename, cwd)
-    elif not filename:
-        rel_filename = '<buffer {}>'.format(view.buffer_id()) if view else '<?>'
-
-    real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
-
-    exec_msg = RUNNING_TEMPLATE.format(
-        headline=headline,
-        cwd=real_cwd,
-        prompt='>' if os.name == 'nt' else '$',
-        pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
-        cmd=' '.join(cmd)
-    )
-
-    env_msg = ENV_TEMPLATE.format(
-        env=textwrap.indent(
-            pprint.pformat(env, indent=2),
-            '  ',
-            predicate=lambda line: not line.startswith('{')
+    try:
+        output = subprocess.check_output(
+            cmd, env=env, cwd=cwd,
+            stderr=subprocess.STDOUT,
+            startupinfo=create_startupinfo()
         )
-    ) if env else ''
+    except Exception as err:
+        logger.warning(
+            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
+        )
+        return ''
+    else:
+        return process_popen_output(output)
 
-    return exec_msg + env_msg
 
-
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
-                _linter=None):
+def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -226,15 +195,13 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
     If env is None, the result of create_environment is used.
 
     """
+    logger.warning('`util.communicate` has been deprecated.')
+
     if code is not None:
         code = code.encode('utf8')
     if env is None:
         env = create_environment()
 
-    from . import persist
-
-    view = _linter.view if _linter else None
-    bid = view.buffer_id() if view else None
     uses_stdin = code is not None
 
     try:
@@ -243,52 +210,53 @@ def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None,
             stdin=subprocess.PIPE if uses_stdin else None,
             stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
             stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
-            startupinfo=create_startupinfo(),
-            creationflags=get_creationflags()
+            startupinfo=create_startupinfo()
         )
-
-        with persist.active_procs_lock:
-            persist.active_procs[bid].append(proc)
-
-    except BrokenPipeError:  # If we kill a proc, we break it!
-        return ''
-
     except Exception as err:
-        try:
-            augmented_env = dict(ChainMap(*env.maps[0:-1]))
-        except AttributeError:
-            augmented_env = None
-        logger.error(make_nice_log_message(
-            '  Execution failed\n\n  {}'.format(str('err')),
-            cmd, uses_stdin, cwd, view, augmented_env))
-
-        if _linter:
-            _linter.notify_failure()
+        logger.error('  Execution failed\n\n  {}\n  {}{}'.format(
+            str(err),
+            ' '.join(cmd),
+            '\n  {}'.format(cwd) if cwd else ''
+        ))
 
         return ''
 
-    else:
-        if logger.isEnabledFor(logging.INFO):
-            logger.info(make_nice_log_message(
-                'Running ...', cmd, uses_stdin, cwd, view, None))
+    if logger.isEnabledFor(logging.INFO):
+        logger.info('Running `{}`'.format(' '.join(cmd)))
 
-        out = proc.communicate(code)
-
-        if output_stream == STREAM_STDOUT:
-            return _post_process_fh(out[0])
-        if output_stream == STREAM_STDERR:
-            return _post_process_fh(out[1])
-        if output_stream == STREAM_BOTH:
-            return ''.join(_post_process_fh(fh) for fh in out)
-
-    finally:
-        with persist.active_procs_lock:
-            persist.active_procs[bid].remove(proc)
+    out = proc.communicate(code)
+    return popen_output(proc, *out)
 
 
-def _post_process_fh(fh):
-    as_string = decode(fh)
-    return ANSI_COLOR_RE.sub('', as_string)
+class popen_output(str):
+    """Hybrid of a Popen process and its output.
+
+    Small compatibility layer: It is both the decoded output
+    as str and partially the Popen object.
+    """
+
+    def __new__(cls, proc, stdout, stderr):
+        if stdout is not None:
+            stdout = process_popen_output(stdout)
+        if stderr is not None:
+            stderr = process_popen_output(stderr)
+
+        combined_output = ''.join(filter(None, [stdout, stderr]))
+
+        rv = super().__new__(cls, combined_output)
+        rv.combined_output = combined_output
+        rv.stdout = stdout
+        rv.stderr = stderr
+        rv.proc = proc
+        rv.pid = proc.pid
+        rv.returncode = proc.returncode
+        return rv
+
+
+def process_popen_output(output):
+    # bytes -> string   --> universal newlines
+    output = decode(output).replace('\r\n', '\n').replace('\r', '\n')
+    return ANSI_COLOR_RE.sub('', output)
 
 
 def decode(bytes):

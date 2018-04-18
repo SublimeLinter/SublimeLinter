@@ -21,31 +21,8 @@ from .lint import reloader
 logger = logging.getLogger(__name__)
 
 
-def backup_old_settings():
-    """
-    Backup old settings.
-
-    If user settings file in old format exists it is renamed to disable it
-    and back it up.
-    A message will be displayed to the user.
-    """
-    usr_dir_abs = os.path.join(sublime.packages_path(), "User")
-    settings_file = os.path.join(usr_dir_abs, "SublimeLinter.sublime-settings")
-    if os.path.exists(settings_file):
-        path = "Packages/User/SublimeLinter.sublime-settings"
-        settings = sublime.decode_value(sublime.load_resource(path))
-
-        if "user" in settings:
-            new_name = "SublimeLinter (old).sublime-settings"
-            new_path = os.path.join(usr_dir_abs, new_name)
-            os.rename(settings_file, new_path)
-            msg = "SublimeLinter\n\nYour settings have been backed up to:\n{}\nin Packages/User/".format(new_name)  # noqa: 501
-            sublime.message_dialog(msg)
-
-
 def plugin_loaded():
     log_handler.install()
-    backup_old_settings()
 
     try:
         from package_control import events

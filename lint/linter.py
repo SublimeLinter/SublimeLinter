@@ -1028,7 +1028,7 @@ class Linter(metaclass=LinterMeta):
 
     def tmpfile(self, cmd, code, suffix=None):
         """Create temporary file with code and lint it."""
-        if not suffix:
+        if suffix is None:
             suffix = self.get_tempfile_suffix()
 
         with make_temp_file(suffix, code) as file:

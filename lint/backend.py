@@ -18,7 +18,7 @@ from . import util, linter as linter_module
 logger = logging.getLogger(__name__)
 
 WILDCARD_SYNTAX = '*'
-MAX_CONCURRENT_TASKS = (multiprocessing.cpu_count() or 1) * 5
+MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 
 
 task_count = count(start=1)

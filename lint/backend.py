@@ -81,17 +81,17 @@ def get_lint_tasks(linters, view, view_has_changed):
 
 
 def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
+    # We 'name' our threads, for logging purposes.
+    threading.current_thread().name = task_name
+
     start_time = time.time()
     with reduced_concurrency:
+        end_time = time.time()
+        waittime = end_time - start_time
+        if waittime > 0.1:
+            logger.warning('Waited in queue for {:.2f}s'.format(waittime))
+
         try:
-            # We 'name' our threads, for logging purposes.
-            threading.current_thread().name = task_name
-
-            end_time = time.time()
-            waittime = end_time - start_time
-            if waittime > 0.1:
-                logger.warning('Waited in queue for {:.2f}s'.format(waittime))
-
             errors = linter.lint(code, view_has_changed, settings) or []
             finalize_errors(linter.view, errors, offset)
 

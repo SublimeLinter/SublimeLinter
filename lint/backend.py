@@ -1,6 +1,7 @@
 import sublime
 
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from contextlib import contextmanager
 from itertools import chain, count
 from functools import partial
 import hashlib
@@ -22,7 +23,7 @@ MAX_CONCURRENT_TASKS = (multiprocessing.cpu_count() or 1) * 5
 
 task_count = count(start=1)
 counter_lock = threading.Lock()
-reduced_concurrency = threading.BoundedSemaphore(MAX_CONCURRENT_TASKS)
+process_limit = threading.BoundedSemaphore(MAX_CONCURRENT_TASKS)
 
 
 def lint_view(linters, view, view_has_changed, next):
@@ -84,13 +85,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = task_name
 
-    start_time = time.time()
-    with reduced_concurrency:
-        end_time = time.time()
-        waittime = end_time - start_time
-        if waittime > 0.1:
-            logger.warning('Waited in queue for {:.2f}s'.format(waittime))
-
+    with reduced_concurrency():
         try:
             errors = linter.lint(code, view_has_changed, settings) or []
             finalize_errors(linter.view, errors, offset)
@@ -103,6 +98,18 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
             # Log while multi-threaded to get a nicer log message
             logger.exception('Linter crashed.\n\n')
             return []  # Empty list here to clear old errors
+
+
+@contextmanager
+def reduced_concurrency():
+    start_time = time.time()
+    with process_limit:
+        end_time = time.time()
+        waittime = end_time - start_time
+        if waittime > 0.1:
+            logger.warning('Waited in queue for {:.2f}s'.format(waittime))
+
+        yield
 
 
 def finalize_errors(view, errors, offset):

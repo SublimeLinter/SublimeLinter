@@ -178,7 +178,7 @@ def get_selectors(linter, wanted_syntax):
             pass
 
 
-def run_concurrently(tasks, max_workers=5):
+def run_concurrently(tasks, max_workers=MAX_CONCURRENT_TASKS):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
         return await_futures(work)

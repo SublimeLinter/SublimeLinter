@@ -1,6 +1,6 @@
 import sublime
 
-from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from itertools import chain, count
 from functools import partial
 import hashlib
@@ -41,6 +41,9 @@ def lint_view(linters, view, view_has_changed, next):
 
 def run_tasks(tasks, next):
     results = run_concurrently(tasks)
+    if results is None:
+        return  # ABORT
+
     errors = list(chain.from_iterable(results))  # flatten and consume
 
     # We don't want to guarantee that our consumers/views are thread aware.
@@ -93,7 +96,9 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
             finalize_errors(linter.view, errors, offset)
 
             return errors
-        except BaseException:
+        except linter_module.TransientError:
+            raise
+        except Exception:
             linter.notify_failure()
             # Log while multi-threaded to get a nicer log message
             logger.exception('Linter crashed.\n\n')
@@ -169,15 +174,15 @@ def get_selectors(linter, wanted_syntax):
 def run_concurrently(tasks, max_workers=5):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
-        results = await_futures(work)
-        return list(results)  # consume the generator immediately
+        return await_futures(work)
 
 
-def await_futures(fs, ordered=False):
-    if ordered:
-        done, _ = wait(fs)
-    else:
-        done = as_completed(fs)
+def await_futures(fs):
+    done, not_done = wait(fs, return_when=FIRST_EXCEPTION)
 
-    for future in done:
-        yield future.result()
+    try:
+        return [future.result() for future in done]
+    except Exception:
+        for future in not_done:
+            future.cancel()
+        return None

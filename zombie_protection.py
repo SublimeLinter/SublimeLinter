@@ -1,18 +1,44 @@
 from collections import defaultdict
 
+import sublime
 import sublime_plugin
 
+from .lint import events
 
-# Sublime internally stores all highlighted regions and gutter icons
-# within its 'undo' machine. These are part of the buffer state.
-# The problem herein is that even if we deleted some highlights long ago
-# Sublime will resurrect them on undo/redo. These resurrected regions
-# are in fact zombies bc otherwise SL has forgotten their keys, and thus
-# can not access them anymore. E.g. we cannot delete them again.
-# In SL we only transition from the *current* set of region keys to the
-# *next*.
-# The solution is to model a separate, own undo machine which essentially
-# stores all region keys ever drawn.
+"""
+Sublime internally stores all highlighted regions and gutter icons
+within its 'undo' machine. These are part of the buffer state.
+The problem herein is that even if we deleted some highlights long ago
+Sublime will resurrect them on undo/redo. These resurrected regions
+are in fact zombies bc otherwise SL has forgotten their keys, and thus
+can not access them anymore. E.g. we cannot delete them again.
+In SL we only transition from the *current* set of region keys to the
+*next*.
+The solution is to model a separate, own undo machine which reimplements
+Sublime's undo stack and essentially stores all region keys ever drawn.
+
+Ticks:        1 2 3 4 5 6 7 8 9 0 1
+Edit States:  a     b     c   d
+Draw States:    A B   C D   E   F G
+                   \     \   \
+Undo:               B B B D D E E E
+
+Undo Stack:     A B B C D D E E F G   (-1)
+                    B B B D D E E E   (-2)
+                          B B D D D   (-3)
+                              B B B   (-4)
+
+E.g. of Sublime's behavior: If your at '6' and hit 'undo' Sublime will
+not jump to pos '1', but to '3'. SL core store will still think it has
+drawn 'D', but Sublime replaced the regions from its undo stack and
+so actually the view/buffer state is 'B'. (To further elaborate: If we
+now get new results 'H' from any linter SL core would thus transition from
+set 'D' -> 'H', but it must transition from 'B' -> 'H'. Note: Usually
+the new state H is derived from and very similar to B if not the same
+since it is computed from the source code 'a'.)
+
+"""
+
 
 # TODO Move to util and use it throughout SL
 def distinct_until_buffer_changed(method):
@@ -33,6 +59,10 @@ def distinct_until_buffer_changed(method):
     return wrapper
 
 
+def plugin_unloaded():
+    events.off(on_lint_result)
+
+
 IGNORE_NEXT_MODIFIED_EVENT = set()
 
 
@@ -47,8 +77,10 @@ class UndoManager(sublime_plugin.EventListener):
         count = count_command_history_changes(view)
         if count == -1:
             replace_top_undo_state(view)
+            forget_redo_states(view)
         elif count > 0:
             store_undo_states(view, count)
+            forget_redo_states(view)
 
     def on_text_command(self, view, cmd, args):
         if cmd == 'undo':
@@ -57,6 +89,34 @@ class UndoManager(sublime_plugin.EventListener):
         elif cmd == 'redo_or_repeat':
             IGNORE_NEXT_MODIFIED_EVENT.add(view.buffer_id())
             redo_region_state(view)
+
+
+@events.on(events.LINT_RESULT)
+def on_lint_result(buffer_id, linter_name, **kwargs):
+    # Now, whenever new lint results fly in, we possibly draw, and with
+    # it we actually modify the buffer **without** an 'on_modified' event
+    # and **without** generating a new undo command in Sublime's
+    # `command_history`.
+    # Still, Sublime internally holds these updated regions as buffer state,
+    # so we treat them like undoable updates and modify the top undo command.
+    try:
+        view = next(all_views_into_buffer(buffer_id))
+    except StopIteration:
+        ...
+    else:
+        sublime.set_timeout_async(
+            # timeout=1 so we actually run as soon as possible **after**
+            # this 'micro'-task. Essentially, we want to run after the
+            # main side-effects of the event (here probably: drawing)
+            # are done.
+            lambda: replace_top_undo_state(view), 1)
+
+
+def all_views_into_buffer(buffer_id):
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() == buffer_id:
+                yield view
 
 
 LOOK_BACK_LENGTH = 10
@@ -123,27 +183,42 @@ def starts_with(list, sublist):
 def replace_top_undo_state(view):
     bid = view.buffer_id()
     keys = get_regions_keys(view)
-    UNDO_STACK[bid][-1] = keys
-    REDO_STACK[bid].clear()
+    try:
+        UNDO_STACK[bid][-1] = keys
+    except IndexError:
+        return
 
 
 def store_undo_states(view, count):
     bid = view.buffer_id()
     keys = get_regions_keys(view)
     UNDO_STACK[bid].extend([keys] * count)
+
+
+def forget_redo_states(view):
+    bid = view.buffer_id()
     REDO_STACK[bid].clear()
 
 
 def undo_region_state(view):
     bid = view.buffer_id()
+    # On top op the UNDO_STACK is always the current state.
+    # On undo we `pop` the current state and store it in the REDO_STACK.
     try:
         keys = UNDO_STACK[bid].pop()
     except IndexError:
         return
+    else:
+        REDO_STACK[bid].append(keys)
 
-    REDO_STACK[bid].append(keys)
-    current = get_regions_keys(view)
-    remember_region_keys(view, current | keys)
+    # Now, we have a new current state on `[-1]` of the UNDO_STACK, which
+    # we can draw.
+    try:
+        keys = UNDO_STACK[bid][-1]
+    except IndexError:
+        return
+    else:
+        remember_region_keys(view, keys)
 
 
 def redo_region_state(view):
@@ -154,8 +229,7 @@ def redo_region_state(view):
         return
 
     UNDO_STACK[bid].append(keys)
-    current = get_regions_keys(view)
-    remember_region_keys(view, current | keys)
+    remember_region_keys(view, keys)
 
 
 STORAGE_KEY = 'SL.{vid}.region_keys'

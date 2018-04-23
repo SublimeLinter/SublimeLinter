@@ -90,6 +90,16 @@ class UndoManager(sublime_plugin.EventListener):
             IGNORE_NEXT_MODIFIED_EVENT.add(view.buffer_id())
             redo_region_state(view)
 
+    def on_pre_close(self, view):
+        bid = view.buffer_id()
+        views_into_buffer = list(all_views_into_buffer(bid))
+
+        if len(views_into_buffer) <= 1:
+            IGNORE_NEXT_MODIFIED_EVENT.discard(bid)
+            COMMAND_HISTORY_STORE.pop(bid, None)
+            UNDO_STACK.pop(bid, None)
+            REDO_STACK.pop(bid, None)
+
 
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, linter_name, **kwargs):

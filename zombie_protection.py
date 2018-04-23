@@ -119,6 +119,8 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
             # this 'micro'-task. Essentially, we want to run after the
             # main side-effects of the event (here probably: drawing)
             # are done.
+            # TODO: highlights_view should fire an event 'UPDATED_REGIONS'
+            # we can subscribe to instead.
             lambda: replace_top_undo_state(view), 1)
 
 

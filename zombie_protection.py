@@ -221,14 +221,7 @@ def undo_region_state(view):
     else:
         REDO_STACK[bid].append(keys)
 
-    # Now, we have a new current state on `[-1]` of the UNDO_STACK, which
-    # we can draw.
-    try:
-        keys = UNDO_STACK[bid][-1]
-    except IndexError:
-        return
-    else:
-        remember_region_keys(view, keys)
+    load_current_state(view)
 
 
 def redo_region_state(view):
@@ -237,9 +230,20 @@ def redo_region_state(view):
         keys = REDO_STACK[bid].pop()
     except IndexError:
         return
+    else:
+        UNDO_STACK[bid].append(keys)
 
-    UNDO_STACK[bid].append(keys)
-    remember_region_keys(view, keys)
+    load_current_state(view)
+
+
+def load_current_state(view):
+    bid = view.buffer_id()
+    try:
+        keys = UNDO_STACK[bid][-1]
+    except IndexError:
+        ...
+    else:
+        remember_region_keys(view, keys)
 
 
 STORAGE_KEY = 'SL.{vid}.region_keys'

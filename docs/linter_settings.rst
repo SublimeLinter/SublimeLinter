@@ -69,12 +69,15 @@ Note that :ref:`Settings Expansion <settings-expansion>` can be used here as wel
 executable
 ----------
 
-At any time you can manually set the executable a linter should use.
+At any time you can manually set the executable a linter should use. This can
+be a string or a list.
 
 .. code-block:: json
 
     {
-        "executable": "${folder}/node_modules/bin/eslint"
+        "executable": "${folder}/node_modules/bin/eslint",
+        "executable": ["py", "-3", "-m", "flake8"],
+        "executable": ["nvm", "exec", "8.9", "eslint"]
     }
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.

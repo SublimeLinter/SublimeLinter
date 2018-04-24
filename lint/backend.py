@@ -1,6 +1,7 @@
 import sublime
 
-from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from contextlib import contextmanager
 from itertools import chain, count
 from functools import partial
 import hashlib
@@ -17,12 +18,12 @@ from . import util, linter as linter_module
 logger = logging.getLogger(__name__)
 
 WILDCARD_SYNTAX = '*'
-MAX_CONCURRENT_TASKS = (multiprocessing.cpu_count() or 1) * 5
+MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 
 
 task_count = count(start=1)
 counter_lock = threading.Lock()
-reduced_concurrency = threading.BoundedSemaphore(MAX_CONCURRENT_TASKS)
+process_limit = threading.BoundedSemaphore(MAX_CONCURRENT_TASKS)
 
 
 def lint_view(linters, view, view_has_changed, next):
@@ -41,6 +42,9 @@ def lint_view(linters, view, view_has_changed, next):
 
 def run_tasks(tasks, next):
     results = run_concurrently(tasks)
+    if results is None:
+        return  # ABORT
+
     errors = list(chain.from_iterable(results))  # flatten and consume
 
     # We don't want to guarantee that our consumers/views are thread aware.
@@ -78,26 +82,34 @@ def get_lint_tasks(linters, view, view_has_changed):
 
 
 def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
-    start_time = time.time()
-    with reduced_concurrency:
+    # We 'name' our threads, for logging purposes.
+    threading.current_thread().name = task_name
+
+    with reduced_concurrency():
         try:
-            # We 'name' our threads, for logging purposes.
-            threading.current_thread().name = task_name
-
-            end_time = time.time()
-            waittime = end_time - start_time
-            if waittime > 0.1:
-                logger.warning('Waited in queue for {:.2f}s'.format(waittime))
-
             errors = linter.lint(code, view_has_changed, settings) or []
             finalize_errors(linter.view, errors, offset)
 
             return errors
-        except BaseException:
+        except linter_module.TransientError:
+            raise
+        except Exception:
             linter.notify_failure()
             # Log while multi-threaded to get a nicer log message
             logger.exception('Linter crashed.\n\n')
             return []  # Empty list here to clear old errors
+
+
+@contextmanager
+def reduced_concurrency():
+    start_time = time.time()
+    with process_limit:
+        end_time = time.time()
+        waittime = end_time - start_time
+        if waittime > 0.1:
+            logger.warning('Waited in queue for {:.2f}s'.format(waittime))
+
+        yield
 
 
 def finalize_errors(view, errors, offset):
@@ -166,18 +178,18 @@ def get_selectors(linter, wanted_syntax):
             pass
 
 
-def run_concurrently(tasks, max_workers=5):
+def run_concurrently(tasks, max_workers=MAX_CONCURRENT_TASKS):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         work = [executor.submit(task) for task in tasks]
-        results = await_futures(work)
-        return list(results)  # consume the generator immediately
+        return await_futures(work)
 
 
-def await_futures(fs, ordered=False):
-    if ordered:
-        done, _ = wait(fs)
-    else:
-        done = as_completed(fs)
+def await_futures(fs):
+    done, not_done = wait(fs, return_when=FIRST_EXCEPTION)
 
-    for future in done:
-        yield future.result()
+    try:
+        return [future.result() for future in done]
+    except Exception:
+        for future in not_done:
+            future.cancel()
+        return None

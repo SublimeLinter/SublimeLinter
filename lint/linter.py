@@ -715,13 +715,10 @@ class Linter(metaclass=LinterMeta):
                 self.notify_failure()
                 return []
 
-            try:
-                output = self.run(cmd, code)  # type: util.popen_output
-            except TransientError:
-                return None  # ABORT
+            output = self.run(cmd, code)  # type: util.popen_output
 
         if view_has_changed():
-            return None  # ABORT
+            raise TransientError('View not consistent.')
 
         virtual_view = VirtualView(code)
         return self.parse_output(output, virtual_view)

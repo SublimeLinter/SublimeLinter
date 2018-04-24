@@ -536,6 +536,36 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys
     remember_region_keys(view, new_region_keys)
+    add_region_keys_to_everstore(view, new_linter_keys)
+
+
+# --------------- ZOMBIE PROTECTION ---------------- #
+
+
+EVERSTORE = defaultdict(set)
+
+
+def add_region_keys_to_everstore(view, keys):
+    bid = view.buffer_id()
+    EVERSTORE[bid] |= keys
+
+
+def restore_from_everstore(view):
+    bid = view.buffer_id()
+    remember_region_keys(view, EVERSTORE[bid])
+
+
+class ZombieController(sublime_plugin.EventListener):
+    def on_text_command(self, view, cmd, args):
+        if cmd in ['undo', 'redo_or_repeat']:
+            restore_from_everstore(view)
+
+    def on_pre_close(self, view):
+        bid = view.buffer_id()
+        views_into_buffer = list(all_views_into_buffer(bid))
+
+        if len(views_into_buffer) <= 1:
+            EVERSTORE.pop(bid, None)
 
 
 # --------------- TOOLTIP HANDLING ----------------- #

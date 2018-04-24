@@ -58,9 +58,6 @@ def get_lint_tasks(linters, view, view_has_changed):
         tasks = []
         for region in regions:
             code = view.substr(region)
-            if not code:
-                continue
-
             offset = view.rowcol(region.begin())
 
             # Due to a limitation in python 3.3, we cannot 'name' a thread when

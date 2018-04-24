@@ -39,13 +39,17 @@ def redraw_bid(buffer_id, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
-    for view in views_by_buffer(buffer_id):
-        if view.buffer_id() == buffer_id:
-            draw(view, problems)
+    for view in views_into_buffer(buffer_id):
+        draw(view, problems)
 
 
-def views_by_buffer(bid):
-    return (view for window in sublime.windows() for view in window.views())
+def views_into_buffer(bid):
+    return (
+        view
+        for window in sublime.windows()
+        for view in window.views()
+        if view.buffer_id() == bid
+    )
 
 
 def count_problems(errors):

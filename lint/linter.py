@@ -1010,24 +1010,6 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.communicate(cmd, code)
 
-    def get_tempfile_suffix(self):
-        """Return the mapped tempfile_suffix."""
-        if self.tempfile_suffix and not self.view.file_name():
-            if isinstance(self.tempfile_suffix, dict):
-                suffix = self.tempfile_suffix.get(util.get_syntax(self.view), self.syntax)
-            else:
-                suffix = self.tempfile_suffix
-
-            if not suffix.startswith('.'):
-                suffix = '.' + suffix
-
-            return suffix
-        else:
-            """Attempt to extract extension from filename, return an empty string otherwise."""
-            name = self.view.file_name()
-            _, suffix = os.path.splitext(name)
-            return suffix
-
     # popen wrappers
 
     def communicate(self, cmd, code=None):
@@ -1041,31 +1023,48 @@ class Linter(metaclass=LinterMeta):
 
         return self._communicate(cmd, code)
 
-    def tmpfile(self, cmd, code, suffix=''):
-        """Run an external executable using a temp file to pass code and return its output."""
-        if not suffix:
+    def tmpfile(self, cmd, code, suffix=None):
+        """Create temporary file with code and lint it."""
+        if suffix is None:
             suffix = self.get_tempfile_suffix()
 
-        file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-        path = file.name
-
-        try:
-            file.write(bytes(code, 'UTF-8'))
-            file.close()
-
+        with make_temp_file(suffix, code) as file:
             if '${file}' in cmd:
                 cmd[cmd.index('${file}')] = self.filename
 
             if '${temp_file}' in cmd:
-                cmd[cmd.index('${temp_file}')] = path
+                cmd[cmd.index('${temp_file}')] = file.name
             elif '@' in cmd:  # legacy SL3 crypto-identifier
-                cmd[cmd.index('@')] = path
+                cmd[cmd.index('@')] = file.name
             else:
-                cmd.append(path)
+                cmd.append(file.name)
 
             return self._communicate(cmd)
-        finally:
-            os.remove(path)
+
+    def get_tempfile_suffix(self):
+        """Return a good filename suffix."""
+        if self.view.file_name():
+            name = self.view.file_name()
+            _, suffix = os.path.splitext(name)
+
+        elif isinstance(self.tempfile_suffix, dict):
+            syntax = util.get_syntax(self.view)
+            try:
+                suffix = self.tempfile_suffix[syntax]
+            except KeyError:
+                logger.info(
+                    'No default filename suffix for the syntax `{}` '
+                    'defined in `tempfile_suffix`.'.format(syntax)
+                )
+                suffix = ''
+
+        else:
+            suffix = self.tempfile_suffix
+
+        if suffix and not suffix.startswith('.'):
+            suffix = '.' + suffix
+
+        return suffix
 
     def _communicate(self, cmd, code=None):
         """Run command and return result."""
@@ -1126,6 +1125,18 @@ class Linter(metaclass=LinterMeta):
                     raise TransientError('Friendly terminated')
 
         return util.popen_output(proc, *out)
+
+
+@contextmanager
+def make_temp_file(suffix, code):
+    file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        file.write(bytes(code, 'UTF-8'))
+        file.close()
+        yield file
+
+    finally:
+        os.remove(file.name)
 
 
 @contextmanager

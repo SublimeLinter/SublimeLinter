@@ -22,4 +22,10 @@
     // * count:     How many errors to jump. Defaults to 1.
     // * wrap:      If true will jump to the top if you're on the last error
     //              and vice versa. Defaults to False
+
+    // You can toggle all highlights super-fast
+    // { "keys": ["ctrl+k", "ctrl+k"],
+    //   "command": "sublime_linter_toggle_highlights"
+    // },
+
 ]

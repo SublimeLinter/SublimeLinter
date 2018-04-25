@@ -321,15 +321,23 @@ def invalidate_regions_under_cursor(view):
     selections = view.sel()
     region_keys = get_regions_keys(view)
     for key in region_keys:
-        if '.Highlights.' not in key:
-            continue
+        if '.Highlights.' in key:
+            if any(
+                region.contains(selection)
+                for region in view.get_regions(key)
+                for selection in selections
+            ):
+                view.erase_regions(key)
 
-        if any(
-            region.contains(selection)
-            for region in view.get_regions(key)
-            for selection in selections
-        ):
-            view.erase_regions(key)
+        elif '.Gutter.' in key:
+            regions = view.get_regions(key)
+            filtered_regions = [
+                region for region in regions
+                if not region.empty()]
+            if len(filtered_regions) != len(regions):
+                _ns, scope, icon = key.split('|')
+                view.add_regions(key, filtered_regions, scope=scope, icon=icon,
+                                 flags=sublime.HIDDEN)
 
 
 def prepare_protected_regions(view, errors):
@@ -403,7 +411,7 @@ def prepare_gutter_data(view, linter_name, errors):
 
         scope = get_icon_scope(icon, error)
         pos = get_line_start(view, error['line'])
-        region = sublime.Region(pos, pos)
+        region = view.line(pos)
 
         # We group towards the optimal sublime API usage:
         #   view.add_regions(uuid(), [region], scope, icon)
@@ -414,7 +422,7 @@ def prepare_gutter_data(view, linter_name, errors):
     # uuid() would be candidate here, that can be reused for efficient updates.
     by_region_id = {}
     for (scope, icon), regions in by_id.items():
-        region_id = 'SL.{}.Gutter.{}.{}'.format(linter_name, scope, icon)
+        region_id = 'SL.{}.Gutter.|{}|{}'.format(linter_name, scope, icon)
         by_region_id[region_id] = (scope, icon, regions)
 
     return by_region_id
@@ -531,7 +539,8 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
         view.add_regions(region_id, regions, scope=scope, flags=flags)
 
     for region_id, (scope, icon, regions) in gutter_regions.items():
-        view.add_regions(region_id, regions, scope=scope, icon=icon)
+        view.add_regions(region_id, regions, scope=scope, icon=icon,
+                         flags=sublime.HIDDEN)
 
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys

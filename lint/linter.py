@@ -971,7 +971,12 @@ class Linter(metaclass=LinterMeta):
     def matches_selector(cls, view, settings):
         selector = settings.get('selector', None)
         if selector is not None:
-            return bool(view.find_by_selector(selector))
+            return bool(
+                # Use `score_selector` here as well, so that empty views
+                # select their 'main' linters
+                view.score_selector(0, selector) or
+                view.find_by_selector(selector)
+            )
 
         # Fallback using deprecated `cls.syntax`
         syntax = util.get_syntax(view).lower()

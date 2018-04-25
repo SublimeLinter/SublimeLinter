@@ -303,25 +303,13 @@ def toggle_all_regions(view, show):
         view.add_regions(key, regions, scope=scope, flags=flags)
 
 
-InvalidatedRegions = defaultdict(set)
-
-
 class InvalidateEditedErrorController(sublime_plugin.EventListener):
     # Called multiple times (once per buffer) but provided *view* is always
     # the same, the primary one.
-    def on_modified(self, view):
+    def on_modified_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
             invalidate_regions_under_cursor(active_view)
-
-    def on_text_command(self, view, cmd, args):
-        if cmd == 'undo':
-            current = get_regions_keys(view)
-            invalidated = InvalidatedRegions[view.id()]
-            next = current | invalidated
-            remember_region_keys(view, next)
-
-            invalidated.clear()
 
 
 @distinct_until_buffer_changed
@@ -342,7 +330,6 @@ def invalidate_regions_under_cursor(view):
             for selection in selections
         ):
             view.erase_regions(key)
-            InvalidatedRegions[view.id()].add(key)
 
 
 def prepare_protected_regions(view, errors):
@@ -549,6 +536,36 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys
     remember_region_keys(view, new_region_keys)
+    add_region_keys_to_everstore(view, new_linter_keys)
+
+
+# --------------- ZOMBIE PROTECTION ---------------- #
+#    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
+
+EVERSTORE = defaultdict(set)
+
+
+def add_region_keys_to_everstore(view, keys):
+    bid = view.buffer_id()
+    EVERSTORE[bid] |= keys
+
+
+def restore_from_everstore(view):
+    bid = view.buffer_id()
+    remember_region_keys(view, EVERSTORE[bid])
+
+
+class ZombieController(sublime_plugin.EventListener):
+    def on_text_command(self, view, cmd, args):
+        if cmd in ['undo', 'redo_or_repeat']:
+            restore_from_everstore(view)
+
+    def on_pre_close(self, view):
+        bid = view.buffer_id()
+        views_into_buffer = list(all_views_into_buffer(bid))
+
+        if len(views_into_buffer) <= 1:
+            EVERSTORE.pop(bid, None)
 
 
 # --------------- TOOLTIP HANDLING ----------------- #

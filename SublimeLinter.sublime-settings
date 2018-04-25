@@ -99,9 +99,10 @@
     // Set to "never" to disable this feature.
     "show_panel_on_save": "never",
 
-    // DEPRECATED: If you've modified this in your user settings,
-    // remove it now to avoid future breakage.
-    "statusbar.counters_template": "",
+    // Display counters in the status bar.
+    // The {}'s will be replaced by warnings and errors respectively.
+    // Example alternative: (w:{}, e:{})
+    "statusbar.counters_template": "({}|{})",
 
     // Show the messages for problems at your cursor position
     // {message} will be replaced by the actual messages.

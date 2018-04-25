@@ -35,7 +35,8 @@ def redraw_bid(buffer_id, linter_name, errors, **kwargs):
         if we_count == (0, 0):
             problems[linter_name] = '(ok)'
         else:
-            problems[linter_name] = '({}|{})'.format(*we_count)
+            tpl = persist.settings.get('statusbar.counters_template')
+            problems[linter_name] = tpl.format(*we_count)
     else:
         problems.pop(linter_name, None)
 

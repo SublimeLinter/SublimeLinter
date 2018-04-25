@@ -540,7 +540,7 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
 
 
 # --------------- ZOMBIE PROTECTION ---------------- #
-
+#    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
 EVERSTORE = defaultdict(set)
 

@@ -1,7 +1,7 @@
 import threading
 
 
-# Map from view_id to threading.Timer objects
+# Map from key to threading.Timer objects
 timers = {}
 
 
@@ -16,9 +16,9 @@ def debounce(callback, delay, key):
     return timer
 
 
-def cleanup(vid):
+def cleanup(key):
     try:
-        timers.pop(vid).cancel()
+        timers.pop(key).cancel()
     except KeyError:
         pass
 
@@ -26,7 +26,7 @@ def cleanup(vid):
 def unload():
     while True:
         try:
-            _vid, timer = timers.popitem()
+            _key, timer = timers.popitem()
         except KeyError:
             return
         else:

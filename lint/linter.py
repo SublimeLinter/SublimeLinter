@@ -17,7 +17,7 @@ from .const import WARNING, ERROR
 logger = logging.getLogger(__name__)
 
 
-ARG_RE = re.compile(r'(?P<prefix>--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
+ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
 NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
@@ -643,7 +643,9 @@ class Linter(metaclass=LinterMeta):
 
             joiner = arg_info['joiner']
             for value in values:
-                if joiner == '=':
+                if prefix == '@':
+                    args.append(str(value))
+                elif joiner == '=':
                     args.append('{}={}'.format(arg, value))
                 else:  # joiner == ':' or ''
                     args.append(arg)

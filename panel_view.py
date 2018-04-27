@@ -61,8 +61,6 @@ def on_finished_linting(buffer_id, **kwargs):
         persist.settings.get('lint_mode') == 'manual' or
         buffer_id in State['just_saved_buffers']
     ):
-        State['just_saved_buffers'].discard(buffer_id)
-
         for window in sublime.windows():
             if buffer_id in buffer_ids_per_window(window):
                 toggle_panel_if_errors(window, buffer_id)

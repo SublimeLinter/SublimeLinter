@@ -633,16 +633,8 @@ class Linter(metaclass=LinterMeta):
 
         return self.build_cmd(cmd)
 
-    def build_cmd(self, cmd):
-        """
-        Return a tuple with the command line to execute.
-
-        Tries to find an executable with its complete path for cmd and replaces
-        cmd[0] with it.
-
-        The delegates to `insert_args` and returns whatever it returns.
-
-        """
+    #  Union[str, List[str]] -> Optional[List[str]]?
+    def which_executable(self, cmd: 'List[str]') -> 'Optional[List[str]]':
         which = cmd[0]
         have_path, path = self.context_sensitive_executable_path(cmd)
 
@@ -665,7 +657,23 @@ class Linter(metaclass=LinterMeta):
                                'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, which))
                 return None
 
-        cmd[0:1] = util.convert_type(path, [])
+        return util.convert_type(path, [])
+
+    def build_cmd(self, cmd):
+        """
+        Return a tuple with the command line to execute.
+
+        Tries to find an executable with its complete path for cmd and replaces
+        cmd[0] with it.
+
+        The delegates to `insert_args` and returns whatever it returns.
+
+        """
+        executable = self.which_executable(cmd)
+        if executable is None:
+            return
+
+        cmd[0:1] = executable
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):

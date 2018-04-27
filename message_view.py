@@ -12,7 +12,7 @@ def plugin_unloaded():
 
 class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
     def run(self, msg=""):
-        panel_view = self.window.create_output_panel(PANEL_NAME, True)
+        panel_view = self.window.create_output_panel(PANEL_NAME)
         panel_view.set_read_only(False)
         panel_view.run_command('append', {'characters': msg})
         panel_view.set_read_only(True)

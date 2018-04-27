@@ -2,6 +2,7 @@ import sublime
 import sublime_plugin
 
 PANEL_NAME = "SublimeLinter Messages"
+OUTPUT_PANEL = "output." + PANEL_NAME
 
 
 def plugin_unloaded():
@@ -16,7 +17,7 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
         panel_view.run_command('append', {'characters': msg})
         panel_view.set_read_only(True)
         panel_view.show(0)
-        self.window.run_command("show_panel", {"panel": "output.{}".format(PANEL_NAME)})
+        self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterRemovePanelCommand(sublime_plugin.WindowCommand):

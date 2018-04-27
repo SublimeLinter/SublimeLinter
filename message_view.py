@@ -12,14 +12,27 @@ def plugin_unloaded():
 
 class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
     def run(self, msg=""):
-        panel_view = self.window.create_output_panel(PANEL_NAME)
+        window = self.window
+
+        if is_panel_active(window):
+            panel_view = window.find_output_panel(PANEL_NAME)
+        else:
+            panel_view = window.create_output_panel(PANEL_NAME)
+
+        scroll_to = panel_view.size()
+        msg = msg.rstrip() + '\n\n\n'
+
         panel_view.set_read_only(False)
         panel_view.run_command('append', {'characters': msg})
         panel_view.set_read_only(True)
-        panel_view.show(0)
-        self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+        panel_view.show(scroll_to)
+        window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
 class SublimeLinterRemovePanelCommand(sublime_plugin.WindowCommand):
     def run(self):
         self.window.destroy_output_panel(PANEL_NAME)
+
+
+def is_panel_active(window):
+    return window.active_panel() == OUTPUT_PANEL

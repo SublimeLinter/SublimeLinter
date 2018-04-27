@@ -41,7 +41,9 @@ SublimeLinter comes with some pre-defined keyboard shortcuts. You can customize 
 
 ## Support & Bugs
 
-Please use the debug mode and include all console output, and your settings in your bug report.
+Please use the [debug mode](http://www.sublimelinter.com/en/stable/troubleshooting.html#debug-mode)
+and include all console output, and your settings in your
+[bug report](https://github.com/SublimeLinter/SublimeLinter/issues/new).
 If your issue is specific to a particular linter, please report it on that linter's repository instead.
 
 

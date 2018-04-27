@@ -41,7 +41,6 @@ def plugin_loaded():
 
 def plugin_unloaded():
     events.off(on_lint_result)
-    events.off(on_finished_linting)
     events.off(on_updated_error_positions)
 
     for window in sublime.windows():
@@ -50,19 +49,16 @@ def plugin_unloaded():
 
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
-    for window in sublime.windows():
-        if panel_is_active(window) and buffer_id in buffer_ids_per_window(window):
-            fill_panel(window)
-
-
-@events.on(events.LINT_END)
-def on_finished_linting(buffer_id, **kwargs):
-    if (
+    maybe_toggle_panel_automatically = (
         persist.settings.get('lint_mode') == 'manual' or
         buffer_id in State['just_saved_buffers']
-    ):
-        for window in sublime.windows():
-            if buffer_id in buffer_ids_per_window(window):
+    )
+    for window in sublime.windows():
+        if buffer_id in buffer_ids_per_window(window):
+            if panel_is_active(window):
+                fill_panel(window)
+
+            if maybe_toggle_panel_automatically:
                 toggle_panel_if_errors(window, buffer_id)
 
 

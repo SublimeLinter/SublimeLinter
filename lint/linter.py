@@ -744,6 +744,9 @@ class Linter(metaclass=LinterMeta):
             else:
                 output = proc.combined_output
 
+        return self.parse_output_via_regex(output, virtual_view)
+
+    def parse_output_via_regex(self, output, virtual_view):
         if not output:
             return []
 

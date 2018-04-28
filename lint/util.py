@@ -20,6 +20,23 @@ STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 
+# Compatibility layer: Change `context_sensitive_executable_path`
+# signature from `Union[str, List[str]]` to just `str` bc all
+# implementations only ever used `cmd[0]` anyways.
+def ensure_cmd_is_str(method):
+    @wraps(method)
+    def wrapped(self, cmd):
+        if not isinstance(cmd, str):
+            cmd = cmd[0]
+            logger.info(
+                '`context_sensitive_executable_path` now expects a str '
+                'as its first argument.')
+
+        return method(self, cmd)
+
+    return wrapped
+
+
 def printf(*args):
     """Print args to the console, prefixed by the plugin name."""
     print('SublimeLinter: ', end='')

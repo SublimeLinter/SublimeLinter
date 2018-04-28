@@ -31,6 +31,7 @@ class NodeLinter(linter.Linter):
         if self.manifest_path:
             self.read_manifest(os.path.getmtime(self.manifest_path))
 
+    @util.ensure_cmd_is_str
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the npm module specified in cmd.
@@ -46,14 +47,14 @@ class NodeLinter(linter.Linter):
             return True, executable
 
         if self.manifest_path:
-            local_cmd = self.find_local_cmd_path(cmd[0])
+            local_cmd = self.find_local_cmd_path(cmd)
             if local_cmd:
                 return True, local_cmd
 
         if self.get_view_settings().get('disable_if_not_dependency', False):
             return True, None
 
-        global_cmd = util.which(cmd[0])
+        global_cmd = util.which(cmd)
         if global_cmd:
             return True, global_cmd
         else:

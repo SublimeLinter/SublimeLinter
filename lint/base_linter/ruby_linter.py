@@ -3,7 +3,6 @@
 import logging
 import os
 import re
-import shlex
 import sublime
 
 from .. import linter, util
@@ -26,6 +25,7 @@ class RubyLinter(linter.Linter):
 
     """
 
+    @util.ensure_cmd_is_str
     def context_sensitive_executable_path(self, cmd):
         """
         Attempt to locate the gem and ruby specified in cmd, return new cmd list.
@@ -68,15 +68,12 @@ class RubyLinter(linter.Linter):
             logger.warning(msg)
             return True, None
 
-        if isinstance(cmd, str):
-            cmd = shlex.split(cmd)
-
-        match = CMD_RE.match(cmd[0])
+        match = CMD_RE.match(cmd)
 
         if match:
             gem = match.group('gem')
-        elif cmd[0] != 'ruby':
-            gem = cmd[0]
+        elif cmd != 'ruby':
+            gem = cmd
         else:
             gem = ''
 

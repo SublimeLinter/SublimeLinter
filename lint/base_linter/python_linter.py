@@ -24,6 +24,7 @@ class PythonLinter(linter.Linter):
     - Support for a "executable" setting.
     """
 
+    @util.ensure_cmd_is_str
     def context_sensitive_executable_path(self, cmd):
         """Try to find an executable for a given cmd."""
         # The default implementation will look for a user defined `executable`
@@ -42,8 +43,6 @@ class PythonLinter(linter.Linter):
             "{}: wanted python is '{}'".format(self.name, python)
         )
 
-        cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
-
         if python:
             python = str(python)
             if VERSION_RE.match(python):
@@ -52,7 +51,7 @@ class PythonLinter(linter.Linter):
                     logger.error(
                         "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
-                        .format(self.name, cmd_name, python)
+                        .format(self.name, cmd, python)
                     )
                     # Do not fallback, user specified something we didn't find
                     return True, None
@@ -61,7 +60,7 @@ class PythonLinter(linter.Linter):
                     "{}: Using '{}' for given python '{}'"
                     .format(self.name, python_bin, python)
                 )
-                return True, [python_bin, '-m', cmd_name]
+                return True, [python_bin, '-m', cmd]
 
             else:
                 if not os.path.exists(python):
@@ -72,12 +71,12 @@ class PythonLinter(linter.Linter):
                     # Do not fallback, user specified something we didn't find
                     return True, None
 
-                return True, [python, '-m', cmd_name]
+                return True, [python, '-m', cmd]
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
         cwd = self.get_working_dir(settings)
-        executable = ask_pipenv(cmd_name, cwd)
+        executable = ask_pipenv(cmd, cwd)
         if executable:
             logger.info(
                 "{}: Using {} according to 'pipenv'"
@@ -90,10 +89,10 @@ class PythonLinter(linter.Linter):
 
         logger.info(
             "{}: trying to use globally installed {}"
-            .format(self.name, cmd_name)
+            .format(self.name, cmd)
         )
         # fallback, similiar to a which(cmd)
-        executable = util.which(cmd_name)
+        executable = util.which(cmd)
         if executable is None:
             logger.warning(
                 "cannot locate '{}'. Fill in the 'python' or "

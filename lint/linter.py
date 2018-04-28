@@ -633,32 +633,6 @@ class Linter(metaclass=LinterMeta):
 
         return self.build_cmd(cmd)
 
-    #  Union[str, List[str]] -> Optional[List[str]]?
-    def which_executable(self, cmd: 'List[str]') -> 'Optional[List[str]]':
-        which = cmd[0]
-        have_path, path = self.context_sensitive_executable_path(cmd)
-
-        if have_path:
-            # happy path?
-            if path is None:
-                # Do not log, `context_sensitive_executable_path` should have
-                # logged already.
-                return None
-        else:
-            # If `cmd` is a method, it can try to find an executable on its own.
-            if util.can_exec(which):
-                path = which
-            else:
-                path = self.which(which)
-
-            if not path:
-                logger.warning('{} cannot locate \'{}\'\n'
-                               'Please refer to the readme of this plugin and our troubleshooting guide: '
-                               'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, which))
-                return None
-
-        return util.convert_type(path, [])
-
     def build_cmd(self, cmd):
         """
         Return a tuple with the command line to execute.
@@ -669,13 +643,42 @@ class Linter(metaclass=LinterMeta):
         The delegates to `insert_args` and returns whatever it returns.
 
         """
-        executable = self.which_executable(cmd)
+        executable = self.which_executable(cmd[0])
         if executable is None:
-            return
+            return None
 
         cmd[0:1] = executable
         return self.insert_args(cmd)
 
+    def which_executable(self, cmd: 'str') -> 'Optional[List[str]]':
+        have_path, path = self.context_sensitive_executable_path(cmd)
+
+        if have_path:
+            # happy path?
+            if path is None:
+                # Do not log, `context_sensitive_executable_path` should have
+                # logged already.
+                return None
+        else:
+            # If `cmd` is a method, it can try to find an executable on its own.
+            if util.can_exec(cmd):
+                path = cmd
+            else:
+                path = self.which(cmd)
+
+            if not path:
+                logger.warning(
+                    '{} cannot locate \'{}\'\n'
+                    'Please refer to the readme of this plugin and our '
+                    'troubleshooting guide: '
+                    'http://www.sublimelinter.com/en/stable/troubleshooting.html'
+                    .format(self.name, cmd)
+                )
+                return None
+
+        return util.convert_type(path, [])
+
+    @util.ensure_cmd_is_str
     def context_sensitive_executable_path(self, cmd):
         """Calculate the context-sensitive executable path.
 

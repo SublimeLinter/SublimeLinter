@@ -85,7 +85,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
     with reduced_concurrency():
         try:
             errors = linter.lint(code, view_has_changed, settings) or []
-            finalize_errors(linter.view, errors, offset)
+            finalize_errors(linter, errors, offset)
 
             return errors
         except linter_module.TransientError:
@@ -109,7 +109,9 @@ def reduced_concurrency():
         yield
 
 
-def finalize_errors(view, errors, offset):
+def finalize_errors(linter, errors, offset):
+    linter_name = linter.name
+    view = linter.view
     line_offset, col_offset = offset
 
     for error in errors:
@@ -119,7 +121,8 @@ def finalize_errors(view, errors, offset):
         error.update({
             'line': line,
             'start': start,
-            'end': end
+            'end': end,
+            'linter': linter_name
         })
 
         uid = hashlib.sha256(

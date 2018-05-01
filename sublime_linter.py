@@ -333,10 +333,11 @@ def get_linters_for_view(view):
     }
     persist.view_linters[bid] = linters
 
-    view.window().run_command('sublime_linter_assigned', {
-        'bid': bid,
-        'linter_names': [linter.name for linter in linters]
-    })
+    if view.window():
+        view.window().run_command('sublime_linter_assigned', {
+            'bid': bid,
+            'linter_names': [linter.name for linter in linters]
+        })
 
     if current_linter_classes != wanted_linter_classes:
         logger.info("detected syntax: {}".format(syntax))

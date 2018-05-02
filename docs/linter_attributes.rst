@@ -120,6 +120,12 @@ this attribute should be ``False`` (the default).
     add the ``re.MULTILINE`` flag when it compiles the ``regex`` pattern.
 
 
+name
+----
+Usually the name of the linter is derived from the name of the class.
+If that doesn't work out, you can also set it explicitly with this attribute.
+
+
 re_flags
 --------
 If you wish to add custom ``re flags`` that are used when compiling the :ref:`regex` pattern,

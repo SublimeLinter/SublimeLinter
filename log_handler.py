@@ -15,6 +15,10 @@ handler = None
 error_panel_handler = None
 
 
+def plugin_unloaded():
+    uninstall()
+
+
 def install():
     install_std_handler()
     install_error_panel_handler()
@@ -23,7 +27,7 @@ def install():
     settings.add_on_change('SublimeLinter._logging', install_std_handler)
 
 
-def plugin_unloaded():
+def uninstall():
     if handler:
         logger.removeHandler(handler)
     if error_panel_handler:

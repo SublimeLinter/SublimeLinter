@@ -200,7 +200,7 @@ def substitute_variables(variables, value):
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 
-    def __init__(cls, name, bases, attrs):
+    def __init__(cls, cls_name, bases, attrs):
         """
         Initialize a Linter class.
 
@@ -216,10 +216,10 @@ class LinterMeta(type):
         if not bases:
             return
 
-        if name in BASE_CLASSES:
+        if cls_name in BASE_CLASSES:
             return
 
-        name = name.lower()
+        name = attrs.get('name') or cls_name.lower()
         setattr(cls, 'disabled', False)
         setattr(cls, 'name', name)
 

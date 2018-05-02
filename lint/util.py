@@ -84,14 +84,16 @@ def is_lintable(view):
         view.settings().get('is_widget')
     ):
         return False
-    elif (
-        view.file_name() and
-        view.file_name().startswith(sublime.packages_path() + os.path.sep) and
-        not os.path.exists(view.file_name())
+
+    filename = view.file_name()
+    if (
+        filename and
+        filename.startswith(sublime.packages_path() + os.path.sep) and
+        not os.path.exists(filename)
     ):
         return False
-    else:
-        return True
+
+    return True
 
 
 # file/directory/environment utils

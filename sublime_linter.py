@@ -331,9 +331,19 @@ def get_linters_for_view(view):
         linter_class(view, syntax)
         for linter_class in wanted_linter_classes
     }
-    persist.view_linters[bid] = linters
 
-    view.window().run_command('sublime_linter_assigned', {
+    # It is possible that the user closes the view during debounce time,
+    # in that case `window` will get None and we will just abort. We check
+    # here bc above code is slow enough to make the difference. We don't
+    # pass a valid `window` around bc we do not want to update `view_linters`
+    # for detached views as well bc `on_pre_close` already has been called
+    # at this time.
+    window = view.window()
+    if window is None:
+        return []
+
+    persist.view_linters[bid] = linters
+    window.run_command('sublime_linter_assigned', {
         'bid': bid,
         'linter_names': [linter.name for linter in linters]
     })
@@ -358,13 +368,21 @@ def make_view_has_changed_fn(view):
                 'Aborting lint. SublimeLinter needs a restart of Sublime.')
             return True
 
-        changed = view.change_count() != initial_change_count
-        if changed:
+        if view.buffer_id() == 0:
+            logger.info('View detached (no buffer_id). Aborting lint.')
+            return True
+
+        if view.window() is None:
+            logger.info('View detached (no window). Aborting lint.')
+            return True
+
+        if view.change_count() != initial_change_count:
             logger.info(
                 'Buffer {} inconsistent. Aborting lint.'
                 .format(view.buffer_id()))
+            return True
 
-        return changed
+        return False
 
     return view_has_changed
 

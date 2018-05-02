@@ -1,0 +1,6 @@
+SublimeLinter 4.4
+=================
+
+Adds the "name" attribute to explicitly define the name of a linter.
+
+And some more or less minor bug fixes.

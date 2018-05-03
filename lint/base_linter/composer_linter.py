@@ -31,7 +31,7 @@ class ComposerLinter(linter.Linter):
 
     def __init__(self, view, syntax):
         """Initialize a new ComposerLinter instance."""
-        super(ComposerLinter, self).__init__(view, syntax)
+        super().__init__(view, syntax)
 
         self.manifest_path = self.get_manifest_path()
 

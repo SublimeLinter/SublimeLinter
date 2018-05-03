@@ -31,7 +31,7 @@ class NodeLinter(linter.Linter):
 
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""
-        super(NodeLinter, self).__init__(view, syntax)
+        super().__init__(view, syntax)
 
         self.manifest_path = self.get_manifest_path()
 

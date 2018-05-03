@@ -4,8 +4,9 @@ import codecs
 import json
 import hashlib
 import logging
+import shutil
 
-from os import path, access, X_OK
+from os import path
 from .. import linter, util
 
 
@@ -123,9 +124,8 @@ class ComposerLinter(linter.Linter):
         """Recursively check for command binary in ancestors' vendor/bin directories."""
         vendor_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
 
-        binary = path.join(vendor_bin, cmd)
-
-        if binary and access(binary, X_OK):
+        binary = shutil.which(cmd, path=vendor_bin)
+        if binary:
             return binary
 
         parent = path.normpath(path.join(cwd, '../'))

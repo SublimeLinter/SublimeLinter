@@ -5,8 +5,7 @@ import json
 import hashlib
 import logging
 import os
-
-import sublime
+import shutil
 
 from .. import linter, util
 
@@ -119,12 +118,8 @@ class NodeLinter(linter.Linter):
         """Recursively check for command binary in ancestors' node_modules/.bin directories."""
         node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
 
-        binary = os.path.join(node_modules_bin, cmd)
-
-        if sublime.platform() == 'windows' and os.path.splitext(binary)[1] != '.cmd':
-            binary += '.cmd'
-
-        if util.can_exec(binary):
+        binary = shutil.which(cmd, path=node_modules_bin)
+        if binary:
             return binary
 
         parent = os.path.dirname(cwd)

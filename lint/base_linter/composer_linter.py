@@ -69,17 +69,12 @@ class ComposerLinter(linter.Linter):
 
     def get_manifest_path(self):
         """Get the path to the composer.json file for the current file."""
-        curr_file = self.view.file_name()
-
-        manifest_path = None
-
-        if curr_file:
-            cwd = os.path.dirname(curr_file)
-
-            if cwd:
-                manifest_path = self.rev_parse_manifest_path(cwd)
-
-        return manifest_path
+        filename = self.view.file_name()
+        cwd = (
+            os.path.dirname(filename) if filename else
+            linter.guess_project_root_of_view(self.view)
+        )
+        return self.rev_parse_manifest_path(cwd) if cwd else None
 
     def rev_parse_manifest_path(self, cwd):
         """

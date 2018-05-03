@@ -53,19 +53,18 @@ class ComposerLinter(linter.Linter):
         if success:
             return success, executable
 
-        local_cmd = None
-        global_cmd = util.which(cmd[0])
-
         if self.manifest_path:
             local_cmd = self.find_local_cmd_path(cmd[0])
+            if local_cmd:
+                return True, local_cmd
 
-        if not local_cmd and not global_cmd:
+        global_cmd = util.which(cmd[0])
+        if global_cmd:
+            return True, global_cmd
+        else:
             logger.warning(
                 'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0]))
             return True, None
-
-        composer_cmd_path = local_cmd if local_cmd else global_cmd
-        return True, composer_cmd_path
 
     def get_manifest_path(self):
         """Get the path to the composer.json file for the current file."""

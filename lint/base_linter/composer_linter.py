@@ -89,10 +89,8 @@ class ComposerLinter(linter.Linter):
         at a time checking if that directory contains a composer.json
         file. If it does, return that directory.
         """
-        name = 'composer.json'
-        manifest_path = os.path.normpath(os.path.join(cwd, name))
-
-        bin_path = os.path.join(cwd, 'vendor/bin/')
+        manifest_path = os.path.normpath(os.path.join(cwd, 'composer.json'))
+        bin_path = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
         if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
             return manifest_path

@@ -32,7 +32,7 @@ def plugin_loaded():
             persist.kill_switch = True
             persist.linter_classes.clear()
 
-            sublime.set_timeout_async(show_restart_message, 100)
+            sublime.set_timeout_async(reload_sublime_linter, 100)
             return
     except ImportError:
         pass
@@ -68,7 +68,18 @@ def plugin_unloaded():
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
     def run(self):
-        reloader.reload_everything()
+        log_handler.uninstall()
+        try:
+            reloader.reload_everything()
+        except Exception:
+            show_restart_message()
+        finally:
+            log_handler.install()
+
+
+def reload_sublime_linter():
+    window = sublime.active_window()
+    window.run_command("sublime_linter_reload")
 
 
 def show_restart_message():
@@ -365,7 +376,7 @@ def make_view_has_changed_fn(view):
         if persist.kill_switch:
             window = sublime.active_window()
             window.status_message(
-                'Aborting lint. SublimeLinter needs a restart of Sublime.')
+                'SublimeLinter upgrade in progress. Aborting lint.')
             return True
 
         if view.buffer_id() == 0:

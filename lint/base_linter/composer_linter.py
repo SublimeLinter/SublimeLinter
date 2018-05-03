@@ -4,9 +4,9 @@ import codecs
 import json
 import hashlib
 import logging
+import os
 import shutil
 
-from os import path
 from .. import linter, util
 
 
@@ -36,7 +36,7 @@ class ComposerLinter(linter.Linter):
         self.manifest_path = self.get_manifest_path()
 
         if self.manifest_path:
-            self.read_manifest(path.getmtime(self.manifest_path))
+            self.read_manifest(os.path.getmtime(self.manifest_path))
 
     def context_sensitive_executable_path(self, cmd):
         """
@@ -74,7 +74,7 @@ class ComposerLinter(linter.Linter):
         manifest_path = None
 
         if curr_file:
-            cwd = path.dirname(curr_file)
+            cwd = os.path.dirname(curr_file)
 
             if cwd:
                 manifest_path = self.rev_parse_manifest_path(cwd)
@@ -90,14 +90,14 @@ class ComposerLinter(linter.Linter):
         file. If it does, return that directory.
         """
         name = 'composer.json'
-        manifest_path = path.normpath(path.join(cwd, name))
+        manifest_path = os.path.normpath(os.path.join(cwd, name))
 
-        bin_path = path.join(cwd, 'vendor/bin/')
+        bin_path = os.path.join(cwd, 'vendor/bin/')
 
-        if path.isfile(manifest_path) and path.isdir(bin_path):
+        if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
             return manifest_path
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.normpath(os.path.join(cwd, '../'))
 
         if parent == '/' or parent == cwd:
             return None
@@ -111,24 +111,24 @@ class ComposerLinter(linter.Linter):
         Given composer.json filepath and a local binary to find,
         look in vendor/bin for that binary.
         """
-        cwd = path.dirname(self.manifest_path)
+        cwd = os.path.dirname(self.manifest_path)
 
         binary = self.get_pkg_bin_cmd(cmd)
 
         if binary:
-            return path.normpath(path.join(cwd, binary))
+            return os.path.normpath(os.path.join(cwd, binary))
 
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' vendor/bin directories."""
-        vendor_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
+        vendor_bin = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
         binary = shutil.which(cmd, path=vendor_bin)
         if binary:
             return binary
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.normpath(os.path.join(cwd, '../'))
 
         if parent == '/' or parent == cwd:
             return None
@@ -158,7 +158,7 @@ class ComposerLinter(linter.Linter):
 
     def get_manifest(self):
         """Load manifest file (composer.json)."""
-        current_manifest_mtime = path.getmtime(self.manifest_path)
+        current_manifest_mtime = os.path.getmtime(self.manifest_path)
 
         if (current_manifest_mtime != self.cached_manifest_mtime and
                 self.hash_manifest() != self.cached_manifest_hash):

@@ -621,24 +621,11 @@ class Linter(metaclass=LinterMeta):
 
     def get_cmd(self):
         cmd = self._get_cmd()
-        return self.build_cmd(cmd)
-
-    def build_cmd(self, cmd):
-        """
-        Return a tuple with the command line to execute.
-
-        Tries to find an executable with its complete path for cmd and replaces
-        cmd[0] with it.
-
-        The delegates to `insert_args` and returns whatever it returns.
-
-        """
         executable = self.which_executable(cmd[0])
         if executable is None:
             return None
 
-        cmd[0:1] = executable
-        return self.insert_args(cmd)
+        return executable + self.insert_args(cmd[1:])
 
     def which_executable(self, cmd: 'str') -> 'Optional[List[str]]':
         # For backwards compatibility: SL3 allowed a '@python' suffix which,

@@ -620,15 +620,16 @@ class Linter(metaclass=LinterMeta):
         return cmd
 
     def get_cmd(self):
-        cmd = self._get_cmd()
-        executable = self.which_executable(cmd[0])
+        cmd, *args = self._get_cmd()
+
+        executable = self.which_executable(cmd)
         if executable is None:
             return None
 
-        settings = self.get_view_settings()
-        args = self.build_args(settings)
+        dynamic_args = self.build_args()
+        self.insert_args(args, dynamic_args)
 
-        return executable + self.insert_args(cmd[1:], args)
+        return executable + args
 
     def which_executable(self, cmd: 'str') -> 'Optional[List[str]]':
         # For backwards compatibility: SL3 allowed a '@python' suffix which,
@@ -720,7 +721,7 @@ class Linter(metaclass=LinterMeta):
         args = settings.get('args', [])
         return shlex.split(args) if isinstance(args, str) else args[:]
 
-    def build_args(self, settings):
+    def build_args(self):
         """Return a list of args to add to cls.cmd.
 
         This basically implements our DSL around arguments on the command
@@ -731,9 +732,10 @@ class Linter(metaclass=LinterMeta):
         Note that all falsy values except the Zero are skipped. The value
         `True` acts as a flag. In all other cases args are key value pairs.
         """
+        settings = self.get_view_settings()
         args = self.get_user_args(settings)
-        args_map = getattr(self, 'args_map', {})
 
+        args_map = getattr(self, 'args_map', {})
         for setting, arg_info in args_map.items():
             prefix = arg_info['prefix']
             if prefix is None:

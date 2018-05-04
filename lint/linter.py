@@ -631,6 +631,14 @@ class Linter(metaclass=LinterMeta):
 
         return executable + args
 
+    def get_executable(self) -> 'Optional[List[str]]':
+        """Return the executable for this linter.
+
+        Convenience function for the user.
+        """
+        cmd, *args = self._get_cmd()
+        return self.which_executable(cmd)
+
     def which_executable(self, cmd: 'str') -> 'Optional[List[str]]':
         # For backwards compatibility: SL3 allowed a '@python' suffix which,
         # when set, triggered special handling. SL4 doesn't need this marker,

@@ -73,6 +73,7 @@ class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
             reloader.reload_everything()
         except Exception:
             show_restart_message()
+            raise  # Still write the traceback to the console!
         finally:
             log_handler.install()
 

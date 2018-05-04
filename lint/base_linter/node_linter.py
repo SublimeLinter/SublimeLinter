@@ -116,19 +116,23 @@ class NodeLinter(linter.Linter):
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
-        """Recursively check for command binary in ancestors' node_modules/.bin directories."""
-        node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
+        """Recursively check for command binary in node_modules/.bin directories."""
+        node_modules_bin = os.path.normpath(
+            os.path.join(cwd, 'node_modules/.bin/'))
+        path_to_cmd = os.path.join(node_modules_bin, cmd)
 
-        binary = os.path.join(node_modules_bin, cmd)
+        if sublime.platform() == 'windows':
+            # To support unix like environments under Windows, we also lookup
+            # two possible binaries
+            binaries = [path_to_cmd + '.cmd', path_to_cmd]
+        else:
+            binaries = [path_to_cmd]
 
-        if sublime.platform() == 'windows' and os.path.splitext(binary)[1] != '.cmd':
-            binary += '.cmd'
-
-        if util.can_exec(binary):
-            return binary
+        for binary in binaries:
+            if util.can_exec(binary):
+                return binary
 
         parent = os.path.dirname(cwd)
-
         if parent == '/' or parent == cwd:
             return None
 

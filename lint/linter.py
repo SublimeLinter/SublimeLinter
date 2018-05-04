@@ -717,15 +717,8 @@ class Linter(metaclass=LinterMeta):
         return cmd
 
     def get_user_args(self, settings):
-        """Return any args the user specifies in settings as a list."""
         args = settings.get('args', [])
-
-        if isinstance(args, str):
-            args = shlex.split(args)
-        else:
-            args = args[:]
-
-        return args
+        return shlex.split(args) if isinstance(args, str) else args[:]
 
     def build_args(self, settings):
         """Return a list of args to add to cls.cmd.

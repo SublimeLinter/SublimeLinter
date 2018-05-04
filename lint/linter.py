@@ -601,18 +601,14 @@ class Linter(metaclass=LinterMeta):
         """
         return util.which(cmd)
 
-    def get_cmd(self):
-        """
-        Calculate and return a tuple/list of the command line to be executed.
+    def _get_cmd(self) -> 'List[str]':
+        """Return the raw `cmd` before processing.
 
         The cmd class attribute may be a string, a tuple/list, or a callable.
         If cmd is callable, it is called. If the result of the method is
         a string, it is parsed into a list with shlex.split.
-
-        Otherwise the result of build_cmd is returned.
         """
         cmd = self.cmd
-
         if callable(cmd):
             cmd = cmd()
 
@@ -621,6 +617,10 @@ class Linter(metaclass=LinterMeta):
         else:
             cmd = list(cmd)
 
+        return cmd
+
+    def get_cmd(self):
+        cmd = self._get_cmd()
         return self.build_cmd(cmd)
 
     def build_cmd(self, cmd):

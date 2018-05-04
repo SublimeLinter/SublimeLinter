@@ -625,7 +625,10 @@ class Linter(metaclass=LinterMeta):
         if executable is None:
             return None
 
-        return executable + self.insert_args(cmd[1:])
+        settings = self.get_view_settings()
+        args = self.build_args(settings)
+
+        return executable + self.insert_args(cmd[1:], args)
 
     def which_executable(self, cmd: 'str') -> 'Optional[List[str]]':
         # For backwards compatibility: SL3 allowed a '@python' suffix which,
@@ -700,11 +703,8 @@ class Linter(metaclass=LinterMeta):
 
         return False, None
 
-    def insert_args(self, cmd):
+    def insert_args(self, cmd, args):
         """Insert user arguments into cmd and return the result."""
-        settings = self.get_view_settings()
-        args = self.build_args(settings)
-
         if '${args}' in cmd:
             i = cmd.index('${args}')
             cmd[i:i + 1] = args

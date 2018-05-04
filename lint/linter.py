@@ -223,6 +223,37 @@ class LinterMeta(type):
         setattr(cls, 'disabled', False)
         setattr(cls, 'name', name)
 
+        # BEGIN DEPRECATIONS
+        for key in ('syntax', 'selectors'):
+            if key in attrs:
+                logger.warning(
+                    "{}: Defining 'cls.{}' has been deprecated. Use "
+                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector"
+                    .format(name, key)
+                )
+
+        for key in (
+            'version_args', 'version_re', 'version_requirement',
+            'inline_settings', 'inline_overrides', 'comment_re', 'shebang_match'
+        ):
+            if key in attrs:
+                logger.info(
+                    "{}: Defining 'cls.{}' has no effect anymore. You can "
+                    "safely remove these settings.".format(name, key))
+
+        for key in ('build_cmd', 'insert_args'):
+            if key in attrs:
+                logger.warning(
+                    "{}: Do not implement 'cls.{}()'. SublimeLinter will "
+                    "change here in the near future.".format(name, key))
+
+        for key in ('can_lint', 'can_lint_syntax'):
+            if key in attrs:
+                logger.warning(
+                    "{}: Implementing 'cls.{}' has no effect anymore. You "
+                    "can safely remove these methods.".format(name, key))
+        # END DEPRECATIONS
+
         cmd = attrs.get('cmd')
 
         if isinstance(cmd, str):
@@ -505,6 +536,9 @@ class Linter(metaclass=LinterMeta):
         # bc all the special handling is just done in the subclass.
         which = cmd[0]
         if '@python' in which:
+            logger.warning(
+                "The '@python' in '{}' has been deprecated and no effect "
+                "anymore. You can safely remove it.".format(which))
             cmd[0] = which[:which.find('@python')]
 
         return self.build_cmd(cmd)

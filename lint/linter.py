@@ -746,7 +746,7 @@ class Linter(metaclass=LinterMeta):
 
         This basically implements our DSL around arguments on the command
         line. See `ARG_RE` and `LinterMeta.map_args`. All potential args
-        are defined in `cls.defaults` with a prefix of `-` or `--`.
+        are defined in `cls.defaults` with a prefix of `-`, `--` or `@`.
         (All other defaults are just normal settings.)
 
         Note that all falsy values except the Zero are skipped. The value
@@ -766,7 +766,7 @@ class Linter(metaclass=LinterMeta):
 
             arg = prefix + arg_info['name']
 
-            # The value 'True' should act like a flag
+            # The value 'True' should act as a flag
             if values is True:
                 args.append(arg)
                 continue

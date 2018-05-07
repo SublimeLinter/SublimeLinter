@@ -412,6 +412,13 @@ def environment_is_ready():
     if ready:
         return True
 
+    s = sublime.load_settings("Preferences.sublime-settings")
+    if not s.get('shell_environment', False):
+        # If false, ST will not read the env from the shell,
+        # so it's as ready as it will ever get
+        ENV_IS_READY_STATE['ready'] = True
+        return True
+
     path = os.environ['PATH']
     if '/local/' in path:
         logger.info('Env seems ok: PATH: {}'.format(path))

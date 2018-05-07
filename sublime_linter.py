@@ -3,7 +3,6 @@
 from collections import defaultdict, deque
 from functools import partial
 import logging
-import os
 import time
 import threading
 

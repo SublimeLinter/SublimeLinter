@@ -59,18 +59,6 @@ If a linter's executable cannot be found, the debug output will include a ``cann
 A linter may have additional dependencies (e.g. NodeJS) that may be missing.
 The console should also have information about that.
 
-On macOS
-~~~~~~~~
-
-SublimeLinter can run before the environment variables have been loaded,
-in which case it will not be able to find the right executable.
-This is a known issue in Sublime Text (`#1877 <https://github.com/SublimeTextIssues/Core/issues/1877>`_).
-There is currently no API that let's us wait for the environment.
-
-- This problem goes away by itself, but you may get some error messages until it does.
-- You can launch Sublime Text from the console, the environment will then be available immediately.
-- All linters take an executable setting. Setting that will allow SL to always find it, bypassing the PATH entirely.
-
 
 Finding a linter executable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

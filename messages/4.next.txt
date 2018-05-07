@@ -1,0 +1,9 @@
+SublimeLinter 4.next
+=================
+
+Sublime Text 3.1 has been released.
+
+- Removed the detection of environment-readiness.
+  Sublime Text 3.1 now loads the environment before telling plugins it's ready.
+
+-

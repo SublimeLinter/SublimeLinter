@@ -27,10 +27,10 @@ contexts:
   expect-linter-severity:
     - include: pop-at-end
     - match: \berror\b
-      scope: markup.deleted.sublime_linter markup.error.sublime_linter
+      scope: markup.error.sublime_linter
       pop: true
     - match: \bwarning\b
-      scope: markup.changed.sublime_linter markup.warning.sublime_linter
+      scope: markup.warning.sublime_linter
       pop: true
 
   expect-linter-type:

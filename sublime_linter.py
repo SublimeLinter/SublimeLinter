@@ -3,7 +3,6 @@
 from collections import defaultdict, deque
 from functools import partial
 import logging
-import os
 import time
 import threading
 
@@ -267,10 +266,6 @@ def lint(view, view_has_changed, lock):
     if view_has_changed():  # abort early
         return
 
-    if not environment_is_ready():
-        hit(view)
-        return
-
     bid = view.buffer_id()
 
     if persist.settings.get('kill_old_processes'):
@@ -397,47 +392,6 @@ def make_view_has_changed_fn(view):
         return False
 
     return view_has_changed
-
-
-ENV_READY_TIMEOUT = 60
-ENV_IS_READY_STATE = {
-    'ready': False if sublime.platform() == 'osx' else True,
-    'start_time': None,
-    'first_path': None
-}
-
-
-def environment_is_ready():
-    ready = ENV_IS_READY_STATE['ready']
-    if ready:
-        return True
-
-    path = os.environ['PATH']
-    if '/local/' in path:
-        logger.info('Env seems ok: PATH: {}'.format(path))
-        ENV_IS_READY_STATE['ready'] = True
-        return True
-
-    start_time = ENV_IS_READY_STATE['start_time']
-    if start_time is None:
-        ENV_IS_READY_STATE['start_time'] = time.time()
-    elif (time.time() - start_time) > ENV_READY_TIMEOUT:
-        logger.warning('Env timeout: PATH: {}'.format(path))
-        ENV_IS_READY_STATE['ready'] = True
-        return True
-
-    first_path = ENV_IS_READY_STATE['first_path']
-    if first_path is None:
-        logger.info('Env first path: PATH: {}'.format(path))
-        logger.info(
-            'Wait until env is loaded but max {}s.'.format(ENV_READY_TIMEOUT))
-        ENV_IS_READY_STATE['first_path'] = path
-    elif path != first_path:
-        logger.info('Env path loaded: PATH: {}'.format(path))
-        ENV_IS_READY_STATE['ready'] = True
-        return True
-
-    return False
 
 
 elapsed_runtimes = deque([0.6] * 3, maxlen=10)

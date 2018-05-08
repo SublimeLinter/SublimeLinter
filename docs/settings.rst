@@ -32,55 +32,12 @@ These scopes then receive color from the color scheme, which is kinda like a CSS
 
 SublimeLinter expects the scopes ``markup.warning`` and ``markup.error`` to get
 correct colors from most color schemes.
-We have some fallbacks, and SublimeText > 3149 helps us with scopes like ``region.redish``.
+We use scopes like ``region.redish`` for color schemes that don't provide colors for these scopes.
 
-However, sometimes that doesn't work and your icon is white.
-In this case you need to use a scope that *does* get the color you want.
+To change the colors, you can use region.colorish scopes:
+redish, orangish, yellowish, greenish, bluish, purplish, pinkish
 
-Take this code snippet as a starting point to exact colors from:
-
-.. image:: colors/1.png
-
-If I put the cursor just before the ``=`` I can then use the
-"Tools > Developer > Show Scope Name" menu item to find out what scope that is:
-
-.. image:: colors/2.png
-
-.. image:: colors/3.png
-
-So, let's hit "copy" here and put that into the "scope" for errors.
-Do the same thing for the yellowish color in ``getElementById``.
-This gets me the following styles:
-
-.. code-block:: json
-
-    {
-        "styles": [
-            {
-                "mark_style": "stippled_underline",
-                "priority": 1,
-                "scope": "source.js meta.function-call.method.js support.function.dom.js",
-                "icon": "pointer",
-                "types": [
-                    "warning"
-                ]
-            },
-            {
-                "mark_style": "stippled_underline",
-                "priority": 1,
-                "scope": "source.js meta.block.js keyword.operator.assignment.js",
-                "icon": "pointer",
-                "types": [
-                    "error"
-                ]
-            }
-        ]
-    }
-
-
-Which looks like this:
-
-.. image:: colors/4.png
+Or you can `customize your color scheme <https://www.sublimetext.com/docs/3/color_schemes.html#customization>`_.
 
 
 .. _project:

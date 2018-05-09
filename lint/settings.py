@@ -96,13 +96,14 @@ def validate_settings():
     good = True
 
     for name, settings in get_settings_objects():
-        try:
-            validate(settings, schema)
-        except ValidationError as error:
-            good = False
-            error_msg = error.message.split("\n")[0]  # reduce verbosity
-            full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
+        if settings:
+            try:
+                validate(settings, schema)
+            except ValidationError as error:
+                good = False
+                error_msg = error.message.split("\n")[0]  # reduce verbosity
+                full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
 
-            logger.error(full_msg)
-            window.status_message(status_msg)
+                logger.error(full_msg)
+                window.status_message(status_msg)
     return good

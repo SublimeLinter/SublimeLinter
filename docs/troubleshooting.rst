@@ -59,6 +59,18 @@ If a linter's executable cannot be found, the debug output will include a ``cann
 A linter may have additional dependencies (e.g. NodeJS) that may be missing.
 The console should also have information about that.
 
+We noticed some users having an issue where a linter couldn't find "node" even
+though "node" is in their $PATH. If you're having this problem you can remedy
+it by patching the "env" for that linter in your settings like so:
+
+.. code-block:: json
+
+    "linters": {
+      "eslint": {
+          "env": {"PATH":"/usr/local/bin/"}
+      }
+    }
+
 
 Finding a linter executable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,12 +104,10 @@ To add the path ``~/.rbenv/shims`` you would change the ``"paths"`` setting like
 
 .. code-block:: json
 
-    {
-        "paths": {
-            "linux": [],
-            "osx": [
-                "~/.rbenv/shims"
-            ],
-            "windows": []
-        }
+    "paths": {
+        "linux": [],
+        "osx": [
+            "~/.rbenv/shims"
+        ],
+        "windows": []
     }

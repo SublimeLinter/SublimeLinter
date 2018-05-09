@@ -31,7 +31,11 @@ def plugin_loaded():
             persist.kill_switch = True
             persist.linter_classes.clear()
 
-            sublime.set_timeout_async(reload_sublime_linter, 100)
+            # The 'event' (flag) is set for 5 seconds. To not get into a
+            # reloader excess we wait for that time, so that the next time
+            # this exact `plugin_loaded` handler runs, the flag is already
+            # unset.
+            sublime.set_timeout_async(reload_sublime_linter, 5000)
             return
     except ImportError:
         pass

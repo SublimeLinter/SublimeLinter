@@ -55,8 +55,7 @@ class ComposerLinter(linter.Linter):
         if global_cmd:
             return True, global_cmd
         else:
-            logger.warning(
-                'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0]))
+            logger.warning("{} cannot locate '{}'".format(self.name, cmd[0]))
             return True, None
 
     def get_manifest_path(self):

@@ -4,8 +4,9 @@ import codecs
 import json
 import hashlib
 import logging
+import os
+import shutil
 
-from os import path, access, X_OK
 from .. import linter, util
 
 
@@ -30,12 +31,12 @@ class ComposerLinter(linter.Linter):
 
     def __init__(self, view, syntax):
         """Initialize a new ComposerLinter instance."""
-        super(ComposerLinter, self).__init__(view, syntax)
+        super().__init__(view, syntax)
 
         self.manifest_path = self.get_manifest_path()
 
         if self.manifest_path:
-            self.read_manifest(path.getmtime(self.manifest_path))
+            self.read_manifest(os.path.getmtime(self.manifest_path))
 
     def context_sensitive_executable_path(self, cmd):
         """
@@ -52,33 +53,27 @@ class ComposerLinter(linter.Linter):
         if success:
             return success, executable
 
-        local_cmd = None
-        global_cmd = util.which(cmd[0])
-
         if self.manifest_path:
             local_cmd = self.find_local_cmd_path(cmd[0])
+            if local_cmd:
+                return True, local_cmd
 
-        if not local_cmd and not global_cmd:
+        global_cmd = util.which(cmd[0])
+        if global_cmd:
+            return True, global_cmd
+        else:
             logger.warning(
                 'WARNING: {} cannot locate \'{}\''.format(self.name, cmd[0]))
             return True, None
 
-        composer_cmd_path = local_cmd if local_cmd else global_cmd
-        return True, composer_cmd_path
-
     def get_manifest_path(self):
         """Get the path to the composer.json file for the current file."""
-        curr_file = self.view.file_name()
-
-        manifest_path = None
-
-        if curr_file:
-            cwd = path.dirname(curr_file)
-
-            if cwd:
-                manifest_path = self.rev_parse_manifest_path(cwd)
-
-        return manifest_path
+        filename = self.view.file_name()
+        cwd = (
+            os.path.dirname(filename) if filename else
+            linter.guess_project_root_of_view(self.view)
+        )
+        return self.rev_parse_manifest_path(cwd) if cwd else None
 
     def rev_parse_manifest_path(self, cwd):
         """
@@ -88,15 +83,13 @@ class ComposerLinter(linter.Linter):
         at a time checking if that directory contains a composer.json
         file. If it does, return that directory.
         """
-        name = 'composer.json'
-        manifest_path = path.normpath(path.join(cwd, name))
+        manifest_path = os.path.normpath(os.path.join(cwd, 'composer.json'))
+        bin_path = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
-        bin_path = path.join(cwd, 'vendor/bin/')
-
-        if path.isfile(manifest_path) and path.isdir(bin_path):
+        if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
             return manifest_path
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None
@@ -110,25 +103,24 @@ class ComposerLinter(linter.Linter):
         Given composer.json filepath and a local binary to find,
         look in vendor/bin for that binary.
         """
-        cwd = path.dirname(self.manifest_path)
+        cwd = os.path.dirname(self.manifest_path)
 
         binary = self.get_pkg_bin_cmd(cmd)
 
         if binary:
-            return path.normpath(path.join(cwd, binary))
+            return os.path.normpath(os.path.join(cwd, binary))
 
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
         """Recursively check for command binary in ancestors' vendor/bin directories."""
-        vendor_bin = path.normpath(path.join(cwd, 'vendor/bin/'))
+        vendor_bin = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
-        binary = path.join(vendor_bin, cmd)
-
-        if binary and access(binary, X_OK):
+        binary = shutil.which(cmd, path=vendor_bin)
+        if binary:
             return binary
 
-        parent = path.normpath(path.join(cwd, '../'))
+        parent = os.path.dirname(cwd)
 
         if parent == '/' or parent == cwd:
             return None
@@ -158,7 +150,7 @@ class ComposerLinter(linter.Linter):
 
     def get_manifest(self):
         """Load manifest file (composer.json)."""
-        current_manifest_mtime = path.getmtime(self.manifest_path)
+        current_manifest_mtime = os.path.getmtime(self.manifest_path)
 
         if (current_manifest_mtime != self.cached_manifest_mtime and
                 self.hash_manifest() != self.cached_manifest_hash):

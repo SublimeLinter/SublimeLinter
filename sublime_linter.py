@@ -51,7 +51,8 @@ def plugin_loaded():
     # Lint the visible views from the active window on startup
     if persist.settings.get("lint_mode") in ("background", "load_save"):
         for view in visible_views():
-            hit(view)
+            if util.is_lintable(view):
+                hit(view)
 
 
 def plugin_unloaded():

@@ -234,6 +234,10 @@ class IdleViewController(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        # Do not race between `plugin_loaded` and this event handler
+        if active_view is None:
+            return
+
         time_to_idle = persist.settings.get('highlights.time_to_idle')
         if view.buffer_id() == active_view.buffer_id():
             queue.debounce(

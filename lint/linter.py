@@ -234,7 +234,9 @@ class LinterMeta(type):
 
         for key in (
             'version_args', 'version_re', 'version_requirement',
-            'inline_settings', 'inline_overrides', 'comment_re', 'shebang_match'
+            'inline_settings', 'inline_overrides',
+            'comment_re', 'shebang_match',
+            'npm_name', 'composer_name'
         ):
             if key in attrs:
                 logger.info(

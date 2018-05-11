@@ -20,14 +20,7 @@ class ComposerLinter(linter.Linter):
     Linters installed with composer should inherit from this class.
     By doing so, they automatically get the following features:
 
-    - Support for finding local binaries in a project's
-      vendor/bin folder. You need to override composer_name
-      variable to use this linter.
-
     """
-
-    # must be overridden by the linter
-    composer_name = None
 
     def __init__(self, view, syntax):
         """Initialize a new ComposerLinter instance."""

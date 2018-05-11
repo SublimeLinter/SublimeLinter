@@ -20,14 +20,7 @@ class NodeLinter(linter.Linter):
     Linters installed with npm should inherit from this class.
     By doing so, they automatically get the following features:
 
-    - Support for finding local binaries in a project's
-      ./node_modules/.bin/ folder. You need to override npm_name
-      variable to use this linter.
-
     """
-
-    # must be overridden by the linter
-    npm_name = None
 
     def __init__(self, view, syntax):
         """Initialize a new NodeLinter instance."""

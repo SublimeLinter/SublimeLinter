@@ -31,7 +31,7 @@ def plugin_unloaded():
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
     active_view = State['active_view']
-    if active_view.buffer_id() == buffer_id:
+    if active_view and active_view.buffer_id() == buffer_id:
         draw(**State)
 
 
@@ -51,7 +51,7 @@ class UpdateState(sublime_plugin.EventListener):
         active_view = State['active_view']
         # It is possible that views (e.g. panels) update in the background.
         # So we check here and return early.
-        if active_view.buffer_id() != view.buffer_id():
+        if not active_view or active_view.buffer_id() != view.buffer_id():
             return
 
         current_pos = get_current_pos(active_view)

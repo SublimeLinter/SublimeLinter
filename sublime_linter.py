@@ -103,7 +103,8 @@ def visible_views():
 
     # Priority for the active view
     active_view = window.active_view()
-    yield active_view
+    if active_view:
+        yield active_view
 
     num_groups = window.num_groups()
     for group_id in range(num_groups):

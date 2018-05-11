@@ -279,6 +279,9 @@ def toggle_demoted_regions(view, show):
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
     def run(self):
         view = self.window.active_view()
+        if not view:
+            return
+
         vid = view.id()
         hidden = vid in State['quiet_views']
         if hidden:
@@ -625,8 +628,11 @@ class TooltipController(sublime_plugin.EventListener):
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         view = self.window.active_view()
+        if not view:
+            return
+
         point = view.sel()[0].begin()
-        open_tooltip(self.window.active_view(), point, line_report=True)
+        open_tooltip(view, point, line_report=True)
 
 
 TOOLTIP_STYLES = '''

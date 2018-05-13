@@ -220,7 +220,7 @@ class LinterMeta(type):
             return
 
         name = attrs.get('name') or cls_name.lower()
-        setattr(cls, 'disabled', False)
+        setattr(cls, 'disabled', None)
         setattr(cls, 'name', name)
 
         # BEGIN DEPRECATIONS
@@ -451,10 +451,9 @@ class Linter(metaclass=LinterMeta):
     # setting is replaced with <name>.
     defaults = None
 
-    #
-    # Internal class storage, do not set
-    #
-    disabled = False
+    # `disabled` has three states (None, True, False). It takes precedence
+    # over all other user or project settings.
+    disabled = None
 
     def __init__(self, view, syntax):
         self.view = view
@@ -977,12 +976,12 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def can_lint_view(cls, view):
-        if cls.disabled:
+        if cls.disabled is True:
             return False
 
         settings = get_linter_settings(cls, view)
 
-        if settings.get('disable'):
+        if cls.disabled is None and settings.get('disabled'):
             return False
 
         if not cls.matches_selector(view, settings):

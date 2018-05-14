@@ -1175,6 +1175,17 @@ class Linter(metaclass=LinterMeta):
                     self.notify_failure()
                     return ''
 
+            except OSError as err:
+                # There are rare reports of '[Errno 9] Bad file descriptor'.
+                # We just eat them here for user convenience, although there
+                # is no deeper knowledge about why this happens.
+                if err.errno == 9:
+                    logger.warning('Exception: {}'.format(str(err)))
+                    self.notify_failure()
+                    raise TransientError('Bad File Descriptor')
+                else:
+                    raise
+
             else:
                 friendly_terminated = getattr(proc, 'friendly_terminated', False)
                 if friendly_terminated:

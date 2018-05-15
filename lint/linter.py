@@ -981,7 +981,7 @@ class Linter(metaclass=LinterMeta):
 
         settings = get_linter_settings(cls, view)
 
-        if cls.disabled is None and settings.get('disabled'):
+        if cls.disabled is None and settings.get('disable'):
             return False
 
         if not cls.matches_selector(view, settings):

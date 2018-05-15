@@ -115,9 +115,13 @@ def finalize_errors(linter, errors, offset):
     line_offset, col_offset = offset
 
     for error in errors:
-        line = error['line'] + line_offset
-        start = error['start'] + col_offset
-        end = error['end'] + col_offset
+        line, start, end = error['line'], error['start'], error['end']
+        if line == 0:
+            start += col_offset
+            end += col_offset
+
+        line += line_offset
+
         error.update({
             'line': line,
             'start': start,

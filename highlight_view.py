@@ -234,6 +234,10 @@ class IdleViewController(sublime_plugin.EventListener):
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
+        # Do not race between `plugin_loaded` and this event handler
+        if active_view is None:
+            return
+
         time_to_idle = persist.settings.get('highlights.time_to_idle')
         if view.buffer_id() == active_view.buffer_id():
             queue.debounce(
@@ -275,6 +279,9 @@ def toggle_demoted_regions(view, show):
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
     def run(self):
         view = self.window.active_view()
+        if not view:
+            return
+
         vid = view.id()
         hidden = vid in State['quiet_views']
         if hidden:
@@ -621,8 +628,11 @@ class TooltipController(sublime_plugin.EventListener):
 class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
     def run(self):
         view = self.window.active_view()
+        if not view:
+            return
+
         point = view.sel()[0].begin()
-        open_tooltip(self.window.active_view(), point, line_report=True)
+        open_tooltip(view, point, line_report=True)
 
 
 TOOLTIP_STYLES = '''

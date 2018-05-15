@@ -13,7 +13,9 @@ Implement typical Goto Next Previous Error Commands.
 
 class SublimeLinterGotoError(sublime_plugin.WindowCommand):
     def run(self, direction='next', count=1, wrap=False):
-        goto(self.window.active_view(), direction, count, wrap)
+        active_view = self.window.active_view()
+        if active_view:
+            goto(active_view, direction, count, wrap)
 
 
 def goto(view, direction, count, wrap):

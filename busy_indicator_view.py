@@ -36,7 +36,7 @@ def on_begin_linting(buffer_id):
     State['running'][buffer_id] = time.time()
 
     active_view = State['active_view']
-    if active_view.buffer_id() == buffer_id:
+    if active_view and active_view.buffer_id() == buffer_id:
         sublime.set_timeout_async(lambda: draw(**State), INITIAL_DELAY * 1000)
 
 
@@ -45,7 +45,7 @@ def on_finished_linting(buffer_id, **kwargs):
     State['running'].pop(buffer_id, None)
 
     active_view = State['active_view']
-    if active_view.buffer_id() == buffer_id:
+    if active_view and active_view.buffer_id() == buffer_id:
         draw(**State)
 
 

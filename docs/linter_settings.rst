@@ -141,7 +141,8 @@ styles
 ------
 Styles can be set per linter.
 
-The scope property is required, all other style properties are optional.
+The "scope" property is required, as is either "types" or "codes".
+All other style properties are optional.
 You can change the color (via scope) or icon per linter, for errors or warnings,
 and even for each error codes if the plugin reports them.
 

@@ -1,4 +1,4 @@
-from collections import defaultdict, ChainMap
+from collections import defaultdict
 import html
 from itertools import chain
 from functools import partial
@@ -359,18 +359,12 @@ def all_views_into_buffer(buffer_id):
 
 
 def prepare_data(errors):
-    errors_augmented = []
-    for error in errors:
-        priority = int(style.get_value('priority', error, 0))
-        errors_augmented.append(
-            ChainMap({'priority': priority}, error))
-
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
     # and we can only 'underline' a word once.
     return (
-        filter_errors(errors_augmented, by_position),  # highlights
-        filter_errors(errors_augmented, by_line)       # gutter icons
+        filter_errors(errors, by_position),  # highlights
+        filter_errors(errors, by_line)       # gutter icons
     )
 
 

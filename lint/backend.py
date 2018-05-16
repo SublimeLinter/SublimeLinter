@@ -12,7 +12,7 @@ import os
 import time
 import threading
 
-from . import util, linter as linter_module
+from . import style, util, linter as linter_module
 
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,8 @@ def finalize_errors(linter, errors, offset):
 
         error.update({
             'uid': uid,
-            'region': region
+            'region': region,
+            'priority': int(style.get_value('priority', error, 0))
         })
 
 

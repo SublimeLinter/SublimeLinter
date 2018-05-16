@@ -104,11 +104,11 @@
     // Example alternative: (w:{}, e:{})
     "statusbar.counters_template": "({}|{})",
 
-    // Show the messages for problems at your cursor position
-    // {message} will be replaced by the actual messages.
-    // {linter} will be replaced by the linter reporting the error.
-    // {type} will be replaced by either warning or error.
-    // {code} will be replaced by the error code.
+    // Show the messages for problems at your cursor position.
+    // - {message} will be replaced by the actual messages.
+    // - {linter} will be replaced by the linter reporting the error.
+    // - {type} will be replaced by either warning or error.
+    // - {code} will be replaced by the error code.
     // Set to "" to display nothing
     "statusbar.messages_template": "{message}",
 
@@ -124,12 +124,13 @@
     //   on whitespace (ST issue #137).
     // - priority determines which mark is shown in the gutter;
     //   error marks will still always override warning marks.
-    // - scope is used to determine the color;
-    //   region.<colorish> are automatically generated scopes in ST > 3148.
+    // - scope is used to determine the color, e.g. region.<colorish>,
+    //   where <colorish> is one of
+    //   redish, orangish, yellowish, greenish, bluish, purplish, pinkish.
     // - types is an array which can contain "warning" and/or "error".
     // - codes is an array which can contain error codes provided by a linter.
     // - icon can be:
-    //   one of the default icons: "circle", "dot" or "bookmark"
+    //   "circle", "dot" or "bookmark"
     //   or "none" to remove the icon
     //   or a path to an icon file like
     //      "Packages/SublimeLinter/gutter-themes/Blueberry Cross/error.png"
@@ -137,7 +138,7 @@
     //      in theme Default: "warning", "error", "cog", "x",
     //      and "diamond", "heart", "pointer", "square", "star", "triangle" all
     //      also have an -outline variant.
-    // Note: At least one of those targets is required: types or codes.
+    // Note: At least one of these targets is required: types or codes.
     // Styles can also be specified per linter.
     "styles": [
         {

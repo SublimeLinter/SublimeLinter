@@ -1,5 +1,6 @@
 import sublime
 from . import persist, util
+from .const import WARNING, ERROR
 
 import logging
 import os
@@ -96,7 +97,7 @@ class HighlightStyleStore:
         def fetch_style(linter_name):
             x = [v.get(key) for k, v
                  in styles.items()
-                 if linter_name in k and error_type in v.get("types", [])]
+                 if linter_name in k and error_type in v.get("types", [ERROR, WARNING])]
 
             if x[0]:
                 return x[0]

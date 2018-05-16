@@ -68,7 +68,6 @@ Note that :ref:`Settings Expansion <settings-expansion>` can be used here as wel
 
 executable
 ----------
-
 At any time you can manually set the executable a linter should use. This can
 be a string or a list.
 
@@ -85,7 +84,6 @@ See :ref:`Settings Expansion <settings-expansion>` for more info on using variab
 
 python
 ------
-
 This should point to a python binary on your system. Alternatively
 it can be set to a version, in which case we try to find a python
 binary on your system matching that version (using PATH).
@@ -98,11 +96,6 @@ It then executes ``python -m script_name``
 
 selector
 --------
-
-.. note::
-
-    This takes precedence over the (deprecated) `syntax` property.
-
 This defines if when given linter is activated for specific file types.
 It should be a string containing a list of comma separated selectors.
 
@@ -126,6 +119,65 @@ To do that, we can override the selector for this linter:
 
 To find out what selector to use for given file type, use the
 "Tools > Developer > Show Scope Name" menu entry.
+
+It's also possible to exclude scopes using the ``-`` operator.
+E.g. to disable embedded code in situation where linting doesn't make sense.
+For eslint we disable linting in html script attributes:
+
+.. code-block:: json
+
+    {
+        'selector': 'source.js - meta.attribute-with-value'
+    }
+
+
+.. note::
+
+    The selector setting takes precedence over the deprecated `syntax` property.
+
+
+
+styles
+------
+Styles can be set per linter.
+
+The scope property is required, all other style properties are optional.
+You can change the color (via scope) or icon per linter, for errors or warnings,
+and even for each error codes if the plugin reports them.
+
+Example: this changes the appearance of shellcheck warnings:
+
+.. code-block:: json
+
+    {
+        "shellcheck": {
+            "styles": [
+                {
+                    "mark_style": "stippled_underline",
+                    "scope": "region.bluish",
+                    "types": ["warning"]
+                }
+            ]
+        }
+    }
+
+Example: this changes the appearance of whitespace warnings in flake8:
+
+.. code-block:: json
+
+    {
+        "flake8": {
+            "styles": [
+                {
+                    "mark_style": "outline",
+                    "scope": "comment",
+                    "icon": "none",
+                    "codes": ["W293", "W291", "W292"]
+                }
+            ]
+        }
+    }
+
 
 
 working_dir

@@ -408,7 +408,7 @@ def prepare_gutter_data(view, linter_name, errors):
         if icon == 'none':
             continue
 
-        scope = get_icon_scope(error)
+        scope = style.get_icon_scope(error)
         pos = get_line_start(view, error['line'])
         region = view.line(pos)
 
@@ -481,13 +481,6 @@ def get_scope(error):
 
 def get_mark_style(error):
     return style.get_value('mark_style', error)
-
-
-def get_icon_scope(error):
-    if style.COLORIZE:
-        return get_scope(error)
-    else:
-        return "region.whitish"  # hopefully a white color
 
 
 def undraw(view):

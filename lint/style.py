@@ -9,6 +9,7 @@ import os
 logger = logging.getLogger(__name__)
 
 COLORIZE = True
+WHITE_SCOPE = 'region.whitish'  # hopefully a white color
 
 
 def read_gutter_theme():
@@ -69,3 +70,10 @@ def get_icon(error):
         if not icon.endswith('.png'):
             icon += '.png'
         return 'Packages/SublimeLinter/gutter-themes/{}/{}'.format(theme, icon)
+
+
+def get_icon_scope(error):
+    if COLORIZE:
+        return get_value('scope', error)
+    else:
+        return WHITE_SCOPE

@@ -7,8 +7,7 @@ import re
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, queue
-from .lint import style as style_stores
+from .lint import persist, events, style, queue
 from .lint.const import PROTECTED_REGIONS_KEY, ERROR, WARNING
 
 
@@ -37,7 +36,6 @@ WS_REGIONS = re.compile('(^\s+$|\n)')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
-highlight_store = style_stores.HighlightStyleStore()
 STORAGE_KEY = 'SL.{}.region_keys'
 
 
@@ -363,10 +361,9 @@ def all_views_into_buffer(buffer_id):
 def prepare_data(errors):
     errors_augmented = []
     for error in errors:
-        style = get_base_error_style(**error)
-        priority = int(highlight_store.get(style).get('priority', 0))
+        priority = int(style.get_value('priority', error, 0))
         errors_augmented.append(
-            ChainMap({'style': style, 'priority': priority}, error))
+            ChainMap({'priority': priority}, error))
 
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
@@ -375,11 +372,6 @@ def prepare_data(errors):
         filter_errors(errors_augmented, by_position),  # highlights
         filter_errors(errors_augmented, by_line)       # gutter icons
     )
-
-
-def get_base_error_style(linter, code, error_type, **kwargs):
-    store = style_stores.get_linter_style_store(linter)
-    return store.get_style(code, error_type)
 
 
 def filter_errors(errors, group_fn):
@@ -412,11 +404,11 @@ def prepare_gutter_data(view, linter_name, errors):
     # specified 'none'
     by_id = defaultdict(list)
     for error in errors:
-        icon = get_icon(**error)
+        icon = get_icon(error)
         if not icon or icon == 'none':
             continue
 
-        scope = get_icon_scope(icon, error)
+        scope = get_icon_scope(error)
         pos = get_line_start(view, error['line'])
         region = view.line(pos)
 
@@ -439,8 +431,8 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
     by_id = defaultdict(list)
     for error in errors:
-        scope = get_scope(**error)
-        mark_style = get_mark_style(**error)
+        scope = get_scope(error)
+        mark_style = get_mark_style(error)
         if not mark_style:
             mark_style == 'none'
 
@@ -483,21 +475,21 @@ def get_line_start(view, line):
     return view.text_point(line, 0)
 
 
-def get_icon(style, error_type, **kwargs):
-    return highlight_store.get_val('icon', style, error_type)
+def get_icon(error):
+    return style.get_icon(error)
 
 
-def get_scope(style, error_type, **kwargs):
-    return highlight_store.get_val('scope', style, error_type)
+def get_scope(error):
+    return style.get_value('scope', error)
 
 
-def get_mark_style(style, error_type, **kwargs):
-    return highlight_store.get_val('mark_style', style, error_type)
+def get_mark_style(error):
+    return style.get_value('mark_style', error)
 
 
-def get_icon_scope(icon, error):
-    if style_stores.COLORIZE:
-        return get_scope(**error)
+def get_icon_scope(error):
+    if style.COLORIZE:
+        return get_scope(error)
     else:
         return "region.whitish"  # hopefully a white color
 

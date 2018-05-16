@@ -98,7 +98,7 @@ class HighlightStyleStore:
                  in styles.items()
                  if linter_name in k and error_type in v.get("types", [])]
 
-            if x[0]:
+            if x and x[0]:
                 return x[0]
 
         base, linter, ext = style.split(".")

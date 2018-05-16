@@ -7,51 +7,52 @@
     "delay": 0.1,
 
     // Available gutter themes:
-    // Blueberry Cross
-    // Blueberry Round
-    // Circle
-    // Danish Royalty
-    // Default
-    // Hands
-    // Knob
-    // Knob Symbol
-    // Koloria
-    // ProjectIcons
+    // - Blueberry Cross
+    // - Blueberry Round
+    // - Circle
+    // - Danish Royalty
+    // - Default
+    // - Hands
+    // - Knob
+    // - Knob Symbol
+    // - Koloria
+    // - ProjectIcons
     // Note that you may need to change the "icon" property in "styles"
     // to an icon in the theme (they usually include "warning" and "error")
     "gutter_theme": "Default",
 
-    // EXPERIMENTAL: See below `demote_while_editing`.
-    // Tip: If you set this to a very high number, like 360 seconds, you
-    // basically see the demoted regions only on save.
-    "highlights.time_to_idle": 1.5,
-
-    // EXPERIMENTAL: One of 'none', 'ws_regions', 'warnings', 'all'
-    // Essentially picks a predicate fn from `highlights.py` to demote the
-    // visibility of some lint errors while editing (busy). These errors
-    // appear after `time_to_idle` seconds or immediately on save.
+    // Demote the visibility of a class off errors while you're editing.
+    // The errors will re-appear after `time_to_idle` and immediately on save.
+    // - ws_regions: erroneous regions that contain whitespace
+    // - warnings: errors of the "warning" type
+    // - all: demote all the things
+    // - none: disable this feature
     "highlights.demote_while_editing": "none",
 
-    // EXPERIMENTAL: A typical Sublime scope which gets applied to
-    // the regions while busy. Use the empty string to actually hide
-    // the regions. E.g. try 'comment' to get a soft gray.
+    // Apply a color (via scope) to the demoted errors.
+    // E.g. "" will hide the errors, "comment" is usually a subtle color.
     "highlights.demote_scope": "",
 
-    // Send `terminate` signal to old lint processes, if their result would
+    // How long to wait before showing the demoted errors again.
+    "highlights.time_to_idle": 1.5,
+
+    // Send a "terminate" signal to old lint processes, if their result would
     // be thrown away. If false we fire-and-forget processes instead.
     "kill_old_processes": false,
 
-    // Lint Modes determine when the linter is run
-    // background: asynchronously on every change
-    // load_save: when a file is opened and every time it's saved
-    // manual: only when calling the Lint This View command
-    // save: only when a file is saved
+    // Lint Mode determines when the linter is run.
+    // - background: asynchronously on every change
+    // - load_save: when a file is opened and every time it's saved
+    // - manual: only when calling the Lint This View command
+    // - save: only when a file is saved
     "lint_mode": "background",
 
-    // Example of linter specific settings.
+    // Linter specific settings.
+    // More info: http://www.sublimelinter.com/en/stable/linter_settings.html
     // Linter specific settings can also be changed in sublime-project settings.
     // What settings are available is documented in the readme of the
     // specific linter plugin.
+    // Example:
     // "linters": {
     //     "somelinter": {
     //         "disable": false,
@@ -73,7 +74,7 @@
 
     // Determines what happens when a linter reports a problem without column.
     // By default, a mark is put in the gutter and the first character is highlighted.
-    // If this setting is `true`, the entire line is also highlighted.
+    // If this setting is true, the entire line is also highlighted.
     "no_column_highlights_line": false,
 
     // Provide extra paths to be searched when locating system executables.
@@ -93,10 +94,9 @@
     "show_marks_in_minimap": true,
 
     // Show the output panel on save if there are problems.
-    // Note: currently works best with lint_mode "background", See #1200
-    // Set to "window" to check if the window has problems.
-    // Set to "view" to only check the current file.
-    // Set to "never" to disable this feature.
+    // - window: check if the window has problems.
+    // - view: only check the current file.
+    // - never: disable this feature.
     "show_panel_on_save": "never",
 
     // Display counters in the status bar.
@@ -161,6 +161,8 @@
         }
     ],
 
+    // DEPRECATED: use the selector linter setting instead:
+    // http://www.sublimelinter.com/en/stable/linter_settings.html#selector
     // Maps variant syntaxes to the syntax that you have a linter for.
     // The syntax is the name of the syntax definition file, in lower case
     // Run this in the console to find it: view.settings().get('syntax').lower()

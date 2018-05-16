@@ -431,7 +431,7 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
     by_id = defaultdict(list)
     for error in errors:
-        scope = get_scope(error)
+        scope = style.get_value('scope', error)
         mark_style = style.get_value('mark_style', error, 'none')
 
         region = error['region']
@@ -471,10 +471,6 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
 def get_line_start(view, line):
     return view.text_point(line, 0)
-
-
-def get_scope(error):
-    return style.get_value('scope', error)
 
 
 def undraw(view):

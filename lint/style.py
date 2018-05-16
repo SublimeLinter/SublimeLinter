@@ -53,9 +53,9 @@ def get_value(key, error, default=None):
 
 
 def get_icon(error):
-    icon = get_value('icon', error)
+    icon = get_value('icon', error, 'none')
 
-    if icon in ("circle", "dot", "bookmark", "none"):  # Sublime Text has some default icons
+    if icon in ('circle', 'dot', 'bookmark', 'none'):  # Sublime Text has some default icons
         return icon
     elif icon != os.path.basename(icon):
         return icon

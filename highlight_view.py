@@ -404,8 +404,8 @@ def prepare_gutter_data(view, linter_name, errors):
     # specified 'none'
     by_id = defaultdict(list)
     for error in errors:
-        icon = get_icon(error)
-        if not icon or icon == 'none':
+        icon = style.get_icon(error)
+        if icon == 'none':
             continue
 
         scope = get_icon_scope(error)
@@ -473,10 +473,6 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
 def get_line_start(view, line):
     return view.text_point(line, 0)
-
-
-def get_icon(error):
-    return style.get_icon(error)
 
 
 def get_scope(error):

@@ -141,8 +141,6 @@ styles
 ------
 Styles can be set per linter.
 
-You need to specify either "types" or "codes",
-all other style properties are optional.
 You can change the color (via scope) or icon per linter, for errors or warnings,
 and even for each error code if the plugin reports them.
 

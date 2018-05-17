@@ -140,7 +140,7 @@ def finalize_errors(linter, errors, offset):
         error.update({
             'uid': uid,
             'region': region,
-            'priority': int(style.get_value('priority', error, 0))
+            'priority': style.get_value('priority', error, 0)
         })
 
 

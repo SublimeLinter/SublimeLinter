@@ -422,7 +422,6 @@ def prepare_gutter_data(view, linter_name, errors):
 
 
 def prepare_highlights_data(view, linter_name, errors, demote_predicate):
-
     by_id = defaultdict(list)
     for error in errors:
         scope = style.get_value('scope', error)
@@ -437,7 +436,7 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
 
         flags = MARK_STYLES[mark_style]
         if not persist.settings.get('show_marks_in_minimap'):
-                flags |= sublime.HIDE_ON_MINIMAP
+            flags |= sublime.HIDE_ON_MINIMAP
 
         demote_while_busy = demote_predicate(selected_text, **error)
         hidden = mark_style == 'none' or not scope

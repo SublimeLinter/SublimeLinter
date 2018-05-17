@@ -70,9 +70,6 @@
                                     "uniqueItems":true
                                 }
                             },
-                            "required":[
-                                "scope"
-                            ],
                             "additionalProperties":false
                         }
                     }

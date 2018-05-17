@@ -49,7 +49,8 @@
 
     // Linter specific settings.
     // More info: http://www.sublimelinter.com/en/stable/linter_settings.html
-    // Linter specific settings can also be changed in sublime-project settings.
+    // Linter specific settings except for "styles" can also be changed
+    // in sublime-project settings.
     // What settings are available is documented in the readme of the
     // specific linter plugin.
     // Example:
@@ -57,7 +58,12 @@
     //     "somelinter": {
     //         "disable": false,
     //         "args": [],
-    //         "excludes": []
+    //         "excludes": [],
+    //         "styles": [
+    //              {
+    //                  "icon": "diamond"
+    //              }
+    //         ]
     //     },
     //     "somepythonlinter": {
     //         "python": null,
@@ -115,7 +121,7 @@
     "statusbar.show_active_linters": true,
 
     // Global styles for all linters.
-    // Styles can also be specified per linter.
+    // Note: Styles can also be specified per linter! See above.
     // - mark_style:
     //   - "none"
     //   - "fill", "outline",
@@ -139,27 +145,23 @@
     //   Determines, for overlapping errors, which one is visualised.
     // - types:
     //   An array which can contain "warning" and/or "error".
-    //   If omitted in linter specific styles, it will match both.
+    //   If omitted will match both.
     // - codes:
     //   An array which can contain error codes provided by a linter.
+    //   Only valid as linter style in the "linters" section
     "styles": [
         {
-            "mark_style": "outline",
-            "priority": 1,
             "scope": "region.yellowish markup.warning.sublime_linter",
-            "icon": "dot",
-            "types": [
-                "warning"
-            ]
+            "types": ["warning"]
         },
         {
-            "mark_style": "outline",
-            "priority": 1,
             "scope": "region.redish markup.error.sublime_linter",
+            "types": ["error"]
+        },
+        {
+            "priority": 1,
             "icon": "dot",
-            "types": [
-                "error"
-            ]
+            "mark_style": "outline"
         }
     ],
 

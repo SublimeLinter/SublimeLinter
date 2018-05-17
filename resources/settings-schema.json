@@ -70,9 +70,6 @@
                                     "uniqueItems":true
                                 }
                             },
-                            "required":[
-                                "scope"
-                            ],
                             "additionalProperties":false
                         }
                     }
@@ -139,13 +136,6 @@
                         "uniqueItems":true
                     }
                 },
-                "required":[
-                    "mark_style",
-                    "priority",
-                    "scope",
-                    "icon",
-                    "types"
-                ],
                 "additionalProperties":false
             }
         }

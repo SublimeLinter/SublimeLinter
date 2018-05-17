@@ -64,14 +64,8 @@ class Settings:
         if not validate_settings():
             return
 
-        from . import style
-
-        # Reparse settings for style rules
-        # Linter specific settings can include style rules too
-        if self.has_changed('styles') or self.has_changed('linters'):
-            style.StyleParser()()
-
         if self.has_changed('gutter_theme'):
+            from . import style
             style.read_gutter_theme()
 
         sublime.run_command('sublime_linter_config_changed')

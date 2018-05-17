@@ -141,10 +141,8 @@ styles
 ------
 Styles can be set per linter.
 
-The "scope" property is required, as is either "types" or "codes".
-All other style properties are optional.
 You can change the color (via scope) or icon per linter, for errors or warnings,
-and even for each error codes if the plugin reports them.
+and even for each error code if the plugin reports them.
 
 Example: this changes the appearance of shellcheck warnings:
 

@@ -359,6 +359,15 @@ def all_views_into_buffer(buffer_id):
 
 
 def prepare_data(errors):
+    # We need to update `prioritiy` here (although a user will rarely change
+    # this setting that often) for correctness. Generally, on views with
+    # multiple linters running, we compare new lint results from the
+    # 'fast' linters with old results from the 'slower' linters. The below
+    # `filter_errors` produces wrong results with outdated priorities.
+    for error in errors:    # Warning: inline, so this change propagates
+                            # throughout the system
+        error['priority'] = style.get_value('priority', error, 0)
+
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
     # and we can only 'underline' a word once.

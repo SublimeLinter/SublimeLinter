@@ -136,11 +136,10 @@
     //   Is used to determine the color. E.g. region.<colorish>, with one of
     //   redish, orangish, yellowish, greenish, bluish, purplish, pinkish.
     // - priority:
-    //   Determines which mark is shown in the gutter;
-    //   error marks will still always override warning marks.
+    //   Determines, for overlapping errors, which one is visualised.
     // - types:
     //   An array which can contain "warning" and/or "error".
-    //   If omitted will match both.
+    //   If omitted in linter specific styles, it will match both.
     // - codes:
     //   An array which can contain error codes provided by a linter.
     "styles": [

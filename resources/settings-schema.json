@@ -140,10 +140,6 @@
                     }
                 },
                 "required":[
-                    "mark_style",
-                    "priority",
-                    "scope",
-                    "icon",
                     "types"
                 ],
                 "additionalProperties":false

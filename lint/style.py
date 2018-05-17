@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 COLORIZE = True
 WHITE_SCOPE = 'region.whitish'  # hopefully a white color
+DEFAULT_STYLES = None  # holds the styles we ship as the default settings
 
 
 def read_gutter_theme():
@@ -34,7 +35,8 @@ def get_value(key, error, default=None):
     linter, code, error_type = error['linter'], error['code'], error['error_type']
 
     linter_styles = persist.settings.get('linters', {}).get(linter, {}).get('styles', [])
-    default_styles = persist.settings.get('styles', [])
+    global_styles = persist.settings.get('styles', [])
+    default_styles = get_default_styles()
 
     for style_definition in linter_styles:
         if code in style_definition.get('codes', []):
@@ -43,7 +45,7 @@ def get_value(key, error, default=None):
             except KeyError:
                 ...
 
-    for style_definition in chain(linter_styles, default_styles):
+    for style_definition in chain(linter_styles, global_styles, default_styles):
         if error_type in style_definition.get('types', []):
             try:
                 return style_definition[key]
@@ -51,6 +53,23 @@ def get_value(key, error, default=None):
                 ...
 
     return default
+
+
+def get_default_styles():
+    # Using `yield from` to load the defaults on first usage, possibly never.
+    global DEFAULT_STYLES
+
+    if DEFAULT_STYLES is None:
+        try:
+            defaults = util.load_json(
+                'SublimeLinter.sublime-settings', from_sl_dir=True)
+        except Exception:
+            logger.warning("Could not load the default styles")
+            DEFAULT_STYLES = []
+        else:
+            DEFAULT_STYLES = defaults.get('styles', [])
+
+    yield from DEFAULT_STYLES
 
 
 def get_icon(error):

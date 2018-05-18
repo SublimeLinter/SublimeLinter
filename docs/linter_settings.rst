@@ -82,6 +82,15 @@ be a string or a list.
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
 
+lint_mode
+---------
+Lint Mode determines when the linter is run.
+- background: asynchronously on every change
+- load_save: when a file is opened and every time it's saved
+- manual: only when calling the Lint This View command
+- save: only when a file is saved
+
+
 python
 ------
 This should point to a python binary on your system. Alternatively

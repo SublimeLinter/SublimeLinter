@@ -975,7 +975,11 @@ class Linter(metaclass=LinterMeta):
         return text
 
     @classmethod
-    def can_lint_view(cls, view):
+    def can_lint_view(cls, view, reason=None):
+        """
+        can_lint_view takes view and reason to start linting then returns true/false
+        whether the view should be linted or not.
+        """
         if cls.disabled is True:
             return False
 
@@ -1003,6 +1007,16 @@ class Linter(metaclass=LinterMeta):
                         .format(cls.name, filename, pattern)
                     )
                     return False
+
+        lint_mode = settings.get('lint_mode', 'background')
+        logger.info(
+            "checking lint mode {} vs reason {}"
+            .format(lint_mode, reason)
+        )
+        if lint_mode == 'manual':
+            return reason == 'on_user_request'
+        elif lint_mode in ('save', 'load_save'):
+            return reason in ('on_save', 'on_user_request')
 
         return True
 

@@ -245,11 +245,11 @@ def hit(view, reason=None):
     logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock)
+    fn = partial(lint, view, view_has_changed, lock, reason)
     queue.debounce(fn, delay=delay, key=bid)
 
 
-def lint(view, view_has_changed, lock):
+def lint(view, view_has_changed, lock, reason=None):
     """Lint the view with the given id.
 
     This method is called asynchronously by queue.Daemon when a lint
@@ -258,7 +258,7 @@ def lint(view, view_has_changed, lock):
     # We call `get_linters_for_view` first and unconditionally for its
     # side-effect. Yeah, it's a *getter* LOL.
     with lock:  # We're already debounced, so races are actually unlikely.
-        linters = get_linters_for_view(view)
+        linters = get_linters_for_view(view, reason)
 
     linters = [
         linter for linter in linters
@@ -326,7 +326,7 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     })
 
 
-def get_linters_for_view(view):
+def get_linters_for_view(view, reason=None):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
     syntax = util.get_syntax(view)
@@ -336,7 +336,7 @@ def get_linters_for_view(view):
     wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
-        if linter_class.can_lint_view(view)
+        if linter_class.can_lint_view(view, reason)
     }
 
     linters = {

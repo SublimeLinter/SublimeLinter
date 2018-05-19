@@ -258,11 +258,11 @@ def lint(view, view_has_changed, lock, reason=None):
     # We call `get_linters_for_view` first and unconditionally for its
     # side-effect. Yeah, it's a *getter* LOL.
     with lock:  # We're already debounced, so races are actually unlikely.
-        linters = get_linters_for_view(view, reason)
+        linters = get_linters_for_view(view)
 
     linters = [
         linter for linter in linters
-        if not skip_linter(linter, view)]
+        if linter.should_lint(reason)]
     if not linters:
         return
 
@@ -287,14 +287,6 @@ def lint(view, view_has_changed, lock, reason=None):
     logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
     remember_runtime(runtime)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
-
-
-def skip_linter(linter, view):
-    # A 'saved-file-only' linter does not run on unsaved views
-    if linter.tempfile_suffix == '-' and view.is_dirty():
-        return True
-
-    return False
 
 
 def kill_active_popen_calls(bid):
@@ -326,7 +318,7 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     })
 
 
-def get_linters_for_view(view, reason=None):
+def get_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
     syntax = util.get_syntax(view)
@@ -336,7 +328,7 @@ def get_linters_for_view(view, reason=None):
     wanted_linter_classes = {
         linter_class
         for linter_class in persist.linter_classes.values()
-        if linter_class.can_lint_view(view, reason)
+        if linter_class.can_lint_view(view)
     }
 
     linters = {

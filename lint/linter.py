@@ -830,6 +830,30 @@ class Linter(metaclass=LinterMeta):
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
+    def should_lint(self, reason=None):
+        """
+        should_lint takes reason then decides whether the linter should start or not.
+
+        should_lint allows each Linter to programmatically decide whether it should take
+        action on each trigger or not.
+        """
+        # A 'saved-file-only' linter does not run on unsaved views
+        if self.tempfile_suffix == '-' and self.view.is_dirty():
+            return False
+
+        settings = get_linter_settings(self, self.view)
+        lint_mode = settings.get('lint_mode', 'background')
+        logger.info(
+            "checking lint mode {} vs reason {}"
+            .format(lint_mode, reason)
+        )
+        if lint_mode == 'manual':
+            return reason == 'on_user_request'
+        elif lint_mode in ('save', 'load_save'):
+            return reason in ('on_save', 'on_user_request')
+
+        return True
+
     def split_match(self, match):
         """
         Split a match into the standard elements of an error and return them.
@@ -975,11 +999,7 @@ class Linter(metaclass=LinterMeta):
         return text
 
     @classmethod
-    def can_lint_view(cls, view, reason=None):
-        """
-        can_lint_view takes view and reason to start linting then returns true/false
-        whether the view should be linted or not.
-        """
+    def can_lint_view(cls, view):
         if cls.disabled is True:
             return False
 
@@ -1007,16 +1027,6 @@ class Linter(metaclass=LinterMeta):
                         .format(cls.name, filename, pattern)
                     )
                     return False
-
-        lint_mode = settings.get('lint_mode', 'background')
-        logger.info(
-            "checking lint mode {} vs reason {}"
-            .format(lint_mode, reason)
-        )
-        if lint_mode == 'manual':
-            return reason == 'on_user_request'
-        elif lint_mode in ('save', 'load_save'):
-            return reason in ('on_save', 'on_user_request')
 
         return True
 

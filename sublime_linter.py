@@ -245,11 +245,11 @@ def hit(view, reason=None):
     logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock)
+    fn = partial(lint, view, view_has_changed, lock, reason)
     queue.debounce(fn, delay=delay, key=bid)
 
 
-def lint(view, view_has_changed, lock):
+def lint(view, view_has_changed, lock, reason=None):
     """Lint the view with the given id.
 
     This method is called asynchronously by queue.Daemon when a lint
@@ -262,7 +262,7 @@ def lint(view, view_has_changed, lock):
 
     linters = [
         linter for linter in linters
-        if not skip_linter(linter, view)]
+        if linter.should_lint(reason)]
     if not linters:
         return
 
@@ -287,14 +287,6 @@ def lint(view, view_has_changed, lock):
     logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
     remember_runtime(runtime)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
-
-
-def skip_linter(linter, view):
-    # A 'saved-file-only' linter does not run on unsaved views
-    if linter.tempfile_suffix == '-' and view.is_dirty():
-        return True
-
-    return False
 
 
 def kill_active_popen_calls(bid):

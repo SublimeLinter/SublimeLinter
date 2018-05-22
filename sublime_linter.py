@@ -48,10 +48,9 @@ def plugin_loaded():
     style.read_gutter_theme()
 
     # Lint the visible views from the active window on startup
-    if persist.settings.get("lint_mode") in ("background", "load_save"):
-        for view in visible_views():
-            if util.is_lintable(view):
-                hit(view)
+    for view in visible_views():
+        if util.is_lintable(view):
+            hit(view, "on_load")
 
 
 def plugin_unloaded():
@@ -119,9 +118,6 @@ buffer_syntaxes = {}
 
 class BackendController(sublime_plugin.EventListener):
     def on_modified_async(self, view):
-        if persist.settings.get('lint_mode') != 'background':
-            return
-
         if not util.is_lintable(view):
             return
 
@@ -136,20 +132,13 @@ class BackendController(sublime_plugin.EventListener):
         # event, bc 'on_load' fires for preview buffers which is way too
         # early. This fires a bit too often for 'load_save' mode but it is
         # good enough.
-
-        if persist.settings.get('lint_mode') in ('manual', 'save'):
-            return
-
         if not util.is_lintable(view):
             return
 
         if has_syntax_changed(view):
-            hit(view)
+            hit(view, "on_load")
 
     def on_post_save_async(self, view):
-        if persist.settings.get('lint_mode') == 'manual':
-            return
-
         # check if the project settings changed
         window = view.window()
         if window and window.project_file_name() == view.file_name():
@@ -234,7 +223,7 @@ def lint_all_views():
     for window in sublime.windows():
         for view in window.views():
             if view.buffer_id() in persist.view_linters:
-                hit(view)
+                hit(view, "on_user_request")
 
 
 def hit(view, reason=None):

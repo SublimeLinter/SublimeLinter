@@ -1,0 +1,9 @@
+SublimeLinter 4.6
+=================
+
+You can now set "lint_mode" per linter.
+
+If you have "background" as your default mode, this new setting allows you
+to run some linters only on save, or manually.
+
+http://www.sublimelinter.com/en/stable/linter_settings.html

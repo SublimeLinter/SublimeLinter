@@ -16,7 +16,7 @@
         },
         "highlights.demote_while_editing":{
             "type":"string",
-            "pattern":"^(none|ws_regions|warnings|all)$"
+            "enum":["none", "ws_regions", "warnings", "all"]
         },
         "kill_old_processes":{
             "type":"boolean"
@@ -26,7 +26,7 @@
         },
         "lint_mode":{
             "type":"string",
-            "pattern":"^(background|load_save|manual|save)$"
+            "enum":["background", "load_save", "manual", "save"]
         },
         "linters":{
             "type":"object",
@@ -41,7 +41,7 @@
                     },
                     "lint_mode":{
                         "type":"string",
-                        "pattern":"^(background|load_save|manual|save)$"
+                        "enum":["background", "load_save", "manual", "save"]
                     },
                     "selector": {
                         "type": "string"
@@ -56,7 +56,7 @@
                             "properties":{
                                 "mark_style":{
                                     "type":"string",
-                                    "pattern":"^(fill|outline|solid_underline|squiggly_underline|stippled_underline|none)$"
+                                    "enum":["fill", "outline", "solid_underline", "squiggly_underline", "stippled_underline", "none"]
                                 },
                                 "priority":{
                                     "type":"integer",
@@ -72,7 +72,7 @@
                                     "type":"array",
                                     "items":{
                                         "type":"string",
-                                        "pattern":"^(error|warning)$"
+                                        "enum": ["error", "warning"]
                                     },
                                     "minItems":1,
                                     "uniqueItems":true
@@ -109,7 +109,7 @@
         },
         "show_panel_on_save":{
             "type":"string",
-            "pattern":"^(never|view|window)$"
+            "enum": ["never", "view", "window"]
         },
         "syntax_map":{
             "type":"object"
@@ -130,7 +130,7 @@
                 "properties":{
                     "mark_style":{
                         "type":"string",
-                        "pattern":"^(fill|outline|solid_underline|squiggly_underline|stippled_underline|none)$"
+                        "enum":["fill", "outline", "solid_underline", "squiggly_underline", "stippled_underline", "none"]
                     },
                     "priority":{
                         "type":"integer",
@@ -146,7 +146,7 @@
                         "type":"array",
                         "items":{
                             "type":"string",
-                            "pattern":"^(error|warning)$"
+                            "enum": ["error", "warning"]
                         },
                         "minItems":1,
                         "uniqueItems":true

@@ -122,46 +122,54 @@
 
     // Global styles for all linters.
     // Note: Styles can also be specified per linter! See above.
-    // - mark_style:
-    //   - "none"
-    //   - "fill", "outline",
-    //   - "solid_underline", "squiggly_underline", "stippled_underline"
-    //   The underline styles are replaced with outlines when there is
-    //   whitespace in the problem region, because underlines aren't drawn
-    //   on whitespace (ST issue #137).
-    // - icon:
-    //   - "circle", "dot" or "bookmark"
-    //   - "none" to remove the icon
-    //   - A path to an icon file like
-    //     "Packages/SublimeLinter/gutter-themes/Blueberry Cross/error.png"
-    //   - One provided by a gutter theme (e.g. "warning" or "error").
-    //     In theme Default: warning, error, cog, x,
-    //     and diamond, heart, pointer, square, star, triangle, which all
-    //     also have an -outline variant.
-    // - scope:
-    //   Is used to determine the color. E.g. region.<colorish>, with one of
-    //   redish, orangish, yellowish, greenish, bluish, purplish, pinkish.
-    // - priority:
-    //   Determines, for overlapping errors, which one is visualised.
-    // - types:
-    //   An array which can contain "warning" and/or "error".
-    //   If omitted will match both.
+    // Only for linter-styles, there is one more setting:
     // - codes:
     //   An array which can contain error codes provided by a linter.
     //   Only valid as linter style in the "linters" section
+    //
+    // The styles list form a stack evaluated top-down. We call each object
+    // herein a style definition. A style definition must match a specific
+    // linter error, either its code or its error type, to take any effect.
+    //
+    // The default styles cannot be overriden per se, you extend them
+    // in your user settings. The defaults can be read as "All linter problems
+    // are red, outline, dots, but warnings are yellow."
     "styles": [
         {
+            // Used to determine the color. E.g. region.<colorish>, with one of
+            // redish, orangish, yellowish, greenish, bluish, purplish, pinkish.
             "scope": "region.yellowish markup.warning.sublime_linter",
+
+            // The error type this style definition will match for.
+            // An array which can contain "warning" and/or "error".
+            // If omitted will match both.
             "types": ["warning"]
         },
         {
-            "scope": "region.redish markup.error.sublime_linter",
-            "types": ["error"]
-        },
-        {
+            // Determines, for overlapping errors, which one is visualised.
             "priority": 1,
+
+            // The icon displayed in the gutter area
+            // - "circle", "dot" or "bookmark"
+            // - "none" to remove the icon
+            // - A path to an icon file like
+            //   "Packages/SublimeLinter/gutter-themes/Blueberry Cross/error.png"
+            // - One provided by a gutter theme (e.g. "warning" or "error").
+            //   In theme Default: warning, error, cog, x,
+            //   and diamond, heart, pointer, square, star, triangle, which all
+            //   also have an -outline variant.
             "icon": "dot",
-            "mark_style": "outline"
+
+            // The highlight style:
+            // - "none"
+            // - "fill", "outline",
+            // - "solid_underline", "squiggly_underline", "stippled_underline"
+            // The underline styles are replaced with outlines when there is
+            // whitespace in the problem region, because underlines aren't drawn
+            // on whitespace (ST issue #137).
+            "mark_style": "outline",
+
+            "scope": "region.redish markup.error.sublime_linter"
         }
     ],
 

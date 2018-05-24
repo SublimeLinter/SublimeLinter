@@ -160,7 +160,7 @@
         },
         {
             "priority": 1,
-            "icon": "dot",
+            "icon": "x",
             "mark_style": "outline"
         }
     ],

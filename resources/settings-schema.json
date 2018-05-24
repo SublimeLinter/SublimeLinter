@@ -33,6 +33,22 @@
             "additionalProperties":{
                 "type":"object",
                 "properties":{
+                    "disable": {
+                        "type": "boolean"
+                    },
+                    "env":{
+                        "type": "object"
+                    },
+                    "lint_mode":{
+                        "type":"string",
+                        "pattern":"^(background|load_save|manual|save)$"
+                    },
+                    "selector": {
+                        "type": "string"
+                    },
+                    "working_dir": {
+                        "type": "string"
+                    },
                     "styles":{
                         "type":"array",
                         "items":{

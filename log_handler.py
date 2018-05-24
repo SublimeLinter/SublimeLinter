@@ -120,6 +120,9 @@ shown_error_messages = defaultdict(set)
 
 class ErrorPanelHandler(logging.Handler):
     def emit(self, record):
+        if getattr(record, 'demote', False):
+            return
+
         try:
             msg = self.format(record)
             lines = msg.splitlines()

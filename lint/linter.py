@@ -1256,7 +1256,7 @@ ENV_TEMPLATE = """
 
   {env}
 
-  Type: `import os; os.environ` in the Sublime console to get the full environment.
+  Type: `import os, pprint; pprint.pprint(os.environ.copy())` in the Sublime console to get the full environment.
 """
 
 

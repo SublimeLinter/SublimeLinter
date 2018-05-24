@@ -1273,12 +1273,13 @@ def make_nice_log_message(headline, cmd, is_stdin,
 
     real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
 
+    on_win = os.name == 'nt'
     exec_msg = RUNNING_TEMPLATE.format(
         headline=headline,
         cwd=real_cwd,
-        prompt='>' if os.name == 'nt' else '$',
+        prompt='>' if on_win else '$',
         pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
-        cmd=' '.join(cmd)
+        cmd=subprocess.list2cmdline(cmd) if on_win else ' '.join(cmd)
     )
 
     env_msg = ENV_TEMPLATE.format(

@@ -302,20 +302,125 @@ def kill_active_popen_calls(bid):
         proc.friendly_terminated = True
 
 
+import os, re
+
+
+PASS_PREDICATE = lambda _: True
+LIVE_FILTER = {
+    'store': defaultdict(list),
+    'filter': PASS_PREDICATE,
+    'user_value': ''
+}
+
+
 def update_buffer_errors(bid, view_has_changed, linter, errors):
     """Persist lint error changes and broadcast."""
     if view_has_changed():  # abort early
         return
 
-    all_errors = [error for error in persist.errors[bid]
+    all_errors = [error for error in LIVE_FILTER['store'][bid]
                   if error['linter'] != linter.name] + errors
-    persist.errors[bid] = all_errors
+    LIVE_FILTER['store'][bid] = all_errors
+
+    filtered_errors = filter_errors(all_errors, get_filename_for_bid(bid))
+    persist.errors[bid] = filtered_errors
 
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
         'linter_name': linter.name,
-        'errors': errors
+        'errors': filtered_errors
     })
+
+
+def get_filename_for_bid(bid):
+    for w in sublime.windows():
+        for v in w.views():
+            if v.buffer_id() == bid:
+                fn = v.file_name()
+                return os.path.basename(fn) if fn else ''
+
+
+def filter_errors(errors, filename):
+    filter = LIVE_FILTER['filter']
+    return [
+        error for error in errors
+        if filter('{filename}: {linter}: {code}: {msg}'.format(filename=filename, **error))
+    ]
+
+
+def set_filter(pattern):
+    if not pattern:
+        pred = PASS_PREDICATE
+    else:
+        fns = [make_filter_fn(term) for term in pattern.split(' ') if term]
+        pred = lambda x: any(f(x) for f in fns)
+
+    LIVE_FILTER['user_value'] = pattern
+    LIVE_FILTER['filter'] = pred
+
+
+def make_filter_fn(term):
+    if not term:
+        return PASS_PREDICATE
+
+    negate = term.startswith('-')
+    if negate:
+        term = term[1:]
+
+    if not term:
+        return PASS_PREDICATE
+
+    fn = re.compile(term, re.I).search
+    if negate:
+        return lambda x: not fn(x)
+
+    return fn
+
+
+def filter_and_broadcast():
+    store =   LIVE_FILTER['store']
+
+    for bid, errors in store.items():
+        fe = filter_errors(errors, get_filename_for_bid(bid))
+        persist.errors[bid] = fe
+
+        linter_names = {error['linter'] for error in errors}
+        for linter_name in linter_names:
+            events.broadcast(events.LINT_RESULT, {
+                'buffer_id': bid,
+                'linter_name': linter_name,
+                'errors': fe
+            })
+
+
+class sublime_linter_filter(sublime_plugin.WindowCommand):
+    def run(self, pattern=None):
+        set_filter(pattern)
+        filter_and_broadcast()
+
+    def input(self, args):
+        if 'pattern' in args:
+            return None
+
+        return FilterInputHandler()
+
+
+class FilterInputHandler(sublime_plugin.TextInputHandler):
+    def preview(self, pattern):
+        try:
+            re.compile(pattern)
+        except re.error:
+            return
+
+        set_filter(pattern)
+        filter_and_broadcast()
+
+    def initial_text(self):
+        return LIVE_FILTER['user_value']
+
+    def cancel(self):
+        set_filter(None)
+        filter_and_broadcast()
 
 
 def get_linters_for_view(view):

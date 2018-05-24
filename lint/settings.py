@@ -2,8 +2,7 @@ import logging
 
 import sublime
 from . import util
-from jsonschema.validators import validate
-from jsonschema.exceptions import ValidationError
+from jsonschema import validate, FormatChecker, ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -86,18 +85,27 @@ def validate_settings():
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
     window = sublime.active_window()
-    util.clear_message()
     good = True
 
     for name, settings in get_settings_objects():
         if settings:
             try:
-                validate(settings, schema)
+                validate(settings, schema, format_checker=FormatChecker())
             except ValidationError as error:
                 good = False
-                error_msg = error.message.split("\n")[0]  # reduce verbosity
-                full_msg = "Invalid settings in '{}':\n{}".format(name, error_msg)
+                path_to_err = (' > '.join(
+                    repr(part)
+                    for part in error.path
+                    if not isinstance(part, int)  # drop array indices
+                ) + ': ') if error.path else ''
 
-                logger.error(full_msg)
+                logger.error(
+                    "Invalid settings in '{}':\n"
+                    '{}{}'.format(name, path_to_err, error.message)
+                )
                 window.status_message(status_msg)
+
+    if good:
+        util.clear_message()
+
     return good

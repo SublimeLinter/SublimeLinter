@@ -48,7 +48,7 @@ def plugin_loaded():
     style.read_gutter_theme()
 
     # Lint the visible views from the active window on startup
-    for view in visible_views():
+    for view in other_visible_views():
         if util.is_lintable(view):
             hit(view, "on_load")
 
@@ -95,14 +95,12 @@ def show_restart_message():
     })
 
 
-def visible_views():
-    """Yield all visible views of the active window."""
+def other_visible_views():
+    """Yield all visible views of the active window except the active_view."""
     window = sublime.active_window()
 
-    # Priority for the active view
+    # The active view gets 'activated' by ST after `plugin_loaded`.
     active_view = window.active_view()
-    if active_view:
-        yield active_view
 
     num_groups = window.num_groups()
     for group_id in range(num_groups):

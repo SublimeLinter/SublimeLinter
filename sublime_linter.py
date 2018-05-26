@@ -48,9 +48,9 @@ def plugin_loaded():
     style.read_gutter_theme()
 
     # Lint the visible views from the active window on startup
+    bc = BackendController()
     for view in other_visible_views():
-        if util.is_lintable(view):
-            hit(view, "on_load")
+        bc.on_activated_async(view)
 
 
 def plugin_unloaded():

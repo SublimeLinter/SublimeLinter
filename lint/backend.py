@@ -93,7 +93,7 @@ def execute_lint_task(linter, code, offset, view_has_changed, settings, task_nam
         except Exception:
             linter.notify_failure()
             # Log while multi-threaded to get a nicer log message
-            logger.exception('Linter crashed.\n\n')
+            logger.exception('Unhandled exception:\n', extra={'demote': True})
             return []  # Empty list here to clear old errors
 
 

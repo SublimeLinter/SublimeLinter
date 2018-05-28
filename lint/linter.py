@@ -1057,11 +1057,11 @@ class Linter(metaclass=LinterMeta):
         if self.tempfile_suffix == '-' and self.view.is_dirty():
             return False
 
-        fallback_mode = persist.settings.get("lint_mode", "background")
+        fallback_mode = persist.settings.get('lint_mode', 'background')
         settings = get_linter_settings(self, self.view)
-        lint_mode = settings.get("lint_mode", fallback_mode)
+        lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
-            "checking lint mode {} vs reason {}"
+            'checking lint mode {} vs reason {}'
             .format(lint_mode, reason)
         )
 

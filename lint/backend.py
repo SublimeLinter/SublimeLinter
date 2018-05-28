@@ -93,22 +93,6 @@ def modify_thread_name(name, sink):
         threading.current_thread().name = original_name
 
 
-def execute_lint_task(linter, code, offset, view_has_changed):
-    with reduced_concurrency():
-        try:
-            errors = linter.lint(code, view_has_changed) or []
-            finalize_errors(linter, errors, offset)
-
-            return errors
-        except linter_module.TransientError:
-            raise
-        except Exception:
-            linter.notify_failure()
-            # Log while multi-threaded to get a nicer log message
-            logger.exception('Unhandled exception:\n', extra={'demote': True})
-            return []  # Empty list here to clear old errors
-
-
 @contextmanager
 def reduced_concurrency():
     start_time = time.time()
@@ -119,6 +103,22 @@ def reduced_concurrency():
             logger.warning('Waited in queue for {:.2f}s'.format(waittime))
 
         yield
+
+
+@reduced_concurrency()
+def execute_lint_task(linter, code, offset, view_has_changed):
+    try:
+        errors = linter.lint(code, view_has_changed) or []
+        finalize_errors(linter, errors, offset)
+
+        return errors
+    except linter_module.TransientError:
+        raise
+    except Exception:
+        linter.notify_failure()
+        # Log while multi-threaded to get a nicer log message
+        logger.exception('Unhandled exception:\n', extra={'demote': True})
+        return []  # Empty list here to clear old errors
 
 
 def finalize_errors(linter, errors, offset):

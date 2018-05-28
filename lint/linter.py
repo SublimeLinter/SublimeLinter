@@ -466,9 +466,9 @@ class Linter(metaclass=LinterMeta):
     # over all other user or project settings.
     disabled = None
 
-    def __init__(self, view, syntax):
+    def __init__(self, view, settings):
         self.view = view
-        self.syntax = syntax
+        self.settings = settings
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.

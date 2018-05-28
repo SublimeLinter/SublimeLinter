@@ -12,6 +12,7 @@ import sublime_plugin
 from . import log_handler
 from .lint import backend
 from .lint import events
+from .lint import linter as linter_module
 from .lint import queue
 from .lint import persist, util, style
 from .lint import reloader
@@ -313,17 +314,15 @@ def get_linters_for_view(view):
     syntax = util.get_syntax(view)
 
     current_linters = persist.view_linters.get(bid, [])
-    current_linter_classes = {linter.__class__ for linter in current_linters}
-    wanted_linter_classes = {
-        linter_class
-        for linter_class in persist.linter_classes.values()
-        if linter_class.can_lint_view(view)
-    }
 
-    linters = [
-        linter_class(view, syntax)
-        for linter_class in wanted_linter_classes
-    ]
+    wanted_linters = []
+    for linter_class in persist.linter_classes.values():
+        if linter_class.can_lint_view(view):
+            settings = linter_module.get_linter_settings(linter_class, view)
+            wanted_linters.append(linter_class(view, settings))
+
+    current_linter_classes = {linter.__class__ for linter in current_linters}
+    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
 
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
@@ -335,10 +334,10 @@ def get_linters_for_view(view):
     if window is None:
         return []
 
-    persist.view_linters[bid] = linters
+    persist.view_linters[bid] = wanted_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': [linter.name for linter in linters]
+        'linter_names': [linter.name for linter in wanted_linters]
     })
 
     if current_linter_classes != wanted_linter_classes:
@@ -348,7 +347,7 @@ def get_linters_for_view(view):
         for linter in (current_linter_classes - wanted_linter_classes):
             update_buffer_errors(bid, unchanged_buffer, linter, [])
 
-    return linters
+    return wanted_linters
 
 
 def make_view_has_changed_fn(view):

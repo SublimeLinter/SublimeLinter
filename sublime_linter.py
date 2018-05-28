@@ -312,7 +312,7 @@ def get_linters_for_view(view):
     bid = view.buffer_id()
     syntax = util.get_syntax(view)
 
-    current_linters = persist.view_linters.get(bid, set())
+    current_linters = persist.view_linters.get(bid, [])
     current_linter_classes = {linter.__class__ for linter in current_linters}
     wanted_linter_classes = {
         linter_class
@@ -320,10 +320,10 @@ def get_linters_for_view(view):
         if linter_class.can_lint_view(view)
     }
 
-    linters = {
+    linters = [
         linter_class(view, syntax)
         for linter_class in wanted_linter_classes
-    }
+    ]
 
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check

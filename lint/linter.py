@@ -793,7 +793,7 @@ class Linter(metaclass=LinterMeta):
             return False
 
         fallback_mode = persist.settings.get('lint_mode', 'background')
-        settings = get_linter_settings(self, self.view)
+        settings = self.get_view_settings()
         lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
             'Checking lint mode {} vs lint reason {}'

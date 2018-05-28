@@ -1,6 +1,7 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 from collections import defaultdict, deque
+from contextlib import contextmanager
 from functools import partial
 import logging
 import time
@@ -267,15 +268,11 @@ def lint(view, view_has_changed, lock, reason=None):
         kill_active_popen_calls(bid)
 
     events.broadcast(events.LINT_START, {'buffer_id': bid})
-    start_time = time.time()
 
-    next = partial(update_buffer_errors, bid, view_has_changed)
-    backend.lint_view(linters, view, view_has_changed, next)
+    with remember_runtime(bid):
+        next = partial(update_buffer_errors, bid, view_has_changed)
+        backend.lint_view(linters, view, view_has_changed, next)
 
-    end_time = time.time()
-    runtime = end_time - start_time
-    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
-    remember_runtime(runtime)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
@@ -396,6 +393,15 @@ def get_delay(reason=None):
     )
 
 
-def remember_runtime(elapsed_runtime):
+@contextmanager
+def remember_runtime(bid):
+    start_time = time.time()
+
+    yield
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
+
     with global_lock:
-        elapsed_runtimes.append(elapsed_runtime)
+        elapsed_runtimes.append(runtime)

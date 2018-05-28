@@ -1061,7 +1061,7 @@ class Linter(metaclass=LinterMeta):
         settings = get_linter_settings(self, self.view)
         lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
-            'checking lint mode {} vs reason {}'
+            'Checking lint mode {} vs lint reason {}'
             .format(lint_mode, reason)
         )
 

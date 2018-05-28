@@ -60,7 +60,7 @@ class Settings:
         Depending on what changes, views will either be redrawn or relinted.
 
         """
-        if not validate_settings():
+        if not validate_global_settings():
             return
 
         if self.has_changed('gutter_theme'):
@@ -80,14 +80,18 @@ def get_settings_objects():
             logger.error("Settings file corrupt: {}".format(name))
 
 
-def validate_settings():
+def validate_global_settings():
+    return validate_settings(get_settings_objects())
+
+
+def validate_settings(filename_settings_pairs):
     status_msg = "SublimeLinter - Settings invalid!"
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
     window = sublime.active_window()
     good = True
 
-    for name, settings in get_settings_objects():
+    for name, settings in filename_settings_pairs:
         if settings:
             try:
                 validate(settings, schema, format_checker=FormatChecker())
@@ -110,3 +114,28 @@ def validate_settings():
         util.clear_message()
 
     return good
+
+
+def validate_project_settings(filename):
+    try:
+        with open(filename, 'r') as fh:
+            contents = fh.read()
+    except IOError:
+        return True  # Very optimistic
+
+    try:
+        obj = sublime.decode_value(contents)
+    except ValueError:
+        logger.error("Settings file corrupt: {}".format(filename))
+        return False
+
+    settings = obj.get('SublimeLinter', {})
+    if len(settings.keys()) >= 2:
+        logger.error(
+            "Invalid settings in '{}':\n"
+            "Only the key 'linters' is allowed. "
+            "Got {}.".format(filename, ', '.join(map(repr, settings.keys())))
+        )
+        return False
+
+    return validate_settings([(filename, settings)])

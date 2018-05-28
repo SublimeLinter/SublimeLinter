@@ -270,8 +270,8 @@ def lint(view, view_has_changed, lock, reason=None):
     events.broadcast(events.LINT_START, {'buffer_id': bid})
 
     with remember_runtime(bid):
-        next = partial(update_buffer_errors, bid, view_has_changed)
-        backend.lint_view(linters, view, view_has_changed, next)
+        sink = partial(update_buffer_errors, bid, view_has_changed)
+        backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 

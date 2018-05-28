@@ -311,8 +311,6 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
 def get_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
-    syntax = util.get_syntax(view)
-
     current_linters = persist.view_linters.get(bid, [])
 
     wanted_linters = []
@@ -341,8 +339,6 @@ def get_linters_for_view(view):
     })
 
     if current_linter_classes != wanted_linter_classes:
-        logger.info("detected syntax: {}".format(syntax))
-
         unchanged_buffer = lambda: False  # noqa: E731
         for linter in (current_linter_classes - wanted_linter_classes):
             update_buffer_errors(bid, unchanged_buffer, linter, [])

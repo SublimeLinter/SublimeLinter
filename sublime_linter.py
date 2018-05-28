@@ -89,7 +89,7 @@ def show_restart_message():
     window = sublime.active_window()
     window.run_command("sublime_linter_display_panel", {
         'msg': (
-            'SublimeLinter has been installed or upgraded. '
+            'Reloading SublimeLinter failed. :-(\n'
             'Please restart Sublime Text.'
         )
     })

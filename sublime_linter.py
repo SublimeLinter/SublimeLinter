@@ -217,11 +217,10 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
     def run(self):
-        lint_all_views()
+        relint_views()
 
 
-def lint_all_views():
-    """Mimic a modification of all views, which will trigger a relint."""
+def relint_views():
     for window in sublime.windows():
         for view in window.views():
             if view.buffer_id() in persist.view_linters:

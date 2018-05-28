@@ -721,11 +721,9 @@ class Linter(metaclass=LinterMeta):
             return self.default_type
 
     @classmethod
-    def can_lint_view(cls, view):
+    def can_lint_view(cls, view, settings):
         if cls.disabled is True:
             return False
-
-        settings = get_linter_settings(cls, view)
 
         if cls.disabled is None and settings.get('disable'):
             return False

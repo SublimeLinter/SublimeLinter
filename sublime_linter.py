@@ -317,8 +317,8 @@ def get_linters_for_view(view):
 
     wanted_linters = []
     for linter_class in persist.linter_classes.values():
-        if linter_class.can_lint_view(view):
-            settings = linter_module.get_linter_settings(linter_class, view)
+        settings = linter_module.get_linter_settings(linter_class, view)
+        if linter_class.can_lint_view(view, settings):
             wanted_linters.append(linter_class(view, settings))
 
     current_linter_classes = {linter.__class__ for linter in current_linters}

@@ -225,7 +225,7 @@ def lint_all_views():
     for window in sublime.windows():
         for view in window.views():
             if view.buffer_id() in persist.view_linters:
-                hit(view, "on_user_request")
+                hit(view, 'on_user_request')
 
 
 def hit(view, reason=None):

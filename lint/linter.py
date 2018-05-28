@@ -731,6 +731,88 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
+    @classmethod
+    def can_lint_view(cls, view):
+        if cls.disabled is True:
+            return False
+
+        settings = get_linter_settings(cls, view)
+
+        if cls.disabled is None and settings.get('disable'):
+            return False
+
+        if not cls.matches_selector(view, settings):
+            return False
+
+        filename = view.file_name()
+        filename = os.path.realpath(filename) if filename else '<untitled>'
+        excludes = util.convert_type(settings.get('excludes', []), [])
+        if excludes:
+            for pattern in excludes:
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
+
+                if matched:
+                    logger.info(
+                        "{} skipped '{}', excluded by '{}'"
+                        .format(cls.name, filename, pattern)
+                    )
+                    return False
+
+        return True
+
+    @classmethod
+    def matches_selector(cls, view, settings):
+        selector = settings.get('selector', None)
+        if selector is not None:
+            return bool(
+                # Use `score_selector` here as well, so that empty views
+                # select their 'main' linters
+                view.score_selector(0, selector) or
+                view.find_by_selector(selector)
+            )
+
+        # Fallback using deprecated `cls.syntax`
+        syntax = util.get_syntax(view).lower()
+
+        if not syntax:
+            return False
+
+        if cls.syntax == '*':
+            return True
+
+        if hasattr(cls.syntax, 'match'):
+            return cls.syntax.match(syntax) is not None
+
+        syntaxes = (
+            [cls.syntax] if isinstance(cls.syntax, str)
+            else list(cls.syntax)
+        )
+        return syntax in syntaxes
+
+    def should_lint(self, reason=None):
+        """
+        should_lint takes reason then decides whether the linter should start or not.
+
+        should_lint allows each Linter to programmatically decide whether it should take
+        action on each trigger or not.
+        """
+        # A 'saved-file-only' linter does not run on unsaved views
+        if self.tempfile_suffix == '-' and self.view.is_dirty():
+            return False
+
+        fallback_mode = persist.settings.get('lint_mode', 'background')
+        settings = get_linter_settings(self, self.view)
+        lint_mode = settings.get('lint_mode', fallback_mode)
+        logger.info(
+            'Checking lint mode {} vs lint reason {}'
+            .format(lint_mode, reason)
+        )
+
+        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
+
     def lint(self, code, view_has_changed, settings):
         """Perform the lint, retrieve the results, and add marks to the view.
 
@@ -984,88 +1066,6 @@ class Linter(metaclass=LinterMeta):
             text = text[1:-1]
 
         return text
-
-    @classmethod
-    def can_lint_view(cls, view):
-        if cls.disabled is True:
-            return False
-
-        settings = get_linter_settings(cls, view)
-
-        if cls.disabled is None and settings.get('disable'):
-            return False
-
-        if not cls.matches_selector(view, settings):
-            return False
-
-        filename = view.file_name()
-        filename = os.path.realpath(filename) if filename else '<untitled>'
-        excludes = util.convert_type(settings.get('excludes', []), [])
-        if excludes:
-            for pattern in excludes:
-                if pattern.startswith('!'):
-                    matched = not fnmatch(filename, pattern[1:])
-                else:
-                    matched = fnmatch(filename, pattern)
-
-                if matched:
-                    logger.info(
-                        "{} skipped '{}', excluded by '{}'"
-                        .format(cls.name, filename, pattern)
-                    )
-                    return False
-
-        return True
-
-    @classmethod
-    def matches_selector(cls, view, settings):
-        selector = settings.get('selector', None)
-        if selector is not None:
-            return bool(
-                # Use `score_selector` here as well, so that empty views
-                # select their 'main' linters
-                view.score_selector(0, selector) or
-                view.find_by_selector(selector)
-            )
-
-        # Fallback using deprecated `cls.syntax`
-        syntax = util.get_syntax(view).lower()
-
-        if not syntax:
-            return False
-
-        if cls.syntax == '*':
-            return True
-
-        if hasattr(cls.syntax, 'match'):
-            return cls.syntax.match(syntax) is not None
-
-        syntaxes = (
-            [cls.syntax] if isinstance(cls.syntax, str)
-            else list(cls.syntax)
-        )
-        return syntax in syntaxes
-
-    def should_lint(self, reason=None):
-        """
-        should_lint takes reason then decides whether the linter should start or not.
-
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
-        """
-        # A 'saved-file-only' linter does not run on unsaved views
-        if self.tempfile_suffix == '-' and self.view.is_dirty():
-            return False
-
-        fallback_mode = persist.settings.get('lint_mode', 'background')
-        settings = get_linter_settings(self, self.view)
-        lint_mode = settings.get('lint_mode', fallback_mode)
-        logger.info(
-            'Checking lint mode {} vs lint reason {}'
-            .format(lint_mode, reason)
-        )
-
-        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
 
     def run(self, cmd, code):
         """

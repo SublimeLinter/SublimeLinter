@@ -7,7 +7,6 @@ import re
 import shlex
 import subprocess
 import tempfile
-import threading
 
 import sublime
 from . import persist, util
@@ -59,11 +58,6 @@ MATCH_DICT = OrderedDict(
 )
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
-
-
-# Typical global context, alive and kicking during the multi-threaded
-# (concurrent) `Linter.lint` call.
-lint_context = threading.local()
 
 
 class TransientError(Exception):
@@ -492,12 +486,7 @@ class Linter(metaclass=LinterMeta):
         return self.executable
 
     def get_view_settings(self):
-        try:
-            return lint_context.settings
-        except AttributeError:
-            raise RuntimeError(
-                "CRITICAL: {}: Calling 'get_view_settings' outside "
-                "of lint context".format(self.name))
+        return self.settings
 
     def notify_failure(self):
         window = self.view.window()
@@ -829,11 +818,6 @@ class Linter(metaclass=LinterMeta):
         logger.info(
             "'{}' is linting '{}'"
             .format(self.name, canonical_filename))
-
-        # Bc of API constraints we cannot pass the settings down, so we attach
-        # them to a global `context` obj. Users can call `get_view_settings`
-        # as before, and get a consistent settings object.
-        lint_context.settings = settings
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`

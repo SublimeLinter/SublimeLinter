@@ -319,9 +319,6 @@ def get_linters_for_view(view):
         if linter_class.can_lint_view(view, settings):
             wanted_linters.append(linter_class(view, settings))
 
-    current_linter_classes = {linter.__class__ for linter in current_linters}
-    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
-
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
@@ -338,6 +335,8 @@ def get_linters_for_view(view):
         'linter_names': [linter.name for linter in wanted_linters]
     })
 
+    current_linter_classes = {linter.__class__ for linter in current_linters}
+    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
     if current_linter_classes != wanted_linter_classes:
         unchanged_buffer = lambda: False  # noqa: E731
         for linter in (current_linter_classes - wanted_linter_classes):

@@ -1,7 +1,7 @@
 import sublime
 import sublime_plugin
 
-from .lint import persist
+from .lint import persist, util
 from .lint import events
 
 
@@ -44,9 +44,7 @@ class UpdateState(sublime_plugin.EventListener):
         })
         draw(**State)
 
-    # Triggers multiple times for each view into the same buffer.
-    # But the argument is always the same view, the primary.
-    # Activate view via mouse click fires this also, twice per view.
+    @util.distinct_until_selection_changed
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
         # It is possible that views (e.g. panels) update in the background.

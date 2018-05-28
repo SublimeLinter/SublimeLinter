@@ -215,6 +215,7 @@ class IdleViewController(sublime_plugin.EventListener):
         if view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, True)
 
+    @util.distinct_until_selection_changed
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
         # Do not race between `plugin_loaded` and this event handler

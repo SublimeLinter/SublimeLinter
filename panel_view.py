@@ -86,6 +86,7 @@ class UpdateState(sublime_plugin.EventListener):
         if panel_is_active(window):
             update_panel_selection(**State)
 
+    @util.distinct_until_selection_changed
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
         if not active_view or active_view.buffer_id() != view.buffer_id():

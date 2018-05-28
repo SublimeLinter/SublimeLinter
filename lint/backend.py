@@ -62,12 +62,12 @@ def get_lint_tasks(linters, view, view_has_changed):
 
             # Due to a limitation in python 3.3, we cannot 'name' a thread when
             # using the ThreadPoolExecutor. (This feature has been introduced
-            # in python 3.6.) So, we pass the name down.
+            # in python 3.6.) So, we do this manually.
             task_name = make_good_task_name(linter, view)
-            tasks.append(partial(
-                execute_lint_task, linter, code, offset, view_has_changed,
-                task_name
-            ))
+            task = partial(execute_lint_task, linter, code, offset, view_has_changed)
+            executor = partial(modify_thread_name, task_name, task)
+            tasks.append(executor)
+
         yield linter, tasks
 
 
@@ -83,10 +83,13 @@ def make_good_task_name(linter, view):
         task_number, linter.name, canonical_filename, view.id())
 
 
-def execute_lint_task(linter, code, offset, view_has_changed, task_name):
+def modify_thread_name(name, sink):
     # We 'name' our threads, for logging purposes.
-    threading.current_thread().name = task_name
+    threading.current_thread().name = name
+    return sink()
 
+
+def execute_lint_task(linter, code, offset, view_has_changed):
     with reduced_concurrency():
         try:
             errors = linter.lint(code, view_has_changed) or []

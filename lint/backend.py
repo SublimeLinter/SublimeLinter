@@ -54,7 +54,7 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, view_has_changed):
-    for (linter, settings, regions) in get_lint_regions(linters, view):
+    for (linter, regions) in get_lint_regions(linters, view):
         tasks = []
         for region in regions:
             code = view.substr(region)
@@ -73,18 +73,18 @@ def get_lint_tasks(linters, view, view_has_changed):
 
             tasks.append(partial(
                 execute_lint_task, linter, code, offset, view_has_changed,
-                settings, task_name
+                task_name
             ))
         yield linter, tasks
 
 
-def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
+def execute_lint_task(linter, code, offset, view_has_changed, task_name):
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = task_name
 
     with reduced_concurrency():
         try:
-            errors = linter.lint(code, view_has_changed, settings) or []
+            errors = linter.lint(code, view_has_changed) or []
             finalize_errors(linter, errors, offset)
 
             return errors
@@ -152,9 +152,9 @@ def get_lint_regions(linters, view):
         if selector is not None:
             # Inspecting just the first char is faster
             if view.score_selector(0, selector):
-                yield linter, settings, [sublime.Region(0, view.size())]
+                yield linter, [sublime.Region(0, view.size())]
             else:
-                yield linter, settings, [
+                yield linter, [
                     region for region in view.find_by_selector(selector)
                 ]
 
@@ -165,10 +165,10 @@ def get_lint_regions(linters, view):
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
         ):
-            yield linter, settings, [sublime.Region(0, view.size())]
+            yield linter, [sublime.Region(0, view.size())]
 
         else:
-            yield linter, settings, [
+            yield linter, [
                 region
                 for selector in get_selectors(linter, syntax)
                 for region in view.find_by_selector(selector)

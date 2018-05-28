@@ -802,7 +802,7 @@ class Linter(metaclass=LinterMeta):
 
         return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
 
-    def lint(self, code, view_has_changed, settings):
+    def lint(self, code, view_has_changed):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:

@@ -45,6 +45,12 @@
                     "env":{
                         "type": "object"
                     },
+                    "executable": {
+                        "type": ["array", "string"],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "lint_mode":{
                         "type":"string",
                         "enum":["background", "load_save", "manual", "save"]

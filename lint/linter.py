@@ -841,27 +841,6 @@ class Linter(metaclass=LinterMeta):
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
-    def should_lint(self, reason=None):
-        """
-        should_lint takes reason then decides whether the linter should start or not.
-
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
-        """
-        # A 'saved-file-only' linter does not run on unsaved views
-        if self.tempfile_suffix == '-' and self.view.is_dirty():
-            return False
-
-        fallback_mode = persist.settings.get("lint_mode", "background")
-        settings = get_linter_settings(self, self.view)
-        lint_mode = settings.get("lint_mode", fallback_mode)
-        logger.info(
-            "checking lint mode {} vs reason {}"
-            .format(lint_mode, reason)
-        )
-
-        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
-
     def split_match(self, match):
         """
         Split a match into the standard elements of an error and return them.
@@ -1066,6 +1045,27 @@ class Linter(metaclass=LinterMeta):
             else list(cls.syntax)
         )
         return syntax in syntaxes
+
+    def should_lint(self, reason=None):
+        """
+        should_lint takes reason then decides whether the linter should start or not.
+
+        should_lint allows each Linter to programmatically decide whether it should take
+        action on each trigger or not.
+        """
+        # A 'saved-file-only' linter does not run on unsaved views
+        if self.tempfile_suffix == '-' and self.view.is_dirty():
+            return False
+
+        fallback_mode = persist.settings.get("lint_mode", "background")
+        settings = get_linter_settings(self, self.view)
+        lint_mode = settings.get("lint_mode", fallback_mode)
+        logger.info(
+            "checking lint mode {} vs reason {}"
+            .format(lint_mode, reason)
+        )
+
+        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
 
     def run(self, cmd, code):
         """

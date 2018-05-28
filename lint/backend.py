@@ -113,7 +113,7 @@ def execute_lint_task(linter, code, offset, view_has_changed):
 
         return errors
     except linter_module.TransientError:
-        raise
+        raise  # Raise here to abort in `await_futures` below
     except Exception:
         linter.notify_failure()
         # Log while multi-threaded to get a nicer log message

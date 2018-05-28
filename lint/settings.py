@@ -99,7 +99,8 @@ def validate_settings():
                     if not isinstance(part, int)  # drop array indices
                 ) + ': ') if error.path else ''
 
-                logger.error(
+                logger.warning("Invalid settings in '{}'".format(name))
+                util.show_message(
                     "Invalid settings in '{}':\n"
                     '{}{}'.format(name, path_to_err, error.message)
                 )

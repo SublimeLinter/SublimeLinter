@@ -32,6 +32,17 @@ UTF8_ENV_VARS = {
     'LC_CTYPE': 'en_US.UTF-8',
 }
 
+# _ACCEPTABLE_REASONS_MAP defines a list of acceptable reasons
+# for each lint_mode. It aims to provide a better visibility to
+# how lint_mode is implemented. The map is supposed to be used in
+# this module only.
+_ACCEPTABLE_REASONS_MAP = {
+    "manual": ("on_user_request"),
+    "save": ("on_user_request", "on_save"),
+    "load_save": ("on_user_request", "on_save", "on_load"),
+    "background": ("on_user_request", "on_save", "on_load", None),
+}
+
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
 
@@ -841,18 +852,15 @@ class Linter(metaclass=LinterMeta):
         if self.tempfile_suffix == '-' and self.view.is_dirty():
             return False
 
+        fallback_mode = persist.settings.get("lint_mode", "background")
         settings = get_linter_settings(self, self.view)
-        lint_mode = settings.get('lint_mode', 'background')
+        lint_mode = settings.get("lint_mode", fallback_mode)
         logger.info(
             "checking lint mode {} vs reason {}"
             .format(lint_mode, reason)
         )
-        if lint_mode == 'manual':
-            return reason == 'on_user_request'
-        elif lint_mode in ('save', 'load_save'):
-            return reason in ('on_save', 'on_user_request')
 
-        return True
+        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
 
     def split_match(self, match):
         """

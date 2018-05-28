@@ -1240,8 +1240,6 @@ def make_temp_file(suffix, code):
 
 @contextmanager
 def store_proc_while_running(bid, proc):
-    from . import persist
-
     with persist.active_procs_lock:
         persist.active_procs[bid].append(proc)
 

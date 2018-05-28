@@ -84,9 +84,13 @@ def make_good_task_name(linter, view):
 
 
 def modify_thread_name(name, sink):
+    original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = name
-    return sink()
+    try:
+        return sink()
+    finally:
+        threading.current_thread().name = original_name
 
 
 def execute_lint_task(linter, code, offset, view_has_changed):

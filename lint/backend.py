@@ -147,7 +147,7 @@ def finalize_errors(linter, errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for linter in linters:
-        settings = linter_module.get_linter_settings(linter, view)
+        settings = linter.get_view_settings()
         selector = settings.get('selector', None)
         if selector is not None:
             # Inspecting just the first char is faster

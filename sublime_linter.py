@@ -117,6 +117,7 @@ buffer_syntaxes = {}
 
 
 class BackendController(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         if not util.is_lintable(view):
             return
@@ -138,6 +139,7 @@ class BackendController(sublime_plugin.EventListener):
         if has_syntax_changed(view):
             hit(view, "on_load")
 
+    @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         # check if the project settings changed
         window = view.window()

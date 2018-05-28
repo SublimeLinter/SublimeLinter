@@ -7,7 +7,7 @@ import re
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, style, queue
+from .lint import persist, events, style, util, queue
 from .lint.const import PROTECTED_REGIONS_KEY, ERROR, WARNING
 
 
@@ -113,28 +113,11 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
 
 
 class UpdateErrorRegions(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         update_error_regions(view)
 
 
-def distinct_until_buffer_changed(fn):
-    last = None
-
-    def wrapped_fn(view):
-        nonlocal last
-
-        bid = view.buffer_id()
-        change_count = view.change_count()
-        if last == (bid, change_count):
-            return
-
-        last = (bid, change_count)
-        fn(view)
-
-    return wrapped_fn
-
-
-@distinct_until_buffer_changed
 def update_error_regions(view):
     bid = view.buffer_id()
     errors = persist.errors.get(bid)
@@ -220,13 +203,13 @@ class IdleViewController(sublime_plugin.EventListener):
 
         set_idle(active_view, True)
 
-    # Called multiple times (once per buffer) but provided *view* is always
-    # the same, the primary one.
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, False)
 
+    @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
@@ -311,15 +294,13 @@ def toggle_all_regions(view, show):
 
 
 class InvalidateEditedErrorController(sublime_plugin.EventListener):
-    # Called multiple times (once per buffer) but provided *view* is always
-    # the same, the primary one.
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         active_view = State['active_view']
         if view.buffer_id() == active_view.buffer_id():
             invalidate_regions_under_cursor(active_view)
 
 
-@distinct_until_buffer_changed
 def invalidate_regions_under_cursor(view):
     vid = view.id()
     if vid in State['quiet_views']:

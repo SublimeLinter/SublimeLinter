@@ -33,11 +33,29 @@
             "additionalProperties":{
                 "type":"object",
                 "properties":{
+                    "args": {
+                        "type": ["array", "string"],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "disable": {
                         "type": "boolean"
                     },
                     "env":{
                         "type": "object"
+                    },
+                    "executable": {
+                        "type": ["array", "string"],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "excludes": {
+                        "type": ["array", "string"],
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "lint_mode":{
                         "type":"string",

@@ -17,6 +17,7 @@ from .lint import linter as linter_module
 from .lint import queue
 from .lint import persist, util, style
 from .lint import reloader
+from .lint import settings
 
 
 logger = logging.getLogger(__name__)
@@ -143,8 +144,10 @@ class BackendController(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
         # check if the project settings changed
         window = view.window()
-        if window and window.project_file_name() == view.file_name():
-            sublime.run_command('sublime_linter_config_changed')
+        filename = view.file_name()
+        if window and window.project_file_name() == filename:
+            if settings.validate_project_settings(filename):
+                sublime.run_command('sublime_linter_config_changed')
             return
 
         if not util.is_lintable(view):

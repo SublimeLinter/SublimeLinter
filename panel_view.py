@@ -2,7 +2,7 @@ import os
 import sublime
 import sublime_plugin
 
-from .lint import persist, events
+from .lint import events, util, persist
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
@@ -86,6 +86,7 @@ class UpdateState(sublime_plugin.EventListener):
         if panel_is_active(window):
             update_panel_selection(**State)
 
+    @util.distinct_until_selection_changed
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
         if not active_view or active_view.buffer_id() != view.buffer_id():
@@ -106,6 +107,7 @@ class UpdateState(sublime_plugin.EventListener):
         if window and panel_is_active(window):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
+    @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
@@ -138,6 +140,7 @@ class UpdateState(sublime_plugin.EventListener):
 
 
 class JustSavedBufferController(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         bid = view.buffer_id()
         State['just_saved_buffers'].add(bid)
@@ -146,6 +149,7 @@ class JustSavedBufferController(sublime_plugin.EventListener):
         bid = view.buffer_id()
         State['just_saved_buffers'].discard(bid)
 
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         bid = view.buffer_id()
         State['just_saved_buffers'].discard(bid)

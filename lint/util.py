@@ -1,6 +1,6 @@
 """This module provides general utility methods."""
 
-from functools import lru_cache
+from functools import lru_cache, wraps
 import locale
 import logging
 from numbers import Number
@@ -37,6 +37,43 @@ def show_message(message, window=None):
 def clear_message():
     window = sublime.active_window()
     window.run_command("sublime_linter_remove_panel")
+
+
+def distinct_until_buffer_changed(method):
+    # Sublime has problems to hold the distinction between buffers and views.
+    # It usually emits multiple identical events if you have multiple views
+    # into the same buffer.
+    last_call = None
+
+    @wraps(method)
+    def wrapper(self, view):
+        nonlocal last_call
+
+        this_call = (view.buffer_id(), view.change_count())
+        if this_call == last_call:
+            return
+
+        last_call = this_call
+        method(self, view)
+
+    return wrapper
+
+
+def distinct_until_selection_changed(method):
+    last_call = None
+
+    @wraps(method)
+    def wrapper(self, view):
+        nonlocal last_call
+
+        this_call = (view.buffer_id(),) + tuple(s for s in view.sel())
+        if this_call == last_call:
+            return
+
+        last_call = this_call
+        method(self, view)
+
+    return wrapper
 
 
 def get_syntax(view):

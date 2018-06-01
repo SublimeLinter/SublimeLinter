@@ -118,6 +118,7 @@ buffer_syntaxes = {}
 
 
 class BackendController(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         if not util.is_lintable(view):
             return
@@ -139,6 +140,7 @@ class BackendController(sublime_plugin.EventListener):
         if has_syntax_changed(view):
             hit(view, "on_load")
 
+    @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         # check if the project settings changed
         window = view.window()
@@ -232,7 +234,7 @@ def hit(view, reason=None):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
-    delay = get_delay(reason)
+    delay = get_delay() if not reason else 0.0
     logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
@@ -376,15 +378,8 @@ MIN_DEBOUNCE_DELAY = 0.05
 MAX_AUTOMATIC_DELAY = 2.0
 
 
-def get_delay(reason=None):
+def get_delay():
     """Return the delay between a lint request and when it will be processed."""
-    if reason == 'on_user_request':
-        return 0.0
-
-    # Need to debounce on_save bc Sublime will fire the event per view
-    if reason == 'on_save':
-        return MIN_DEBOUNCE_DELAY
-
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]
     return max(

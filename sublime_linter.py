@@ -1,6 +1,7 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
 from collections import defaultdict, deque
+from contextlib import contextmanager
 from functools import partial
 import logging
 import time
@@ -12,6 +13,7 @@ import sublime_plugin
 from . import log_handler
 from .lint import backend
 from .lint import events
+from .lint import linter as linter_module
 from .lint import queue
 from .lint import persist, util, style
 from .lint import reloader
@@ -215,15 +217,14 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
     def run(self):
-        lint_all_views()
+        relint_views()
 
 
-def lint_all_views():
-    """Mimic a modification of all views, which will trigger a relint."""
+def relint_views():
     for window in sublime.windows():
         for view in window.views():
             if view.buffer_id() in persist.view_linters:
-                hit(view, "on_user_request")
+                hit(view, 'on_user_request')
 
 
 def hit(view, reason=None):
@@ -266,15 +267,11 @@ def lint(view, view_has_changed, lock, reason=None):
         kill_active_popen_calls(bid)
 
     events.broadcast(events.LINT_START, {'buffer_id': bid})
-    start_time = time.time()
 
-    next = partial(update_buffer_errors, bid, view_has_changed)
-    backend.lint_view(linters, view, view_has_changed, next)
+    with remember_runtime(bid):
+        sink = partial(update_buffer_errors, bid, view_has_changed)
+        backend.lint_view(linters, view, view_has_changed, sink)
 
-    end_time = time.time()
-    runtime = end_time - start_time
-    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
-    remember_runtime(runtime)
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
@@ -310,20 +307,13 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
 def get_linters_for_view(view):
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
-    syntax = util.get_syntax(view)
+    current_linters = persist.view_linters.get(bid, [])
 
-    current_linters = persist.view_linters.get(bid, set())
-    current_linter_classes = {linter.__class__ for linter in current_linters}
-    wanted_linter_classes = {
-        linter_class
-        for linter_class in persist.linter_classes.values()
-        if linter_class.can_lint_view(view)
-    }
-
-    linters = {
-        linter_class(view, syntax)
-        for linter_class in wanted_linter_classes
-    }
+    wanted_linters = []
+    for linter_class in persist.linter_classes.values():
+        settings = linter_module.get_linter_settings(linter_class, view)
+        if linter_class.can_lint_view(view, settings):
+            wanted_linters.append(linter_class(view, settings))
 
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
@@ -335,20 +325,20 @@ def get_linters_for_view(view):
     if window is None:
         return []
 
-    persist.view_linters[bid] = linters
+    persist.view_linters[bid] = wanted_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': [linter.name for linter in linters]
+        'linter_names': [linter.name for linter in wanted_linters]
     })
 
+    current_linter_classes = {linter.__class__ for linter in current_linters}
+    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
     if current_linter_classes != wanted_linter_classes:
-        logger.info("detected syntax: {}".format(syntax))
-
         unchanged_buffer = lambda: False  # noqa: E731
         for linter in (current_linter_classes - wanted_linter_classes):
             update_buffer_errors(bid, unchanged_buffer, linter, [])
 
-    return linters
+    return wanted_linters
 
 
 def make_view_has_changed_fn(view):
@@ -402,6 +392,15 @@ def get_delay(reason=None):
     )
 
 
-def remember_runtime(elapsed_runtime):
+@contextmanager
+def remember_runtime(bid):
+    start_time = time.time()
+
+    yield
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
+
     with global_lock:
-        elapsed_runtimes.append(elapsed_runtime)
+        elapsed_runtimes.append(runtime)

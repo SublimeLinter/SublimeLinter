@@ -7,7 +7,6 @@ import re
 import shlex
 import subprocess
 import tempfile
-import threading
 
 import sublime
 from . import persist, util
@@ -59,11 +58,6 @@ MATCH_DICT = OrderedDict(
 )
 LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
 LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
-
-
-# Typical global context, alive and kicking during the multi-threaded
-# (concurrent) `Linter.lint` call.
-lint_context = threading.local()
 
 
 class TransientError(Exception):
@@ -466,9 +460,9 @@ class Linter(metaclass=LinterMeta):
     # over all other user or project settings.
     disabled = None
 
-    def __init__(self, view, syntax):
+    def __init__(self, view, settings):
         self.view = view
-        self.syntax = syntax
+        self.settings = settings
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
@@ -492,12 +486,7 @@ class Linter(metaclass=LinterMeta):
         return self.executable
 
     def get_view_settings(self):
-        try:
-            return lint_context.settings
-        except AttributeError:
-            raise RuntimeError(
-                "CRITICAL: {}: Calling 'get_view_settings' outside "
-                "of lint context".format(self.name))
+        return self.settings
 
     def notify_failure(self):
         window = self.view.window()
@@ -731,7 +720,87 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
-    def lint(self, code, view_has_changed, settings):
+    @classmethod
+    def can_lint_view(cls, view, settings):
+        if cls.disabled is True:
+            return False
+
+        if cls.disabled is None and settings.get('disable'):
+            return False
+
+        if not cls.matches_selector(view, settings):
+            return False
+
+        filename = view.file_name()
+        filename = os.path.realpath(filename) if filename else '<untitled>'
+        excludes = util.convert_type(settings.get('excludes', []), [])
+        if excludes:
+            for pattern in excludes:
+                if pattern.startswith('!'):
+                    matched = not fnmatch(filename, pattern[1:])
+                else:
+                    matched = fnmatch(filename, pattern)
+
+                if matched:
+                    logger.info(
+                        "{} skipped '{}', excluded by '{}'"
+                        .format(cls.name, filename, pattern)
+                    )
+                    return False
+
+        return True
+
+    @classmethod
+    def matches_selector(cls, view, settings):
+        selector = settings.get('selector', None)
+        if selector is not None:
+            return bool(
+                # Use `score_selector` here as well, so that empty views
+                # select their 'main' linters
+                view.score_selector(0, selector) or
+                view.find_by_selector(selector)
+            )
+
+        # Fallback using deprecated `cls.syntax`
+        syntax = util.get_syntax(view).lower()
+
+        if not syntax:
+            return False
+
+        if cls.syntax == '*':
+            return True
+
+        if hasattr(cls.syntax, 'match'):
+            return cls.syntax.match(syntax) is not None
+
+        syntaxes = (
+            [cls.syntax] if isinstance(cls.syntax, str)
+            else list(cls.syntax)
+        )
+        return syntax in syntaxes
+
+    def should_lint(self, reason=None):
+        """
+        should_lint takes reason then decides whether the linter should start or not.
+
+        should_lint allows each Linter to programmatically decide whether it should take
+        action on each trigger or not.
+        """
+        # A 'saved-file-only' linter does not run on unsaved views
+        if self.tempfile_suffix == '-' and self.view.is_dirty():
+            return False
+
+        fallback_mode = persist.settings.get('lint_mode', 'background')
+        settings = self.get_view_settings()
+        lint_mode = settings.get('lint_mode', fallback_mode)
+        logger.info(
+            'Checking lint mode {} vs lint reason {}'
+            .format(lint_mode, reason)
+        )
+
+        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
+
+    def lint(self, code, view_has_changed):
         """Perform the lint, retrieve the results, and add marks to the view.
 
         The flow of control is as follows:
@@ -747,11 +816,6 @@ class Linter(metaclass=LinterMeta):
         logger.info(
             "'{}' is linting '{}'"
             .format(self.name, canonical_filename))
-
-        # Bc of API constraints we cannot pass the settings down, so we attach
-        # them to a global `context` obj. Users can call `get_view_settings`
-        # as before, and get a consistent settings object.
-        lint_context.settings = settings
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
@@ -840,27 +904,6 @@ class Linter(metaclass=LinterMeta):
                 else:
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
-
-    def should_lint(self, reason=None):
-        """
-        should_lint takes reason then decides whether the linter should start or not.
-
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
-        """
-        # A 'saved-file-only' linter does not run on unsaved views
-        if self.tempfile_suffix == '-' and self.view.is_dirty():
-            return False
-
-        fallback_mode = persist.settings.get("lint_mode", "background")
-        settings = get_linter_settings(self, self.view)
-        lint_mode = settings.get("lint_mode", fallback_mode)
-        logger.info(
-            "checking lint mode {} vs reason {}"
-            .format(lint_mode, reason)
-        )
-
-        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
 
     def split_match(self, match):
         """
@@ -1005,67 +1048,6 @@ class Linter(metaclass=LinterMeta):
             text = text[1:-1]
 
         return text
-
-    @classmethod
-    def can_lint_view(cls, view):
-        if cls.disabled is True:
-            return False
-
-        settings = get_linter_settings(cls, view)
-
-        if cls.disabled is None and settings.get('disable'):
-            return False
-
-        if not cls.matches_selector(view, settings):
-            return False
-
-        filename = view.file_name()
-        filename = os.path.realpath(filename) if filename else '<untitled>'
-        excludes = util.convert_type(settings.get('excludes', []), [])
-        if excludes:
-            for pattern in excludes:
-                if pattern.startswith('!'):
-                    matched = not fnmatch(filename, pattern[1:])
-                else:
-                    matched = fnmatch(filename, pattern)
-
-                if matched:
-                    logger.info(
-                        "{} skipped '{}', excluded by '{}'"
-                        .format(cls.name, filename, pattern)
-                    )
-                    return False
-
-        return True
-
-    @classmethod
-    def matches_selector(cls, view, settings):
-        selector = settings.get('selector', None)
-        if selector is not None:
-            return bool(
-                # Use `score_selector` here as well, so that empty views
-                # select their 'main' linters
-                view.score_selector(0, selector) or
-                view.find_by_selector(selector)
-            )
-
-        # Fallback using deprecated `cls.syntax`
-        syntax = util.get_syntax(view).lower()
-
-        if not syntax:
-            return False
-
-        if cls.syntax == '*':
-            return True
-
-        if hasattr(cls.syntax, 'match'):
-            return cls.syntax.match(syntax) is not None
-
-        syntaxes = (
-            [cls.syntax] if isinstance(cls.syntax, str)
-            else list(cls.syntax)
-        )
-        return syntax in syntaxes
 
     def run(self, cmd, code):
         """
@@ -1240,8 +1222,6 @@ def make_temp_file(suffix, code):
 
 @contextmanager
 def store_proc_while_running(bid, proc):
-    from . import persist
-
     with persist.active_procs_lock:
         persist.active_procs[bid].append(proc)
 

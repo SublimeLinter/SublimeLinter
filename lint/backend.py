@@ -54,7 +54,7 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, view_has_changed):
-    for (linter, settings, regions) in get_lint_regions(linters, view):
+    for (linter, regions) in get_lint_regions(linters, view):
         tasks = []
         for region in regions:
             code = view.substr(region)
@@ -62,39 +62,35 @@ def get_lint_tasks(linters, view, view_has_changed):
 
             # Due to a limitation in python 3.3, we cannot 'name' a thread when
             # using the ThreadPoolExecutor. (This feature has been introduced
-            # in python 3.6.) So, we pass the name down.
-            with counter_lock:
-                task_number = next(task_count)
-            canonical_filename = (
-                os.path.basename(view.file_name()) if view.file_name()
-                else '<untitled {}>'.format(view.buffer_id()))
-            task_name = 'LintTask|{}|{}|{}|{}'.format(
-                task_number, linter.name, canonical_filename, view.id())
+            # in python 3.6.) So, we do this manually.
+            task_name = make_good_task_name(linter, view)
+            task = partial(execute_lint_task, linter, code, offset, view_has_changed)
+            executor = partial(modify_thread_name, task_name, task)
+            tasks.append(executor)
 
-            tasks.append(partial(
-                execute_lint_task, linter, code, offset, view_has_changed,
-                settings, task_name
-            ))
         yield linter, tasks
 
 
-def execute_lint_task(linter, code, offset, view_has_changed, settings, task_name):
+def make_good_task_name(linter, view):
+    with counter_lock:
+        task_number = next(task_count)
+
+    canonical_filename = (
+        os.path.basename(view.file_name()) if view.file_name()
+        else '<untitled {}>'.format(view.buffer_id()))
+
+    return 'LintTask|{}|{}|{}|{}'.format(
+        task_number, linter.name, canonical_filename, view.id())
+
+
+def modify_thread_name(name, sink):
+    original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
-    threading.current_thread().name = task_name
-
-    with reduced_concurrency():
-        try:
-            errors = linter.lint(code, view_has_changed, settings) or []
-            finalize_errors(linter, errors, offset)
-
-            return errors
-        except linter_module.TransientError:
-            raise
-        except Exception:
-            linter.notify_failure()
-            # Log while multi-threaded to get a nicer log message
-            logger.exception('Unhandled exception:\n', extra={'demote': True})
-            return []  # Empty list here to clear old errors
+    threading.current_thread().name = name
+    try:
+        return sink()
+    finally:
+        threading.current_thread().name = original_name
 
 
 @contextmanager
@@ -107,6 +103,22 @@ def reduced_concurrency():
             logger.warning('Waited in queue for {:.2f}s'.format(waittime))
 
         yield
+
+
+@reduced_concurrency()
+def execute_lint_task(linter, code, offset, view_has_changed):
+    try:
+        errors = linter.lint(code, view_has_changed) or []
+        finalize_errors(linter, errors, offset)
+
+        return errors
+    except linter_module.TransientError:
+        raise  # Raise here to abort in `await_futures` below
+    except Exception:
+        linter.notify_failure()
+        # Log while multi-threaded to get a nicer log message
+        logger.exception('Unhandled exception:\n', extra={'demote': True})
+        return []  # Empty list here to clear old errors
 
 
 def finalize_errors(linter, errors, offset):
@@ -147,14 +159,14 @@ def finalize_errors(linter, errors, offset):
 def get_lint_regions(linters, view):
     syntax = util.get_syntax(view)
     for linter in linters:
-        settings = linter_module.get_linter_settings(linter, view)
+        settings = linter.get_view_settings()
         selector = settings.get('selector', None)
         if selector is not None:
             # Inspecting just the first char is faster
             if view.score_selector(0, selector):
-                yield linter, settings, [sublime.Region(0, view.size())]
+                yield linter, [sublime.Region(0, view.size())]
             else:
-                yield linter, settings, [
+                yield linter, [
                     region for region in view.find_by_selector(selector)
                 ]
 
@@ -165,10 +177,10 @@ def get_lint_regions(linters, view):
             syntax not in linter.selectors and
             WILDCARD_SYNTAX not in linter.selectors
         ):
-            yield linter, settings, [sublime.Region(0, view.size())]
+            yield linter, [sublime.Region(0, view.size())]
 
         else:
-            yield linter, settings, [
+            yield linter, [
                 region
                 for selector in get_selectors(linter, syntax)
                 for region in view.find_by_selector(selector)

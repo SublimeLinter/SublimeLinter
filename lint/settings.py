@@ -74,10 +74,8 @@ def get_settings_objects():
     for name in sublime.find_resources("SublimeLinter.sublime-settings"):
         try:
             yield name, util.load_json(name, from_sl_dir=False)
-        except IOError:
+        except (IOError, ValueError):
             pass
-        except ValueError:
-            logger.error("Settings file corrupt: {}".format(name))
 
 
 def validate_global_settings():
@@ -126,7 +124,6 @@ def validate_project_settings(filename):
     try:
         obj = sublime.decode_value(contents)
     except ValueError:
-        logger.error("Settings file corrupt: {}".format(filename))
         return False
 
     settings = obj.get('SublimeLinter', {})

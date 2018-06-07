@@ -54,29 +54,59 @@
     // What settings are available is documented in the readme of the
     // specific linter plugin.
     // Example:
-    // "linters": {
-    //     "somelinter": {
-    //         "disable": false,
-    //         "args": [],
-    //         "excludes": [],
-    //         "styles": [
-    //              {
-    //                  "icon": "diamond"
-    //              }
-    //         ]
-    //     },
-    //     "somepythonlinter": {
-    //         "python": null,
-    //         "disable": false,
-    //         "args": [
-    //             "--max-complexity", "-1",
-    //             "--max-line-length", "100",
-    //             "--ignore", "E731,E402"
-    //         ],
-    //         "excludes": [],
-    //     }
-    // }
-    "linters": {},
+    "linters": {
+        // The name of the linter you installed
+        "linter_name": {
+            // Disables the linter. The default here is 'not set'
+            "disable": false,
+
+            // Additional arguments for the command line. Either a 'string'
+            // or an 'array'. If set to a string, we 'shlex.split' it*.
+            // E.g. '--ignore D112' or ['--config', './.config/foo.ini']
+            //
+            // * Note that 'shlex' does not work for paths on Windows atm.
+            "args": [],
+
+            // Path to the executable to be used. Either a 'string' or an
+            // 'array'. E.g. ['nvm', 'exec', '8.6', 'eslint']
+            "executable": "<automatically set>",
+
+            // A modified runtime environment for the lint job. Settings here
+            // override the default, inherited ENV.
+            "env": {},
+
+            "excludes": [],
+
+            // Lint mode determines when the linter is run. The linter setting
+            // will take precedence over the global setting.
+            "lint_mode": "manual",
+
+            // Determines for which views this linter will run.
+            "selector": "",
+
+            // A list of additional style definition blocks.
+            "styles": [
+                {
+                    // Instead of 'types' you can specify error 'codes' for
+                    // a style definition block
+                    "codes": [""]
+                }
+            ],
+
+            // The current working dir the lint job will run in.
+            "working_dir": "",
+
+            // **Only valid for PythonLinter**
+            // Specify which python to use. Either a number or full path
+            // to a python binary. SL will then basically use 'python -m'
+            // to run the linter.
+            "python": 3,
+
+            // **Only valid for NodeLinter**
+            // If true, will *not* use a globally installed binary
+            "disable_if_not_dependency": false
+        }
+    },
 
     // Determines what happens when a linter reports a problem without column.
     // By default, a mark is put in the gutter and the first character is highlighted.

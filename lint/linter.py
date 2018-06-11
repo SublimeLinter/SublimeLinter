@@ -103,35 +103,119 @@ class VirtualView:
     # def rowcol(self, point) => (row, col)
 
 
-def get_raw_linter_settings(linter, window=None):
+class ViewSettings:
+    """
+    Small wrapper around Sublime's view settings so we can use it in a
+    ChainMap.
+
+    In the standard Sublime settings system we store flattened objects.
+    So what is `{SublimeLinter: {linters: {flake8: args}}}` for the global
+    settings, becomes 'SublimeLinter.linters.flake8.args'
+    """
+
+    # We need to use a str as marker bc the value gets *serialized* during
+    # roundtripping the Sublime API. A normal sentinel obj like `{}` would
+    # loose its identity.
+    NOT_PRESENT = '__NOT_PRESENT_MARKER__'
+
+    def __init__(self, view, prefix):
+        self.view = view
+        self.prefix = '.'.join(prefix) + '.'
+
+    def _compute_final_key(self, key):
+        return self.prefix + key
+
+    def __getitem__(self, key):
+        value = self.view.settings().get(
+            self._compute_final_key(key), self.NOT_PRESENT)
+        if value == self.NOT_PRESENT:  # must use '==' (!) see above
+            raise KeyError(key)
+
+        return value
+
+    def __contains__(self, key):
+        return self.view.settings().has(self._compute_final_key(key))
+
+    def __repr__(self):
+        return "ViewSettings({}, {!r})".format(
+            self.view.id(), self.prefix.rstrip('.'))
+
+
+class LinterSettings:
+    """
+    Smallest possible dict-like container for linter settings to lazy
+    substitute/expand variables found in the settings
+    """
+
+    def __init__(self, settings, context):
+        self.settings = settings
+        self.context = context
+
+        self.computed_settings = {}
+
+    def __getitem__(self, key):
+        try:
+            return self.computed_settings[key]
+        except KeyError:
+            try:
+                value = self.settings[key]
+            except KeyError:
+                raise KeyError(key)
+            else:
+                final_value = substitute_variables(self.context, value)
+                self.computed_settings[key] = final_value
+                return final_value
+
+    def get(self, key, default=None):
+        return self[key] if key in self else default
+
+    def __contains__(self, key):
+        return key in self.computed_settings or key in self.settings
+
+    def __setitem__(self, key, value):
+        self.computed_settings[key] = value
+
+    has = __contains__
+    set = __setitem__
+
+
+def get_raw_linter_settings(linter, view):
     """Return 'raw' linter settings without variables substituted.
 
     Settings are merged in the following order:
 
-    default settings (on the class or instance)
-    user settings
+    default settings (on the class)
+    global user settings
     project settings
+    view settings
     """
     # Note: linter can be a linter class or a linter instance
 
     defaults = linter.defaults or {}
     user_settings = persist.settings.get('linters', {}).get(linter.name, {})
 
+    # We actually don't want to lint detached views, so failing here
+    # when there is no window would be more appropriate, but also less
+    # convenient. See `get_linters_for_view` where we check once for detached
+    # views, and actually abort the lint job.
+    window = view.window()
     if window:
         data = window.project_data() or {}
         project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
     else:
         project_settings = {}
 
-    return ChainMap({}, project_settings, user_settings, defaults)
+    view_settings = ViewSettings(view, ['SublimeLinter', 'linters', linter.name])
+
+    return ChainMap({}, view_settings, project_settings, user_settings, defaults)
 
 
 def get_linter_settings(linter, view):
     """Return 'final' linter settings with all variables expanded."""
     # Note: linter can be a linter class or a linter instance
-    settings = get_raw_linter_settings(linter, view.window())
+    settings = get_raw_linter_settings(linter, view)
     context = get_view_context(view)
-    return substitute_variables(context, settings)
+    return LinterSettings(settings, context)
 
 
 def guess_project_root_of_view(view):

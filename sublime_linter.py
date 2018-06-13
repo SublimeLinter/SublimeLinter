@@ -57,6 +57,8 @@ def plugin_loaded():
 
 
 def plugin_unloaded():
+    log_handler.uninstall()
+
     try:
         from package_control import events
 

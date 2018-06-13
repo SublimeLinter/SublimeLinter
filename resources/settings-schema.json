@@ -155,7 +155,13 @@
                         "minimum":0
                     },
                     "scope":{
-                        "type":"string"
+                        "type":"string",
+                        "examples": [
+                            "region.redish", "region.orangish",
+                            "region.yellowish", "region.greenish",
+                            "region.bluish", "region.purplish",
+                            "region.pinkish",
+                            "markup.warning", "markup.error"]
                     },
                     "icon":{
                         "type":"string"

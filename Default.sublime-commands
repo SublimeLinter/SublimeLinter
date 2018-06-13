@@ -25,6 +25,11 @@
 
     },
     {
+        "caption": "SublimeLinter: Filter Errors",
+        "command": "sublime_linter_filter"
+
+    },
+    {
         "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",
         "command": "sublime_linter_reload"
 

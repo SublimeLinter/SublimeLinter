@@ -147,7 +147,12 @@ class BackendController(sublime_plugin.EventListener):
         filename = view.file_name()
         if window and window.project_file_name() == filename:
             if settings.validate_project_settings(filename):
-                sublime.run_command('sublime_linter_config_changed')
+                for window in sublime.windows():
+                    if window.project_file_name() == filename:
+                        sublime.run_command('sublime_linter_config_changed', {
+                            'hint': 'relint',
+                            'wid': window.id()
+                        })
             return
 
         if not util.is_lintable(view):
@@ -219,15 +224,16 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
-    def run(self, hint=None):
+    def run(self, hint=None, wid=None):
         if hint is None or hint == 'relint':
-            relint_views()
+            relint_views(wid)
         elif hint == 'redraw':
             force_redraw()
 
 
-def relint_views():
-    for window in sublime.windows():
+def relint_views(wid=None):
+    windows = [sublime.Window(wid)] if wid else sublime.windows()
+    for window in windows:
         for view in window.views():
             if view.buffer_id() in persist.view_linters and view.is_primary():
                 hit(view, 'on_user_request')

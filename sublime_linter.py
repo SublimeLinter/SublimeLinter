@@ -328,17 +328,16 @@ def get_linters_for_view(view):
     if window is None:
         return []
 
+    next_linter_names = [linter.name for linter in wanted_linters]
     persist.view_linters[bid] = wanted_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': [linter.name for linter in wanted_linters]
+        'linter_names': next_linter_names
     })
 
-    current_linter_classes = {linter.__class__ for linter in current_linters}
-    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
-    if current_linter_classes != wanted_linter_classes:
+    for linter in current_linters:
         unchanged_buffer = lambda: False  # noqa: E731
-        for linter in (current_linter_classes - wanted_linter_classes):
+        if linter.name not in next_linter_names:
             update_buffer_errors(bid, unchanged_buffer, linter, [])
 
     return wanted_linters

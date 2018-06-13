@@ -229,7 +229,7 @@ class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
 def relint_views():
     for window in sublime.windows():
         for view in window.views():
-            if view.buffer_id() in persist.view_linters:
+            if view.buffer_id() in persist.view_linters and view.is_primary():
                 hit(view, 'on_user_request')
 
 

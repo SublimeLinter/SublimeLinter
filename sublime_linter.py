@@ -296,15 +296,20 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     if view_has_changed():  # abort early
         return
 
-    all_errors = [error for error in persist.errors[bid]
-                  if error['linter'] != linter.name] + errors
-    persist.errors[bid] = all_errors
-
+    update_errors_store(bid, linter.name, errors)
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
         'linter_name': linter.name,
         'errors': errors
     })
+
+
+def update_errors_store(bid, linter_name, errors):
+    persist.errors[bid] = [
+        error
+        for error in persist.errors[bid]
+        if error['linter'] != linter_name
+    ] + errors
 
 
 def get_linters_for_view(view):

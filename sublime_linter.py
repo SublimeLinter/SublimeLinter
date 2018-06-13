@@ -219,8 +219,11 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
-    def run(self):
-        relint_views()
+    def run(self, hint=None):
+        if hint is None or hint == 'relint':
+            relint_views()
+        elif hint == 'redraw':
+            force_redraw()
 
 
 def relint_views():
@@ -310,6 +313,24 @@ def update_errors_store(bid, linter_name, errors):
         for error in persist.errors[bid]
         if error['linter'] != linter_name
     ] + errors
+
+
+def force_redraw():
+    for bid, errors in persist.errors.items():
+        for linter_name, linter_errors in group_by_linter(errors).items():
+            events.broadcast(events.LINT_RESULT, {
+                'buffer_id': bid,
+                'linter_name': linter_name,
+                'errors': linter_errors
+            })
+
+
+def group_by_linter(errors):
+    by_linter = defaultdict(list)
+    for error in errors:
+        by_linter[error['linter']].append(error)
+
+    return by_linter
 
 
 def get_linters_for_view(view):

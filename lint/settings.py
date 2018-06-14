@@ -126,13 +126,37 @@ def validate_project_settings(filename):
     except ValueError:
         return False
 
-    settings = obj.get('SublimeLinter', {})
-    if len(settings.keys()) >= 2:
-        logger.error(
-            "Invalid settings in '{}':\n"
-            "Only the key 'linters' is allowed. "
-            "Got {}.".format(filename, ', '.join(map(repr, settings.keys())))
-        )
-        return False
+    if 'SublimeLinter' in obj:
+        print_deprecation_message(obj.get('SublimeLinter', {}))
+    else:
+        util.clear_message()
 
-    return validate_settings([(filename, settings)])
+    return True
+
+
+def print_deprecation_message(settings):
+    import json
+
+    message = """
+    Project settings for SublimeLinter have a new, flat format following the
+    Sublime standard. The old-style has been deprecated.
+
+    {}
+    """
+
+    new_settings = {}
+    for linter_name, linter_settings in settings.get('linters', {}).items():
+        for key, value in linter_settings.items():
+            new_settings['.'.join(('SublimeLinter', 'linters', linter_name, key))] = value
+
+    if not new_settings:
+        # User has an empty SublimeLinter obj in their project file. So we
+        # make up an example
+        new_settings['SublimeLinter.linters.eslint.disable'] = True
+
+    formatted_settings = json.dumps(
+        {'settings': new_settings}, sort_keys=True, indent=4
+    )[1:-1]
+    util.show_message(
+        message.format(formatted_settings)
+    )

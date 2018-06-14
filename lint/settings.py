@@ -82,7 +82,7 @@ def validate_global_settings():
     return validate_settings(get_settings_objects())
 
 
-def validate_settings(filename_settings_pairs):
+def validate_settings(filename_settings_pairs, flat=False):
     status_msg = "SublimeLinter - Settings invalid!"
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
@@ -95,11 +95,16 @@ def validate_settings(filename_settings_pairs):
                 validate(settings, schema, format_checker=FormatChecker())
             except ValidationError as error:
                 good = False
-                path_to_err = (' > '.join(
-                    repr(part)
-                    for part in error.path
-                    if not isinstance(part, int)  # drop array indices
-                ) + ': ') if error.path else ''
+                if flat:
+                    path_to_err = '"{}": '.format(
+                        'SublimeLinter.' + '.'.join(error.path)
+                    )
+                else:
+                    path_to_err = (' > '.join(
+                        repr(part)
+                        for part in error.path
+                        if not isinstance(part, int)  # drop array indices
+                    ) + ': ') if error.path else ''
 
                 logger.warning("Invalid settings in '{}'".format(name))
                 util.show_message(
@@ -128,10 +133,64 @@ def validate_project_settings(filename):
 
     if 'SublimeLinter' in obj:
         print_deprecation_message(obj.get('SublimeLinter', {}))
-    else:
-        util.clear_message()
+        return False
 
-    return True
+    settings = obj.get('settings', {})
+    if not settings:
+        util.clear_message()
+        return True
+
+    sl_settings = {
+        key: value
+        for key, value in settings.items()
+        if key.startswith('SublimeLinter.')
+    }
+    if not sl_settings:
+        util.clear_message()
+        return True
+
+    invalid_top_level_keys = [
+        key
+        for key in sl_settings
+        if not key.startswith('SublimeLinter.linters.')
+    ]
+    if invalid_top_level_keys:
+        logger.error(
+            "Invalid settings in '{}':\n"
+            "Only 'SublimeLinter.linters.*' keys are allowed. "
+            "Got {}.".format(
+                filename,
+                ', '.join(map(repr, invalid_top_level_keys))
+            )
+        )
+        return False
+
+    invalid_deep_keys = [
+        key
+        for key in sl_settings
+        if len(key.rstrip('.').split('.')) < 4
+    ]
+    if invalid_deep_keys:
+        logger.error(
+            "Invalid settings in '{}':\n"
+            "{} {} too short.".format(
+                filename,
+                ', '.join(map(repr, invalid_deep_keys)),
+                'are' if len(invalid_deep_keys) > 1 else 'is'
+            )
+        )
+        return False
+
+    deep_settings = {}
+    for key, value in sl_settings.items():
+        _, *parts = key.split('.')
+        edge = deep_settings
+        for part in parts[:-1]:
+            edge = edge.setdefault(part, {})
+
+        edge[parts[-1]] = value
+
+    return validate_settings([(filename, deep_settings)], flat=True)
 
 
 def print_deprecation_message(settings):

@@ -120,7 +120,7 @@ class ViewSettings:
 
     def __init__(self, view, prefix):
         self.view = view
-        self.prefix = '.'.join(prefix) + '.'
+        self.prefix = prefix
 
     def _compute_final_key(self, key):
         return self.prefix + key
@@ -205,7 +205,8 @@ def get_raw_linter_settings(linter, view):
     else:
         project_settings = {}
 
-    view_settings = ViewSettings(view, ['SublimeLinter', 'linters', linter.name])
+    view_settings = ViewSettings(
+        view, 'SublimeLinter.linters.{}.'.format(linter.name))
 
     return ChainMap({}, view_settings, project_settings, user_settings, defaults)
 

@@ -197,8 +197,8 @@ def print_deprecation_message(settings):
     import json
 
     message = """
-    Project settings for SublimeLinter have a new, flat format following the
-    Sublime standard. The old-style has been deprecated.
+    Project settings for SublimeLinter have a new, flat format following
+    Sublime Text conventions. The old format has been deprecated, use this instead:
 
     {}
     """

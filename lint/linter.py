@@ -201,7 +201,11 @@ def get_raw_linter_settings(linter, view):
     window = view.window()
     if window:
         data = window.project_data() or {}
-        project_settings = data.get('SublimeLinter', {}).get('linters', {}).get(linter.name, {})
+        project_settings = (
+            data.get('SublimeLinter', {})
+                .get('linters', {})
+                .get(linter.name, {})
+        )
     else:
         project_settings = {}
 

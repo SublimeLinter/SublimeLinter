@@ -47,9 +47,6 @@ Project settings
 Only the "linters" settings in can be changed in a project.
 All other settings can only be changed in your user settings.
 
-SublimeLinter project settings are defined by a ``"SublimeLinter"`` object
-within Sublime Text's sublime-project file.
-
 .. note::
 
     Read more about project setting in
@@ -66,21 +63,11 @@ Here is an example project settings file where the flake8 linter has been disabl
                 "path": "."
             }
         ],
-        "SublimeLinter":
+        "settings":
         {
-            "linters":
-            {
-                "flake8": {
-                    "disable": true
-                }
-            }
+            "SublimeLinter.linters.flake8.disable": true
         }
     }
-
-.. note::
-
-    Do not put the ``"SublimeLinter"`` object inside a ``"settings"`` object,
-    or anywhere else but directly in the root object of the sublime-project file.
 
 
 .. _settings-expansion:

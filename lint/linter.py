@@ -36,7 +36,7 @@ UTF8_ENV_VARS = {
 # how lint_mode is implemented. The map is supposed to be used in
 # this module only.
 _ACCEPTABLE_REASONS_MAP = {
-    "manual": ("on_user_request"),
+    "manual": ("on_user_request",),
     "save": ("on_user_request", "on_save"),
     "load_save": ("on_user_request", "on_save", "on_load"),
     "background": ("on_user_request", "on_save", "on_load", None),

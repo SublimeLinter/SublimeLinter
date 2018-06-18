@@ -57,6 +57,8 @@ def plugin_loaded():
 
 
 def plugin_unloaded():
+    log_handler.uninstall()
+
     try:
         from package_control import events
 
@@ -147,7 +149,12 @@ class BackendController(sublime_plugin.EventListener):
         filename = view.file_name()
         if window and window.project_file_name() == filename:
             if settings.validate_project_settings(filename):
-                sublime.run_command('sublime_linter_config_changed')
+                for window in sublime.windows():
+                    if window.project_file_name() == filename:
+                        sublime.run_command('sublime_linter_config_changed', {
+                            'hint': 'relint',
+                            'wid': window.id()
+                        })
             return
 
         if not util.is_lintable(view):
@@ -219,14 +226,18 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
-    def run(self):
-        relint_views()
+    def run(self, hint=None, wid=None):
+        if hint is None or hint == 'relint':
+            relint_views(wid)
+        elif hint == 'redraw':
+            force_redraw()
 
 
-def relint_views():
-    for window in sublime.windows():
+def relint_views(wid=None):
+    windows = [sublime.Window(wid)] if wid else sublime.windows()
+    for window in windows:
         for view in window.views():
-            if view.buffer_id() in persist.view_linters:
+            if view.buffer_id() in persist.view_linters and view.is_primary():
                 hit(view, 'on_user_request')
 
 
@@ -296,15 +307,38 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
     if view_has_changed():  # abort early
         return
 
-    all_errors = [error for error in persist.errors[bid]
-                  if error['linter'] != linter.name] + errors
-    persist.errors[bid] = all_errors
-
+    update_errors_store(bid, linter.name, errors)
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
         'linter_name': linter.name,
         'errors': errors
     })
+
+
+def update_errors_store(bid, linter_name, errors):
+    persist.errors[bid] = [
+        error
+        for error in persist.errors[bid]
+        if error['linter'] != linter_name
+    ] + errors
+
+
+def force_redraw():
+    for bid, errors in persist.errors.items():
+        for linter_name, linter_errors in group_by_linter(errors).items():
+            events.broadcast(events.LINT_RESULT, {
+                'buffer_id': bid,
+                'linter_name': linter_name,
+                'errors': linter_errors
+            })
+
+
+def group_by_linter(errors):
+    by_linter = defaultdict(list)
+    for error in errors:
+        by_linter[error['linter']].append(error)
+
+    return by_linter
 
 
 def get_linters_for_view(view):
@@ -328,17 +362,16 @@ def get_linters_for_view(view):
     if window is None:
         return []
 
+    next_linter_names = [linter.name for linter in wanted_linters]
     persist.view_linters[bid] = wanted_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': [linter.name for linter in wanted_linters]
+        'linter_names': next_linter_names
     })
 
-    current_linter_classes = {linter.__class__ for linter in current_linters}
-    wanted_linter_classes = {linter.__class__ for linter in wanted_linters}
-    if current_linter_classes != wanted_linter_classes:
+    for linter in current_linters:
         unchanged_buffer = lambda: False  # noqa: E731
-        for linter in (current_linter_classes - wanted_linter_classes):
+        if linter.name not in next_linter_names:
             update_buffer_errors(bid, unchanged_buffer, linter, [])
 
     return wanted_linters

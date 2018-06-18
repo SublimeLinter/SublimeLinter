@@ -63,11 +63,26 @@ class Settings:
         if not validate_global_settings():
             return
 
-        if self.has_changed('gutter_theme'):
+        gutter_theme_changed = self.has_changed('gutter_theme')
+        if gutter_theme_changed:
             from . import style
             style.read_gutter_theme()
 
-        sublime.run_command('sublime_linter_config_changed')
+        if (
+            self.has_changed('linters') or
+            self.has_changed('no_column_highlights_line')
+        ):
+            sublime.run_command(
+                'sublime_linter_config_changed', {'hint': 'relint'})
+
+        elif (
+            gutter_theme_changed or
+            self.has_changed('highlights.demote_while_editing') or
+            self.has_changed('show_marks_in_minimap') or
+            self.has_changed('styles')
+        ):
+            sublime.run_command(
+                'sublime_linter_config_changed', {'hint': 'redraw'})
 
 
 def get_settings_objects():

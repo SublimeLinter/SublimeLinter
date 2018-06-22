@@ -2,8 +2,9 @@
 
 from collections import defaultdict, deque
 from contextlib import contextmanager
-from functools import partial
+from functools import lru_cache, partial
 import logging
+import os
 import time
 import threading
 
@@ -346,11 +347,22 @@ def get_linters_for_view(view):
     bid = view.buffer_id()
     current_linters = persist.view_linters.get(bid, [])
 
-    wanted_linters = []
-    for linter_class in persist.linter_classes.values():
-        settings = linter_module.get_linter_settings(linter_class, view)
-        if linter_class.can_lint_view(view, settings):
-            wanted_linters.append(linter_class(view, settings))
+    filename = view.file_name()
+    # Unassign all linters from orphaned views
+    if filename and not os.path.exists(filename):
+        logger.info(
+            "Skipping buffer {}; '{}' is unreachable".format(bid, filename))
+        flash_once(
+            none_for_none(lambda: view.window().id()),
+            "{} has become unreachable".format(filename)
+        )
+        wanted_linters = []
+    else:
+        wanted_linters = []
+        for linter_class in persist.linter_classes.values():
+            settings = linter_module.get_linter_settings(linter_class, view)
+            if linter_class.can_lint_view(view, settings):
+                wanted_linters.append(linter_class(view, settings))
 
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
@@ -433,3 +445,20 @@ def remember_runtime(bid):
 
     with global_lock:
         elapsed_runtimes.append(runtime)
+
+
+def none_for_none(fn):
+    try:
+        return fn()
+    except Exception as exc:
+        if 'NoneType' in str(exc):
+            return None
+        else:
+            raise
+
+
+@lru_cache()
+def flash_once(wid, message):
+    if wid is not None:
+        window = sublime.Window(wid)
+        window.status_message(message)

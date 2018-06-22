@@ -2,6 +2,9 @@ import sublime
 import sublime_plugin
 
 from itertools import dropwhile, takewhile
+import uuid
+
+from .lint import queue
 
 from .lint import persist
 
@@ -71,6 +74,31 @@ def goto(view, direction, count, wrap):
         point = jump_positions[count - 1]
 
     move_to(view, point)
+    highlight_jump_position(view, point)
+
+
+HIGHLIGHT_REGION_KEY = 'SL.flash_jump_position.{}'
+HIGHLIGHT_TIME = 0.8  # [sec]
+HIGHLIGHT_SCOPE = 'markup.bold'
+
+
+def highlight_jump_position(view, point):
+    bid = view.buffer_id()
+    touching_regions = (
+        error['region']
+        for error in persist.errors.get(bid)
+        if error['region'].contains(point))
+
+    widest_region = max(touching_regions, key=lambda region: region.end())
+    region_key = HIGHLIGHT_REGION_KEY.format(uuid.uuid4())
+    scope = HIGHLIGHT_SCOPE
+    flags = sublime.DRAW_NO_FILL
+    view.add_regions(region_key, [widest_region], scope=scope, flags=flags)
+
+    queue.debounce(
+        lambda: view.erase_regions(region_key),
+        delay=HIGHLIGHT_TIME,
+        key=region_key)
 
 
 class _sublime_linter_move_cursor(sublime_plugin.TextCommand):

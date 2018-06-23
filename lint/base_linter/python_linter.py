@@ -145,7 +145,7 @@ def get_project_path():
 def ask_pipenv(linter_name, cwd):
     """Ask pipenv for a virtual environment and maybe resolve the linter."""
     # Some pre-checks bc `pipenv` is super slow
-    project_path = get_project_path()
+    project_path = cwd or get_project_path()
     if not project_path:
         return
 

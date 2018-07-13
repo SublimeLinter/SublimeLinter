@@ -36,6 +36,8 @@
     "highlights.demote_scope": "",
 
     // How long to wait before showing the demoted errors again.
+    // Tip: A big value like 3600 will essentially hide the regions until
+    // you save the buffer.
     "highlights.time_to_idle": 1.5,
 
     // Send a "terminate" signal to old lint processes, if their result would

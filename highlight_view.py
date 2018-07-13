@@ -32,7 +32,8 @@ UNDERLINE_STYLES = (
 SOME_WS = re.compile('\s')
 FALLBACK_MARK_STYLE = 'outline'
 
-WS_REGIONS = re.compile('(^\s+$|\n)')
+WS_ONLY = re.compile('^\s+$')
+MULTILINES = re.compile('\n')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
@@ -166,8 +167,14 @@ def get_demote_predicate():
     if setting == 'all':
         return demote_all
 
-    if setting == 'ws_regions':
-        return demote_ws_regions
+    if setting == 'ws_only':
+        return demote_ws_only
+
+    if setting in ('some_ws', 'ws_regions'):  # 'ws_regions' is deprecated
+        return demote_some_ws
+
+    if setting == 'multilines':
+        return demote_multilines
 
     if setting == 'warnings':
         return demote_warnings
@@ -185,8 +192,16 @@ def demote_all(*args, **kwargs):
     return True
 
 
-def demote_ws_regions(selected_text, **kwargs):
-    return bool(WS_REGIONS.search(selected_text))
+def demote_ws_only(selected_text, **kwargs):
+    return bool(WS_ONLY.search(selected_text))
+
+
+def demote_some_ws(selected_text, **kwargs):
+    return bool(SOME_WS.search(selected_text))
+
+
+def demote_multilines(selected_text, **kwargs):
+    return bool(MULTILINES.search(selected_text))
 
 
 def demote_warnings(selected_text, error_type, **kwargs):

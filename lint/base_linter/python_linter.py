@@ -130,26 +130,13 @@ def find_script_by_python_env(python_env_path, script):
     return None
 
 
-def get_project_path():
-    """Return the project_path using Sublime's window.project_data() API."""
-    window = sublime.active_window()
-    # window.project_data() is a relative new API.
-    # I don't know what we can expect from 'folders' here. Can we just take
-    # the first one, if any, and be happy?
-    project_data = window.project_data() or {}
-    folders = project_data.get('folders', [])
-    if folders:
-        return folders[0]['path']  # ?
-
-
 def ask_pipenv(linter_name, cwd):
     """Ask pipenv for a virtual environment and maybe resolve the linter."""
     # Some pre-checks bc `pipenv` is super slow
-    project_path = get_project_path()
-    if not project_path:
+    if cwd is None:
         return
 
-    pipfile = os.path.join(project_path, 'Pipfile')
+    pipfile = os.path.join(cwd, 'Pipfile')
     if not os.path.exists(pipfile):
         return
 

@@ -140,21 +140,18 @@ def ask_pipenv(linter_name, cwd):
     if not os.path.exists(pipfile):
         return
 
-    # Defer the real work to another function we can cache.
-    # ATTENTION: If the user has a Pipfile, but did not (yet) installed the
-    # environment, we will cache a wrong result here.
-    return _ask_pipenv(linter_name, cwd)
-
-
-@lru_cache(maxsize=None)
-def _ask_pipenv(linter_name, cwd):
-    cmd = ['pipenv', '--venv']
-    venv = util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
-
-    if not venv:
+    try:
+        venv = ask_pipenv_for_venv(linter_name, cwd)
+    except Exception:
         return
 
     return find_script_by_python_env(venv, linter_name)
+
+
+@lru_cache(maxsize=None)
+def ask_pipenv_for_venv(linter_name, cwd):
+    cmd = ['pipenv', '--venv']
+    return util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
 
 VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
@@ -163,7 +160,11 @@ VERSION_RE = re.compile(r'(?P<major>\d+)(?:\.(?P<minor>\d+))?')
 @lru_cache(maxsize=None)
 def get_python_version(path):
     """Return a dict with the major/minor version of the python at path."""
-    output = util.check_output([path, '-V'])
+    try:
+        output = util.check_output([path, '-V'])
+    except Exception:
+        output = ''
+
     return extract_major_minor_version(output.split(' ')[-1])
 
 

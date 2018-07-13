@@ -220,7 +220,7 @@ def check_output(cmd, cwd=None):
         logger.warning(
             "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
         )
-        return ''
+        raise
     else:
         return process_popen_output(output)
 

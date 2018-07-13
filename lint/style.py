@@ -45,7 +45,17 @@ def get_value(key, error, default=None):
             except KeyError:
                 ...
 
-    for style_definition in chain(linter_styles, global_styles, default_styles):
+    for style_definition in linter_styles:
+        # For linter_styles, do not auto fill 'types' if the user already
+        # provided 'codes'
+        default = [] if 'codes' in style_definition else [error_type]
+        if error_type in style_definition.get('types', default):
+            try:
+                return style_definition[key]
+            except KeyError:
+                ...
+
+    for style_definition in chain(global_styles, default_styles):
         if error_type in style_definition.get('types', [error_type]):
             try:
                 return style_definition[key]

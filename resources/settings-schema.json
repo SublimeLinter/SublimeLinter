@@ -16,7 +16,7 @@
         },
         "highlights.demote_while_editing":{
             "type":"string",
-            "enum":["none", "ws_regions", "warnings", "all"]
+            "enum":["none", "ws_only", "some_ws", "multilines", "warnings", "all"]
         },
         "kill_old_processes":{
             "type":"boolean"

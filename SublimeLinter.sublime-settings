@@ -23,7 +23,9 @@
 
     // Demote the visibility of a class off errors while you're editing.
     // The errors will re-appear after `time_to_idle` and immediately on save.
-    // - ws_regions: erroneous regions that contain whitespace
+    // - ws_only: erroneous regions that contain only whitespace
+    // - some_ws: erroneous regions that contain *some* whitespace
+    // - multilines: multiline errors
     // - warnings: errors of the "warning" type
     // - all: demote all the things
     // - none: disable this feature

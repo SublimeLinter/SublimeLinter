@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+import shlex
 import sublime
 
 from .. import linter, util
@@ -68,7 +69,7 @@ class RubyLinter(linter.Linter):
             return True, None
 
         if isinstance(cmd, str):
-            cmd = util.shlex_split(cmd)
+            cmd = shlex.split(cmd)
 
         match = CMD_RE.match(cmd[0])
 

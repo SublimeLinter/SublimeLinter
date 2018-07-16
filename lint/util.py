@@ -136,62 +136,6 @@ def is_lintable(view):
 # file/directory/environment utils
 
 
-POSIX_CMD_LEX = re.compile(
-    r'''"((?:\\["\\]|[^"])*)"|'([^']*)'|(\\.)|(&&?|\|\|?|\d?\>|[<])|([^\s'"\\&|<>]+)|(\s+)|(.)'''
-)
-WIN_CMD_LEX = re.compile(
-    r'''"((?:""|\\["\\]|[^"])*)"?()|(\\\\(?=\\*")|\\")|(&&?|\|\|?|\d?>|[<])|([^\s"&|<>]+)|(\s+)|(.)'''
-)
-
-
-# Taken from https://stackoverflow.com/a/35900070 by https://stackoverflow.com/users/1184933/kxr
-def shlex_split(s, platform=sublime.platform() != 'windows'):
-    """Multi-platform variant of shlex.split() for command-line splitting.
-
-    For use with subprocess, for argv injection etc.
-
-    platform: 1 = POSIX;
-              0 = Windows/CMD
-              (other values reserved)
-    """
-    if platform == 1:
-        RE_CMD_LEX = POSIX_CMD_LEX
-    elif platform == 0:
-        RE_CMD_LEX = WIN_CMD_LEX
-    else:
-        raise AssertionError('unkown platform %r' % platform)
-
-    args = []
-    accu = None   # collects pieces of one arg
-    for qs, qss, esc, pipe, word, white, fail in RE_CMD_LEX.findall(s):
-        if word:
-            pass   # most frequent
-        elif esc:
-            word = esc[1]
-        elif white or pipe:
-            if accu is not None:
-                args.append(accu)
-            if pipe:
-                args.append(pipe)
-            accu = None
-            continue
-        elif fail:
-            raise ValueError("invalid or incomplete shell string")
-        elif qs:
-            word = qs.replace('\\"', '"').replace('\\\\', '\\')
-            if platform == 0:
-                word = word.replace('""', '"')
-        else:
-            word = qss   # may be even empty; must be last
-
-        accu = (accu or '') + word
-
-    if accu is not None:
-        args.append(accu)
-
-    return args
-
-
 @lru_cache(maxsize=1)  # print once every time the path changes
 def debug_print_env(path):
     import textwrap

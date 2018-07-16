@@ -65,8 +65,10 @@
             "disable": false,
 
             // Additional arguments for the command line. Either a 'string'
-            // or an 'array'. If set to a string, we split it.
+            // or an 'array'. If set to a string, we 'shlex.split' it*.
             // E.g. '--ignore D112' or ['--config', './.config/foo.ini']
+            //
+            // * Note that 'shlex' does not work for paths on Windows atm.
             "args": [],
 
             // Path to the executable to be used. Either a 'string' or an

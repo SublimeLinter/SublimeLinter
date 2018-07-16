@@ -4,6 +4,7 @@ from fnmatch import fnmatch
 import logging
 import os
 import re
+import shlex
 import subprocess
 import tempfile
 
@@ -352,7 +353,7 @@ class LinterMeta(type):
         cmd = attrs.get('cmd')
 
         if isinstance(cmd, str):
-            setattr(cls, 'cmd', util.shlex_split(cmd))
+            setattr(cls, 'cmd', shlex.split(cmd))
 
         syntax = attrs.get('syntax')
 
@@ -606,7 +607,7 @@ class Linter(metaclass=LinterMeta):
 
         The cmd class attribute may be a string, a tuple/list, or a callable.
         If cmd is callable, it is called. If the result of the method is
-        a string, it is parsed into a list with `util.shlex_split`.
+        a string, it is parsed into a list with shlex.split.
 
         Otherwise the result of build_cmd is returned.
         """
@@ -616,7 +617,7 @@ class Linter(metaclass=LinterMeta):
             cmd = cmd()
 
         if isinstance(cmd, str):
-            cmd = util.shlex_split(cmd)
+            cmd = shlex.split(cmd)
         else:
             cmd = list(cmd)
 
@@ -721,7 +722,7 @@ class Linter(metaclass=LinterMeta):
         args = settings.get('args', [])
 
         if isinstance(args, str):
-            args = util.shlex_split(args)
+            args = shlex.split(args)
         else:
             args = args[:]
 

@@ -748,7 +748,7 @@ class Linter(metaclass=LinterMeta):
                 continue
 
             values = settings.get(setting, None)
-            if not values and not values == 0:
+            if not values and type(values) is not int:  # Allow `0`!
                 continue
 
             arg = prefix + arg_info['name']

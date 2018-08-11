@@ -35,8 +35,11 @@ contexts:
 
   expect-linter-type:
     - include: pop-at-end
-    - match: \S+
-      scope: comment.line.sublime_linter
+    - match: (\S+)(:)(\S*)
+      captures:
+        1: comment.line.sublime_linter
+        2: punctuation.separator.sublime_linter
+        3: storage.type.sublime_linter
       pop: true
 
   expect-line-maybe-column:

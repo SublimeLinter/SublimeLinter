@@ -348,7 +348,7 @@ def run_update_panel_cmd(panel, text=None):
 def format_row(item):
     line = item["line"] + 1
     start = item["start"] + 1
-    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
+    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}:{code:12} {msg}"
     return tmpl.format(LINE=line, START=start, **item)
 
 

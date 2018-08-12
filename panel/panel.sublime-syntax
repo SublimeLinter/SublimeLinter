@@ -12,16 +12,27 @@ contexts:
     - match: '^(.+):$'
       captures:
         1: entity.name.filename.sublime_linter
-    - match: '^\s+(?=\d)'
+    - match: '^\s+(?=[0-9: ]+error)'
       push:
-        - ensure-linter-meta-scope
+        - ensure-error-meta-scope
+        - expect-linter-type
+        - expect-linter-severity
+        - expect-line-maybe-column
+    - match: '^\s+(?=[0-9: ]+warning)'
+      push:
+        - ensure-warning-meta-scope
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
 
-  ensure-linter-meta-scope:
-    - meta_scope: meta.linter.body.sublime_linter
-    - match: ""  # match the empty string
+  ensure-error-meta-scope:
+    - meta_scope: meta.linter.error.body.sublime_linter
+    - match: (?=$)
+      pop: true
+
+  ensure-warning-meta-scope:
+    - meta_scope: meta.linter.warning.body.sublime_linter
+    - match: (?=$)
       pop: true
 
   expect-linter-severity:
@@ -37,18 +48,20 @@ contexts:
     - include: pop-at-end
     - match: (\S+)(:)(\S*)
       captures:
-        1: comment.line.sublime_linter
+        0: meta.linter-code.sublime_linter
+        1: entity.type.linter_name.sublime_linter
         2: punctuation.separator.sublime_linter
-        3: storage.type.sublime_linter
+        3: storage.type.error_code.sublime_linter
       pop: true
 
   expect-line-maybe-column:
     - include: pop-at-end
     - match: (\d+)(?:(:)(\d+))?
       captures:
+        0: meta.line-col.sublime_linter
         1: constant.numeric.line-number.sublime_linter
         2: punctuation.separator.sublime_linter
-        3: constant.numeric.line-number.sublime_linter
+        3: constant.numeric.col-number.sublime_linter
       pop: true
 
   pop-at-end:

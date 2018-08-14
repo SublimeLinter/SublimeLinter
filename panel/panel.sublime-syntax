@@ -26,12 +26,12 @@ contexts:
         - expect-line-maybe-column
 
   ensure-error-meta-scope:
-    - meta_scope: meta.linter.error.body.sublime_linter
+    - meta_scope: meta.linter.body.error.sublime_linter
     - match: (?=$)
       pop: true
 
   ensure-warning-meta-scope:
-    - meta_scope: meta.linter.warning.body.sublime_linter
+    - meta_scope: meta.linter.body.warning.sublime_linter
     - match: (?=$)
       pop: true
 

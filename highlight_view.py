@@ -3,6 +3,7 @@ import html
 from itertools import chain
 from functools import partial
 import re
+import webbrowser
 
 import sublime
 import sublime_plugin
@@ -619,6 +620,10 @@ TOOLTIP_STYLES = '''
         color: var(--yellowish);
         font-weight: bold;
     }
+    a {
+        text-decoration: none;
+        font-size: 0.8em;
+    }
 '''
 
 TOOLTIP_TEMPLATE = '''
@@ -660,7 +665,8 @@ def open_tooltip(view, point, line_report=False):
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
-        max_width=1000
+        max_width=1000,
+        on_navigate=webbrowser.open
     )
 
 
@@ -678,6 +684,11 @@ def join_msgs(errors, show_count=False):
     tmpl_with_code = "{linter}: {code} - {escaped_msg}"
     tmpl_sans_code = "{linter}: {escaped_msg}"
 
+    # What should we do here?
+    link = ' <a href="{url}">🔗</a>'
+    link = ' <a href="{url}">⚡</a>'
+    link = ' <a href="{url}">...</a>'
+
     all_msgs = ""
     for error_type in (WARNING, ERROR):
         heading = error_type
@@ -693,7 +704,10 @@ def join_msgs(errors, show_count=False):
         for item in msg_list:
             msg = html.escape(item["msg"], quote=False)
             tmpl = tmpl_with_code if item.get('code') else tmpl_sans_code
-            filled_templates.append(tmpl.format(escaped_msg=msg, **item))
+            filled_templates.append(
+                tmpl.format(escaped_msg=msg, **item) +
+                (link.format(url=item["url"]) if item.get('url') else '')
+            )
 
         if count > 1:  # pluralize
             heading += "s"

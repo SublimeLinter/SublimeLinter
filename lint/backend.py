@@ -141,6 +141,12 @@ def finalize_errors(linter, errors, offset):
             'linter': linter_name
         })
 
+        if 'url' not in error:
+            rule_name = error['code']
+            if rule_name:
+                SEARCH_TMPL = 'https://google.com/search?q={}+{}'
+                error['url'] = SEARCH_TMPL.format(linter_name, rule_name)
+
         uid = hashlib.sha256(
             json.dumps(error, sort_keys=True).encode('utf-8')).hexdigest()
 

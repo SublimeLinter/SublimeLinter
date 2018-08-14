@@ -15,12 +15,14 @@ contexts:
     - match: '^\s+(?=[0-9: ]+error)'
       push:
         - ensure-error-meta-scope
+        - expect-linter-message
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
     - match: '^\s+(?=[0-9: ]+warning)'
       push:
         - ensure-warning-meta-scope
+        - expect-linter-message
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
@@ -52,6 +54,12 @@ contexts:
         1: entity.type.linter-name.sublime_linter
         2: punctuation.separator.sublime_linter
         3: storage.type.error-code.sublime_linter
+      pop: true
+
+  expect-linter-message:
+    - include: pop-at-end
+    - match: .*$
+      scope: meta.linter.message
       pop: true
 
   expect-line-maybe-column:

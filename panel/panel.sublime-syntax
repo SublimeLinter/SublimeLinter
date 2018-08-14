@@ -26,6 +26,13 @@ contexts:
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
+    - match: '^\s+(?=[0-9: ]+)'
+      push:
+        - ensure-warning-other-scope
+        - expect-linter-message
+        - expect-linter-type
+        - expect-linter-severity
+        - expect-line-maybe-column
 
   ensure-error-meta-scope:
     - meta_scope: meta.linter.body.error.sublime_linter
@@ -37,13 +44,21 @@ contexts:
     - match: (?=$)
       pop: true
 
+  ensure-warning-other-scope:
+    - meta_scope: meta.linter.body.sublime_linter
+    - match: (?=$)
+      pop: true
+
   expect-linter-severity:
     - include: pop-at-end
     - match: \berror\b
-      scope: markup.error.sublime_linter
+      scope: meta.linter.error-type.sublime_linter markup.error.sublime_linter
       pop: true
     - match: \bwarning\b
-      scope: markup.warning.sublime_linter
+      scope: meta.linter.error-type.sublime_linter markup.warning.sublime_linter
+      pop: true
+    - match: \b(\S+)\b
+      scope: meta.linter.error-type.sublime_linter
       pop: true
 
   expect-linter-type:

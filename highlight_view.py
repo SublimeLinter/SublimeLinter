@@ -622,7 +622,6 @@ TOOLTIP_STYLES = '''
     }
     a {
         text-decoration: none;
-        font-size: 0.8em;
     }
 '''
 
@@ -681,13 +680,11 @@ def join_msgs(errors, show_count=False):
             <div>{messages}</div>
         '''
 
-    tmpl_with_code = "{linter}: {code} - {escaped_msg}"
+    tmpl_with_code = "{linter}: {CODE} {escaped_msg}"
     tmpl_sans_code = "{linter}: {escaped_msg}"
 
-    # What should we do here?
-    link = ' <a href="{url}">🔗</a>'
-    link = ' <a href="{url}">⚡</a>'
-    link = ' <a href="{url}">...</a>'
+    code_with_link = '<a href="{url}">{code}</a> -'
+    code_sans_link = "{code} -"
 
     all_msgs = ""
     for error_type in (WARNING, ERROR):
@@ -703,11 +700,20 @@ def join_msgs(errors, show_count=False):
 
         for item in msg_list:
             msg = html.escape(item["msg"], quote=False)
-            tmpl = tmpl_with_code if item.get('code') else tmpl_sans_code
-            filled_templates.append(
-                tmpl.format(escaped_msg=msg, **item) +
-                (link.format(url=item["url"]) if item.get('url') else '')
-            )
+            if item.get('code'):
+                code_tmpl = code_with_link if item.get('url') else code_sans_link
+                code_part = code_tmpl.format(**item)
+                filled_templates.append(
+                    tmpl_with_code.format(
+                        escaped_msg=msg,
+                        CODE=code_part,
+                        **item
+                    )
+                )
+            else:
+                filled_templates.append(
+                    tmpl_sans_code.format(escaped_msg=msg, **item)
+                )
 
         if count > 1:  # pluralize
             heading += "s"

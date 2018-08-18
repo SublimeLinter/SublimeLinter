@@ -63,12 +63,12 @@ contexts:
 
   expect-linter-type:
     - include: pop-at-end
-    - match: (\S+)(:)(\S*)
+    - match: ([^\s:]+)(?:(:)(\S+))?
       captures:
         0: meta.linter-code.sublime_linter
-        1: entity.type.linter-name.sublime_linter
+        1: entity.name.class.linter-name.sublime_linter
         2: punctuation.separator.sublime_linter
-        3: storage.type.error-code.sublime_linter
+        3: entity.name.label.error-code.sublime_linter
       pop: true
 
   expect-linter-message:

@@ -37,6 +37,10 @@ highlight_view.py:
 #                               ^ punctuation.separator.sublime_linter
 #                                ^^^^ storage.type.error-code.sublime_linter
 
+   669:1    error         flake8              unexpected indentation
+#                         ^^^^^^ meta.linter-code.sublime_linter
+#                         ^^^^^^ entity.type.linter-name.sublime_linter
+#                                             ^^^^^^^^^^^^^^^^^^^^^^ meta.linter.message
 
    669:1    error         flake8:E113         unexpected indentation
 #                                             ^^^^^^^^^^^^^^^^^^^^^^ meta.linter.message

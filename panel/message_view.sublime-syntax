@@ -1,7 +1,7 @@
 %YAML 1.2
 ---
 # [Subl]: https://www.sublimetext.com/docs/3/syntax.html
-hidden: false
+hidden: true
 scope: output.message-view.sublime_linter
 
 contexts:

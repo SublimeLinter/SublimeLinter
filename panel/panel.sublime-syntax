@@ -52,13 +52,13 @@ contexts:
   expect-linter-severity:
     - include: pop-at-end
     - match: \berror\b
-      scope: meta.linter.error-type.sublime_linter markup.error.sublime_linter
+      scope: entity.name.label.error-type.sublime_linter markup.error.sublime_linter
       pop: true
     - match: \bwarning\b
-      scope: meta.linter.error-type.sublime_linter markup.warning.sublime_linter
+      scope: entity.name.label.error-type.sublime_linter markup.warning.sublime_linter
       pop: true
     - match: \b(\S+)\b
-      scope: meta.linter.error-type.sublime_linter
+      scope: entity.name.label.error-type.sublime_linter
       pop: true
 
   expect-linter-type:
@@ -66,7 +66,7 @@ contexts:
     - match: ([^\s:]+)(?:(:)(\S+))?
       captures:
         0: meta.linter-code.sublime_linter
-        1: entity.name.class.linter-name.sublime_linter
+        1: entity.name.label.linter-name.sublime_linter
         2: punctuation.separator.sublime_linter
         3: entity.name.label.error-code.sublime_linter
       pop: true
@@ -74,7 +74,7 @@ contexts:
   expect-linter-message:
     - include: pop-at-end
     - match: .*$
-      scope: meta.linter.message
+      scope: markup.quote.linter-message.sublime_linter
       pop: true
 
   expect-line-maybe-column:

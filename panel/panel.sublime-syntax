@@ -12,40 +12,79 @@ contexts:
     - match: '^(.+):$'
       captures:
         1: entity.name.filename.sublime_linter
-    - match: '^\s+(?=\d)'
+    - match: '^\s+(?=[0-9: ]+error)'
       push:
-        - ensure-linter-meta-scope
+        - ensure-error-meta-scope
+        - expect-linter-message
+        - expect-linter-type
+        - expect-linter-severity
+        - expect-line-maybe-column
+    - match: '^\s+(?=[0-9: ]+warning)'
+      push:
+        - ensure-warning-meta-scope
+        - expect-linter-message
+        - expect-linter-type
+        - expect-linter-severity
+        - expect-line-maybe-column
+    - match: '^\s+(?=[0-9: ]+)'
+      push:
+        - ensure-warning-other-scope
+        - expect-linter-message
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
 
-  ensure-linter-meta-scope:
+  ensure-error-meta-scope:
+    - meta_scope: meta.linter.body.error.sublime_linter
+    - match: (?=$)
+      pop: true
+
+  ensure-warning-meta-scope:
+    - meta_scope: meta.linter.body.warning.sublime_linter
+    - match: (?=$)
+      pop: true
+
+  ensure-warning-other-scope:
     - meta_scope: meta.linter.body.sublime_linter
-    - match: ""  # match the empty string
+    - match: (?=$)
       pop: true
 
   expect-linter-severity:
     - include: pop-at-end
     - match: \berror\b
-      scope: markup.error.sublime_linter
+      scope: entity.name.tag.error-type.sublime_linter markup.error.sublime_linter
       pop: true
     - match: \bwarning\b
-      scope: markup.warning.sublime_linter
+      scope: entity.name.tag.error-type.sublime_linter markup.warning.sublime_linter
+      pop: true
+    - match: \b(\S+)\b
+      scope: entity.name.tag.error-type.sublime_linter
       pop: true
 
   expect-linter-type:
     - include: pop-at-end
-    - match: \S+
-      scope: comment.line.sublime_linter
+    - match: ([^\s:]+)(?:(:)(\S+))?
+      captures:
+        0: meta.linter-code.sublime_linter
+        1: entity.name.label.linter-name.sublime_linter
+        2: punctuation.separator.sublime_linter
+        3: entity.name.class.error-code.sublime_linter
+      pop: true
+
+  expect-linter-message:
+    - include: pop-at-end
+    - match: .*$
+      scope: markup.quote.linter-message.sublime_linter
       pop: true
 
   expect-line-maybe-column:
     - include: pop-at-end
     - match: (\d+)(?:(:)(\d+))?
       captures:
+        0: meta.line-col.sublime_linter
         1: constant.numeric.line-number.sublime_linter
         2: punctuation.separator.sublime_linter
-        3: constant.numeric.line-number.sublime_linter
+        3: constant.numeric.col-number.sublime_linter
       pop: true
 
   pop-at-end:

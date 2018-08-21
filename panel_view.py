@@ -6,6 +6,22 @@ from .lint import events, util, persist
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
+OUTPUT_PANEL_SETTINGS = {
+    "auto_indent": False,
+    "draw_indent_guides": False,
+    "draw_white_space": "None",
+    "gutter": False,
+    "is_widget": True,
+    "line_numbers": False,
+    "match_brackets": False,
+    "rulers": False,
+    "scroll_past_end": False,
+    "spell_check": False,
+    "tab_size": 4,
+    "translate_tabs_to_spaces": False,
+    "word_wrap": False
+}
+
 
 State = {
     'active_view': None,
@@ -265,6 +281,9 @@ def panel_is_active(window):
 
 def create_panel(window):
     panel = window.create_output_panel(PANEL_NAME)
+    settings = panel.settings()
+    for key, value in OUTPUT_PANEL_SETTINGS.items():
+        settings.set(key, value)
 
     panel.settings().set("result_file_regex", r"^(.*):$")
     # row:col   type   linter: code   message

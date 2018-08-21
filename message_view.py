@@ -18,7 +18,7 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
             panel_view = window.find_output_panel(PANEL_NAME)
         else:
             panel_view = window.create_output_panel(PANEL_NAME)
-            syntax_path = "Packages/SublimeLinter/panel/message_view.sublime-syntax"
+            syntax_path = "Packages/SublimeLinter/syntaxes/message_view.sublime-syntax"
             try:  # Try the resource first, in case we're in the middle of an upgrade
                 sublime.load_resource(syntax_path)
             except Exception:

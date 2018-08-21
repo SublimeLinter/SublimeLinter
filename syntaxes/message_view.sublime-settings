@@ -1,0 +1,14 @@
+{
+    "auto_indent": false,
+    "detect_indentation": false,
+    "draw_indent_guides": false,
+    "draw_white_space": "None",
+    "gutter": false,
+    "is_widget": true,
+    "line_numbers": false,
+    "rulers": false,
+    "scroll_past_end": false,
+    "spell_check": false,
+    "translate_tabs_to_spaces": false,
+    "word_wrap": false,
+}

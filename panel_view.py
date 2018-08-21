@@ -272,7 +272,7 @@ def create_panel(window):
     # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
     panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
-    syntax_path = "Packages/SublimeLinter/syntaxes/panel.sublime-syntax"
+    syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
     try:  # Try the resource first, in case we're in the middle of an upgrade
         sublime.load_resource(syntax_path)
     except Exception:

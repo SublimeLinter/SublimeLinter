@@ -1,4 +1,4 @@
-# SYNTAX TEST "Packages/SublimeLinter/syntaxes/panel.sublime-syntax"
+# SYNTAX TEST "Packages/SublimeLinter/panel/panel.sublime-syntax"
 
 highlight_view.py:
 # <- entity.name.filename.sublime_linter

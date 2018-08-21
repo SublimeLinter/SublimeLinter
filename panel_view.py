@@ -6,22 +6,6 @@ from .lint import events, util, persist
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
-OUTPUT_PANEL_SETTINGS = {
-    "auto_indent": False,
-    "draw_indent_guides": False,
-    "draw_white_space": "None",
-    "gutter": False,
-    "is_widget": True,
-    "line_numbers": False,
-    "match_brackets": False,
-    "rulers": False,
-    "scroll_past_end": False,
-    "spell_check": False,
-    "tab_size": 4,
-    "translate_tabs_to_spaces": False,
-    "word_wrap": False
-}
-
 
 State = {
     'active_view': None,
@@ -281,9 +265,6 @@ def panel_is_active(window):
 
 def create_panel(window):
     panel = window.create_output_panel(PANEL_NAME)
-    settings = panel.settings()
-    for key, value in OUTPUT_PANEL_SETTINGS.items():
-        settings.set(key, value)
 
     panel.settings().set("result_file_regex", r"^(.*):$")
     # row:col   type   linter: code   message
@@ -291,7 +272,7 @@ def create_panel(window):
     # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"
     panel.settings().set("result_line_regex", r"^ +(\d+)(?::(\d+))?.*")
 
-    syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"
+    syntax_path = "Packages/SublimeLinter/syntaxes/panel.sublime-syntax"
     try:  # Try the resource first, in case we're in the middle of an upgrade
         sublime.load_resource(syntax_path)
     except Exception:
@@ -348,8 +329,9 @@ def run_update_panel_cmd(panel, text=None):
 def format_row(item):
     line = item["line"] + 1
     start = item["start"] + 1
-    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}: {code:12} {msg}"
-    return tmpl.format(LINE=line, START=start, **item)
+    code = ":{code:12}".format(**item) if item['code'] else ''
+    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}{CODE} {msg}"
+    return tmpl.format(LINE=line, START=start, CODE=code, **item)
 
 
 def fill_panel(window):

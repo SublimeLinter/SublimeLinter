@@ -2,6 +2,7 @@
 
 highlight_view.py:
 # <- entity.name.filename.sublime_linter
+#^^^^^^^^^^^^^^^^ entity.name.filename.sublime_linter
 
 
    667:14   warning       flake8:E211         whitespace before '('

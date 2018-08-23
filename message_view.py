@@ -3,19 +3,6 @@ import sublime_plugin
 
 PANEL_NAME = "SublimeLinter Messages"
 OUTPUT_PANEL = "output." + PANEL_NAME
-OUTPUT_PANEL_SETTINGS = {
-    "auto_indent": False,
-    "draw_indent_guides": False,
-    "draw_white_space": "None",
-    "gutter": False,
-    "is_widget": True,
-    "line_numbers": False,
-    "rulers": False,
-    "scroll_past_end": False,
-    "spell_check": False,
-    "translate_tabs_to_spaces": False,
-    "word_wrap": False
-}
 
 
 def plugin_unloaded():
@@ -31,10 +18,6 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
             panel = window.find_output_panel(PANEL_NAME)
         else:
             panel = window.create_output_panel(PANEL_NAME)
-            settings = panel.settings()
-            for key, value in OUTPUT_PANEL_SETTINGS.items():
-                settings.set(key, value)
-
             syntax_path = "Packages/SublimeLinter/panel/message_view.sublime-syntax"
             try:  # Try the resource first, in case we're in the middle of an upgrade
                 sublime.load_resource(syntax_path)

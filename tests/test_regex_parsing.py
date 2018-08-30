@@ -42,6 +42,28 @@ class TestRegexBasedParsing(DeferrableTestCase):
 
         return linter
 
+    def test_basic_info(self):
+        linter = self.create_linter()
+
+        INPUT = "This is the source code."
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        drop_position_keys(result)
+
+        self.assertResult(
+            [
+                {
+                    'error_type': 'error',
+                    'code': 'ERROR',
+                    'msg': 'The message',
+                    'linter': 'fakelinter1',
+                }
+            ],
+            result,
+        )
+
     def test_no_offset(self):
         linter = self.create_linter()
 
@@ -50,20 +72,10 @@ class TestRegexBasedParsing(DeferrableTestCase):
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        drop_info_keys(result)
 
         self.assertResult(
-            [
-                {
-                    'line': 0,
-                    'start': 0,
-                    'end': 4,
-                    'error_type': 'error',
-                    'code': 'ERROR',
-                    'msg': 'The message',
-                    'region': sublime.Region(0, 4),
-                    'linter': 'fakelinter1',
-                }
-            ],
+            [{'line': 0, 'start': 0, 'end': 4, 'region': sublime.Region(0, 4)}],
             result,
         )
 
@@ -151,3 +163,4 @@ def drop_keys(keys, array, strict=False):
 
 
 drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter'])
+drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])

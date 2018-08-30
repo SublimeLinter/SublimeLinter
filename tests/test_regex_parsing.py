@@ -2,7 +2,13 @@ from functools import partial
 import unittest
 
 import sublime
-from SublimeLinter.lint import Linter, backend, persist, linter as linter_module
+from SublimeLinter.lint import (
+    Linter,
+    backend,
+    persist,
+    linter as linter_module,
+    util,
+)
 from unittesting import DeferrableTestCase
 
 from SublimeLinter.tests.mockito import when, patch, unstub, spy2 as spy
@@ -43,7 +49,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
 
     def create_linter(self):
         linter = FakeLinter1(self.view, settings={})
-        when(linter).which('fake_linter_1').thenReturn('fake_linter_1')
+        when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
         return linter
 

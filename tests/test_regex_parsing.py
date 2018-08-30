@@ -18,7 +18,12 @@ execute_lint_task = partial(
 class FakeLinter1(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
-    regex = r"^stdin:(?P<line>\d+):(?P<col>\d+)?\s(?P<error>ERROR):\s(?P<near>'[^']+')?(?P<message>.*)$"
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
     line_col_base = (1, 1)
 
 

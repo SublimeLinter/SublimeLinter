@@ -50,7 +50,7 @@ class MockRegistry:
         self.mocks.clear()
 
     def get_registered_mocks(self):
-        return list(self.mocks.values())
+        return self.mocks.values()
 
 
 # We have this dict like because we want non-hashable items in our registry.
@@ -64,7 +64,7 @@ class _Dict(object):
         self._store.append((key, value))
 
     def remove(self, key):
-        self._store = [k_v for k_v in self._store if k_v[0] != key]
+        self._store = [(k, v) for k, v in self._store if k != key]
 
     def pop(self, key):
         rv = self.get(key)

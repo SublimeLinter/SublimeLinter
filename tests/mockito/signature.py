@@ -60,7 +60,7 @@ def match_signature_allowing_placeholders(sig, args, kwargs):  # noqa: C901
         # arguments as well. So the strategy here is to strip off all
         # the keyword arguments from the signature, and do a partial
         # bind with the rest.
-        params = [p for n, p in list(sig.parameters.items())
+        params = [p for n, p in sig.parameters.items()
                   if p.kind not in (Parameter.KEYWORD_ONLY,
                                     Parameter.VAR_KEYWORD)]
         sig = sig.replace(parameters=params)
@@ -116,11 +116,11 @@ def match_signature_allowing_placeholders(sig, args, kwargs):  # noqa: C901
 
 
 def positional_arguments(sig):
-    return len([p for n, p in list(sig.parameters.items())
+    return len([p for n, p in sig.parameters.items()
                 if p.kind in (Parameter.POSITIONAL_ONLY,
                               Parameter.POSITIONAL_OR_KEYWORD)])
 
 def has_var_keyword(sig):
-    return any(p for n, p in list(sig.parameters.items())
+    return any(p for n, p in sig.parameters.items()
                if p.kind is Parameter.VAR_KEYWORD)
 

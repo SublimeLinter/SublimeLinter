@@ -41,7 +41,11 @@ def _invalid_argument(value):
 
 def _invalid_between(between):
     if between is not None:
-        start, end = between
+        try:
+            start, end = between
+        except Exception:
+            return True
+
         if start > end or start < 0:
             return True
     return False
@@ -55,7 +59,7 @@ def _get_wanted_verification(
     if _multiple_arguments_in_use(atleast, atmost, between):
         raise ArgumentError(
             "You can set only one of the arguments: 'atleast', "
-            "'atmost' or 'between'.""")
+            "'atmost' or 'between'.")
     if _invalid_argument(atleast):
         raise ArgumentError("'atleast' argument has invalid value.\n"
                             "It should be at least 1.  You wanted to set it "
@@ -63,12 +67,13 @@ def _get_wanted_verification(
     if _invalid_argument(atmost):
         raise ArgumentError("'atmost' argument has invalid value.\n"
                             "It should be at least 1.  You wanted to set it "
-                            "to: %i""" % atmost)
+                            "to: %i" % atmost)
     if _invalid_between(between):
-        raise ArgumentError("""'between' argument has invalid value.
-            It should consist of positive values with second number not greater
-            than first e.g. [1, 4] or [0, 3] or [2, 2]
-            You wanted to set it to: %s""" % between)
+        raise ArgumentError(
+            """'between' argument has invalid value.
+It should consist of positive values with second number not greater
+than first e.g. (1, 4) or (0, 3) or (2, 2).
+You wanted to set it to: %s""" % (between,))
 
     if atleast:
         return verification.AtLeast(atleast)
@@ -395,7 +400,7 @@ def verifyNoUnwantedInteractions(*objs):
     """
 
     if objs:
-        theMocks = list(map(_get_mock_or_raise, objs))
+        theMocks = map(_get_mock_or_raise, objs)
     else:
         theMocks = mock_registry.get_registered_mocks()
 
@@ -412,7 +417,7 @@ def verifyStubbedInvocationsAreUsed(*objs):
 
     """
     if objs:
-        theMocks = list(map(_get_mock_or_raise, objs))
+        theMocks = map(_get_mock_or_raise, objs)
     else:
         theMocks = mock_registry.get_registered_mocks()
 

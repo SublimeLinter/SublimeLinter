@@ -76,11 +76,33 @@ class Times(object):
         if actual_count == self.wanted_count:
                 return
         if actual_count == 0:
+            invocations = (
+                [
+                    invoc
+                    for invoc in invocation.mock.invocations
+                    if invoc.method_name == invocation.method_name
+                ] or
+                invocation.mock.invocations or
+                ['Nothing']
+            )
             raise VerificationError(
-                '\nWanted but not invoked:  %s'
-                '\nInstead got:             %s' %
-                (invocation,
-                 str(list(reversed(invocation.mock.invocations)))))
+                """
+Wanted but not invoked:
+
+    %s
+
+Instead got:
+
+    %s
+
+"""
+                % (
+                    invocation,
+                    "\n    ".join(
+                        str(invoc) for invoc in reversed(invocations)
+                    )
+                )
+            )
         else:
             if self.wanted_count == 0:
                 raise VerificationError(

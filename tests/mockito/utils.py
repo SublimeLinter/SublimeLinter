@@ -34,9 +34,11 @@ def get_function_host(fn):
     """
 
     obj = None
-    if inspect.ismethod(fn):
+    try:
         name = fn.__name__
         obj = fn.__self__
+    except AttributeError:
+        pass
 
     if obj is None:
         # Due to how python imports work, everything that is global on a module

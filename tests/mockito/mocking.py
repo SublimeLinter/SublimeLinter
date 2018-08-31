@@ -71,7 +71,10 @@ class Mock(object):
         if self.spec is None:
             return None
 
-        return self.spec.__dict__.get(method_name)
+        try:
+            return self.spec.__dict__.get(method_name)
+        except AttributeError:
+            return getattr(self.spec, method_name, None)
 
     def set_method(self, method_name, new_method):
         setattr(self.mocked_obj, method_name, new_method)
@@ -257,7 +260,7 @@ def mock(config_or_spec=None, spec=None, strict=OMITTED):
     obj = Dummy()
     theMock = Mock(Dummy, strict=strict, spec=spec)
 
-    for n, v in list(config.items()):
+    for n, v in config.items():
         if inspect.isfunction(v):
             invocation.StubbedInvocation(theMock, n)(Ellipsis).thenAnswer(v)
         else:

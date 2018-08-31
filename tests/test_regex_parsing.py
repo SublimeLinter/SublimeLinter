@@ -1,4 +1,5 @@
 from functools import partial
+import re
 import unittest
 
 import sublime
@@ -11,7 +12,15 @@ from SublimeLinter.lint import (
 )
 from unittesting import DeferrableTestCase
 
-from SublimeLinter.tests.mockito import when, patch, unstub, spy2 as spy
+from SublimeLinter.tests.mockito import (
+    when,
+    patch,
+    unstub,
+    spy,
+    spy2,
+    mock,
+    verify,
+)
 
 version = sublime.version()
 
@@ -33,6 +42,19 @@ class FakeLinter1(Linter):
     line_col_base = (1, 1)
 
 
+class FakeLinter1Multiline(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
+    multiline = True
+    line_col_base = (1, 1)
+
+
 class TestRegexBasedParsing(DeferrableTestCase):
     def setUp(self):
         self.view = sublime.active_window().new_file()
@@ -47,8 +69,12 @@ class TestRegexBasedParsing(DeferrableTestCase):
             self.view.window().run_command("close_file")
         unstub()
 
-    def create_linter(self):
-        linter = FakeLinter1(self.view, settings={})
+    def assertResult(self, expected, actual):
+        drop_keys(['uid', 'priority'], actual)
+        self.assertEqual(expected, actual)
+
+    def create_linter(self, linter_factory=FakeLinter1):
+        linter = linter_factory(self.view, settings={})
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
         return linter
@@ -155,7 +181,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
     def test_if_no_col_and_no_near_mark_line(self):
         # FIXME: Reported end is currently 9, but must be 10
 
-        spy(persist.settings.get)
+        spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
         linter = self.create_linter()
@@ -182,7 +208,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
     def test_mark_line_should_not_select_the_trailing_newline_char(self):
         # NOTE: Bc underlining the trailing \n looks ugly
 
-        spy(persist.settings.get)
+        spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
         linter = self.create_linter()
@@ -211,7 +237,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         # Proposed: Region(0, 10), but start and end == None
         # Wanted sideeffect: no underlining but just a gutter mark
 
-        spy(persist.settings.get)
+        spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
         linter = self.create_linter()
@@ -259,7 +285,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         )
 
     def test_if_no_col_but_near_and_search_fails_select_line(self):
-        spy(persist.settings.get)
+        spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
         linter = self.create_linter()
@@ -284,7 +310,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         )
 
     def test_if_no_col_but_near_and_search_fails_select_zero(self):
-        spy(persist.settings.get)
+        spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
         linter = self.create_linter()
@@ -301,9 +327,33 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def assertResult(self, expected, actual):
-        drop_keys(['uid', 'priority'], actual)
-        self.assertEqual(expected, actual)
+    def test_multiline_false(self):
+        linter = self.create_linter()
+        self.assertNotEqual(linter.regex.flags & re.MULTILINE, re.MULTILINE)
+
+        linter.regex = spy(linter.regex)
+
+        INPUT = "This is the source code."
+        OUTPUT = "One\nTwo\nThree"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        execute_lint_task(linter, INPUT)
+        verify(linter.regex).match('One')
+        verify(linter.regex).match('Two')
+        verify(linter.regex).match('Three')
+
+    def test_multiline_true(self):
+        linter = self.create_linter(FakeLinter1Multiline)
+        self.assertEqual(linter.regex.flags & re.MULTILINE, re.MULTILINE)
+
+        linter.regex = spy(linter.regex)
+
+        INPUT = "This is the source code."
+        OUTPUT = "One\nTwo\nThree"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        execute_lint_task(linter, INPUT)
+        verify(linter.regex).finditer(OUTPUT)
 
 
 def drop_keys(keys, array, strict=False):

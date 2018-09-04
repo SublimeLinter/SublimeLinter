@@ -41,7 +41,6 @@ class FakeLinter(Linter):
         (?P<near>'[^']+')?
         (?P<message>.*)$
     """
-    line_col_base = (1, 1)
 
 
 class FakeLinterNearSingleQuoted(Linter):
@@ -87,7 +86,17 @@ class FakeLinterMultiline(Linter):
         (?P<message>.*)$
     """
     multiline = True
-    line_col_base = (1, 1)
+
+
+class FakeLinterColMatchesALength(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>x+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
 
 
 class TestRegexBasedParsing(DeferrableTestCase):
@@ -459,6 +468,39 @@ class TestRegexBasedParsing(DeferrableTestCase):
 
         execute_lint_task(linter, INPUT)
         verify(linter.regex).finditer(OUTPUT)
+
+    def test_if_col_matches_not_a_digit_evaluate_its_length(self):
+        # XXX: BUG?
+        """
+        This is the source code.
+        ^^^^^
+        stdin:1:xxxxx ERROR: The message
+
+        In this mode, SL assumes a col base of 0 (it does not apply
+        `line_col_base`), but it should (usually) be 1 based bc if you
+        visually mark the `is` below, you do something like this
+
+        This is the source code.
+        ^^^^^^   (_the 6th_ mark is where the offending code begins)
+             ^^  (_after_ 5 space marks the offending code underlining begins)
+
+        See how javac linter works around here:
+        https://github.com/SublimeLinter/SublimeLinter-javac/blob/1ec3a052f32dcba2c3d404f1024ff728a84225e7/linter.py#L10
+        """
+
+        linter = self.create_linter(FakeLinterColMatchesALength)
+
+        INPUT = "This is the source code."
+        OUTPUT = "stdin:1:xxxxx ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        drop_info_keys(result)
+
+        self.assertResult(
+            [{'line': 0, 'start': 5, 'end': 7, 'region': sublime.Region(5, 7)}],
+            result,
+        )
 
 
 def drop_keys(keys, array, strict=False):

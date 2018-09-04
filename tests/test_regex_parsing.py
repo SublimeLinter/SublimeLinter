@@ -2,6 +2,8 @@ from functools import partial
 import re
 import unittest
 
+from SublimeLinter.tests.parameterized import parameterized as p
+
 import sublime
 from SublimeLinter.lint import (
     Linter,
@@ -101,11 +103,17 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_no_offset(self):
+    @p.expand(
+        [
+            ((0, 0), "stdin:0:0 ERROR: The message"),
+            ((1, 1), "stdin:1:1 ERROR: The message"),
+        ]
+    )
+    def test_no_offset(self, line_col_base, OUTPUT):
         linter = self.create_linter()
+        linter.line_col_base = line_col_base
 
         INPUT = "This is the source code."
-        OUTPUT = "stdin:1:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT, offset=(0, 0))

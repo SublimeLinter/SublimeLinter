@@ -114,6 +114,9 @@ class TestRegexBasedParsing(DeferrableTestCase):
 
         return linter
 
+    def set_buffer_content(self, content):
+        self.view.run_command('append', {'characters': content})
+
     def test_basic_info(self):
         linter = self.create_linter()
 
@@ -157,43 +160,57 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_col_and_on_a_word_apply_offset_first_line(self):
+    def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        INPUT = "This is the source code."
+        INPUT = "This is the extracted source code."
+        x, y = offset
+        prefix = '\n' * x + ' ' * y
+        self.set_buffer_content(prefix + INPUT)
+
         OUTPUT = "stdin:1:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=(5, 10))
+        result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
+        char_offset = x + y
         self.assertResult(
             [
                 {
-                    'line': 5,
-                    'start': 10,
-                    'end': 14,
-                    'region': sublime.Region(10, 14),
+                    'line': x + 0,
+                    'start': y + 0,
+                    'end': y + 4,
+                    'region': sublime.Region(char_offset + 0, char_offset + 4),
                 }
             ],
             result,
         )
 
-    def test_if_col_and_on_a_word_apply_offset_next_line(self):
+    def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        # XXX: Make readable
-        when(self.view).text_point(6, 0).thenReturn(2)  # <==========
+        INPUT = "\nThis is the extracted source code."
+        x, y = offset
+        prefix = '\n' * x + ' ' * y
+        self.set_buffer_content(prefix + INPUT)
 
-        INPUT = " \nThis is the source code."
         OUTPUT = "stdin:2:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=(5, 10))
+        result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
+        char_offset = x + y + 1  # + 1 bc of the leading '\n' in INPUT
         self.assertResult(
-            [{'line': 6, 'start': 0, 'end': 4, 'region': sublime.Region(2, 6)}],
+            [
+                {
+                    'line': x + 1,
+                    'start': 0,
+                    'end': 4,
+                    'region': sublime.Region(char_offset + 0, char_offset + 4),
+                }
+            ],
             result,
         )
 

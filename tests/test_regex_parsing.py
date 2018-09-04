@@ -16,6 +16,7 @@ from unittesting import DeferrableTestCase
 
 from SublimeLinter.tests.mockito import (
     when,
+    expect,
     patch,
     unstub,
     spy,
@@ -523,6 +524,18 @@ class TestRegexBasedParsing(DeferrableTestCase):
             ],
             result,
         )
+
+    def test_if_line_out_of_bounds_bail(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:100:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        with expect(linter, times=1).notify_failure():
+            result = execute_lint_task(linter, INPUT)
+
+        self.assertResult([], result)
 
 
 def drop_keys(keys, array, strict=False):

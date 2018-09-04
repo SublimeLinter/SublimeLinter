@@ -502,6 +502,28 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
+    def test_if_col_out_of_bounds_set_to_last_char(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:100 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_info_keys(result)
+
+        self.assertResult(
+            [
+                {
+                    'line': 0,
+                    'start': 9,
+                    'end': 10,
+                    'region': sublime.Region(9, 10),
+                }
+            ],
+            result,
+        )
+
 
 def drop_keys(keys, array, strict=False):
     rv = []

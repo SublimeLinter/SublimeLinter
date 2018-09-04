@@ -142,7 +142,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
             ((1, 1), "stdin:1:1 ERROR: The message"),
         ]
     )
-    def test_no_offset(self, line_col_base, OUTPUT):
+    def test_if_col_and_on_a_word_no_offset(self, line_col_base, OUTPUT):
         linter = self.create_linter()
         linter.line_col_base = line_col_base
 
@@ -157,7 +157,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_apply_offset(self):
+    def test_if_col_and_on_a_word_apply_offset(self):
         linter = self.create_linter()
 
         INPUT = "This is the source code."

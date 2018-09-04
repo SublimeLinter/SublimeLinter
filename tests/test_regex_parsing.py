@@ -44,6 +44,39 @@ class FakeLinter(Linter):
     line_col_base = (1, 1)
 
 
+class FakeLinterNearSingleQuoted(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
+
+
+class FakeLinterNearDoubleQuoted(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>\"[^\"]+\")?
+        (?P<message>.*)$
+    """
+
+
+class FakeLinterNearNotQuoted(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        ('(?P<near>[^']+)')?
+        (?P<message>.*)$
+    """
+
+
 class FakeLinterMultiline(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
@@ -262,11 +295,17 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_col_and_near_set_length(self):
-        linter = self.create_linter()
+    @p.expand(
+        [
+            (FakeLinterNearSingleQuoted, "stdin:1:2 ERROR: '....' The message"),
+            (FakeLinterNearDoubleQuoted, 'stdin:1:2 ERROR: "...." The message'),
+            (FakeLinterNearNotQuoted, "stdin:1:2 ERROR: '....' The message"),
+        ]
+    )
+    def test_if_col_and_near_set_length(self, linter_class, OUTPUT):
+        linter = self.create_linter(linter_class)
 
         INPUT = "0123456789"
-        OUTPUT = "stdin:1:2 ERROR: '....' The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -277,11 +316,17 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_no_col_but_near_search_term(self):
-        linter = self.create_linter()
+    @p.expand(
+        [
+            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+        ]
+    )
+    def test_if_no_col_but_near_search_term(self, linter_class, OUTPUT):
+        linter = self.create_linter(linter_class)
 
         INPUT = "0123 foo 456789"
-        OUTPUT = "stdin:1: ERROR: 'foo' The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -292,14 +337,22 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_no_col_but_near_and_search_fails_select_line(self):
+    @p.expand(
+        [
+            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+        ]
+    )
+    def test_if_no_col_but_near_and_search_fails_select_line(
+        self, linter_class, OUTPUT
+    ):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
-        linter = self.create_linter()
+        linter = self.create_linter(linter_class)
 
         INPUT = "0123456789\n"
-        OUTPUT = "stdin:1: ERROR: 'foo' The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -317,14 +370,22 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_no_col_but_near_and_search_fails_select_zero(self):
+    @p.expand(
+        [
+            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+        ]
+    )
+    def test_if_no_col_but_near_and_search_fails_select_zero(
+        self, linter_class, OUTPUT
+    ):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
-        linter = self.create_linter()
+        linter = self.create_linter(linter_class)
 
         INPUT = "0123456789\n"
-        OUTPUT = "stdin:1: ERROR: 'foo' The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)

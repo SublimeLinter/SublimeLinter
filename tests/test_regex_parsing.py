@@ -133,7 +133,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         OUTPUT = "stdin:1:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
 
         self.assertResult(
@@ -161,7 +161,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         INPUT = "This is the source code."
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        result = execute_lint_task(linter, INPUT)
         drop_info_keys(result)
 
         self.assertResult(
@@ -494,7 +494,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         OUTPUT = "stdin:1:xxxxx ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=(0, 0))
+        result = execute_lint_task(linter, INPUT)
         drop_info_keys(result)
 
         self.assertResult(

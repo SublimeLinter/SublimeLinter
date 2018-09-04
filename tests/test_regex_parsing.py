@@ -157,7 +157,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
-    def test_if_col_and_on_a_word_apply_offset(self):
+    def test_if_col_and_on_a_word_apply_offset_first_line(self):
         linter = self.create_linter()
 
         INPUT = "This is the source code."
@@ -179,9 +179,28 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
+    def test_if_col_and_on_a_word_apply_offset_next_line(self):
+        linter = self.create_linter()
+
+        # XXX: Make readable
+        when(self.view).text_point(6, 0).thenReturn(2)  # <==========
+
+        INPUT = " \nThis is the source code."
+        OUTPUT = "stdin:2:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT, offset=(5, 10))
+        drop_info_keys(result)
+
+        self.assertResult(
+            [{'line': 6, 'start': 0, 'end': 4, 'region': sublime.Region(2, 6)}],
+            result,
+        )
+
     def test_apply_line_start(self):
         linter = self.create_linter()
 
+        # XXX: Make readable
         when(self.view).text_point(0, 0).thenReturn(100)  # <==========
 
         INPUT = "This is the source code."

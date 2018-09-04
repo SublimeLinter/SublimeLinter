@@ -30,7 +30,7 @@ execute_lint_task = partial(
 )
 
 
-class FakeLinter1(Linter):
+class FakeLinter(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -42,7 +42,7 @@ class FakeLinter1(Linter):
     line_col_base = (1, 1)
 
 
-class FakeLinter1Multiline(Linter):
+class FakeLinterMultiline(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -73,7 +73,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         drop_keys(['uid', 'priority'], actual)
         self.assertEqual(expected, actual)
 
-    def create_linter(self, linter_factory=FakeLinter1):
+    def create_linter(self, linter_factory=FakeLinter):
         linter = linter_factory(self.view, settings={})
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
@@ -95,7 +95,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
                     'error_type': 'error',
                     'code': 'ERROR',
                     'msg': 'The message',
-                    'linter': 'fakelinter1',
+                    'linter': 'fakelinter',
                 }
             ],
             result,
@@ -343,7 +343,7 @@ class TestRegexBasedParsing(DeferrableTestCase):
         verify(linter.regex).match('Three')
 
     def test_multiline_true(self):
-        linter = self.create_linter(FakeLinter1Multiline)
+        linter = self.create_linter(FakeLinterMultiline)
         self.assertEqual(linter.regex.flags & re.MULTILINE, re.MULTILINE)
 
         linter.regex = spy(linter.regex)

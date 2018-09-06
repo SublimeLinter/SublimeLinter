@@ -50,7 +50,7 @@ class FakeLinterNearSingleQuoted(Linter):
     regex = r"""(?x)
         ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
         (?P<error>ERROR):\s
-        (?P<near>'[^']+')?
+        (?P<near>'[^']*')?
         (?P<message>.*)$
     """
 
@@ -61,7 +61,7 @@ class FakeLinterNearDoubleQuoted(Linter):
     regex = r"""(?x)
         ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
         (?P<error>ERROR):\s
-        (?P<near>\"[^\"]+\")?
+        (?P<near>\"[^\"]*\")?
         (?P<message>.*)$
     """
 
@@ -72,7 +72,7 @@ class FakeLinterNearNotQuoted(Linter):
     regex = r"""(?x)
         ^stdin:(?P<line>\d+):(?P<col>\d+)?\s
         (?P<error>ERROR):\s
-        ('(?P<near>[^']+)')?
+        ('(?P<near>[^']*)')?
         (?P<message>.*)$
     """
 
@@ -432,6 +432,46 @@ class TestRegexBasedParsing(DeferrableTestCase):
         linter = self.create_linter(linter_class)
 
         INPUT = "0123456789\n"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_info_keys(result)
+
+        self.assertResult(
+            [{'line': 0, 'start': 0, 'end': 0, 'region': sublime.Region(0, 1)}],
+            result,
+        )
+
+    @p.expand(
+        [
+            (
+                FakeLinterNearSingleQuoted,
+                "0123 '' 456789",
+                "stdin:1: ERROR: '' The message",
+            ),
+            (
+                FakeLinterNearDoubleQuoted,
+                '0123 "" 456789',
+                'stdin:1: ERROR: "" The message',
+            ),
+            # (  # currently passes
+            #     FakeLinterNearNotQuoted,
+            #     "0123 '' 456789",
+            #     "stdin:1: ERROR: '' The message",
+            # ),
+        ]
+    )
+    @unittest.expectedFailure
+    def test_ensure_empty_quotes_dont_match_anything(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        # TODO Fix wrong fix for #1028
+
+        spy2(persist.settings.get)
+        when(persist.settings).get('no_column_highlights_line').thenReturn(False)
+
+        linter = self.create_linter(linter_class)
+
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)

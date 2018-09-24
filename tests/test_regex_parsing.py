@@ -482,6 +482,43 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result,
         )
 
+    @p.expand(
+        [
+            # (  # currently passes
+            #     FakeLinterNearSingleQuoted,
+            #     "0123 'foo' 456789",
+            #     "stdin:1: ERROR: 'foo' The message",
+            # ),
+            (
+                FakeLinterNearDoubleQuoted,
+                '0123 "foo" 456789',
+                'stdin:1: ERROR: "foo" The message',
+            ),
+            # (  # currently passes
+            #     FakeLinterNearNotQuoted,
+            #     "0123 'foo' 456789",
+            #     "stdin:1: ERROR: 'foo' The message",
+            # ),
+        ]
+    )
+    @unittest.expectedFailure
+    def test_ensure_correct_mark_when_input_is_quoted(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        # XXX: BUG
+
+        linter = self.create_linter(linter_class)
+
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_info_keys(result)
+
+        self.assertResult(
+            [{'line': 0, 'start': 6, 'end': 9, 'region': sublime.Region(6, 9)}],
+            result,
+        )
+
     def test_multiline_false(self):
         linter = self.create_linter()
         self.assertNotEqual(linter.regex.flags & re.MULTILINE, re.MULTILINE)

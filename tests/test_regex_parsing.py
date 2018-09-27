@@ -28,8 +28,9 @@ from SublimeLinter.tests.mockito import (
 version = sublime.version()
 
 
+VIEW_UNCHANGED = lambda: False
 execute_lint_task = partial(
-    backend.execute_lint_task, offset=(0, 0), view_has_changed=lambda: False
+    backend.execute_lint_task, offset=(0, 0), view_has_changed=VIEW_UNCHANGED
 )
 
 
@@ -100,7 +101,7 @@ class FakeLinterColMatchesALength(Linter):
     """
 
 
-class TestRegexBasedParsing(DeferrableTestCase):
+class _BaseTestCase(DeferrableTestCase):
     def setUp(self):
         self.view = sublime.active_window().new_file()
         # make sure we have a window to work with
@@ -127,6 +128,8 @@ class TestRegexBasedParsing(DeferrableTestCase):
     def set_buffer_content(self, content):
         self.view.run_command('append', {'characters': content})
 
+
+class TestRegexBasedParsing(_BaseTestCase):
     def test_basic_info(self):
         linter = self.create_linter()
 
@@ -613,6 +616,128 @@ class TestRegexBasedParsing(DeferrableTestCase):
             result = execute_lint_task(linter, INPUT)
 
         self.assertResult([], result)
+
+
+class TestSplitMatchContract(_BaseTestCase):
+    # Here we execute `linter.lint` bc `backend.execute_lint_task` eats all
+    # exceptions by logging them.
+
+    def test_ensure_not_called_with_none(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:foo"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        with expect(linter, times=0).split_match(None):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_super_match_can_be_split(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        assert_equal = self.assertEqual
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            assert_equal(match, match_)
+            assert_equal(line, m.line)
+            assert_equal(col, m.col)
+            assert_equal(error, m.error)
+            assert_equal(warning, m.warning)
+            assert_equal(message, m.message)
+            assert_equal(near, m.near)
+            return m
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_allow_tuple_as_result(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return match_, line, col, error, warning, message, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(1, len(result))
+
+    @p.expand([('empty_string', ''), ('none', None), ('false', False)])
+    def test_do_not_pass_if_falsy_return_value(self, _, FALSY):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        with expect(linter, times=1).split_match(...).thenReturn(FALSY):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertResult([], result)
+
+    @p.expand([('empty_string', ''), ('none', None), ('false', False)])
+    def test_do_not_pass_if_1st_item_is_falsy(self, _, FALSY):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return FALSY, line, col, error, warning, message, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(0, len(result))
+
+    def test_do_not_pass_if_2nd_item_is_None(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return match_, None, col, error, warning, message, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(0, len(result))
+
+    @p.expand([('empty_string', ''), ('none', None), ('false', False)])
+    def test_do_not_pass_if_5th_item_is_falsy(self, _, FALSY):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return match_, line, col, error, warning, FALSY, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(0, len(result))
 
 
 def drop_keys(keys, array, strict=False):

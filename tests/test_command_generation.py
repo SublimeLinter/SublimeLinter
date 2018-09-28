@@ -1,4 +1,4 @@
-from SublimeLinter.tests.parameterized import parameterized as p
+from unittest import skip, expectedFailure
 
 import sublime
 from SublimeLinter.lint import (
@@ -8,8 +8,9 @@ from SublimeLinter.lint import (
     linter as linter_module,
     util,
 )
-from unittesting import DeferrableTestCase
 
+from unittesting import DeferrableTestCase
+from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
     when,
     expect,
@@ -22,7 +23,7 @@ from SublimeLinter.tests.mockito import (
 )
 
 
-VIEW_UNCHANGED = lambda: False
+VIEW_UNCHANGED = lambda: False  # noqa: E731
 INPUT = '0123456789'
 
 
@@ -197,3 +198,69 @@ class TestArgsDSL(_BaseTestCase):
         linter = FakeLinterArgDSL(self.view, settings)
         with expect(linter)._communicate(['fake_linter_1'], ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
+
+
+class TestArgsSetting(_BaseTestCase):
+    @p.expand([
+        ({'args': ['-f', '/b']}, ['fake_linter_1', '-f', '/b', 'end']),
+        # simple splitting
+        ({'args': '-f /b'}, ['fake_linter_1', '-f', '/b', 'end']),
+    ])
+    def test_args_explicitly_placed(self, settings, result):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '${args}', 'end')
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, settings)
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @p.expand([
+        ({'args': ['-f', '/b']}, ['fake_linter_1', 'end', '-f', '/b']),
+        # simple splitting
+        ({'args': '-f /b'}, ['fake_linter_1', 'end', '-f', '/b']),
+    ])
+    def test_args_implicitly_placed_at_end(self, settings, result):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', 'end')
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, settings)
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @expectedFailure
+    def test_splits_context_variables_correctly(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        var = 'C:\\foo bar\\my config.file'
+        settings = linter_module.LinterSettings(
+            {'args': '-c=${var}'},
+            {'var': var}
+        )
+        linter = FakeLinter(self.view, settings)
+        result = ['fake_linter_1', '-c={}'.format(var)]
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+
+# TODO
+# 'executable'
+#  can be string
+#  in which case which is called
+#  can be array
+#
+#
+
+# 'working_dir'
+# if set, throws if not exists
+# show default behavior
+# - selects good folder if multiple folders open
+# - selects first folder if no filename
+# - or dirname of file
+#
+#
+
+#

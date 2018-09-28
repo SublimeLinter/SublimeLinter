@@ -169,7 +169,6 @@ class TestArgsDSL(_BaseTestCase):
                 arg: None
             }
             cmd = 'fake_linter_1'
-            regex = r''
 
         linter = FakeLinterArgDSL(self.view, settings)
         cmd = ['fake_linter_1'] + result
@@ -194,9 +193,7 @@ class TestArgsDSL(_BaseTestCase):
                 arg: None
             }
             cmd = 'fake_linter_1'
-            regex = r''
 
         linter = FakeLinterArgDSL(self.view, settings)
         when(linter)._communicate(['fake_linter_1'], ...)
         linter.lint(INPUT, VIEW_UNCHANGED)
-

@@ -172,8 +172,8 @@ class TestArgsDSL(_BaseTestCase):
 
         linter = FakeLinterArgDSL(self.view, settings)
         cmd = ['fake_linter_1'] + result
-        when(linter)._communicate(cmd, ...)
-        linter.lint(INPUT, VIEW_UNCHANGED)
+        with expect(linter)._communicate(cmd, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
 
     @p.expand([
         ('-a', {'a': None}),
@@ -195,5 +195,5 @@ class TestArgsDSL(_BaseTestCase):
             cmd = 'fake_linter_1'
 
         linter = FakeLinterArgDSL(self.view, settings)
-        when(linter)._communicate(['fake_linter_1'], ...)
-        linter.lint(INPUT, VIEW_UNCHANGED)
+        with expect(linter)._communicate(['fake_linter_1'], ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)

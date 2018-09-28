@@ -246,14 +246,51 @@ class TestArgsSetting(_BaseTestCase):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
 
-# TODO
-# 'executable'
-#  can be string
-#  in which case which is called
-#  can be array
-#
-#
+class TestExecutableSetting(_BaseTestCase):
 
+    def test_executable_is_none(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'executable': None}
+        result = ['fake_linter_1']
+
+        linter = FakeLinter(self.view, settings)
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_executable_is_set_to_a_string(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'executable': 'my_linter'}
+        result = ['my_linter']
+
+        linter = FakeLinter(self.view, settings)
+        # XXX: We probably don't need to test `can_exec`
+        # - Popen will also throw and show the error panel
+        # - User could just set e.g. 'linter.exe', and the OS will use PATH
+        #   to resolve that automatically
+        # - We don't check for arrays, see below
+        with when(util).can_exec('my_linter').thenReturn(True), \
+             expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_executable_is_set_to_an_array(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'executable': ['my_interpreter', 'my_linter']}
+        result = ['my_interpreter', 'my_linter']
+
+        linter = FakeLinter(self.view, settings)
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+# TODO
 # 'working_dir'
 # if set, throws if not exists
 # show default behavior
@@ -263,4 +300,6 @@ class TestArgsSetting(_BaseTestCase):
 #
 #
 
-#
+# PythonLinter
+# - python setting
+# - pipenv

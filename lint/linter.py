@@ -952,8 +952,8 @@ class Linter(metaclass=LinterMeta):
 
         if logger.isEnabledFor(logging.INFO):
             import textwrap
-            logger.info('{} output:\n{}'.format(
-                self.name, textwrap.indent(output.strip(), 4 * ' ')))
+            logger.info('{}: output:\n{}'.format(
+                self.name, textwrap.indent(output.strip(), '  ')))
 
         errors = []
         for m in self.find_errors(output):

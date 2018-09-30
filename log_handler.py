@@ -62,7 +62,7 @@ def _install_std_handler(level=False):
             level = logging.getLevelName(level.upper())
 
         formatter = TaskNumberFormatter(
-            fmt="SublimeLinter: {TASK_NUMBER}{filename}:{lineno}: {LEVELNAME}{message}",
+            fmt="SublimeLinter: {LOC:<22} {LEVELNAME}{message}",
             style='{')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
@@ -111,6 +111,8 @@ class TaskNumberFormatter(logging.Formatter):
             record.LEVELNAME = record.levelname + ': '
         else:
             record.LEVELNAME = ''
+
+        record.LOC = '{}{}:{}'.format(record.TASK_NUMBER, record.filename, record.lineno)
 
         return super().format(record)
 

@@ -883,8 +883,8 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
-            'Checking lint mode {} vs lint reason {}'
-            .format(lint_mode, reason)
+            "{}: checking lint mode '{}' vs lint reason '{}'"
+            .format(self.name, lint_mode, reason)
         )
 
         return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]

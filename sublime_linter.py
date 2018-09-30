@@ -247,7 +247,10 @@ def hit(view, reason=None):
     bid = view.buffer_id()
 
     delay = get_delay() if not reason else 0.0
-    logger.info('Delay buffer {} for {:.2}s'.format(bid, delay))
+    logger.info(
+        "Delay linting '{}' for {:.2}s"
+        .format(util.canonical_filename(view), delay)
+    )
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
     fn = partial(lint, view, view_has_changed, lock, reason)
@@ -283,7 +286,9 @@ def lint(view, view_has_changed, lock, reason=None):
 
     events.broadcast(events.LINT_START, {'buffer_id': bid})
 
-    with remember_runtime(bid):
+    with remember_runtime(
+        "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
+    ):
         sink = partial(update_buffer_errors, bid, view_has_changed)
         backend.lint_view(linters, view, view_has_changed, sink)
 
@@ -434,14 +439,14 @@ def get_delay():
 
 
 @contextmanager
-def remember_runtime(bid):
+def remember_runtime(log_msg):
     start_time = time.time()
 
     yield
 
     end_time = time.time()
     runtime = end_time - start_time
-    logger.info('Linting buffer {} took {:.2f}s'.format(bid, runtime))
+    logger.info(log_msg.format(runtime))
 
     with global_lock:
         elapsed_runtimes.append(runtime)

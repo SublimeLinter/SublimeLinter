@@ -899,12 +899,9 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        canonical_filename = (
-            os.path.basename(self.view.file_name()) if self.view.file_name()
-            else '<untitled {}>'.format(self.view.buffer_id()))
         logger.info(
-            "'{}' is linting '{}'"
-            .format(self.name, canonical_filename))
+            "{}: linting '{}'"
+            .format(self.name, util.canonical_filename(self.view)))
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`

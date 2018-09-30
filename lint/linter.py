@@ -947,6 +947,7 @@ class Linter(metaclass=LinterMeta):
 
     def parse_output_via_regex(self, output, virtual_view):
         if not output:
+            logger.info('{}: no output'.format(self.name))
             return []
 
         if logger.isEnabledFor(logging.INFO):

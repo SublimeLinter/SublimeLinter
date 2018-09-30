@@ -275,7 +275,7 @@ class TestExecutableSetting(_BaseTestCase):
         #   to resolve that automatically
         # - We don't check for arrays, see below
         with when(util).can_exec('my_linter').thenReturn(True), \
-             expect(linter)._communicate(result, ...):
+             expect(linter)._communicate(result, ...):  # noqa: E127
             linter.lint(INPUT, VIEW_UNCHANGED)
 
     def test_executable_is_set_to_an_array(self):

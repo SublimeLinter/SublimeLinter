@@ -55,7 +55,9 @@ class ComposerLinter(linter.Linter):
         if global_cmd:
             return True, global_cmd
         else:
-            logger.warning("{} cannot locate '{}'".format(self.name, cmd[0]))
+            logger.warning('{} cannot locate \'{}\'\n'
+                           'Please refer to the readme of this plugin and our troubleshooting guide: '
+                           'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, cmd[0]))
             return True, None
 
     def get_manifest_path(self):

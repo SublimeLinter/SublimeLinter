@@ -660,7 +660,7 @@ class Linter(metaclass=LinterMeta):
                 path = self.which(which)
 
             if not path:
-                logger.warning('{} cannot locate \'{}\''
+                logger.warning('{} cannot locate \'{}\'\n'
                                'Please refer to the readme of this plugin and our troubleshooting guide: '
                                'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, which))
                 return None

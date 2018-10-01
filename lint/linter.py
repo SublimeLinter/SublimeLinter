@@ -885,8 +885,8 @@ class Linter(metaclass=LinterMeta):
         settings = self.get_view_settings()
         lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
-            'Checking lint mode {} vs lint reason {}'
-            .format(lint_mode, reason)
+            "{}: checking lint mode '{}' vs lint reason '{}'"
+            .format(self.name, lint_mode, reason)
         )
 
         return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
@@ -901,12 +901,9 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        canonical_filename = (
-            os.path.basename(self.view.file_name()) if self.view.file_name()
-            else '<untitled {}>'.format(self.view.buffer_id()))
         logger.info(
-            "'{}' is linting '{}'"
-            .format(self.name, canonical_filename))
+            "{}: linting '{}'"
+            .format(self.name, util.canonical_filename(self.view)))
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
@@ -949,12 +946,13 @@ class Linter(metaclass=LinterMeta):
 
     def parse_output_via_regex(self, output, virtual_view):
         if not output:
+            logger.info('{}: no output'.format(self.name))
             return []
 
         if logger.isEnabledFor(logging.INFO):
             import textwrap
-            logger.info('{} output:\n{}'.format(
-                self.name, textwrap.indent(output.strip(), 4 * ' ')))
+            logger.info('{}: output:\n{}'.format(
+                self.name, textwrap.indent(output.strip(), '  ')))
 
         errors = []
         for m in self.find_errors(output):

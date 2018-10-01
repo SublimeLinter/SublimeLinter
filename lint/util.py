@@ -76,6 +76,13 @@ def distinct_until_selection_changed(method):
     return wrapper
 
 
+def canonical_filename(view):
+    return (
+        os.path.basename(view.file_name()) if view.file_name()
+        else '<untitled {}>'.format(view.buffer_id())
+    )
+
+
 def get_syntax(view):
     """
     Return the view's syntax.

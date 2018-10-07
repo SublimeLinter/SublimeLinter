@@ -109,7 +109,7 @@ class ComposerLinter(linter.Linter):
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
-        """Recursively finds command binary in ancestors' vendor/bin dir."""
+        """Recursively finds command binary in vendor/bin folders."""
         vendor_bin = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
         binary = shutil.which(cmd, path=vendor_bin)

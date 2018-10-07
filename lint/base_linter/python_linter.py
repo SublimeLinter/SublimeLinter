@@ -173,7 +173,8 @@ def extract_major_minor_version(version):
     match = VERSION_RE.match(version)
 
     if match:
-        return {key: int(value) if value is not None else None for key, value in match.groupdict().items()}
+        items = match.groupdict().items()
+        return {k: int(v) if v is not None else None for k, v in items}
     else:
         return {'major': None, 'minor': None}
 

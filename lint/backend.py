@@ -64,7 +64,8 @@ def get_lint_tasks(linters, view, view_has_changed):
             # using the ThreadPoolExecutor. (This feature has been introduced
             # in python 3.6.) So, we do this manually.
             task_name = make_good_task_name(linter, view)
-            task = partial(execute_lint_task, linter, code, offset, view_has_changed)
+            task = partial(
+                execute_lint_task, linter, code, offset, view_has_changed)
             executor = partial(modify_thread_name, task_name, task)
             tasks.append(executor)
 

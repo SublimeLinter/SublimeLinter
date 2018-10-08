@@ -32,9 +32,12 @@ def read_gutter_theme():
 
 
 def get_value(key, error, default=None):
-    linter, code, error_type = error['linter'], error['code'], error['error_type']
+    linter = error['linter']
+    code = error['code'],
+    error_type = error['error_type']
 
-    linter_styles = persist.settings.get('linters', {}).get(linter, {}).get('styles', [])
+    linter_styles = persist.settings.get('linters', {}).get(linter, {}).get(
+        'styles', [])
     global_styles = persist.settings.get('styles', [])
     default_styles = get_default_styles()
 
@@ -85,7 +88,7 @@ def get_default_styles():
 def get_icon(error):
     icon = get_value('icon', error, 'none')
 
-    if icon in ('circle', 'dot', 'bookmark', 'none'):  # Sublime Text has some default icons
+    if icon in ('circle', 'dot', 'bookmark', 'none'):  # ST has default icons
         return icon
     elif icon != os.path.basename(icon):
         return icon

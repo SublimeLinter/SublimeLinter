@@ -158,7 +158,8 @@ def importing_fromlist_aggresively(modules):
     orig___import__ = builtins.__import__
 
     @functools.wraps(orig___import__)
-    def __import__(name, globals=None, locals=None, fromlist=(), level=0):  # noqa: D4
+    def __import__(name, globals=None, locals=None, fromlist=(), level=0):
+        # noqa: D4
         """Given an import statement like this:
 
             from .some.module import something

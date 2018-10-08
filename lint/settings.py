@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class Settings:
-    """This class provides global access to and management of plugin settings."""
+    """Provides global access to and management of plugin settings."""
 
     def __init__(self):
         self._storage = {}
@@ -46,7 +46,8 @@ class Settings:
         """Observe changes."""
         settings = sublime.load_settings("SublimeLinter.sublime-settings")
         settings.clear_on_change('sublimelinter-persist-settings')
-        settings.add_on_change('sublimelinter-persist-settings', self.on_update)
+        settings.add_on_change(
+            'sublimelinter-persist-settings', self.on_update)
 
     def unobserve(self):
         settings = sublime.load_settings("SublimeLinter.sublime-settings")
@@ -221,7 +222,8 @@ def print_deprecation_message(settings):
     new_settings = {}
     for linter_name, linter_settings in settings.get('linters', {}).items():
         for key, value in linter_settings.items():
-            new_settings['.'.join(('SublimeLinter', 'linters', linter_name, key))] = value
+            new_settings[
+            '.'.join(('SublimeLinter', 'linters', linter_name, key))] = value
 
     if not new_settings:
         # User has an empty SublimeLinter obj in their project file. So we

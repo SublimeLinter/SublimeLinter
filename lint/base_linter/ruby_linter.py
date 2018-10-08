@@ -28,7 +28,8 @@ class RubyLinter(linter.Linter):
 
     def context_sensitive_executable_path(self, cmd):
         """
-        Attempt to locate the gem and ruby specified in cmd, return new cmd list.
+        Attempt to locate the gem and ruby specified in cmd and return new cmd
+        list.
 
         The following forms are valid:
 
@@ -64,7 +65,8 @@ class RubyLinter(linter.Linter):
             ruby = util.which('jruby')
 
         if not rbenv and not ruby:
-            msg = '{} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby'.format(self.name, cmd[0])
+            msg = '{} deactivated, cannot locate ruby, rbenv or '
+            'rvm-auto-ruby'.format(self.name, cmd[0])
             logger.warning(msg)
             return True, None
 
@@ -86,14 +88,16 @@ class RubyLinter(linter.Linter):
             if gem_path:
                 if (rbenv and
                     ('{0}.rbenv{0}shims{0}'.format(os.sep) in gem_path or
-                     (os.altsep and '{0}.rbenv{0}shims{0}'.format(os.altsep in gem_path)))):
+                     (os.altsep and '{0}.rbenv{0}shims{0}'.format(
+                        os.altsep in gem_path)))):
                     ruby_cmd = [gem_path]
                 elif sublime.platform() == 'windows':
                     ruby_cmd = [gem_path]
                 else:
                     ruby_cmd = [ruby, gem_path]
             else:
-                msg = '{} deactivated, cannot locate the gem \'{}\''.format(self.name, gem)
+                msg = '{} deactivated, cannot locate the gem \'{}\''.format(
+                    self.name, gem)
                 logger.warning(msg)
                 return True, None
         else:

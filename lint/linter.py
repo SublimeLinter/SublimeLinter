@@ -212,7 +212,8 @@ def get_raw_linter_settings(linter, view):
     view_settings = ViewSettings(
         view, 'SublimeLinter.linters.{}.'.format(linter.name))
 
-    return ChainMap({}, view_settings, project_settings, user_settings, defaults)
+    return ChainMap(
+        {}, view_settings, project_settings, user_settings, defaults)
 
 
 def get_linter_settings(linter, view):
@@ -298,7 +299,7 @@ class LinterMeta(type):
         """
         Initialize a Linter class.
 
-        When a Linter subclass is loaded by Sublime Text, this method is called.
+        This method is called when a Linter subclass is loaded by Sublime Text.
         We take this opportunity to do some transformations:
 
         - Compile regex patterns.
@@ -322,7 +323,8 @@ class LinterMeta(type):
             if key in attrs:
                 logger.warning(
                     "{}: Defining 'cls.{}' has been deprecated. Use "
-                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector"
+                    "http://www.sublimelinter.com/en/stable/"
+                    "linter_settings.html#selector"
                     .format(name, key)
                 )
 
@@ -403,21 +405,21 @@ class LinterMeta(type):
         cls.register_linter(name)
 
     def register_linter(cls, name):
-        """Add a linter class to our mapping of class names <-> linter classes."""
+        """Add a linter class to mapping of class names <-> linter classes."""
         persist.linter_classes[name] = cls
 
-        # The sublime plugin API is not available until plugin_loaded is executed
+        # The sublime plugin API is not available until plugin_loaded is run.
         if persist.api_ready:
             sublime.run_command('sublime_linter_config_changed')
             logger.info('{} linter reloaded'.format(name))
 
     def map_args(cls, defaults):
         """
-        Map plain setting names to args that will be passed to the linter executable.
+        Map plain setting names to args of linter executable.
 
-        For each item in defaults, the key is matched with ARG_RE. If there is a match,
-        the key is stripped of meta information and the match groups are stored as a dict
-        under the stripped key.
+        For each item in defaults, the key is matched with ARG_RE.
+        If there is a match, the key is stripped of meta information
+        and the match groups are stored as a dict under the stripped key.
         """
         # Check if the settings specify an argument.
         # If so, add a mapping between the setting and the argument format,
@@ -453,8 +455,8 @@ class Linter(metaclass=LinterMeta):
     # list/tuple of strings. Names should be all lowercase.
     syntax = ''
 
-    # A string, list, tuple or callable that returns a string, list or tuple, containing the
-    # command line (with arguments) used to lint.
+    # A string, list, tuple or callable that returns a string, list or tuple
+    # that contains the command line (with arguments) used to lint.
     cmd = ''
 
     # DEPRECATED: Will not be evaluated. They stay here so that old plugins
@@ -467,72 +469,74 @@ class Linter(metaclass=LinterMeta):
 
     # Set to True if the linter outputs multiline error messages. When True,
     # regex will be created with the re.MULTILINE flag. Do NOT rely on setting
-    # the re.MULTILINE flag within the regex yourself, this attribute must be set.
+    # the re.MULTILINE flag within the regex yourself.
+    # This attribute must be set.
     multiline = False
 
-    # If you want to set flags on the regex *other* than re.MULTILINE, set this.
+    # Set this if you want to set flags on the regex *other* than re.MULTILINE.
     re_flags = 0
 
     # The default type assigned to non-classified errors. Should be either
     # ERROR or WARNING.
     default_type = ERROR
 
-    # Linters usually report errors with a line number, some with a column number
-    # as well. In general, most linters report one-based line numbers and column
-    # numbers. If a linter uses zero-based line numbers or column numbers, the
-    # linter class should define this attribute accordingly.
+    # Linters usually report errors with a line number,
+    # some with a column number as well. In general,
+    # most linters report one-based line numbers and column numbers.
+    # If a linter uses zero-based line numbers or column numbers,
+    # the linter class should define this attribute accordingly.
     line_col_base = (1, 1)
 
-    # If the linter executable cannot receive from stdin and requires a temp file,
-    # set this attribute to the suffix of the temp file (with or without leading '.').
-    # If the suffix needs to be mapped to the syntax of a file, you may make this
-    # a dict that maps syntax names (all lowercase, as used in the syntax attribute),
-    # to tempfile suffixes. The syntax used to lookup the suffix is the mapped
-    # syntax, after using "syntax_map" in settings. If the view's syntax is not
-    # in this map, the class' syntax will be used.
+    # If the linter executable cannot receive from stdin and requires a temp
+    # file, set this attribute to the suffix of the temp file
+    # (with or without leading '.'). If the suffix needs to be mapped to the
+    # syntax of a file, you may make this a dict that maps syntax names
+    # (all lowercase, as used in the syntax attribute), to tempfile suffixes.
+    # The syntax used to lookup the suffix is the mapped syntax, after using
+    # "syntax_map" in settings. If the view's syntax is not in this map,
+    # the class' syntax will be used.
     #
-    # Some linters can only work from an actual disk file, because they
-    # rely on an entire directory structure that cannot be realistically be copied
-    # to a temp directory (e.g. javac). In such cases, set this attribute to '-',
+    # Some linters can only work from an actual disk file, because they rely on
+    # an entire directory structure that cannot be realistically be copied to a
+    # temp directory (e.g. javac). In such cases, set this attribute to '-',
     # which marks the linter as "file-only". That will disable the linter for
     # any views that are dirty.
     tempfile_suffix = None
 
-    # Linters may output to both stdout and stderr. By default stdout and sterr are captured.
-    # If a linter will never output anything useful on a stream (including when
-    # there is an error within the linter), you can ignore that stream by setting
-    # this attribute to the other stream.
+    # Linters may output to both stdout and stderr. By default stdout and sterr
+    # are captured. If a linter will never output anything useful on a stream
+    # (including when there is an error within the linter), you can ignore that
+    # stream by setting this attribute to the other stream.
     error_stream = util.STREAM_BOTH
 
     # Tab width
     tab_width = 1
 
-    # If a linter can be used with embedded code, you need to tell SublimeLinter
-    # which portions of the source code contain the embedded code by specifying
-    # the embedded scope selectors. This attribute maps syntax names
-    # to embedded scope selectors.
-    #
-    # For example, the HTML syntax uses the scope `source.js.embedded.html`
-    # for embedded JavaScript. To allow a JavaScript linter to lint that embedded
-    # JavaScript, you would set this attribute to {'html': 'source.js.embedded.html'}.
+    # If a linter can be used with embedded code, you need to tell
+    # SublimeLinter which portions of the source code contain the embedded code
+    # by specifying the embedded scope selectors. This attribute maps syntax
+    # names to embedded scope selectors. For example, the HTML syntax uses the
+    # scope `source.js.embedded.html` for embedded JavaScript.
+    # To allow a JavaScript linter to lint that embedded JavaScript,
+    # you would set this attribute to {'html': 'source.js.embedded.html'}.
     selectors = {}
 
-    # If a linter reports a column position, SublimeLinter highlights the nearest
-    # word at that point. You can customize the regex used to highlight words
-    # by setting this to a pattern string or a compiled regex.
+    # If a linter reports a column position, SublimeLinter highlights the
+    # nearest word at that point. You can customize the regex used to
+    # highlight words by setting this to a pattern string or a compiled regex.
     word_re = re.compile(r'^([-\w]+)')
 
-    # If you want to provide default settings for the linter, set this attribute.
-    # If a setting will be passed as an argument to the linter executable,
-    # you may specify the format of the argument here and the setting will
-    # automatically be passed as an argument to the executable. The format
-    # specification is as follows:
+    # If you want to provide default settings for the linter, set this
+    # attribute. If a setting will be passed as an argument to the linter
+    # executable, you may specify the format of the argument here and the
+    # setting will automatically be passed as an argument to the executable.
+    # The format specification is as follows:
     #
     # <prefix><name><joiner>[<sep>[+]]
     #
     # - <prefix>: Either empty, '@', '-' or '--'.
     # - <name>: The name of the setting.
-    # - <joiner>: Either '=' or ':'. If <prefix> is empty or '@', <joiner> is ignored.
+    # - <joiner>: Either '=' or ':'. Ignored if <prefix> is empty or '@'.
     #   Otherwise, if '=', the setting value is joined with <name> by '=' and
     #   passed as a single argument. If ':', <name> and the value are passed
     #   as separate arguments.
@@ -653,7 +657,7 @@ class Linter(metaclass=LinterMeta):
                 # logged already.
                 return None
         else:
-            # If `cmd` is a method, it can try to find an executable on its own.
+            # `cmd` can try to find an executable on its own if it is a method.
             if util.can_exec(which):
                 path = which
             else:
@@ -661,8 +665,10 @@ class Linter(metaclass=LinterMeta):
 
             if not path:
                 logger.warning('{} cannot locate \'{}\'\n'
-                               'Please refer to the readme of this plugin and our troubleshooting guide: '
-                               'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, which))
+                               'Please refer to the readme of this plugin '
+                               'and our troubleshooting guide: '
+                               'http://www.sublimelinter.com/en/stable/'
+                               'troubleshooting.html'.format(self.name, which))
                 return None
 
         cmd[0:1] = util.convert_type(path, [])
@@ -675,7 +681,7 @@ class Linter(metaclass=LinterMeta):
         implementation looks for a setting `executable` and if set will use
         that.
 
-        Return (True, '<path>') if you can resolve the executable given at cmd[0]
+        Return (True, '<path>') if the executable cmd[0] can be resolved
         Return (True, None) if you want to skip the linter
         Return (False, None) if you want to kick in the default implementation
             of SublimeLinter
@@ -801,7 +807,8 @@ class Linter(metaclass=LinterMeta):
 
     def get_environment(self, settings):
         """Return runtime environment for this lint."""
-        return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
+        return ChainMap(
+            {}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
     def get_error_type(self, error, warning):  # noqa:D102
         if error:
@@ -872,10 +879,10 @@ class Linter(metaclass=LinterMeta):
 
     def should_lint(self, reason=None):
         """
-        should_lint takes reason then decides whether the linter should start or not.
+        should_lint takes reason then decides if the linter should start.
 
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
+        should_lint allows each Linter to programmatically decide whether it 
+        should take action on each trigger or not.
         """
         # A 'saved-file-only' linter does not run on unsaved views
         if self.tempfile_suffix == '-' and self.view.is_dirty():
@@ -980,7 +987,8 @@ class Linter(metaclass=LinterMeta):
             matches = list(self.regex.finditer(output))
             if not matches:
                 logger.info(
-                    '{}: No matches for regex: {}'.format(self.name, self.regex.pattern))
+                    '{}: No matches for regex: {}'.format(
+                        self.name, self.regex.pattern))
                 return
 
             for match in matches:
@@ -1087,14 +1095,16 @@ class Linter(metaclass=LinterMeta):
                 text = vv.select_line(m.line)
                 near = self.strip_quotes(m.near)
 
-                # Add \b fences around the text if it begins/ends with a word character
+                # Add \b fences around the text if it begins/ends with a word
+                # character
                 fence = ['', '']
 
                 for i, pos in enumerate((0, -1)):
                     if near[pos].isalnum() or near[pos] == '_':
                         fence[i] = r'\b'
 
-                pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                pattern = NEAR_RE_TEMPLATE.format(
+                    fence[0], re.escape(near), fence[1])
                 match = re.search(pattern, text)
 
                 if match:
@@ -1142,8 +1152,8 @@ class Linter(metaclass=LinterMeta):
         """
         Execute the linter's executable or built in code and return its output.
 
-        If a linter uses built in code, it should override this method and return
-        a string as the output.
+        If a linter uses built in code, it should override this method and
+        return a string as the output.
 
         If a linter needs to do complicated setup or will use the tmpdir
         method, it will need to override this method.
@@ -1160,7 +1170,8 @@ class Linter(metaclass=LinterMeta):
     # popen wrappers
 
     def communicate(self, cmd, code=None):
-        """Run an external executable using stdin to pass code and return its output."""
+        """Run an external executable using stdin to pass code.
+        Return its output."""
         ctx = get_view_context(self.view)
         ctx['file_on_disk'] = self.filename
 
@@ -1268,7 +1279,8 @@ class Linter(metaclass=LinterMeta):
                 out = proc.communicate(code)
 
             except BrokenPipeError as err:
-                friendly_terminated = getattr(proc, 'friendly_terminated', False)
+                friendly_terminated = getattr(
+                    proc, 'friendly_terminated', False)
                 if friendly_terminated:
                     logger.info('Broken pipe after friendly terminating '
                                 '<pid {}>'.format(proc.pid))
@@ -1290,7 +1302,8 @@ class Linter(metaclass=LinterMeta):
                     raise
 
             else:
-                friendly_terminated = getattr(proc, 'friendly_terminated', False)
+                friendly_terminated = getattr(
+                    proc, 'friendly_terminated', False)
                 if friendly_terminated:
                     raise TransientError('Friendly terminated')
 

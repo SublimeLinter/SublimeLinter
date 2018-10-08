@@ -114,10 +114,11 @@ def is_lintable(view):
     There is a bug (or feature) in the current ST3 where the Find panel
     is not marked scratch but has no window.
 
-    There is also a bug where settings files opened from within .sublime-package
-    files are not marked scratch during the initial on_modified event, so we have
-    to check that a view with a filename actually exists on disk if the file
-    being opened is in the Sublime Text packages directory.
+    There is also a bug where settings files opened from within
+    .sublime-package files are not marked scratch during the initial
+    on_modified event, so we have to check that a view with a filename
+    actually exists on disk if the file being opened is in the Sublime
+    Text packages directory.
 
     """
     if (
@@ -146,7 +147,8 @@ def is_lintable(view):
 @lru_cache(maxsize=1)  # print once every time the path changes
 def debug_print_env(path):
     import textwrap
-    logger.info('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
+    logger.info('PATH:\n{}'.format(
+        textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
 
 
 def create_environment():
@@ -232,7 +234,8 @@ def check_output(cmd, cwd=None):
         return process_popen_output(output)
 
 
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
+def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None,
+                cwd=None):
     """
     Return the result of sending code via stdin to an executable.
 
@@ -307,10 +310,12 @@ def process_popen_output(output):
 
 def decode(bytes):
     """
-    Decode and return a byte string using utf8, falling back to system's encoding if that fails.
+    Decode and return a byte string using utf8, falling back to system's
+    encoding if that fails.
 
-    So far we only have to do this because javac is so utterly hopeless it uses CP1252
-    for its output on Windows instead of UTF8, even if the input encoding is specified as UTF8.
+    So far we only have to do this because javac is so utterly hopeless it uses
+    CP1252 for its output on Windows instead of UTF8, even if the input
+    encoding is specified as UTF8.
     Brilliant! But then what else would you expect from Oracle?
 
     """
@@ -326,7 +331,8 @@ def decode(bytes):
 def create_startupinfo():
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
-        info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
+        sp = subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
+        info.dwFlags |= sp
         info.wShowWindow = subprocess.SW_HIDE
         return info
 

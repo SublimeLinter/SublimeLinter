@@ -56,8 +56,10 @@ class ComposerLinter(linter.Linter):
             return True, global_cmd
         else:
             logger.warning('{} cannot locate \'{}\'\n'
-                           'Please refer to the readme of this plugin and our troubleshooting guide: '
-                           'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, cmd[0]))
+                           'Please refer to the readme of this plugin '
+                           'and our troubleshooting guide: '
+                           'http://www.sublimelinter.com/en/stable/'
+                           'troubleshooting.html'.format(self.name, cmd[0]))
             return True, None
 
     def get_manifest_path(self):
@@ -107,7 +109,7 @@ class ComposerLinter(linter.Linter):
         return self.find_ancestor_cmd_path(cmd, cwd)
 
     def find_ancestor_cmd_path(self, cmd, cwd):
-        """Recursively check for command binary in ancestors' vendor/bin directories."""
+        """Recursively finds command binary in vendor/bin folders."""
         vendor_bin = os.path.normpath(os.path.join(cwd, 'vendor/bin/'))
 
         binary = shutil.which(cmd, path=vendor_bin)
@@ -156,7 +158,8 @@ class ComposerLinter(linter.Linter):
         """Read manifest and cache mtime, hash and json content."""
         self.cached_manifest_mtime = current_manifest_mtime
         self.cached_manifest_hash = self.hash_manifest()
-        self.cached_manifest = json.load(codecs.open(self.manifest_path, 'r', 'utf-8'))
+        self.cached_manifest = json.load(
+            codecs.open(self.manifest_path, 'r', 'utf-8'))
 
     def hash_manifest(self):
         """Calculate the hash of the manifest file."""

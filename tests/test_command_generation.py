@@ -28,20 +28,30 @@ INPUT = '0123456789'
 
 
 class _BaseTestCase(DeferrableTestCase):
-    def setUp(self):
-        self.view = sublime.active_window().new_file()
+    @classmethod
+    def setUpClass(cls):
+        cls.view = sublime.active_window().new_file()
         # make sure we have a window to work with
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("close_windows_when_empty", False)
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
-    def tearDown(self):
-        if self.view:
-            self.view.set_scratch(True)
-            self.view.window().focus_view(self.view)
-            self.view.window().run_command("close_file")
+        # it's just faster if we mock this out
+        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.view:
+            cls.view.set_scratch(True)
+            cls.view.window().focus_view(cls.view)
+            cls.view.window().run_command("close_file")
+
         unstub()
 
+    def setUp(self):
+        ...
+    def tearDown(self):
+        ...
 
 class TestArgsDSL(_BaseTestCase):
     @p.expand([

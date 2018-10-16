@@ -13,6 +13,7 @@ from SublimeLinter.tests.mockito import (
     when,
     expect,
     unstub,
+    mock
 )
 
 
@@ -150,43 +151,74 @@ class TestWorkingDirSetting(_BaseTestCase):
         super().tearDown()
         unstub()
 
-    def test_working_dir_set_none_returns_project_root(self):
+    @p.expand([
+        (['/foo'], None, '/foo'),
+        (['/foo'], '/foo/foz.py', '/foo'),
+        (['/bar', '/foo'], '/foo/foz.py', '/foo'),
+    ])
+    def test_working_dir_set_none_returns_project_root(self, folders, filename, result):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
         settings = {'working_dir': None}
-        when(linter_module).guess_project_root_of_view(self.view).thenReturn('foo')
+
+        window = mock(sublime.Window)
+        when(window).folders().thenReturn(folders)
+        when(self.view).file_name().thenReturn(filename)
+        when(self.view).window().thenReturn(window)
 
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
-        self.assertEqual('foo', actual)
+        self.assertEqual(result, actual)
 
-    def test_working_dir_set_none_and_no_project_root_returns_filepath(self):
+
+    @p.expand([
+        (False, None),
+        (True, []),
+        (True, ['/bar']),
+    ])
+    def test_working_dir_set_none_and_no_project_root_returns_filepath(self, has_window, folders):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
         settings = {'working_dir': None}
-        when(linter_module).guess_project_root_of_view(self.view).thenReturn(None)
-        when(self.view).file_name().thenReturn('/foo/bar.py')
+        filename = '/foo/bar.py'
+        result = '/foo'
+
+        window = mock(sublime.Window)
+        when(window).folders().thenReturn(folders)
+        when(self.view).window().thenReturn(window if has_window else None)
+
+        when(self.view).file_name().thenReturn(filename)
 
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
         self.assertEqual('/foo', actual)
 
-    def test_working_dir_set_none_and_no_project_root_and_no_file_returns_none(self):
+    @p.expand([
+        (False, None),
+        (True, []),
+    ])
+    def test_working_dir_set_none_and_no_project_root_and_no_file_returns_none(self, has_window, folders):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
         settings = {'working_dir': None}
-        when(linter_module).guess_project_root_of_view(self.view).thenReturn(None)
-        when(self.view).file_name().thenReturn(None)
+        filename = None
+        result = None
+
+        window = mock(sublime.Window)
+        when(window).folders().thenReturn(folders)
+        when(self.view).window().thenReturn(window if has_window else None)
+
+        when(self.view).file_name().thenReturn(filename)
 
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
-        self.assertEqual(None, actual)
+        self.assertEqual(result, actual)
 
     def test_working_dir_set_to_valid_path_returns_path(self):
         class FakeLinter(Linter):

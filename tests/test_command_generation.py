@@ -145,13 +145,84 @@ class TestExecutableSetting(_BaseTestCase):
         with expect(linter)._communicate(result, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
+
+class TestWorkingDirSetting(_BaseTestCase):
+    # XXX: `get_working_dir` is a getter and shouldn't require `settings` to get
+    # injected.
+    # XXX: We shouldn't use `guess_project_root_of_view` here but the settings
+    # context directly
+    # XXX: We shouldn't ask `view.file_name()` but use the settings context
+
+    def test_working_dir_set_none_returns_project_root(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'working_dir': None}
+        when(linter_module).guess_project_root_of_view(self.view).thenReturn('foo')
+
+        linter = FakeLinter(self.view, settings)
+        actual = linter.get_working_dir(settings)
+        self.assertEqual('foo', actual)
+
+    def test_working_dir_set_none_and_no_project_root_returns_filepath(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'working_dir': None}
+        when(linter_module).guess_project_root_of_view(self.view).thenReturn(None)
+        when(self.view).file_name().thenReturn('/foo/bar.py')
+
+        linter = FakeLinter(self.view, settings)
+        actual = linter.get_working_dir(settings)
+        self.assertEqual('/foo', actual)
+
+    def test_working_dir_set_none_and_no_project_root_and_no_file_returns_none(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = {'working_dir': None}
+        when(linter_module).guess_project_root_of_view(self.view).thenReturn(None)
+        when(self.view).file_name().thenReturn(None)
+
+        linter = FakeLinter(self.view, settings)
+        actual = linter.get_working_dir(settings)
+        self.assertEqual(None, actual)
+
+    def test_working_dir_set_to_valid_path_returns_path(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        dir = '/foo'
+        settings = {'working_dir': dir}
+        when('os.path').isdir(dir).thenReturn(True)
+
+        linter = FakeLinter(self.view, settings)
+        actual = linter.get_working_dir(settings)
+        self.assertEqual('/foo', actual)
+
+    def test_working_dir_set_to_invalid_path_returns_none(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        dir = '/foo'
+        settings = {'working_dir': dir}
+        when('os.path').isdir(dir).thenReturn(False)
+
+        linter = FakeLinter(self.view, settings)
+        with expect(linter_module.logger).error(
+            "{}: wanted working_dir '{}' is not a directory".format('fakelinter', dir)
+        ):
+            actual = linter.get_working_dir(settings)
+
+        self.assertEqual(None, actual)
+
+
 # TODO
-# 'working_dir'
-# if set, throws if not exists
-# show default behavior
-# - selects good folder if multiple folders open
-# - selects first folder if no filename
-# - or dirname of file
 #
 # 'context_sensitive_executable_path' contract
 # returns

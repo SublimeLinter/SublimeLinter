@@ -553,7 +553,6 @@ class TestRegexBasedParsing(_BaseTestCase):
         See how javac linter works around here:
         https://github.com/SublimeLinter/SublimeLinter-javac/blob/1ec3a052f32dcba2c3d404f1024ff728a84225e7/linter.py#L10
         """
-
         linter = self.create_linter(FakeLinterColMatchesALength)
 
         INPUT = "This is the source code."

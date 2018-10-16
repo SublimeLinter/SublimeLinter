@@ -221,14 +221,57 @@ class TestWorkingDirSetting(_BaseTestCase):
 
         self.assertEqual(None, actual)
 
+class TestContextSensitiveExecutablePathContract(_BaseTestCase):
+    def test_returns_true_and_a_path_indicates_success(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        executable = '/foo/foz.exe'
+        linter = FakeLinter(self.view, {})
+        when(linter).context_sensitive_executable_path(...).thenReturn((True, executable))
+
+        result = [executable]
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_returns_true_and_a_list_of_strings_indicates_success(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        executable = ['/foo/foz.exe', '-S', 'baz']
+        linter = FakeLinter(self.view, {})
+        when(linter).context_sensitive_executable_path(...).thenReturn((True, executable))
+
+        result = executable
+        with expect(linter)._communicate(result, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_returns_true_and_none_indicates_failure(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+        when(linter).context_sensitive_executable_path(...).thenReturn((True, None))
+
+        with expect(linter, times=0)._communicate(...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_returns_false_and_any_indicates_fallback(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+        when(linter).context_sensitive_executable_path(...).thenReturn((False, ...))
+
+        with expect(linter)._communicate(['fake_linter_1'], ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
 
 # TODO
-#
-# 'context_sensitive_executable_path' contract
-# returns
-# - True, path  --> take path
-# - True, None  --> abort linting
-# - False, None --> use can_exec and which (SL defaults)
 #
 # 'cmd'
 # - can be string

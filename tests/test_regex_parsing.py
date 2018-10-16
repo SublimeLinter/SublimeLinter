@@ -741,13 +741,9 @@ class TestSplitMatchContract(_BaseTestCase):
 
 
 def drop_keys(keys, array, strict=False):
-    rv = []
     for item in array:
         for k in keys:
             item.pop(k) if strict else item.pop(k, None)
-
-        rv.append(item)
-    return rv
 
 
 drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter'])

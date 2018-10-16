@@ -57,11 +57,11 @@ class _BaseTestCase(DeferrableTestCase):
 
 class TestArgsSetting(_BaseTestCase):
     @p.expand([
-        ({'args': ['-f', '/b']}, ['fake_linter_1', '-f', '/b', 'end']),
+        ('list', {'args': ['-f', '/b']}, ['fake_linter_1', '-f', '/b', 'end']),
         # simple splitting
-        ({'args': '-f /b'}, ['fake_linter_1', '-f', '/b', 'end']),
+        ('string', {'args': '-f /b'}, ['fake_linter_1', '-f', '/b', 'end']),
     ])
-    def test_args_explicitly_placed(self, settings, result):
+    def test_args_explicitly_placed(self, _, settings, result):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1', '${args}', 'end')
             defaults = {'selector': None}
@@ -71,11 +71,11 @@ class TestArgsSetting(_BaseTestCase):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
     @p.expand([
-        ({'args': ['-f', '/b']}, ['fake_linter_1', 'end', '-f', '/b']),
+        ('list', {'args': ['-f', '/b']}, ['fake_linter_1', 'end', '-f', '/b']),
         # simple splitting
-        ({'args': '-f /b'}, ['fake_linter_1', 'end', '-f', '/b']),
+        ('string', {'args': '-f /b'}, ['fake_linter_1', 'end', '-f', '/b']),
     ])
-    def test_args_implicitly_placed_at_end(self, settings, result):
+    def test_args_implicitly_placed_at_end(self, _, settings, result):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1', 'end')
             defaults = {'selector': None}

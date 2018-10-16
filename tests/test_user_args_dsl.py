@@ -168,6 +168,8 @@ class TestArgsDSL(_BaseTestCase):
         #
     ])
     def test_truthy_values(self, arg, settings, result):
+        # Docstring is here to get verbose parameterized printing
+        """"""
         class FakeLinterArgDSL(Linter):
             defaults = {
                 'selector': None,
@@ -192,6 +194,8 @@ class TestArgsDSL(_BaseTestCase):
         ('@a', {'a': ''}),
     ])
     def test_falsy_values(self, arg, settings):
+        # Docstring is here to get verbose parameterized printing
+        """"""
         class FakeLinterArgDSL(Linter):
             defaults = {
                 'selector': None,

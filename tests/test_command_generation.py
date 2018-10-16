@@ -3,8 +3,6 @@ from unittest import skip, expectedFailure  # noqa: F401
 import sublime
 from SublimeLinter.lint import (
     Linter,
-    backend,
-    persist,
     linter as linter_module,
     util,
 )
@@ -14,12 +12,7 @@ from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
     when,
     expect,
-    patch,
     unstub,
-    spy,
-    spy2,
-    mock,
-    verify,
 )
 
 
@@ -220,6 +213,7 @@ class TestWorkingDirSetting(_BaseTestCase):
             actual = linter.get_working_dir(settings)
 
         self.assertEqual(None, actual)
+
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
     def test_returns_true_and_a_path_indicates_success(self):

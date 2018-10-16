@@ -5,30 +5,15 @@ import unittest
 from SublimeLinter.tests.parameterized import parameterized as p
 
 import sublime
-from SublimeLinter.lint import (
-    Linter,
-    backend,
-    persist,
-    linter as linter_module,
-    util,
-)
+from SublimeLinter.lint import Linter, backend, persist, util
 from unittesting import DeferrableTestCase
 
-from SublimeLinter.tests.mockito import (
-    when,
-    expect,
-    patch,
-    unstub,
-    spy,
-    spy2,
-    mock,
-    verify,
-)
+from SublimeLinter.tests.mockito import when, expect, unstub, spy, spy2, verify
 
 version = sublime.version()
 
 
-VIEW_UNCHANGED = lambda: False
+VIEW_UNCHANGED = lambda: False  # noqa: E731
 execute_lint_task = partial(
     backend.execute_lint_task, offset=(0, 0), view_has_changed=VIEW_UNCHANGED
 )

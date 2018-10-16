@@ -146,6 +146,10 @@ class TestWorkingDirSetting(_BaseTestCase):
     # context directly
     # XXX: We shouldn't ask `view.file_name()` but use the settings context
 
+    def tearDown(self):
+        super().tearDown()
+        unstub()
+
     def test_working_dir_set_none_returns_project_root(self):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
@@ -216,6 +220,10 @@ class TestWorkingDirSetting(_BaseTestCase):
 
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
+    def tearDown(self):
+        super().tearDown()
+        unstub()
+
     def test_returns_true_and_a_path_indicates_success(self):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)

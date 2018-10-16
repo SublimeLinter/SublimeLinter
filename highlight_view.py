@@ -52,6 +52,7 @@ def get_regions_keys(view):
 
 State = {
     'active_view': None,
+    'current_sel': tuple(),
     'idle_views': set(),
     'quiet_views': set()
 }
@@ -211,7 +212,10 @@ def demote_warnings(selected_text, error_type, **kwargs):
 class IdleViewController(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         previous_view = State['active_view']
-        State.update({'active_view': active_view})
+        State.update({
+            'active_view': active_view,
+            'current_sel': get_current_sel(active_view)
+        })
 
         if previous_view and previous_view.id() != active_view.id():
             set_idle(previous_view, True)
@@ -230,19 +234,29 @@ class IdleViewController(sublime_plugin.EventListener):
         if view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, True)
 
-    @util.distinct_until_selection_changed
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
         # Do not race between `plugin_loaded` and this event handler
         if active_view is None:
             return
 
-        time_to_idle = persist.settings.get('highlights.time_to_idle')
-        if view.buffer_id() == active_view.buffer_id():
+        if view.buffer_id() != active_view.buffer_id():
+            return
+
+        current_sel = get_current_sel(active_view)
+        if current_sel != State['current_sel']:
+            State.update({'current_sel': current_sel})
+
+            time_to_idle = persist.settings.get('highlights.time_to_idle')
             queue.debounce(
                 partial(set_idle, active_view, True),
                 delay=time_to_idle,
-                key='highlights.{}'.format(view.id()))
+                key='highlights.{}'.format(active_view.id())
+            )
+
+
+def get_current_sel(view):
+    return tuple(s for s in view.sel())
 
 
 def set_idle(view, idle):

@@ -271,14 +271,25 @@ class TestContextSensitiveExecutablePathContract(_BaseTestCase):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
 
+class TestCmdType(_BaseTestCase):
+    @p.expand([
+        ('string', 'fake_linter_1 -foo', ['fake_linter_1', '-foo']),
+        ('list', ['fake_linter_1', '-foo'], ['fake_linter_1', '-foo']),
+        ('tuple', ('fake_linter_1', '-foo'), ['fake_linter_1', '-foo']),
+        ('callable returning string', lambda self: 'fake_linter_1 -foo', ['fake_linter_1', '-foo']),
+        ('callable returning list', lambda self: ['fake_linter_1', '-foo'], ['fake_linter_1', '-foo']),
+        ('callable returning tuple', lambda self: ('fake_linter_1', '-foo'), ['fake_linter_1', '-foo']),
+    ])
+    def test_cmd_types(self, _, initial_cmd, final_cmd):
+        class FakeLinter(Linter):
+            cmd = initial_cmd
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+        with expect(linter)._communicate(final_cmd, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
 # TODO
-#
-# 'cmd'
-# - can be string
-# - can be tuple/list
-# - can be a callable which
-#   - returns a string
-#   - returns a tuple/list
 #
 
 # PythonLinter

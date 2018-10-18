@@ -148,7 +148,9 @@ class TestWorkingDirSetting(_BaseTestCase):
         (['/foo'], '/foo/foz.py', '/foo'),
         (['/bar', '/foo'], '/foo/foz.py', '/foo'),
     ])
-    def test_working_dir_set_none_returns_project_root(self, folders, filename, result):
+    def test_working_dir_set_none_returns_project_root(
+        self, folders, filename, result
+    ):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
@@ -169,7 +171,9 @@ class TestWorkingDirSetting(_BaseTestCase):
         (True, []),
         (True, ['/bar']),
     ])
-    def test_working_dir_set_none_and_no_project_root_returns_filepath(self, has_window, folders):
+    def test_working_dir_set_none_and_no_project_root_returns_filepath(
+        self, has_window, folders
+    ):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
@@ -192,7 +196,9 @@ class TestWorkingDirSetting(_BaseTestCase):
         (False, None),
         (True, []),
     ])
-    def test_working_dir_set_none_and_no_project_root_and_no_file_returns_none(self, has_window, folders):
+    def test_working_dir_set_none_and_no_project_root_and_no_file_returns_none(
+        self, has_window, folders
+    ):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}

@@ -172,7 +172,6 @@ class TestWorkingDirSetting(_BaseTestCase):
         actual = linter.get_working_dir(settings)
         self.assertEqual(result, actual)
 
-
     @p.expand([
         (False, None),
         (True, []),
@@ -195,7 +194,7 @@ class TestWorkingDirSetting(_BaseTestCase):
 
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
-        self.assertEqual('/foo', actual)
+        self.assertEqual(result, actual)
 
     @p.expand([
         (False, None),

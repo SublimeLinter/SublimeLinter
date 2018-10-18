@@ -28,10 +28,6 @@ class _BaseTestCase(DeferrableTestCase):
         # make sure we have a window to work with
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("close_windows_when_empty", False)
-        when(util).which('fake_linter_1').thenReturn('fake_linter_1')
-
-        # it's just faster if we mock this out
-        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
 
     @classmethod
     def tearDownClass(cls):
@@ -40,13 +36,13 @@ class _BaseTestCase(DeferrableTestCase):
             cls.view.window().focus_view(cls.view)
             cls.view.window().run_command("close_file")
 
-        unstub()
-
     def setUp(self):
-        ...
+        when(util).which('fake_linter_1').thenReturn('fake_linter_1')
+        # it's just faster if we mock this out
+        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
 
     def tearDown(self):
-        ...
+        unstub()
 
 
 class TestArgsSetting(_BaseTestCase):
@@ -146,10 +142,6 @@ class TestWorkingDirSetting(_BaseTestCase):
     # XXX: We shouldn't use `guess_project_root_of_view` here but the settings
     # context directly
     # XXX: We shouldn't ask `view.file_name()` but use the settings context
-
-    def tearDown(self):
-        super().tearDown()
-        unstub()
 
     @p.expand([
         (['/foo'], None, '/foo'),
@@ -251,10 +243,6 @@ class TestWorkingDirSetting(_BaseTestCase):
 
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
-    def tearDown(self):
-        super().tearDown()
-        unstub()
-
     def test_returns_true_and_a_path_indicates_success(self):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)

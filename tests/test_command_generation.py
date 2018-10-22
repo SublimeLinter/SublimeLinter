@@ -139,9 +139,7 @@ class TestExecutableSetting(_BaseTestCase):
 class TestWorkingDirSetting(_BaseTestCase):
     # XXX: `get_working_dir` is a getter and shouldn't require `settings` to get
     # injected.
-    # XXX: We shouldn't use `guess_project_root_of_view` here but the settings
-    # context directly
-    # XXX: We shouldn't ask `view.file_name()` but use the settings context
+    # XXX: We shouldn't have to mock anything here but use the settings context
 
     @p.expand([
         (['/foo'], None, '/foo'),

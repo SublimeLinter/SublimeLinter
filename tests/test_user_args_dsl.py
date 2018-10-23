@@ -18,9 +18,9 @@ from SublimeLinter.tests.mockito import (
 VIEW_UNCHANGED = lambda: False  # noqa: E731
 INPUT = '0123456789'
 
+
 # WARNING: We mock and unstub per class here. You MUST use `with`
 # context managers if you want to mock other stuff per test case.
-
 class _BaseTestCase(DeferrableTestCase):
     @classmethod
     def setUpClass(cls):

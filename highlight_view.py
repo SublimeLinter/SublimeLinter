@@ -29,10 +29,10 @@ UNDERLINE_STYLES = (
     'solid_underline', 'squiggly_underline', 'stippled_underline'
 )
 
-SOME_WS = re.compile('\s')
+SOME_WS = re.compile(r'\s')
 FALLBACK_MARK_STYLE = 'outline'
 
-WS_ONLY = re.compile('^\s+$')
+WS_ONLY = re.compile(r'^\s+$')
 MULTILINES = re.compile('\n')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 HIDDEN_STYLE_MARKER = '%HIDDEN%'

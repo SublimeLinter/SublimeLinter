@@ -243,8 +243,8 @@ class FilteringImportHook:
         self.load_module = load_module
 
     @classmethod
-    def when(cls, condition):  # noqa: D4
-        """A handy loader function decorator."""
+    def when(cls, condition):
+        """A handy loader function decorator."""  # noqa: D4
         return lambda load_module: cls(condition, load_module)
 
     def find_module(self, name, path=None):

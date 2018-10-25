@@ -252,10 +252,7 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
-    @unittest.expectedFailure
     def test_if_no_col_and_no_near_mark_line(self):
-        # FIXME: Reported end is currently 9, but must be 10
-
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 

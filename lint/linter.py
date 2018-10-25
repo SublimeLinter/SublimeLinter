@@ -1107,9 +1107,9 @@ class Linter(metaclass=LinterMeta):
                 persist.settings.get('no_column_highlights_line') or
                 not persist.settings.has('gutter_theme')
             ):
-                start, end = vv.full_line(m.line)
-                length = end - start - 1  # -1 for the trailing '\n'
-                return line, 0, length
+                # `rstrip` bc underlining the trailing '\n' looks ugly
+                text = vv.select_line(m.line).rstrip()
+                return line, 0, len(text)
             else:
                 return line, 0, 0
 

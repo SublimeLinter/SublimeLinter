@@ -12,6 +12,10 @@ import sublime
 from . import persist, util
 from .const import WARNING, ERROR
 
+try:
+    from typing import List, Optional
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 

@@ -3,6 +3,8 @@ env:
         - PACKAGE="SublimeLinter"
         - SUBLIME_TEXT_VERSION="3"
 
+cache: pip
+
 matrix:
     include:
         - os: linux

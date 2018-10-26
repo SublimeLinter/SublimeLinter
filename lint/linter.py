@@ -1081,12 +1081,15 @@ class Linter(metaclass=LinterMeta):
         beginning at the `col`. If `m.near` is given, it selects the first
         occurrence of that word on the give `line`.
         """
+        near = self.strip_quotes(m.near) if m.near is not None else m.near
         if col is None:
-            if m.near:
+            # Empty strings won't match anything anyway so we do the simple
+            # falsy test
+            if near:
                 text = vv.select_line(m.line)
-                near = self.strip_quotes(m.near)
 
-                # Add \b fences around the text if it begins/ends with a word character
+                # Add \b fences around the text if it begins/ends with a word
+                # character
                 fence = ['', '']
 
                 for i, pos in enumerate((0, -1)):
@@ -1113,8 +1116,8 @@ class Linter(metaclass=LinterMeta):
                 return line, 0, 0
 
         else:
-            if m.near:
-                near = self.strip_quotes(m.near)
+            # Strict 'None' test bc empty strings should be handled here
+            if near is not None:
                 length = len(near)
                 return line, col, col + length
             else:
@@ -1127,7 +1130,7 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
-        if len(text) < 3:
+        if len(text) < 2:
             return text
 
         first = text[0]

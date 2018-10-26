@@ -1,6 +1,6 @@
 from functools import partial
 import re
-import unittest
+from unittest import expectedFailure  # noqa: F401
 
 from SublimeLinter.tests.parameterized import parameterized as p
 
@@ -435,23 +435,35 @@ class TestRegexBasedParsing(_BaseTestCase):
                 "stdin:1: ERROR: '' The message",
             ),
             (
+                FakeLinterNearSingleQuoted,
+                "0123 '' 456789",
+                "stdin:1:1 ERROR: '' The message",
+            ),
+            (
                 FakeLinterNearDoubleQuoted,
                 '0123 "" 456789',
                 'stdin:1: ERROR: "" The message',
             ),
-            # (  # currently passes
-            #     FakeLinterNearNotQuoted,
-            #     "0123 '' 456789",
-            #     "stdin:1: ERROR: '' The message",
-            # ),
+            (
+                FakeLinterNearDoubleQuoted,
+                '0123 "" 456789',
+                'stdin:1:1 ERROR: "" The message',
+            ),
+            (
+                FakeLinterNearNotQuoted,
+                "0123 '' 456789",
+                "stdin:1: ERROR: '' The message",
+            ),
+            (
+                FakeLinterNearNotQuoted,
+                "0123 '' 456789",
+                "stdin:1:1 ERROR: '' The message",
+            ),
         ]
     )
-    @unittest.expectedFailure
-    def test_ensure_empty_quotes_dont_match_anything(
+    def test_ensure_empty_near_doesnt_match_anything(
         self, linter_class, INPUT, OUTPUT
     ):
-        # FIXME: Fix wrong fix for #1028
-
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 

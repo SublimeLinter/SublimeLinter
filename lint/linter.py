@@ -1086,7 +1086,7 @@ class Linter(metaclass=LinterMeta):
             # Empty strings won't match anything anyway so we do the simple
             # falsy test
             if near:
-                text = vv.select_line(m.line)
+                text = vv.select_line(line)
 
                 # Add \b fences around the text if it begins/ends with a word
                 # character
@@ -1110,7 +1110,7 @@ class Linter(metaclass=LinterMeta):
                 not persist.settings.has('gutter_theme')
             ):
                 # `rstrip` bc underlining the trailing '\n' looks ugly
-                text = vv.select_line(m.line).rstrip()
+                text = vv.select_line(line).rstrip()
                 return line, 0, len(text)
             else:
                 return line, 0, 0
@@ -1121,7 +1121,7 @@ class Linter(metaclass=LinterMeta):
                 length = len(near)
                 return line, col, col + length
             else:
-                text = vv.select_line(m.line)[col:]
+                text = vv.select_line(line)[col:]
                 match = self.word_re.search(text) if self.word_re else None
 
                 length = len(match.group()) if match else 1

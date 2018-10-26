@@ -158,13 +158,24 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # SublimeLinter is capable of linting portions of a buffer. If you
+    # provide an input and an offset, it means the input starts at the
+    # position (line, col) from the buffer.
+    # If the linter then reports an error on line 1, the error is actually
+    # on line (line + 1) in the buffer.
     def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
+        PREFIX = """0
+1
+2
+3
+4
+0123456789"""
+
         INPUT = "This is the extracted source code."
-        x, y = offset
-        prefix = '\n' * x + ' ' * y
-        self.set_buffer_content(prefix + INPUT)
+        BUFFER_CONTENT = PREFIX + INPUT
+        self.set_buffer_content(BUFFER_CONTENT)
 
         OUTPUT = "stdin:1:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
@@ -172,26 +183,36 @@ class TestRegexBasedParsing(_BaseTestCase):
         result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
-        char_offset = x + y
+        # Whereby the offset is (line, col), regions represent ranges between
+        # two points (ints). Basically we shift all points by 20 here.
+        # (Note: the '\n' newline char counts!)
+        char_offset = len(PREFIX)
         self.assertResult(
             [
                 {
-                    'line': x + 0,
-                    'start': y + 0,
-                    'end': y + 4,
+                    'line': 5,
+                    'start': 10,
+                    'end': 14,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
                 }
             ],
             result,
         )
 
+    # See comment above
     def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        INPUT = "\nThis is the extracted source code."
-        x, y = offset
-        prefix = '\n' * x + ' ' * y
-        self.set_buffer_content(prefix + INPUT)
+        PREFIX = """0
+1
+2
+3
+4
+0123456789"""
+
+        INPUT = "First line\nThis is the extracted source code."
+        BUFFER_CONTENT = PREFIX + INPUT
+        self.set_buffer_content(BUFFER_CONTENT)
 
         OUTPUT = "stdin:2:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
@@ -199,39 +220,14 @@ class TestRegexBasedParsing(_BaseTestCase):
         result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
-        char_offset = x + y + 1  # + 1 bc of the leading '\n' in INPUT
+        char_offset = len(PREFIX) + len('First line\n')
         self.assertResult(
             [
                 {
-                    'line': x + 1,
+                    'line': 6,
                     'start': 0,
                     'end': 4,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
-                }
-            ],
-            result,
-        )
-
-    def test_apply_line_start(self):
-        linter = self.create_linter()
-
-        # XXX: Make readable
-        when(self.view).text_point(0, 0).thenReturn(100)  # <==========
-
-        INPUT = "This is the source code."
-        OUTPUT = "stdin:1:1 ERROR: The message"
-        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-
-        result = execute_lint_task(linter, INPUT)
-        drop_info_keys(result)
-
-        self.assertResult(
-            [
-                {
-                    'line': 0,
-                    'start': 0,
-                    'end': 4,
-                    'region': sublime.Region(100, 104),
                 }
             ],
             result,

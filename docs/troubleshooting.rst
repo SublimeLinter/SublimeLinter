@@ -28,13 +28,6 @@ If it does not work there, it definitely won't work in SublimeLinter.
 
 Here are the most common reasons why a linter does not work:
 
-- The syntax is a variation (e.g. ``"html (django)"``) that isn't mapped
-  to a known syntax (e.g. ``"html"``). The detected syntax is printed to the
-  console in debug mode.
-  Also note that plugins should move to using the selector setting
-  instead of the old syntaxes attribute. You can use the :ref:`selector` linter
-  setting right now instead of the "syntax_map".
-
 - The linter binary or its dependencies are not installed.
   Be sure to install the linter as documented in the linter plugin's README.
 

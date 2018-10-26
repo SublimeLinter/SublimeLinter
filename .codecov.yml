@@ -1,0 +1,4 @@
+comment:
+  layout: "files"
+  behavior: default
+  require_changes: true  # if true: only post the comment if coverage changes

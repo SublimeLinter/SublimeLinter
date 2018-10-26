@@ -30,7 +30,7 @@ class FakeLinter(Linter):
     """
 
 
-class FakeLinterNearSingleQuoted(Linter):
+class FakeLinterCaptureNearWithSingleQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -41,7 +41,7 @@ class FakeLinterNearSingleQuoted(Linter):
     """
 
 
-class FakeLinterNearDoubleQuoted(Linter):
+class FakeLinterCaptureNearWithDoubleQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -52,7 +52,7 @@ class FakeLinterNearDoubleQuoted(Linter):
     """
 
 
-class FakeLinterNearNotQuoted(Linter):
+class FakeLinterCaptureNearWithoutQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -328,9 +328,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1:2 ERROR: '....' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1:2 ERROR: "...." The message'),
-            (FakeLinterNearNotQuoted, "stdin:1:2 ERROR: '....' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1:2 ERROR: '....' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1:2 ERROR: "...." The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1:2 ERROR: '....' The message"),
         ]
     )
     def test_if_col_and_near_set_length(self, linter_class, OUTPUT):
@@ -349,9 +349,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_search_term(self, linter_class, OUTPUT):
@@ -370,9 +370,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_and_search_fails_select_line(
@@ -403,9 +403,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_and_search_fails_select_zero(
@@ -430,32 +430,32 @@ class TestRegexBasedParsing(_BaseTestCase):
     @p.expand(
         [
             (
-                FakeLinterNearSingleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
                 "0123 '' 456789",
                 "stdin:1: ERROR: '' The message",
             ),
             (
-                FakeLinterNearSingleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
                 "0123 '' 456789",
                 "stdin:1:1 ERROR: '' The message",
             ),
             (
-                FakeLinterNearDoubleQuoted,
+                FakeLinterCaptureNearWithDoubleQuotes,
                 '0123 "" 456789',
                 'stdin:1: ERROR: "" The message',
             ),
             (
-                FakeLinterNearDoubleQuoted,
+                FakeLinterCaptureNearWithDoubleQuotes,
                 '0123 "" 456789',
                 'stdin:1:1 ERROR: "" The message',
             ),
             (
-                FakeLinterNearNotQuoted,
+                FakeLinterCaptureNearWithoutQuotes,
                 "0123 '' 456789",
                 "stdin:1: ERROR: '' The message",
             ),
             (
-                FakeLinterNearNotQuoted,
+                FakeLinterCaptureNearWithoutQuotes,
                 "0123 '' 456789",
                 "stdin:1:1 ERROR: '' The message",
             ),
@@ -482,17 +482,17 @@ class TestRegexBasedParsing(_BaseTestCase):
     @p.expand(
         [
             (
-                FakeLinterNearSingleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
                 "0123 'foo' 456789",
                 "stdin:1: ERROR: 'foo' The message",
             ),
             (
-                FakeLinterNearDoubleQuoted,
+                FakeLinterCaptureNearWithDoubleQuotes,
                 '0123 "foo" 456789',
                 'stdin:1: ERROR: "foo" The message',
             ),
             (
-                FakeLinterNearNotQuoted,
+                FakeLinterCaptureNearWithoutQuotes,
                 "0123 'foo' 456789",
                 "stdin:1: ERROR: 'foo' The message",
             ),

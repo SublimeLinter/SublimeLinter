@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
-NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
 # Many linters use stdin, and we convert text to utf-8
@@ -1094,7 +1093,7 @@ class Linter(metaclass=LinterMeta):
                     if near[pos].isalnum() or near[pos] == '_':
                         fence[i] = r'\b'
 
-                pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                pattern = '{}({}){}'.format(fence[0], re.escape(near), fence[1])
                 match = re.search(pattern, text)
 
                 if match:

@@ -450,7 +450,7 @@ class TestRegexBasedParsing(_BaseTestCase):
     def test_ensure_empty_quotes_dont_match_anything(
         self, linter_class, INPUT, OUTPUT
     ):
-        # TODO Fix wrong fix for #1028
+        # FIXME: Fix wrong fix for #1028
 
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
@@ -469,29 +469,26 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            # (  # currently passes
-            #     FakeLinterNearSingleQuoted,
-            #     "0123 'foo' 456789",
-            #     "stdin:1: ERROR: 'foo' The message",
-            # ),
+            (
+                FakeLinterNearSingleQuoted,
+                "0123 'foo' 456789",
+                "stdin:1: ERROR: 'foo' The message",
+            ),
             (
                 FakeLinterNearDoubleQuoted,
                 '0123 "foo" 456789',
                 'stdin:1: ERROR: "foo" The message',
             ),
-            # (  # currently passes
-            #     FakeLinterNearNotQuoted,
-            #     "0123 'foo' 456789",
-            #     "stdin:1: ERROR: 'foo' The message",
-            # ),
+            (
+                FakeLinterNearNotQuoted,
+                "0123 'foo' 456789",
+                "stdin:1: ERROR: 'foo' The message",
+            ),
         ]
     )
-    @unittest.expectedFailure
     def test_ensure_correct_mark_when_input_is_quoted(
         self, linter_class, INPUT, OUTPUT
     ):
-        # XXX: BUG
-
         linter = self.create_linter(linter_class)
 
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)

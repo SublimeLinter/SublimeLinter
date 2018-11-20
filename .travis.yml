@@ -1,14 +1,32 @@
-language: python
+env:
+    global:
+        - PACKAGE="SublimeLinter"
+        - SUBLIME_TEXT_VERSION="3"
 
-python:
-  - "3.6"
+cache: pip
+
+matrix:
+    include:
+        - os: linux
+          language: python
+          python: 3.6
+          env: PCINSTALL=true
+
+before_install:
+    - curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/travis.sh
+    - if [ "$TRAVIS_OS_NAME" == "linux"  ]; then
+            export DISPLAY=:99.0;
+            sh -e /etc/init.d/xvfb start;
+      fi
 
 install:
-  - pip3 install flake8
-  - pip3 install flake8-docstrings
-  - pip3 install Sphinx sphinx_rtd_theme
+    - pip install flake8 flake8-docstrings Sphinx sphinx_rtd_theme codecov
+    - sh travis.sh bootstrap
+    - sh travis.sh install_package_control
 
 script:
-  - flake8
-  - sphinx-build -j auto docs docs-out
-  - sphinx-build -j auto -b linkcheck docs docs-out
+    - flake8
+    - sphinx-build -j auto docs docs-out
+    - sphinx-build -j auto -b linkcheck docs docs-out
+    - sh travis.sh run_tests --coverage
+    - codecov

@@ -1,6 +1,7 @@
 from functools import partial
 import re
-import unittest
+from textwrap import dedent
+from unittest import expectedFailure  # noqa: F401
 
 from SublimeLinter.tests.parameterized import parameterized as p
 
@@ -30,7 +31,7 @@ class FakeLinter(Linter):
     """
 
 
-class FakeLinterNearSingleQuoted(Linter):
+class FakeLinterCaptureNearWithSingleQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -41,7 +42,7 @@ class FakeLinterNearSingleQuoted(Linter):
     """
 
 
-class FakeLinterNearDoubleQuoted(Linter):
+class FakeLinterCaptureNearWithDoubleQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -52,7 +53,7 @@ class FakeLinterNearDoubleQuoted(Linter):
     """
 
 
-class FakeLinterNearNotQuoted(Linter):
+class FakeLinterCaptureNearWithoutQuotes(Linter):
     defaults = {'selector': 'NONE'}
     cmd = 'fake_linter_1'
     regex = r"""(?x)
@@ -158,13 +159,25 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # SublimeLinter is capable of linting portions of a buffer. If you
+    # provide an input and an offset, you basically tell SublimeLinter
+    # that the input string starts at the position (line, col) in the buffer.
+    # If the linter then reports an error on line 1, the error is actually
+    # on line (line + 1) in the buffer.
     def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
+        PREFIX = dedent("""\
+        0
+        1
+        2
+        3
+        4
+        0123456789""")
+
         INPUT = "This is the extracted source code."
-        x, y = offset
-        prefix = '\n' * x + ' ' * y
-        self.set_buffer_content(prefix + INPUT)
+        BUFFER_CONTENT = PREFIX + INPUT
+        self.set_buffer_content(BUFFER_CONTENT)
 
         OUTPUT = "stdin:1:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
@@ -172,26 +185,37 @@ class TestRegexBasedParsing(_BaseTestCase):
         result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
-        char_offset = x + y
+        # Whereby the offset is (line, col), regions represent ranges between
+        # two points (ints). Basically we shift all points by 20 here.
+        # (Note: the '\n' newline char counts!)
+        char_offset = len(PREFIX)
         self.assertResult(
             [
                 {
-                    'line': x + 0,
-                    'start': y + 0,
-                    'end': y + 4,
+                    'line': 5,
+                    'start': 10,
+                    'end': 14,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
                 }
             ],
             result,
         )
 
+    # See comment above
     def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        INPUT = "\nThis is the extracted source code."
-        x, y = offset
-        prefix = '\n' * x + ' ' * y
-        self.set_buffer_content(prefix + INPUT)
+        PREFIX = dedent("""\
+        0
+        1
+        2
+        3
+        4
+        0123456789""")
+
+        INPUT = "First line\nThis is the extracted source code."
+        BUFFER_CONTENT = PREFIX + INPUT
+        self.set_buffer_content(BUFFER_CONTENT)
 
         OUTPUT = "stdin:2:1 ERROR: The message"
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
@@ -199,39 +223,14 @@ class TestRegexBasedParsing(_BaseTestCase):
         result = execute_lint_task(linter, INPUT, offset=offset)
         drop_info_keys(result)
 
-        char_offset = x + y + 1  # + 1 bc of the leading '\n' in INPUT
+        char_offset = len(PREFIX) + len('First line\n')
         self.assertResult(
             [
                 {
-                    'line': x + 1,
+                    'line': 6,
                     'start': 0,
                     'end': 4,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
-                }
-            ],
-            result,
-        )
-
-    def test_apply_line_start(self):
-        linter = self.create_linter()
-
-        # XXX: Make readable
-        when(self.view).text_point(0, 0).thenReturn(100)  # <==========
-
-        INPUT = "This is the source code."
-        OUTPUT = "stdin:1:1 ERROR: The message"
-        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-
-        result = execute_lint_task(linter, INPUT)
-        drop_info_keys(result)
-
-        self.assertResult(
-            [
-                {
-                    'line': 0,
-                    'start': 0,
-                    'end': 4,
-                    'region': sublime.Region(100, 104),
                 }
             ],
             result,
@@ -252,10 +251,7 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
-    @unittest.expectedFailure
     def test_if_no_col_and_no_near_mark_line(self):
-        # FIXME: Reported end is currently 9, but must be 10
-
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
@@ -331,9 +327,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1:2 ERROR: '....' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1:2 ERROR: "...." The message'),
-            (FakeLinterNearNotQuoted, "stdin:1:2 ERROR: '....' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1:2 ERROR: '....' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1:2 ERROR: "...." The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1:2 ERROR: '....' The message"),
         ]
     )
     def test_if_col_and_near_set_length(self, linter_class, OUTPUT):
@@ -352,9 +348,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_search_term(self, linter_class, OUTPUT):
@@ -373,9 +369,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_and_search_fails_select_line(
@@ -406,9 +402,9 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     @p.expand(
         [
-            (FakeLinterNearSingleQuoted, "stdin:1: ERROR: 'foo' The message"),
-            (FakeLinterNearDoubleQuoted, 'stdin:1: ERROR: "foo" The message'),
-            (FakeLinterNearNotQuoted, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithSingleQuotes, "stdin:1: ERROR: 'foo' The message"),
+            (FakeLinterCaptureNearWithDoubleQuotes, 'stdin:1: ERROR: "foo" The message'),
+            (FakeLinterCaptureNearWithoutQuotes, "stdin:1: ERROR: 'foo' The message"),
         ]
     )
     def test_if_no_col_but_near_and_search_fails_select_zero(
@@ -430,31 +426,49 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # In the following examples you see empty quotes like '' or "".
+    # Note that the near matches everything *in* these quotes, so here
+    # it actually and in the end captures the empty string.
+    # The tests ensure that these empty near's do not mark anything in
+    # the buffer. Especially we shouldn't mark quotation punctuation in
+    # the source code.
     @p.expand(
         [
             (
-                FakeLinterNearSingleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
                 "0123 '' 456789",
                 "stdin:1: ERROR: '' The message",
             ),
             (
-                FakeLinterNearDoubleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
+                "0123 '' 456789",
+                "stdin:1:1 ERROR: '' The message",
+            ),
+            (
+                FakeLinterCaptureNearWithDoubleQuotes,
                 '0123 "" 456789',
                 'stdin:1: ERROR: "" The message',
             ),
-            # (  # currently passes
-            #     FakeLinterNearNotQuoted,
-            #     "0123 '' 456789",
-            #     "stdin:1: ERROR: '' The message",
-            # ),
+            (
+                FakeLinterCaptureNearWithDoubleQuotes,
+                '0123 "" 456789',
+                'stdin:1:1 ERROR: "" The message',
+            ),
+            (
+                FakeLinterCaptureNearWithoutQuotes,
+                "0123 '' 456789",
+                "stdin:1: ERROR: '' The message",
+            ),
+            (
+                FakeLinterCaptureNearWithoutQuotes,
+                "0123 '' 456789",
+                "stdin:1:1 ERROR: '' The message",
+            ),
         ]
     )
-    @unittest.expectedFailure
-    def test_ensure_empty_quotes_dont_match_anything(
+    def test_ensure_empty_near_doesnt_match_anything(
         self, linter_class, INPUT, OUTPUT
     ):
-        # TODO Fix wrong fix for #1028
-
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
@@ -470,31 +484,33 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # In the following examples, we capture *foo* as the near value.
+    # Note that the source code ('INPUT') contains this value verbatim
+    # and quoted ('foo' or "foo").
+    # The tests ensure that we mark exactly *foo* in the source code,
+    # unquoted.
     @p.expand(
         [
-            # (  # currently passes
-            #     FakeLinterNearSingleQuoted,
-            #     "0123 'foo' 456789",
-            #     "stdin:1: ERROR: 'foo' The message",
-            # ),
             (
-                FakeLinterNearDoubleQuoted,
+                FakeLinterCaptureNearWithSingleQuotes,
+                "0123 'foo' 456789",
+                "stdin:1: ERROR: 'foo' The message",
+            ),
+            (
+                FakeLinterCaptureNearWithDoubleQuotes,
                 '0123 "foo" 456789',
                 'stdin:1: ERROR: "foo" The message',
             ),
-            # (  # currently passes
-            #     FakeLinterNearNotQuoted,
-            #     "0123 'foo' 456789",
-            #     "stdin:1: ERROR: 'foo' The message",
-            # ),
+            (
+                FakeLinterCaptureNearWithoutQuotes,
+                "0123 'foo' 456789",
+                "stdin:1: ERROR: 'foo' The message",
+            ),
         ]
     )
-    @unittest.expectedFailure
     def test_ensure_correct_mark_when_input_is_quoted(
         self, linter_class, INPUT, OUTPUT
     ):
-        # XXX: BUG
-
         linter = self.create_linter(linter_class)
 
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)

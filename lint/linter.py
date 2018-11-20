@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
-NEAR_RE_TEMPLATE = r'(?<!"){}({}){}(?!")'
 BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
 # Many linters use stdin, and we convert text to utf-8
@@ -1082,19 +1081,22 @@ class Linter(metaclass=LinterMeta):
         beginning at the `col`. If `m.near` is given, it selects the first
         occurrence of that word on the give `line`.
         """
+        near = self.strip_quotes(m.near) if m.near is not None else m.near
         if col is None:
-            if m.near:
-                text = vv.select_line(m.line)
-                near = self.strip_quotes(m.near)
+            # Empty strings won't match anything anyway so we do the simple
+            # falsy test
+            if near:
+                text = vv.select_line(line)
 
-                # Add \b fences around the text if it begins/ends with a word character
+                # Add \b fences around the text if it begins/ends with a word
+                # character
                 fence = ['', '']
 
                 for i, pos in enumerate((0, -1)):
                     if near[pos].isalnum() or near[pos] == '_':
                         fence[i] = r'\b'
 
-                pattern = NEAR_RE_TEMPLATE.format(fence[0], re.escape(near), fence[1])
+                pattern = '{}({}){}'.format(fence[0], re.escape(near), fence[1])
                 match = re.search(pattern, text)
 
                 if match:
@@ -1107,19 +1109,19 @@ class Linter(metaclass=LinterMeta):
                 persist.settings.get('no_column_highlights_line') or
                 not persist.settings.has('gutter_theme')
             ):
-                start, end = vv.full_line(m.line)
-                length = end - start - 1  # -1 for the trailing '\n'
-                return line, 0, length
+                # `rstrip` bc underlining the trailing '\n' looks ugly
+                text = vv.select_line(line).rstrip()
+                return line, 0, len(text)
             else:
                 return line, 0, 0
 
         else:
-            if m.near:
-                near = self.strip_quotes(m.near)
+            # Strict 'None' test bc empty strings should be handled here
+            if near is not None:
                 length = len(near)
                 return line, col, col + length
             else:
-                text = vv.select_line(m.line)[col:]
+                text = vv.select_line(line)[col:]
                 match = self.word_re.search(text) if self.word_re else None
 
                 length = len(match.group()) if match else 1
@@ -1128,7 +1130,7 @@ class Linter(metaclass=LinterMeta):
     @staticmethod
     def strip_quotes(text):
         """Return text stripped of enclosing single/double quotes."""
-        if len(text) < 3:
+        if len(text) < 2:
             return text
 
         first = text[0]

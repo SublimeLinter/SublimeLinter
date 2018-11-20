@@ -423,6 +423,12 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # In the following examples you see empty quotes like '' or "".
+    # Note that the near matches everything *in* these quotes, so here
+    # it actually and in the end captures the empty string.
+    # The tests ensure that these empty near's do not mark anything in
+    # the buffer. Especially we shouldn't mark quotation punctuation in
+    # the source code.
     @p.expand(
         [
             (
@@ -475,6 +481,11 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    # In the following examples, we capture *foo* as the near value.
+    # Note that the source code ('INPUT') contains this value verbatim
+    # and quoted ('foo' or "foo").
+    # The tests ensure that we mark exactly *foo* in the source code,
+    # unquoted.
     @p.expand(
         [
             (

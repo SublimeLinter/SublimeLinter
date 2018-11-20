@@ -1,5 +1,6 @@
 from functools import partial
 import re
+from textwrap import dedent
 from unittest import expectedFailure  # noqa: F401
 
 from SublimeLinter.tests.parameterized import parameterized as p
@@ -159,19 +160,20 @@ class TestRegexBasedParsing(_BaseTestCase):
         )
 
     # SublimeLinter is capable of linting portions of a buffer. If you
-    # provide an input and an offset, it means the input starts at the
-    # position (line, col) from the buffer.
+    # provide an input and an offset, you basically tell SublimeLinter
+    # that the input string starts at the position (line, col) in the buffer.
     # If the linter then reports an error on line 1, the error is actually
     # on line (line + 1) in the buffer.
     def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        PREFIX = """0
-1
-2
-3
-4
-0123456789"""
+        PREFIX = dedent("""\
+        0
+        1
+        2
+        3
+        4
+        0123456789""")
 
         INPUT = "This is the extracted source code."
         BUFFER_CONTENT = PREFIX + INPUT
@@ -203,12 +205,13 @@ class TestRegexBasedParsing(_BaseTestCase):
     def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
         linter = self.create_linter()
 
-        PREFIX = """0
-1
-2
-3
-4
-0123456789"""
+        PREFIX = dedent("""\
+        0
+        1
+        2
+        3
+        4
+        0123456789""")
 
         INPUT = "First line\nThis is the extracted source code."
         BUFFER_CONTENT = PREFIX + INPUT

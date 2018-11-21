@@ -20,15 +20,6 @@ from SublimeLinter.tests.mockito import (
 )
 
 
-def drop_keys(keys, array, strict=False):
-    for item in array:
-        for k in keys:
-            item.pop(k) if strict else item.pop(k, None)
-
-
-drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter'])
-drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])
-
 
 class _BaseTestCase(DeferrableTestCase):
     @classmethod
@@ -61,9 +52,6 @@ execute_lint_task = partial(
 
 
 class TestPostFilterResults(_BaseTestCase):
-    def assertResult(self, expected, actual):
-        drop_keys(['uid', 'priority'], actual)
-        self.assertEqual(expected, actual)
 
     @p.expand([
         # Ensure 'falsy' values do not filter anything

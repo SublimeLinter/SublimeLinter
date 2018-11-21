@@ -936,7 +936,7 @@ class Linter(metaclass=LinterMeta):
             error
             for error in errors
             if not any(
-                pattern.search(': '.join([error['code'], error['msg']]))
+                pattern.search(': '.join([error['error_type'], error['code'], error['msg']]))
                 for pattern in filters
             )
         ]

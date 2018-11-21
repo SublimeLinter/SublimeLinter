@@ -927,19 +927,21 @@ class Linter(metaclass=LinterMeta):
         if isinstance(filter_patterns, str):
             filter_patterns = [filter_patterns]
 
+        filters = []
         try:
-            filters = [
-                re.compile(pattern, re.I)
-                for pattern in filter_patterns
-            ]
-        except re.error as err:
-            logger.warning("Bad RegEx in 'filter_errors': '{}'".format(err))
-            filters = []
+            for pattern in filter_patterns:
+                try:
+                    filters.append(re.compile(pattern, re.I))
+                except re.error as err:
+                    logger.warning(
+                        "'{}' in 'filter_errors' is not a valid "
+                        "regex pattern: '{}'.".format(pattern, err)
+                    )
+
         except TypeError:
             logger.warning(
                 "'filter_errors' must be set to a string or a list of strings.\n"
                 "Got '{}' instead".format(filter_patterns))
-            filters = []
 
         return [
             error

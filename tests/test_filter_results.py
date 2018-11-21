@@ -20,7 +20,6 @@ from SublimeLinter.tests.mockito import (
 )
 
 
-
 class _BaseTestCase(DeferrableTestCase):
     @classmethod
     def setUpClass(cls):
@@ -122,7 +121,7 @@ class TestPostFilterResults(_BaseTestCase):
         self.assertEqual(result, expected)
 
     @p.expand([
-        (['d('], "Bad RegEx in 'filter_errors': 'unbalanced parenthesis'"),
+        (['d('], "'d(' in 'filter_errors' is not a valid regex pattern: 'unbalanced parenthesis'."),
         (True, "'filter_errors' must be set to a string or a list of strings.\nGot 'True' instead"),
         (123, "'filter_errors' must be set to a string or a list of strings.\nGot '123' instead"),
     ])

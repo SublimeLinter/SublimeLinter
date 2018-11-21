@@ -923,10 +923,14 @@ class Linter(metaclass=LinterMeta):
         return self.filter_errors(self.parse_output(output, virtual_view))
 
     def filter_errors(self, errors):
+        filter_patterns = self.get_view_settings().get('filter_errors') or []
+        if isinstance(filter_patterns, str):
+            filter_patterns = [filter_patterns]
+
         try:
             filters = [
                 re.compile(pattern, re.I)
-                for pattern in self.get_view_settings().get('filter_errors', [])
+                for pattern in filter_patterns
             ]
         except re.error as err:
             logger.warning("RegEx error in 'filter_errors': '{}'".format(err))

@@ -125,7 +125,7 @@ class TestPostFilterResults(_BaseTestCase):
         (True, "'filter_errors' must be set to a string or a list of strings.\nGot 'True' instead"),
         (123, "'filter_errors' must be set to a string or a list of strings.\nGot '123' instead"),
     ])
-    def test_warn_on_illegal_regex_string(self, filter_errors, warning):
+    def test_warn_on_illegal_regex_string(self, filter_errors, message):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1')
             defaults = {'selector': None}
@@ -152,7 +152,7 @@ class TestPostFilterResults(_BaseTestCase):
             """)
 
         when(linter)._communicate(...).thenReturn(OUTPUT)
-        expect(linter_module.logger, times=1).warning(warning)
+        expect(linter_module.logger, times=1).error(message)
         execute_lint_task(linter, INPUT)
         # `execute_lint_task` eats all uncatched errors, so we check again
         # to get faster and nicer output during the test

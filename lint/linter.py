@@ -933,13 +933,13 @@ class Linter(metaclass=LinterMeta):
                 try:
                     filters.append(re.compile(pattern, re.I))
                 except re.error as err:
-                    logger.warning(
+                    logger.error(
                         "'{}' in 'filter_errors' is not a valid "
                         "regex pattern: '{}'.".format(pattern, err)
                     )
 
         except TypeError:
-            logger.warning(
+            logger.error(
                 "'filter_errors' must be set to a string or a list of strings.\n"
                 "Got '{}' instead".format(filter_patterns))
 

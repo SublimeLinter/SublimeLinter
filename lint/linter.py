@@ -933,7 +933,12 @@ class Linter(metaclass=LinterMeta):
                 for pattern in filter_patterns
             ]
         except re.error as err:
-            logger.warning("RegEx error in 'filter_errors': '{}'".format(err))
+            logger.warning("Bad RegEx in 'filter_errors': '{}'".format(err))
+            filters = []
+        except TypeError:
+            logger.warning(
+                "'filter_errors' must be set to a string or a list of strings.\n"
+                "Got '{}' instead".format(filter_patterns))
             filters = []
 
         return [

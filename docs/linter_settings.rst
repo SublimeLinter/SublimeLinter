@@ -223,6 +223,9 @@ Example: this changes the appearance of whitespace warnings in flake8:
         }
     }
 
+.. note::
+
+    If you set both "mark_style" and "icon" to "none", you get a less noisy view and still can see those errors in the panel.
 
 
 working_dir

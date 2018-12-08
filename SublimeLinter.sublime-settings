@@ -81,6 +81,18 @@
 
             "excludes": [],
 
+            // Either a string or a list of strings. Each input string is
+            // handled as a case-insensitive regex pattern and matched against
+            // the error_type, code, and message of a particular lint error.
+            // If it matches, the error will be thrown away.
+            // E.g. "warning: " will remove all warnings but keep errors.
+            // "no-trailing-spaces: " will suppress this rule known from eslint.
+            // "W3\d\d: " will suppress some whitespace errors known from flake8
+            // and pyflakes.
+            // "missing <!DOCTYPE> declaration" will suppress that error known
+            // from htmltidy.
+            "filter_errors": "",
+
             // Lint mode determines when the linter is run. The linter setting
             // will take precedence over the global setting.
             "lint_mode": "manual",

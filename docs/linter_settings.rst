@@ -82,6 +82,41 @@ be a string or a list.
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
 
 
+filter_errors
+-------------
+
+This defines a post filter to suppress some problems a linter might report.
+(Useful if the linter cannot be configured very well.)
+
+The value may be a string or an array of strings. Each string is handled as
+a case-insensitive regex pattern, and then matched against the error type, code (or rule), and message of a particular lint problem. If it matches, the lint error will be thrown away.
+
+.. note::
+
+    This will completely supress the matching errors. If you only want to visually demote some errors, take a look at the :ref:`styles <linter_styles>` section below.
+
+Some examples:
+
+.. code-block:: json
+
+    {
+        // suppress all warnings
+        "filter_errors": "warning: ",
+
+        // suppress a specific eslint rule
+        "filter_errors": "no-trailing-spaces: ",
+
+        // suppress some flake8/pyflakes rules,
+        "filter_errors": "W3\\d\\d: ",
+
+        // typical html tidy message
+        "filter_errors": "missing <!DOCTYPE> declaration"
+    }
+
+Be aware of special escaping since what you're writing must be valid JSON.
+
+Technical note: For each reported problem we construct a string "<error_type>: <error_code>: <error_message". We then match each regex pattern against that virtual line. We keep the error if *none* of the patterns match, otherwise we keep it.
+
 lint_mode
 ---------
 Lint Mode determines when the linter is run.
@@ -146,6 +181,7 @@ For eslint we disable linting in html script attributes:
     The selector setting takes precedence over the deprecated `syntax` property.
 
 
+.. _linter_styles:
 
 styles
 ------
@@ -187,6 +223,9 @@ Example: this changes the appearance of whitespace warnings in flake8:
         }
     }
 
+.. note::
+
+    If you set both "mark_style" and "icon" to "none", you get a less noisy view and still can see those errors in the panel.
 
 
 working_dir

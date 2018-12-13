@@ -920,7 +920,37 @@ class Linter(metaclass=LinterMeta):
             raise TransientError('View not consistent.')
 
         virtual_view = VirtualView(code)
-        return self.parse_output(output, virtual_view)
+        return self.filter_errors(self.parse_output(output, virtual_view))
+
+    def filter_errors(self, errors):
+        filter_patterns = self.get_view_settings().get('filter_errors') or []
+        if isinstance(filter_patterns, str):
+            filter_patterns = [filter_patterns]
+
+        filters = []
+        try:
+            for pattern in filter_patterns:
+                try:
+                    filters.append(re.compile(pattern, re.I))
+                except re.error as err:
+                    logger.error(
+                        "'{}' in 'filter_errors' is not a valid "
+                        "regex pattern: '{}'.".format(pattern, err)
+                    )
+
+        except TypeError:
+            logger.error(
+                "'filter_errors' must be set to a string or a list of strings.\n"
+                "Got '{}' instead".format(filter_patterns))
+
+        return [
+            error
+            for error in errors
+            if not any(
+                pattern.search(': '.join([error['error_type'], error['code'], error['msg']]))
+                for pattern in filters
+            )
+        ]
 
     def parse_output(self, proc, virtual_view):
         # Note: We support type str for `proc`. E.g. the user might have
@@ -946,14 +976,13 @@ class Linter(metaclass=LinterMeta):
     def parse_output_via_regex(self, output, virtual_view):
         if not output:
             logger.info('{}: no output'.format(self.name))
-            return []
+            return
 
         if logger.isEnabledFor(logging.INFO):
             import textwrap
             logger.info('{}: output:\n{}'.format(
                 self.name, textwrap.indent(output.strip(), '  ')))
 
-        errors = []
         for m in self.find_errors(output):
             if not m or not m[0]:
                 continue
@@ -962,10 +991,7 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                error = self.process_match(m, virtual_view)
-                errors.append(error)
-
-        return errors
+                yield self.process_match(m, virtual_view)
 
     def find_errors(self, output):
         """

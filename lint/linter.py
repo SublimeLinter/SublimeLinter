@@ -1060,7 +1060,6 @@ class Linter(metaclass=LinterMeta):
             start, end = vv.full_line(line)
             col = max(min(col, (end - start) - 1), 0)
 
-
         line, start, end = self.reposition_match(line, col, m, vv)
         return {
             "line": line,

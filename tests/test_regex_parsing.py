@@ -684,6 +684,26 @@ class TestRegexBasedParsing(_BaseTestCase):
             # which does not automatically verify on `__exit__`.
             verifyNoUnwantedInteractions(linter_module.logger)
 
+    @p.expand([
+        ((0, 0), "0\n1", "stdin:0:1 ERROR: The message"),
+        ((0, 0), "0\n1", "stdin:1:1 ERROR: The message"),
+
+        ((1, 0), "1\n2", "stdin:1:1 ERROR: The message"),
+        ((1, 0), "1\n2", "stdin:2:1 ERROR: The message"),
+    ])
+    def test_correct_line_does_not_produce_a_warning(
+        self, LINE_COL_BASE, INPUT, OUTPUT
+    ):
+        linter = self.create_linter()
+        linter.line_col_base = LINE_COL_BASE
+
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(linter_module.logger).warning(...)
+
+        execute_lint_task(linter, INPUT)
+
+        verify(linter_module.logger, times=0).warning(...)
+
 
 class TestSplitMatchContract(_BaseTestCase):
     # Here we execute `linter.lint` bc `backend.execute_lint_task` eats all

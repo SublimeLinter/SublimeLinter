@@ -6,10 +6,24 @@ from unittest import expectedFailure  # noqa: F401
 from SublimeLinter.tests.parameterized import parameterized as p
 
 import sublime
-from SublimeLinter.lint import Linter, backend, persist, util
+from SublimeLinter.lint import (
+    Linter,
+    linter as linter_module,
+    backend,
+    persist,
+    util
+)
 from unittesting import DeferrableTestCase
 
-from SublimeLinter.tests.mockito import when, expect, unstub, spy, spy2, verify
+from SublimeLinter.tests.mockito import (
+    when,
+    expect,
+    unstub,
+    spy,
+    spy2,
+    verify,
+    verifyNoUnwantedInteractions
+)
 
 version = sublime.version()
 
@@ -605,17 +619,70 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
-    def test_if_line_out_of_bounds_bail(self):
-        linter = self.create_linter()
+    @p.expand([
+        # LINE_COL_BASE, INPUT, OUTPUT, LINE
+        ((0, 1), "0123456789", "stdin:0:1 ERROR: The message", 0),
+        ((0, 1), "0123456789", "stdin:1:1 ERROR: The message", 0),
+        ((0, 1), "0123456789", "stdin:100:1 ERROR: The message", 0),
+        ((0, 1), "0123456789\n0123456789", "stdin:1:1 ERROR: The message", 1),
+        ((0, 1), "0123456789\n0123456789", "stdin:2:1 ERROR: The message", 1),
+        ((0, 1), "0123456789\n0123456789", "stdin:100:1 ERROR: The message", 1),
 
-        INPUT = "0123456789"
-        OUTPUT = "stdin:100:1 ERROR: The message"
+        ((1, 1), "0123456789", "stdin:0:1 ERROR: The message", 0),
+        ((1, 1), "0123456789", "stdin:1:1 ERROR: The message", 0),
+        ((1, 1), "0123456789", "stdin:2:1 ERROR: The message", 0),
+        ((1, 1), "0123456789", "stdin:100:1 ERROR: The message", 0),
+        ((1, 1), "0123456789\n0123456789", "stdin:2:1 ERROR: The message", 1),
+        ((1, 1), "0123456789\n0123456789", "stdin:3:1 ERROR: The message", 1),
+        ((1, 1), "0123456789\n0123456789", "stdin:100:1 ERROR: The message", 1),
+    ])
+    def test_if_line_out_of_bounds_set_to_last_line(
+        self, LINE_COL_BASE, INPUT, OUTPUT, LINE
+    ):
+        linter = self.create_linter()
+        linter.line_col_base = LINE_COL_BASE
+
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(linter_module.logger).warning(...)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_info_keys(result)
+
+        self.assertResult([{
+            'line': LINE,
+            'start': 0,
+            'end': 10,
+            'region': sublime.Region(0, 10)
+        }], result)
+
+    @p.expand([
+        # LINE_COL_BASE, INPUT, OUTPUT, LINE
+        ((0, 0), "0\n1", "stdin:2:1 ERROR: The message", 2),
+        ((0, 0), "0\n1", "stdin:100:1 ERROR: The message", 100),
+
+        ((1, 0), "1\n2", "stdin:0:1 ERROR: The message", 0),
+        ((1, 0), "1\n2", "stdin:3:1 ERROR: The message", 3),
+        ((1, 0), "1\n2", "stdin:100:1 ERROR: The message", 100),
+    ])
+    def test_out_of_bounds_line_produces_warning(
+        self, LINE_COL_BASE, INPUT, OUTPUT, LINE
+    ):
+        linter = self.create_linter()
+        linter.line_col_base = LINE_COL_BASE
+
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        with expect(linter, times=1).notify_failure():
-            result = execute_lint_task(linter, INPUT)
+        with expect(linter_module.logger, times=1).warning(
+            "Reported line '{}' is not within the code we're linting.\n"
+            "Maybe the linter reports problems from multiple files "
+            "or `line_col_base` is not set correctly."
+            .format(LINE)
+        ):
+            execute_lint_task(linter, INPUT)
 
-        self.assertResult([], result)
+            # Looks like we're using an outdated version of mockito,
+            # which does not automatically verify on `__exit__`.
+            verifyNoUnwantedInteractions(linter_module.logger)
 
 
 class TestSplitMatchContract(_BaseTestCase):

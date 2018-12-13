@@ -1,0 +1,12 @@
+SublimeLinter 4.9
+=================
+
+You can now filter errors using regexes.
+
+If your linter doesn't allow you to suppress some error types in its
+configuration, or you just want your editor to be silent about some errors,
+you can now filter in SublimeLinter. To do so, set the "filter_errors" setting
+for a specific linter.
+
+More information:
+http://www.sublimelinter.com/en/stable/linter_settings.html

@@ -53,7 +53,7 @@
 
     // Linter specific settings.
     // More info: http://www.sublimelinter.com/en/stable/linter_settings.html
-    // Linter specific settings except for "styles" can also be changed
+    // Linter specific settings except for 'styles' can also be changed
     // in sublime-project settings.
     // What settings are available is documented in the readme of the
     // specific linter plugin.
@@ -64,34 +64,31 @@
             // Disables the linter. The default here is 'not set'
             "disable": false,
 
-            // Additional arguments for the command line. Either a 'string'
-            // or an 'array'. If set to a string, we 'shlex.split' it*.
+            // Additional arguments for the command line. Either a string
+            // or an array. If set to a string, we 'shlex.split' it*.
             // E.g. '--ignore D112' or ['--config', './.config/foo.ini']
             //
             // * Note: Use proper quoting around paths esp. on Windows!
             "args": [],
 
-            // Path to the executable to be used. Either a 'string' or an
-            // 'array'. E.g. ['nvm', 'exec', '8.6', 'eslint']
+            // Path to the executable to be used. Either a string or an
+            // array. E.g. ['nvm', 'exec', '8.6', 'eslint']
             "executable": "<automatically set>",
 
             // A modified runtime environment for the lint job. Settings here
             // override the default, inherited ENV.
             "env": {},
 
+            // Exclude files that match the given pattern(s).
             "excludes": [],
 
-            // Either a string or a list of strings. Each input string is
-            // handled as a case-insensitive regex pattern and matched against
-            // the error_type, code, and message of a particular lint error.
-            // If it matches, the error will be thrown away.
-            // E.g. "warning: " will remove all warnings but keep errors.
-            // "no-trailing-spaces: " will suppress this rule known from eslint.
-            // "W3\d\d: " will suppress some whitespace errors known from flake8
-            // and pyflakes.
-            // "missing <!DOCTYPE> declaration" will suppress that error known
-            // from htmltidy.
-            "filter_errors": "",
+            // Suppress errors that match the the given pattern(s).
+            // Either a 'string' or an 'array'. Each input string is handled as
+            // a case-insensitive regex pattern and matched against the
+            // error_type, code, and message. If it matches, the error will be
+            // thrown away.
+            // E.g. ["warning: ", "W3\d\d: ", "missing <!DOCTYPE> declaration"]
+            "filter_errors": [],
 
             // Lint mode determines when the linter is run. The linter setting
             // will take precedence over the global setting.

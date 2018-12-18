@@ -94,6 +94,9 @@ class VirtualView:
         start, end = self.full_line(line)
         return self._code[start:end]
 
+    def max_lines(self):
+        return len(self._newlines) - 2
+
     # Actual Sublime API would look like:
     # def full_line(self, region)
     # def full_line(self, point) => Region
@@ -1064,15 +1067,26 @@ class Linter(metaclass=LinterMeta):
         error_type = self.get_error_type(m.error, m.warning)
 
         col = m.col
+        line = m.line
+
+        # Ensure `line` is within bounds
+        line = max(min(line, vv.max_lines()), 0)
+        if line != m.line:
+            logger.warning(
+                "Reported line '{}' is not within the code we're linting.\n"
+                "Maybe the linter reports problems from multiple files "
+                "or `line_col_base` is not set correctly."
+                .format(m.line + self.line_col_base[0])
+            )
 
         if col is not None:
-            col = self.maybe_fix_tab_width(m.line, col, vv)
+            col = self.maybe_fix_tab_width(line, col, vv)
 
             # Pin the column to the start/end line offsets
-            start, end = vv.full_line(m.line)
+            start, end = vv.full_line(line)
             col = max(min(col, (end - start) - 1), 0)
 
-        line, start, end = self.reposition_match(m.line, col, m, vv)
+        line, start, end = self.reposition_match(line, col, m, vv)
         return {
             "line": line,
             "start": start,

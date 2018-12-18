@@ -11,6 +11,7 @@ from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
     when,
+    verifyNoUnwantedInteractions,
     expect,
     unstub,
     mock
@@ -242,6 +243,10 @@ class TestWorkingDirSetting(_BaseTestCase):
             "{}: wanted working_dir '{}' is not a directory".format('fakelinter', dir)
         ):
             actual = linter.get_working_dir(settings)
+
+            # Looks like we're using an outdated version of mockito,
+            # which does not automatically verify on `__exit__`.
+            verifyNoUnwantedInteractions(linter_module.logger)
 
         self.assertEqual(None, actual)
 

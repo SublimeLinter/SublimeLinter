@@ -167,12 +167,12 @@ To find out what selector to use for given file type, use the
 
 It's also possible to exclude scopes using the ``-`` operator.
 E.g. to disable embedded code in situation where linting doesn't make sense.
-For eslint we disable linting in html script attributes:
+ESLint can be disabled for HTML `script` tags with the following:
 
 .. code-block:: json
 
     {
-        'selector': 'source.js - meta.attribute-with-value'
+        "selector": "source.js - text.html.basic"
     }
 
 

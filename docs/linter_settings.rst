@@ -172,7 +172,7 @@ For eslint we disable linting in html script attributes:
 .. code-block:: json
 
     {
-        'selector': 'source.js - meta.attribute-with-value'
+        "selector": "source.js - meta.attribute-with-value"
     }
 
 

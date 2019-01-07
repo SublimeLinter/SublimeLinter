@@ -3,6 +3,7 @@
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from functools import lru_cache, partial
+from itertools import groupby
 import logging
 import os
 import time
@@ -289,7 +290,7 @@ def lint(view, view_has_changed, lock, reason=None):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(update_buffer_errors, bid, view_has_changed)
+        sink = partial(group_by_filename_and_update, bid, view_has_changed)
         backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -306,6 +307,25 @@ def kill_active_popen_calls(bid):
     for proc in procs:
         proc.terminate()
         proc.friendly_terminated = True
+
+
+def group_by_filename_and_update(bid, view_has_changed, linter, errors):
+    """Group lint errors by filename and update them."""
+    if view_has_changed():  # abort early
+        return
+
+    window = linter.view.window()
+
+    # group all errors by filenames to update them separately
+    errors.sort(key=lambda e: e.get('filename', None) or '')
+    for filename, grouped_errors in groupby(errors, key=lambda e: e.get('filename', None)):
+        if filename is None:  # linted file
+            update_buffer_errors(bid, view_has_changed, linter, list(grouped_errors))
+        else:
+            # search for an open view for this file to get a bid
+            view = window.find_open_file(filename)
+            if view:
+                update_buffer_errors(view.buffer_id(), view_has_changed, linter, list(grouped_errors))
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

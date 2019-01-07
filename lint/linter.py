@@ -104,6 +104,12 @@ class VirtualView:
     # def text_point(self, row, col) => Point
     # def rowcol(self, point) => (row, col)
 
+    @staticmethod
+    def from_file(filename):
+        """Return a VirtualView with the contents of file."""
+        with open(filename, 'r') as f:
+            return VirtualView(f.read())
+
 
 class ViewSettings:
     """
@@ -1066,6 +1072,15 @@ class Linter(metaclass=LinterMeta):
     def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)
 
+        # discard a linter provided filename if it points to the linted file itself
+        filename = m.match.groupdict().get("filename", None)
+        if filename and self.filename and os.path.samefile(filename, self.filename):
+            filename = None
+
+        # if this is a match for a different file we need its contents for the below checks
+        if filename:
+            vv = VirtualView.from_file(filename)
+
         col = m.col
         line = m.line
 
@@ -1088,6 +1103,7 @@ class Linter(metaclass=LinterMeta):
 
         line, start, end = self.reposition_match(line, col, m, vv)
         return {
+            "filename": filename,
             "line": line,
             "start": start,
             "end": end,

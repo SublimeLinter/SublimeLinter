@@ -1072,14 +1072,15 @@ class Linter(metaclass=LinterMeta):
     def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)
 
-        # discard a linter provided filename if it points to the linted file itself
+        # determine a filename for this match
         filename = m.match.groupdict().get("filename", None)
-        if filename and self.filename and os.path.samefile(filename, self.filename):
-            filename = None
-
-        # if this is a match for a different file we need its contents for the below checks
         if filename:
-            vv = VirtualView.from_file(filename)
+            # if this is a match for a different file we need its contents for the below checks
+            if not self.filename or not os.path.samefile(filename, self.filename):
+                vv = VirtualView.from_file(filename)
+        else:
+            # use the filename of the current view
+            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
 
         col = m.col
         line = m.line

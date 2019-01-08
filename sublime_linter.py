@@ -3,7 +3,6 @@
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from functools import lru_cache, partial
-from itertools import groupby
 import logging
 import os
 import time
@@ -309,6 +308,9 @@ def kill_active_popen_calls(bid):
         proc.friendly_terminated = True
 
 
+affected_filenames_per_bid = defaultdict(set)
+
+
 def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
@@ -317,15 +319,35 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     window = linter.view.window()
 
     # group all errors by filenames to update them separately
-    errors.sort(key=lambda e: e.get('filename', None) or '')
-    for filename, grouped_errors in groupby(errors, key=lambda e: e.get('filename', None)):
-        if filename is None:  # linted file
-            update_buffer_errors(bid, view_has_changed, linter, list(grouped_errors))
+    grouped = defaultdict(list)
+    for error in errors:
+        grouped[error.get('filename')].append(error)
+
+    # The contract for a simple linter is that it reports `[errors]` or an
+    # empty list `[]` if the buffer is clean. For linters that report errors
+    # for multiple files we collect information about which files are actually
+    # reported by a given `bid` so that we can clean the results. Basically,
+    # we must fake a `[]` response for every filename that is no longer
+    # reported.
+
+    lint_id = (bid, linter.name)
+    current_filenames = set(grouped.keys())  # `set` for the immutable version
+    previous_filenames = affected_filenames_per_bid[lint_id]
+    clean_files = previous_filenames - current_filenames
+
+    for filename in clean_files:
+        grouped[filename]  # For the side-effect of creating a new empty `list`
+
+    for filename, errors in grouped.items():
+        if not filename:  # backwards compatibility
+            update_buffer_errors(bid, view_has_changed, linter, errors)
         else:
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
             if view:
-                update_buffer_errors(view.buffer_id(), view_has_changed, linter, list(grouped_errors))
+                update_buffer_errors(view.buffer_id(), view_has_changed, linter, errors)
+
+    affected_filenames_per_bid[lint_id] = current_filenames
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

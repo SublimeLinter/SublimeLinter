@@ -1,6 +1,6 @@
 {
     "deferred": true,
-    "fast_timings": true,
+    "legacy_runner": false,
     "reload_package_on_testing": true,
     "start_coverage_after_reload": false,
     "show_reload_progress": true,

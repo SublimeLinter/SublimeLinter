@@ -121,6 +121,14 @@ def execute_lint_task(linter, code, offset, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
+def error_json_serializer(o):
+    """Return a JSON serializable representation of error properties."""
+    if isinstance(o, sublime.Region):
+        return (o.a, o.b)
+
+    return o
+
+
 def finalize_errors(linter, errors, offset):
     linter_name = linter.name
     view = linter.view
@@ -142,18 +150,22 @@ def finalize_errors(linter, errors, offset):
         })
 
         uid = hashlib.sha256(
-            json.dumps(error, sort_keys=True).encode('utf-8')).hexdigest()
-
-        line_start = view.text_point(line, 0)
-        region = sublime.Region(line_start + start, line_start + end)
-        if len(region) == 0:
-            region.b = region.b + 1
+            json.dumps(error, sort_keys=True, default=error_json_serializer).encode('utf-8')).hexdigest()
 
         error.update({
             'uid': uid,
-            'region': region,
             'priority': style.get_value('priority', error, 0)
         })
+
+        if 'region' not in error:
+            line_start = view.text_point(line, 0)
+            region = sublime.Region(line_start + start, line_start + end)
+            if len(region) == 0:
+                region.b = region.b + 1
+
+            error.update({
+                'region': region
+            })
 
 
 def get_lint_regions(linters, view):

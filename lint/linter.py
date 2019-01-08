@@ -1103,11 +1103,19 @@ class Linter(metaclass=LinterMeta):
             col = max(min(col, (end - start) - 1), 0)
 
         line, start, end = self.reposition_match(line, col, m, vv)
+
+        # find the region to highlight for this error
+        line_start, _ = vv.full_line(line)
+        region = sublime.Region(line_start + start, line_start + end)
+        if len(region) == 0:
+            region.b += 1
+
         return {
             "filename": filename,
             "line": line,
             "start": start,
             "end": end,
+            "region": region,
             "error_type": error_type,
             "code": m.error or m.warning or '',
             "msg": m.message.strip(),

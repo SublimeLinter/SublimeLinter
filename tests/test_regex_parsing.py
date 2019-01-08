@@ -112,7 +112,7 @@ class _BaseTestCase(DeferrableTestCase):
         unstub()
 
     def assertResult(self, expected, actual):
-        drop_keys(['uid', 'priority'], actual)
+        drop_keys(['uid', 'priority', 'filename'], actual)
         self.assertEqual(expected, actual)
 
     def create_view(self, window):

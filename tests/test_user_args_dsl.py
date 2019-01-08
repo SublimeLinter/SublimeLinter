@@ -93,6 +93,7 @@ class TestArgsDSL(_BaseTestCase):
         ('--a ', {'a': 'foo'}, ['--a', 'foo']),
         ('--a ', {'a': ['foo']}, ['--a', 'foo']),
         ('--a ', {'a': ['foo', 'bar']}, ['--a', 'foo bar']),
+        ('--a,', {'a': ['foo', 'bar']}, ['--a', 'foo,bar']),
         ('@a ', {'a': 'foo'}, ['foo']),
         ('@a ', {'a': ['foo']}, ['foo']),
         ('@a ', {'a': ['foo', 'bar']}, ['foo bar']),

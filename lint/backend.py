@@ -58,13 +58,13 @@ def get_lint_tasks(linters, view, view_has_changed):
         tasks = []
         for region in regions:
             code = view.substr(region)
-            offset = view.rowcol(region.begin())
+            offsets = view.rowcol(region.begin()) + (region.begin(),)
 
             # Due to a limitation in python 3.3, we cannot 'name' a thread when
             # using the ThreadPoolExecutor. (This feature has been introduced
             # in python 3.6.) So, we do this manually.
             task_name = make_good_task_name(linter, view)
-            task = partial(execute_lint_task, linter, code, offset, view_has_changed)
+            task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
             executor = partial(modify_thread_name, task_name, task)
             tasks.append(executor)
 
@@ -106,10 +106,10 @@ def reduced_concurrency():
 
 
 @reduced_concurrency()
-def execute_lint_task(linter, code, offset, view_has_changed):
+def execute_lint_task(linter, code, offsets, view_has_changed):
     try:
         errors = linter.lint(code, view_has_changed) or []
-        finalize_errors(linter, errors, offset)
+        finalize_errors(linter, errors, offsets)
 
         return errors
     except linter_module.TransientError:
@@ -129,10 +129,10 @@ def error_json_serializer(o):
     return o
 
 
-def finalize_errors(linter, errors, offset):
+def finalize_errors(linter, errors, offsets):
     linter_name = linter.name
     view = linter.view
-    line_offset, col_offset = offset
+    line_offset, col_offset, pt_offset = offsets
 
     for error in errors:
         line, start, end = error['line'], error['start'], error['end']
@@ -142,11 +142,23 @@ def finalize_errors(linter, errors, offset):
 
         line += line_offset
 
+        try:
+            region = error['region']
+        except KeyError:
+            line_start = view.text_point(line, 0)
+            region = sublime.Region(line_start + start, line_start + end)
+            if len(region) == 0:
+                region.b = region.b + 1
+
+        else:
+            region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+
         error.update({
             'line': line,
             'start': start,
             'end': end,
-            'linter': linter_name
+            'linter': linter_name,
+            'region': region
         })
 
         uid = hashlib.sha256(
@@ -156,16 +168,6 @@ def finalize_errors(linter, errors, offset):
             'uid': uid,
             'priority': style.get_value('priority', error, 0)
         })
-
-        if 'region' not in error:
-            line_start = view.text_point(line, 0)
-            region = sublime.Region(line_start + start, line_start + end)
-            if len(region) == 0:
-                region.b = region.b + 1
-
-            error.update({
-                'region': region
-            })
 
 
 def get_lint_regions(linters, view):

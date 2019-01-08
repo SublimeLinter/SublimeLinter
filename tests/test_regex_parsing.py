@@ -30,7 +30,7 @@ version = sublime.version()
 
 VIEW_UNCHANGED = lambda: False  # noqa: E731
 execute_lint_task = partial(
-    backend.execute_lint_task, offset=(0, 0), view_has_changed=VIEW_UNCHANGED
+    backend.execute_lint_task, offsets=(0, 0, 0), view_has_changed=VIEW_UNCHANGED
 )
 
 
@@ -184,7 +184,7 @@ class TestRegexBasedParsing(_BaseTestCase):
     # that the input string starts at the position (line, col) in the buffer.
     # If the linter then reports an error on line 1, the error is actually
     # on line (line + 1) in the buffer.
-    def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
+    def test_if_col_and_on_a_word_apply_offset_first_line(self, offsets=(5, 10, 20)):
         PREFIX = dedent("""\
         0
         1
@@ -201,7 +201,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=offset)
+        result = execute_lint_task(linter, INPUT, offsets=offsets)
         drop_info_keys(result)
 
         # Whereby the offset is (line, col), regions represent ranges between
@@ -221,7 +221,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         )
 
     # See comment above
-    def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
+    def test_if_col_and_on_a_word_apply_offset_next_line(self, offsets=(5, 10, 20)):
         PREFIX = dedent("""\
         0
         1
@@ -238,7 +238,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=offset)
+        result = execute_lint_task(linter, INPUT, offsets=offsets)
         drop_info_keys(result)
 
         char_offset = len(PREFIX) + len('First line\n')

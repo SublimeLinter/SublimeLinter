@@ -642,17 +642,19 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         linter.line_col_base = LINE_COL_BASE
 
+        self.set_buffer_content(INPUT)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
         when(linter_module.logger).warning(...)
 
         result = execute_lint_task(linter, INPUT)
         drop_info_keys(result)
 
+        PT_OFFSET = LINE * 11  # `len('0123456789\n')`
         self.assertResult([{
             'line': LINE,
             'start': 0,
             'end': 10,
-            'region': sublime.Region(0, 10)
+            'region': sublime.Region(0 + PT_OFFSET, 10 + PT_OFFSET)
         }], result)
 
     @p.expand([

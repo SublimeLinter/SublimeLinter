@@ -103,21 +103,26 @@ class FakeLinterColMatchesALength(Linter):
 
 class _BaseTestCase(DeferrableTestCase):
     def setUp(self):
-        self.view = sublime.active_window().new_file()
+        self.view = self.create_view(sublime.active_window())
         # make sure we have a window to work with
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("close_windows_when_empty", False)
 
     def tearDown(self):
-        if self.view:
-            self.view.set_scratch(True)
-            self.view.window().focus_view(self.view)
-            self.view.window().run_command("close_file")
         unstub()
 
     def assertResult(self, expected, actual):
         drop_keys(['uid', 'priority'], actual)
         self.assertEqual(expected, actual)
+
+    def create_view(self, window):
+        view = window.new_file()
+        self.addCleanup(self.close_view, view)
+        return view
+
+    def close_view(self, view):
+        view.set_scratch(True)
+        view.close()
 
     def create_linter(self, linter_factory=FakeLinter):
         linter = linter_factory(self.view, settings={})

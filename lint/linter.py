@@ -1084,7 +1084,7 @@ class Linter(metaclass=LinterMeta):
                 # for the below checks
                 if not self.filename or not os.path.samefile(filename, self.filename):
                     vv = VirtualView.from_file(filename)
-            except (FileNotFoundError, OSError) as err:
+            except OSError as err:
                 # warn about the error and drop this match
                 logger.warning('Exception: {}'.format(str(err)))
                 self.notify_failure()

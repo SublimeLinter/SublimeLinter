@@ -1075,6 +1075,10 @@ class Linter(metaclass=LinterMeta):
         # determine a filename for this match
         filename = m.match.groupdict().get("filename", None)
         if filename:
+            # ensure that the filename is absolute by basing relative paths on
+            # the working directory
+            filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
+
             # if this is a match for a different file we need its contents for the below checks
             if not self.filename or not os.path.samefile(filename, self.filename):
                 vv = VirtualView.from_file(filename)

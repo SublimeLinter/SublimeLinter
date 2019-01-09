@@ -103,21 +103,26 @@ class FakeLinterColMatchesALength(Linter):
 
 class _BaseTestCase(DeferrableTestCase):
     def setUp(self):
-        self.view = sublime.active_window().new_file()
+        self.view = self.create_view(sublime.active_window())
         # make sure we have a window to work with
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("close_windows_when_empty", False)
 
     def tearDown(self):
-        if self.view:
-            self.view.set_scratch(True)
-            self.view.window().focus_view(self.view)
-            self.view.window().run_command("close_file")
         unstub()
 
     def assertResult(self, expected, actual):
         drop_keys(['uid', 'priority'], actual)
         self.assertEqual(expected, actual)
+
+    def create_view(self, window):
+        view = window.new_file()
+        self.addCleanup(self.close_view, view)
+        return view
+
+    def close_view(self, view):
+        view.set_scratch(True)
+        view.close()
 
     def create_linter(self, linter_factory=FakeLinter):
         linter = linter_factory(self.view, settings={})
@@ -159,10 +164,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         ]
     )
     def test_if_col_and_on_a_word_no_offset(self, line_col_base, OUTPUT):
+        INPUT = "This is the source code."
+
+        self.set_buffer_content(INPUT)
         linter = self.create_linter()
         linter.line_col_base = line_col_base
-
-        INPUT = "This is the source code."
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -179,8 +185,6 @@ class TestRegexBasedParsing(_BaseTestCase):
     # If the linter then reports an error on line 1, the error is actually
     # on line (line + 1) in the buffer.
     def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
-        linter = self.create_linter()
-
         PREFIX = dedent("""\
         0
         1
@@ -191,9 +195,10 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         INPUT = "This is the extracted source code."
         BUFFER_CONTENT = PREFIX + INPUT
-        self.set_buffer_content(BUFFER_CONTENT)
-
         OUTPUT = "stdin:1:1 ERROR: The message"
+
+        self.set_buffer_content(BUFFER_CONTENT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT, offset=offset)
@@ -217,8 +222,6 @@ class TestRegexBasedParsing(_BaseTestCase):
 
     # See comment above
     def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
-        linter = self.create_linter()
-
         PREFIX = dedent("""\
         0
         1
@@ -229,9 +232,10 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         INPUT = "First line\nThis is the extracted source code."
         BUFFER_CONTENT = PREFIX + INPUT
-        self.set_buffer_content(BUFFER_CONTENT)
-
         OUTPUT = "stdin:2:1 ERROR: The message"
+
+        self.set_buffer_content(BUFFER_CONTENT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT, offset=offset)
@@ -251,10 +255,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         )
 
     def test_if_col_and_not_on_a_word_set_length_1(self):
-        linter = self.create_linter()
-
         INPUT = "    This is the source code."  # <===========
         OUTPUT = "stdin:1:1 ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -269,10 +274,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
-        linter = self.create_linter()
-
         INPUT = "0123456789"
         OUTPUT = "stdin:1: ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -296,10 +302,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
-        linter = self.create_linter()
-
         INPUT = "0123456789\n"
         OUTPUT = "stdin:1: ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -325,10 +332,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
-        linter = self.create_linter()
-
         INPUT = "0123456789"
         OUTPUT = "stdin:1: ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -347,9 +355,10 @@ class TestRegexBasedParsing(_BaseTestCase):
         ]
     )
     def test_if_col_and_near_set_length(self, linter_class, OUTPUT):
-        linter = self.create_linter(linter_class)
-
         INPUT = "0123456789"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter(linter_class)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -368,9 +377,10 @@ class TestRegexBasedParsing(_BaseTestCase):
         ]
     )
     def test_if_no_col_but_near_search_term(self, linter_class, OUTPUT):
-        linter = self.create_linter(linter_class)
-
         INPUT = "0123 foo 456789"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter(linter_class)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -394,9 +404,10 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(True)
 
-        linter = self.create_linter(linter_class)
-
         INPUT = "0123456789\n"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter(linter_class)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -427,9 +438,10 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
-        linter = self.create_linter(linter_class)
-
         INPUT = "0123456789\n"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter(linter_class)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -486,8 +498,8 @@ class TestRegexBasedParsing(_BaseTestCase):
         spy2(persist.settings.get)
         when(persist.settings).get('no_column_highlights_line').thenReturn(False)
 
+        self.set_buffer_content(INPUT)
         linter = self.create_linter(linter_class)
-
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -525,8 +537,8 @@ class TestRegexBasedParsing(_BaseTestCase):
     def test_ensure_correct_mark_when_input_is_quoted(
         self, linter_class, INPUT, OUTPUT
     ):
+        self.set_buffer_content(INPUT)
         linter = self.create_linter(linter_class)
-
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -583,10 +595,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         See how javac linter works around here:
         https://github.com/SublimeLinter/SublimeLinter-javac/blob/1ec3a052f32dcba2c3d404f1024ff728a84225e7/linter.py#L10
         """
-        linter = self.create_linter(FakeLinterColMatchesALength)
-
         INPUT = "This is the source code."
         OUTPUT = "stdin:1:xxxxx ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter(FakeLinterColMatchesALength)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -598,10 +611,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         )
 
     def test_if_col_out_of_bounds_set_to_last_char(self):
-        linter = self.create_linter()
-
         INPUT = "0123456789"
         OUTPUT = "stdin:1:100 ERROR: The message"
+
+        self.set_buffer_content(INPUT)
+        linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
         result = execute_lint_task(linter, INPUT)
@@ -642,17 +656,19 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         linter.line_col_base = LINE_COL_BASE
 
+        self.set_buffer_content(INPUT)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
         when(linter_module.logger).warning(...)
 
         result = execute_lint_task(linter, INPUT)
         drop_info_keys(result)
 
+        PT_OFFSET = LINE * 11  # `len('0123456789\n')`
         self.assertResult([{
             'line': LINE,
             'start': 0,
             'end': 10,
-            'region': sublime.Region(0, 10)
+            'region': sublime.Region(0 + PT_OFFSET, 10 + PT_OFFSET)
         }], result)
 
     @p.expand([

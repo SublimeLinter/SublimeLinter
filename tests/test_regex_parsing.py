@@ -791,6 +791,34 @@ class TestRegexBasedParsing(_BaseTestCase):
         with expect(linter_module.logger, times=1).warning(...):
             execute_lint_task(linter, INPUT)
 
+    def test_ensure_errors_from_other_files_have_correct_regions(self):
+        INPUT = "0123456789"
+        OUTPUT = "other_file:2:18 ERROR: The message"
+
+        OTHER_FILE_CONTENT = "0123\nShould highlight THIS word."
+        other_vv = linter_module.VirtualView(OTHER_FILE_CONTENT)
+        when(linter_module.VirtualView).from_file(...).thenReturn(other_vv)
+
+        working_dir = os.path.dirname(__file__)
+        linter = self.create_linter(FakeLinterCaptureFilename, {
+            'working_dir': working_dir
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual(
+            result[0]['filename'],
+            os.path.join(working_dir, 'other_file')
+        )
+
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 1,
+            'start': 17,
+            'end': 21,
+            'region': sublime.Region(22, 26)
+        }], result)
+
     def test_filename_for_untitled_view(self):
         INPUT = "0123456789"
         OUTPUT = "stdin:1:1 ERROR: The message"

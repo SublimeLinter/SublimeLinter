@@ -124,8 +124,8 @@ class _BaseTestCase(DeferrableTestCase):
         view.set_scratch(True)
         view.close()
 
-    def create_linter(self, linter_factory=FakeLinter):
-        linter = linter_factory(self.view, settings={})
+    def create_linter(self, linter_factory=FakeLinter, settings={}):
+        linter = linter_factory(self.view, settings)
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
         return linter

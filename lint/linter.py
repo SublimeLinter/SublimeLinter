@@ -1079,16 +1079,16 @@ class Linter(metaclass=LinterMeta):
             # the working directory
             filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
 
-            try:
-                # if this is a match for a different file we need its contents
-                # for the below checks
-                if not self.filename or not os.path.samefile(filename, self.filename):
+            # if this is a match for a different file we need its contents for
+            # the below checks
+            if os.path.normcase(filename) != os.path.normcase(self.filename):
+                try:
                     vv = VirtualView.from_file(filename)
-            except OSError as err:
-                # warn about the error and drop this match
-                logger.warning('Exception: {}'.format(str(err)))
-                self.notify_failure()
-                return None
+                except OSError as err:
+                    # warn about the error and drop this match
+                    logger.warning('Exception: {}'.format(str(err)))
+                    self.notify_failure()
+                    return None
         else:
             # use the filename of the current view
             filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())

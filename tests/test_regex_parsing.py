@@ -1,4 +1,5 @@
 from functools import partial
+import os
 import re
 from textwrap import dedent
 from unittest import expectedFailure  # noqa: F401
@@ -95,6 +96,17 @@ class FakeLinterColMatchesALength(Linter):
     cmd = 'fake_linter_1'
     regex = r"""(?x)
         ^stdin:(?P<line>\d+):(?P<col>x+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
+
+
+class FakeLinterCaptureFilename(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^(?P<filename>.+?):(?P<line>\d+):(?P<col>\d+)?\s
         (?P<error>ERROR):\s
         (?P<near>'[^']+')?
         (?P<message>.*)$
@@ -719,6 +731,76 @@ class TestRegexBasedParsing(_BaseTestCase):
         execute_lint_task(linter, INPUT)
 
         verify(linter_module.logger, times=0).warning(...)
+
+    @p.expand([
+        (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "./test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", __file__ + ":1:1 ERROR: The message"),
+    ])
+    def test_filename_is_stored_absolute(self, linter_class, INPUT, OUTPUT):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    @p.expand([
+        (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "./test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", __file__ + ":1:1 ERROR: The message"),
+    ])
+    def test_ensure_no_new_virtual_view_for_main_file(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        spy2(linter_module.VirtualView.from_file)
+        execute_lint_task(linter, INPUT)
+
+        verify(linter_module.VirtualView, times=0).from_file(...)
+
+    def test_invalid_filename_is_dropped(self):
+        INPUT = "0123456789"
+        OUTPUT = "non_existing_file:1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureFilename)
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertResult([], result)
+
+    def test_invalid_filename_produces_a_warning(self):
+        INPUT = "0123456789"
+        OUTPUT = "non_existing_file:1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureFilename)
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        with expect(linter_module.logger, times=1).warning(...):
+            execute_lint_task(linter, INPUT)
+
+    def test_filename_for_untitled_view(self):
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+
+        linter = self.create_linter()
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'],
+                         "<untitled {}>".format(self.view.buffer_id()))
 
 
 class TestSplitMatchContract(_BaseTestCase):

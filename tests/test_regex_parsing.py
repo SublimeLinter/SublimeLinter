@@ -124,7 +124,7 @@ class _BaseTestCase(DeferrableTestCase):
         unstub()
 
     def assertResult(self, expected, actual):
-        drop_keys(['uid', 'priority', 'filename'], actual)
+        drop_keys(['uid', 'priority'], actual)
         self.assertEqual(expected, actual)
 
     def create_view(self, window):
@@ -164,6 +164,7 @@ class TestRegexBasedParsing(_BaseTestCase):
                     'code': 'ERROR',
                     'msg': 'The message',
                     'linter': 'fakelinter',
+                    'filename': '<untitled {}>'.format(self.view.buffer_id())
                 }
             ],
             result,
@@ -931,5 +932,5 @@ def drop_keys(keys, array, strict=False):
             item.pop(k) if strict else item.pop(k, None)
 
 
-drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter'])
+drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter', 'filename'])
 drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])

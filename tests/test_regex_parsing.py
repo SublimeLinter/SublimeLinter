@@ -805,7 +805,8 @@ class TestRegexBasedParsing(_BaseTestCase):
         })
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT)
+        # the offsets must be ignored because this is not the main file
+        result = execute_lint_task(linter, INPUT, offsets=(42, 42, 42))
         self.assertEqual(
             result[0]['filename'],
             os.path.join(working_dir, 'other_file')

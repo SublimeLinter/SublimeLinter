@@ -135,12 +135,20 @@ def finalize_errors(linter, errors, offsets):
     line_offset, col_offset, pt_offset = offsets
 
     for error in errors:
+        # see if this error belongs to the main file
+        belongs_to_main_file = True
+        if 'filename' in error:
+            if (os.path.normcase(error['filename']) != os.path.normcase(view.file_name() or '') and
+                    error['filename'] != "<untitled {}>".format(view.buffer_id())):
+                belongs_to_main_file = False
+
         line, start, end = error['line'], error['start'], error['end']
         if line == 0:
             start += col_offset
             end += col_offset
 
-        line += line_offset
+        if belongs_to_main_file:  # offsets are for the main file only
+            line += line_offset
 
         try:
             region = error['region']
@@ -151,7 +159,8 @@ def finalize_errors(linter, errors, offsets):
                 region.b = region.b + 1
 
         else:
-            region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+            if belongs_to_main_file:  # offsets are for the main file only
+                region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
 
         error.update({
             'line': line,

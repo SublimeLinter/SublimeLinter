@@ -820,6 +820,34 @@ class TestRegexBasedParsing(_BaseTestCase):
             'region': sublime.Region(22, 26)
         }], result)
 
+    def test_ensure_errors_from_other_files_ignore_offsets_on_first_line(self):
+        INPUT = "0123456789"
+        OUTPUT = "other_file:1:18 ERROR: The message"
+
+        OTHER_FILE_CONTENT = "Should highlight THIS word."
+        other_vv = linter_module.VirtualView(OTHER_FILE_CONTENT)
+        when(linter_module.VirtualView).from_file(...).thenReturn(other_vv)
+
+        working_dir = os.path.dirname(__file__)
+        linter = self.create_linter(FakeLinterCaptureFilename, {
+            'working_dir': working_dir
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT, offsets=(42, 42, 42))
+        self.assertEqual(
+            result[0]['filename'],
+            os.path.join(working_dir, 'other_file')
+        )
+
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 0,
+            'start': 17,
+            'end': 21,
+            'region': sublime.Region(17, 21)
+        }], result)
+
     def test_filename_for_untitled_view(self):
         INPUT = "0123456789"
         OUTPUT = "stdin:1:1 ERROR: The message"

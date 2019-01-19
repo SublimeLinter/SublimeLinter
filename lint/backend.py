@@ -143,11 +143,11 @@ def finalize_errors(linter, errors, offsets):
                 belongs_to_main_file = False
 
         line, start, end = error['line'], error['start'], error['end']
-        if line == 0:
-            start += col_offset
-            end += col_offset
-
         if belongs_to_main_file:  # offsets are for the main file only
+            if line == 0:
+                start += col_offset
+                end += col_offset
+
             line += line_offset
 
         try:

@@ -338,6 +338,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     for filename in clean_files:
         grouped[filename]  # For the side-effect of creating a new empty `list`
 
+    did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
             update_buffer_errors(bid, view_has_changed, linter, errors)
@@ -345,7 +346,17 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
             if view:
-                update_buffer_errors(view.buffer_id(), view_has_changed, linter, errors)
+                this_bid = view.buffer_id()
+                update_buffer_errors(this_bid, view_has_changed, linter, errors)
+
+                if this_bid == bid:
+                    did_update_main_view = True
+
+    # For the main view we MUST *always* report an outcome. This is not for
+    # cleanup but functions as a signal that we're done. Merely for the status
+    # bar view.
+    if not did_update_main_view:
+        update_buffer_errors(bid, view_has_changed, linter, [])
 
     affected_filenames_per_bid[lint_id] = current_filenames
 

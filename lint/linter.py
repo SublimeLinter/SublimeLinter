@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
+from collections import OrderedDict, ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 import logging
@@ -55,8 +55,52 @@ MATCH_DICT = OrderedDict(
         ("near", None)
     )
 )
-LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
-LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
+
+LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
+
+
+class LintMatch(dict):
+    """Convenience dict type representing Lint errors.
+
+    Historically, lint errors were tuples, and later namedtuples. This dict
+    class implements enough to be backwards compatible to a namedtuple as a
+    `LEGACY_LINT_MATCH_DEF` set.
+    """
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 7:
+            self.update(zip(LEGACY_LINT_MATCH_DEF, args))
+        else:
+            super().__init__(*args, **kwargs)
+
+    def _replace(self, **kwargs):
+        self.update(kwargs)
+        return self
+
+    def __getattr__(self, name):
+        if name in LEGACY_LINT_MATCH_DEF:
+            return self.get(name, '' if name == 'message' else None)
+
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                "'{}' object has no attribute '{}'".format(type(self).__name__, name)
+            ) from None
+
+    def __getitem__(self, name):
+        if isinstance(name, int):
+            return tuple(iter(self))[name]
+        return super().__getitem__(name)
+
+    def __iter__(self):
+        return iter(tuple(getattr(self, name) for name in LEGACY_LINT_MATCH_DEF))
+
+    def copy(self):
+        return type(self)(self)
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, super().__repr__())
 
 
 class TransientError(Exception):

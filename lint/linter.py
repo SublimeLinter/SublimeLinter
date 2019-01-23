@@ -836,14 +836,6 @@ class Linter(metaclass=LinterMeta):
         """Return runtime environment for this lint."""
         return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
-    def get_error_type(self, error, warning):  # noqa:D102
-        if error:
-            return ERROR
-        elif warning:
-            return WARNING
-        else:
-            return self.default_type
-
     @classmethod
     def can_lint_view(cls, view, settings):
         if cls.disabled is True:
@@ -1135,6 +1127,14 @@ class Linter(metaclass=LinterMeta):
             "code": m.error or m.warning or '',
             "msg": m.message.strip(),
         }
+
+    def get_error_type(self, error, warning):
+        if error:
+            return ERROR
+        elif warning:
+            return WARNING
+        else:
+            return self.default_type
 
     def maybe_fix_tab_width(self, line, col, vv):
         # Adjust column numbers to match the linter's tabs if necessary

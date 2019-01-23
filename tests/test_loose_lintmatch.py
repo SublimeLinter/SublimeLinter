@@ -148,6 +148,11 @@ class TestLooseLintMatch(DeferrableTestCase):
         self.assertEqual(rv['message'], "message_txt")
         self.assertEqual(rv['near'], "near_txt")
 
+    def test_standard_item_access_throws_on_unknown_keys(self):
+        rv = LintMatch()
+
+        self.assertRaises(KeyError, lambda: rv['line'])
+
     def test_create_from_tuple(self):
         m = object()
         match = (m, 1, 2, "error_txt", "warning_txt", "message_txt", "near_txt")

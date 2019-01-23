@@ -1,4 +1,4 @@
-from collections import OrderedDict, ChainMap, Mapping, Sequence
+from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 import logging
@@ -42,19 +42,6 @@ _ACCEPTABLE_REASONS_MAP = {
 }
 
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
-
-
-MATCH_DICT = OrderedDict(
-    (
-        ("match", None),
-        ("line", None),
-        ("col", None),
-        ("error", None),
-        ("warning", None),
-        ("message", ''),
-        ("near", None)
-    )
-)
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
 
@@ -1066,46 +1053,55 @@ class Linter(metaclass=LinterMeta):
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
-    def split_match(self, match):
+    def split_match(self, match):  # type: (Match) -> LintMatch
+        """Convert the regex match to a `LintMatch`
+
+        Basically, a `LintMatch` is the dict of the named capturing groups
+        of the user provided regex (AKA `match.groupdict()`).
+
+        The only difference is that we cast `line` and `col` to int's if
+        provided.
+
+        Plugin authors can implement this method to skip or modify errors.
+        Notes: If you want to skip this error just return `None`. If you want
+        to modify the values just mutate the dict. E.g.
+
+            error = super().split_match(match)
+            error['message'] = 'The new message'
+            # OR:
+            error.update({'message': 'Hi!'})
+            return error
+
         """
-        Split a match into the standard elements of an error and return them.
+        error = LintMatch(match.groupdict())
+        error["match"] = match
 
-        If subclasses need to modify the values returned by the regex, they
-        should override this method, call super(), then modify the values
-        and return them.
-
-        """
-        match_dict = MATCH_DICT.copy()
-
-        match_dict.update({
-            k: v
-            for k, v in match.groupdict().items()
-            if k in match_dict
-        })
-        match_dict["match"] = match
-
-        # normalize line and col if necessary
-        line = match_dict["line"]
-        if line:
-            match_dict["line"] = int(line) - self.line_col_base[0]
+        # Normalize line and col if necessary
+        try:
+            line = error['line']
+        except KeyError:
+            pass
         else:
-            # `line` is not optional, but if a user implements `split_match`
-            # and calls `super` first, she has still the chance to fill in
-            # a value on her own.
-            match_dict["line"] = None
+            if line:
+                error['line'] = int(line) - self.line_col_base[0]
+            else:  # Exchange the empty string with `None`
+                error['line'] = None
 
-        col = match_dict["col"]
-        if col:
-            if col.isdigit():
-                col = int(col) - self.line_col_base[1]
-            else:
-                col = len(col)
-            match_dict["col"] = col
+        try:
+            col = error['col']
+        except KeyError:
+            pass
         else:
-            # `col` is optional, so we exchange an empty string with None
-            match_dict["col"] = None
+            if col:
+                if col.isdigit():
+                    col = int(col) - self.line_col_base[1]
+                else:
+                    col = len(col)
+                error['col'] = col
+            else:  # Exchange the empty string with `None`
+                error['col'] = None
 
-        return LintMatch(**match_dict)
+        return error
 
     def process_match(self, m, vv):
         error_type = self.get_error_type(m.error, m.warning)

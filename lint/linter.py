@@ -1073,7 +1073,11 @@ class Linter(metaclass=LinterMeta):
         error_type = self.get_error_type(m.error, m.warning)
 
         # determine a filename for this match
-        filename = m.match.groupdict().get("filename", None)
+        try:
+            filename = m.match.groupdict().get("filename", None)
+        except AttributeError:
+            pass
+
         if filename:
             # ensure that the filename is absolute by basing relative paths on
             # the working directory

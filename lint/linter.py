@@ -1076,7 +1076,7 @@ class Linter(metaclass=LinterMeta):
         try:
             filename = m.match.groupdict().get("filename", None)
         except AttributeError:
-            pass
+            filename = None
 
         if filename:
             # ensure that the filename is absolute by basing relative paths on

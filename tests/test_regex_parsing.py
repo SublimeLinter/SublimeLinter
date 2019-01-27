@@ -982,6 +982,8 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertEqual(0, len(result))
 
+    # Plugin authors used `match` to pass arbitrary additional information
+    # around. We support this for compatibility.
     @p.expand([('dict', {'foo': 'bar'}), ('true', True)])
     def test_allow_arbitrary_truthy_values_for_match(self, _, TRUTHY):
         linter = self.create_linter()

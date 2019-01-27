@@ -982,6 +982,24 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertEqual(0, len(result))
 
+    @p.expand([('dict', {'foo': 'bar'}), ('true', True)])
+    def test_allow_arbitrary_truthy_values_for_match(self, _, TRUTHY):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return TRUTHY, line, col, error, warning, message, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(1, len(result))
+
 
 def drop_keys(keys, array, strict=False):
     for item in array:

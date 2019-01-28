@@ -157,6 +157,37 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    @p.expand([
+        ("stdin:1:1 XTYPE: The message", 'XTYPE'),
+        ("stdin:1:1 XTYPEERROR: The message", 'XTYPE'),
+        ("stdin:1:1 XTYPEWARNING: The message", 'XTYPE'),
+        ("stdin:1:1 XTYPEERRORWARNING: The message", 'XTYPE'),
+        ("stdin:1:1 ERROR: The message", 'error'),
+        ("stdin:1:1 ERRORWARNING: The message", 'error'),
+        ("stdin:1:1 WARNING: The message", 'warning'),
+    ])
+    def test_determine_error_type(self, OUTPUT, ERROR_TYPE):
+        class FakeLinter(Linter):
+            defaults = {'selector': 'NONE'}
+            cmd = 'fake_linter_1'
+            regex = (
+                r"^stdin:(?P<line>\d+):(?P<col>\d+)\s"
+                r"(?P<error_type>XTYPE)?(?P<error>ERROR)?(?P<warning>WARNING)?"
+                r":\s(?P<message>.*)$"
+            )
+
+        linter = FakeLinter(self.view, settings={})
+        when(util).which(...).thenReturn('fake_linter_1')
+
+        INPUT = "This is the source code."
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_position_keys(result)
+        drop_keys(['code', 'msg', 'linter'], result)
+
+        self.assertResult([{'error_type': ERROR_TYPE}], result)
+
     @p.expand(
         [
             ((0, 0), "stdin:0:0 ERROR: The message"),

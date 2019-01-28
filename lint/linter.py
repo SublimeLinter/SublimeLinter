@@ -1096,7 +1096,7 @@ class Linter(metaclass=LinterMeta):
         return error
 
     def process_match(self, m, vv):
-        error_type = self.get_error_type(m.error, m.warning)
+        error_type = m.get('error_type', None) or self.get_error_type(m.error, m.warning)
 
         col = m.col
         line = m.line

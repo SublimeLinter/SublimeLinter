@@ -436,10 +436,20 @@ def update_selection(panel, region=None):
 
 class _sublime_linter_update_selection(sublime_plugin.TextCommand):
     def run(self, edit, a, b):
+        x1, y1 = self.view.viewport_position()
+
         region = sublime.Region(a, b)
         self.view.sel().clear()
         self.view.sel().add(region)
         self.view.show_at_center(region)
+
+        # `show_at_center` will scroll the `b` part into the viewport. If
+        # we have long lines that means we scroll on the x-axis as well.
+        # But we don't want that, so we maybe halfway undo and pin the x-axis
+        # to the previous value.
+        x2, y2 = self.view.viewport_position()
+        if x1 != x2:
+            self.view.set_viewport_position((x1, y2))
 
 
 def draw_position_marker(panel, line):

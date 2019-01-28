@@ -150,7 +150,7 @@ class VirtualView:
     @staticmethod
     def from_file(filename):
         """Return a VirtualView with the contents of file."""
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf8') as f:
             return VirtualView(f.read())
 
 

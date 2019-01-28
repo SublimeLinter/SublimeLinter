@@ -44,14 +44,26 @@ _ACCEPTABLE_REASONS_MAP = {
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
+COMMON_CAPTURING_NAMES = ("filename", "error_type", "code") + LEGACY_LINT_MATCH_DEF
 
 
 class LintMatch(dict):
-    """Convenience dict type representing Lint errors.
+    """Convenience dict-a-like type representing Lint errors.
 
     Historically, lint errors were tuples, and later namedtuples. This dict
     class implements enough to be backwards compatible to a namedtuple as a
     `LEGACY_LINT_MATCH_DEF` set.
+
+    Some convenience for the user: All present keys can be accessed like an
+    attribute. All commonly used names (see: COMMON_CAPTURING_NAMES) can
+    be safely accessed like an attribute, returning `None` if not present.
+    E.g.
+
+        error = LintMatch({'foo': 'bar'})
+        error.foo  # 'bar'
+        error.error_type  # None
+        error.quux  # raises AttributeError
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -65,7 +77,7 @@ class LintMatch(dict):
         return self
 
     def __getattr__(self, name):
-        if name in LEGACY_LINT_MATCH_DEF:
+        if name in COMMON_CAPTURING_NAMES:
             return self.get(name, '' if name == 'message' else None)
 
         try:
@@ -1096,8 +1108,8 @@ class Linter(metaclass=LinterMeta):
         return error
 
     def process_match(self, m, vv):
-        error_type = m.get('error_type', None) or self.get_error_type(m.error, m.warning)
-        code = m.get('code', None) or m.error or m.warning or ''
+        error_type = m.error_type or self.get_error_type(m.error, m.warning)
+        code = m.code or m.error or m.warning or ''
 
         col = m.col
         line = m.line

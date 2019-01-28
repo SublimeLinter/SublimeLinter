@@ -26,10 +26,13 @@ class TestLooseLintMatch(DeferrableTestCase):
         self.assertEqual(rv.message, "message_txt")
         self.assertEqual(rv.near, "near_txt")
 
-    def test_attribute_access_returns_defaults_for_missing_legacy_values(self):
+    def test_attribute_access_returns_defaults_for_missing_common_names(self):
         rv = LintMatch()
 
-        for k in ("match", "line", "col", "error", "warning", "message", "near"):
+        for k in (
+            "match", "line", "col", "error", "warning", "message", "near",
+            "filename", "error_type", "code",
+        ):
             self.assertEqual(getattr(rv, k), '' if k == 'message' else None)
 
     def test_unknown_keys_raise_on_attribute_access(self):

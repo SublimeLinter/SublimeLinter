@@ -1118,10 +1118,7 @@ class Linter(metaclass=LinterMeta):
         code = m.code or m.error or m.warning or ''
 
         # determine a filename for this match
-        try:
-            filename = m.match.groupdict().get("filename", None)
-        except AttributeError:
-            filename = None
+        filename = m.filename
 
         if filename:
             # ensure that the filename is absolute by basing relative paths on

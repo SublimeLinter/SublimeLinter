@@ -197,7 +197,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['code', 'msg', 'linter'], result)
+        drop_keys(['code', 'msg', 'linter', 'filename'], result)
 
         self.assertResult([{'error_type': ERROR_TYPE}], result)
 
@@ -228,7 +228,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['error_type', 'msg', 'linter'], result)
+        drop_keys(['error_type', 'msg', 'linter', 'filename'], result)
 
         self.assertResult([{'code': CODE}], result)
 

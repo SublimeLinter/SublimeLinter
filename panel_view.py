@@ -1,3 +1,4 @@
+from itertools import chain
 import os
 import sublime
 import sublime_plugin
@@ -329,11 +330,23 @@ def run_update_panel_cmd(panel, text=None):
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 
 
-def format_row(item):
+def format_row(
+    item, error_type_width=7, linter_name_width=12, line_width=5,
+    col_width=4, code_width=12
+):
     line = item["line"] + 1
     start = item["start"] + 1
-    code = ":{code:12}".format(**item) if item['code'] else ''
-    tmpl = " {LINE:>5}:{START:<4} {error_type:7} {linter:>12}{CODE} {msg}"
+    code_tmpl = ":{{code:{}}}".format(code_width)
+    code = (
+        code_tmpl.format(**item)
+        if item['code']
+        else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
+    )
+    tmpl = (
+        " {{LINE:>{}}}:{{START:<{}}}  {{error_type:{}}}  "
+        "{{linter:<{}}}{{CODE}}  {{msg}}"
+        .format(line_width, col_width, error_type_width, linter_name_width)
+    )
     return tmpl.format(LINE=line, START=start, CODE=code, **item)
 
 
@@ -352,6 +365,24 @@ def fill_panel(window):
     settings.set("result_base_dir", base_dir)
 
     to_render = []
+    widths = dict(
+        zip(
+            ('line_width', 'col_width', 'error_type_width', 'linter_name_width', 'code_width'),
+            map(
+                max,
+                zip(*[
+                    (
+                        len(str(error['line'])),
+                        len(str(error['start'])),
+                        len(error['error_type']),
+                        len(error['linter']),
+                        len(error['code']),
+                    )
+                    for error in chain(*errors_by_bid.values())
+                ])
+            )
+        )
+    )
     for bid, buf_errors in errors_by_bid.items():
         # append header
         to_render.append(format_header(path_dict[bid]))
@@ -359,7 +390,7 @@ def fill_panel(window):
         # append lines
         base_lineno = len(to_render)
         for i, item in enumerate(buf_errors):
-            to_render.append(format_row(item))
+            to_render.append(format_row(item, **widths))
             item["panel_line"] = base_lineno + i
 
         # insert empty line between views sections

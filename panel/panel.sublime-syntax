@@ -9,9 +9,11 @@ contexts:
     - include: linter-body
 
   linter-body:
-    - match: '^(.+):$'
-      captures:
-        1: entity.name.filename.sublime_linter
+    - match: '^(?=\S.+)'
+      push:
+        - ensure-file-meta-scope
+        - expect-filename
+
     - match: '^\s+(?=[0-9: ]+error)'
       push:
         - ensure-error-meta-scope
@@ -33,6 +35,17 @@ contexts:
         - expect-linter-type
         - expect-linter-severity
         - expect-line-maybe-column
+
+  ensure-file-meta-scope:
+    - meta_scope: meta.error_panel.fileline.sublime_linter
+    - match: (?=$)
+      pop: true
+
+  expect-filename:
+    - include: pop-at-end
+    - match: ([^:]+)
+      scope: entity.name.filename.sublime_linter
+      pop: true
 
   ensure-error-meta-scope:
     - meta_scope: meta.linter.body.error.sublime_linter

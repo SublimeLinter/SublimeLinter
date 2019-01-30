@@ -103,7 +103,7 @@ class PythonLinter(linter.Linter):
         return True, executable
 
 
-def find_python_version(version):  # type: Str
+def find_python_version(version):  # type: (str) -> str
     """Return python binaries on PATH matching a specific version."""
     requested_version = extract_major_minor_version(version)
     for python in util.find_executables('python'):

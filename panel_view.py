@@ -10,7 +10,7 @@ OUTPUT_PANEL = "output." + PANEL_NAME
 
 State = {
     'active_view': None,
-    'current_pos': -1,
+    'cursor': -1,
     'just_saved_buffers': set(),
     'panel_opened_automatically': set()
 }
@@ -68,7 +68,7 @@ class UpdateState(sublime_plugin.EventListener):
 
         State.update({
             'active_view': active_view,
-            'current_pos': get_current_pos(active_view)
+            'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
         if panel_is_active(window):
@@ -83,10 +83,10 @@ class UpdateState(sublime_plugin.EventListener):
         if view.buffer_id() != active_view.buffer_id():
             return
 
-        current_pos = get_current_pos(active_view)
-        if current_pos != State['current_pos']:
+        cursor = get_current_pos(active_view)
+        if cursor != State['cursor']:
             State.update({
-                'current_pos': current_pos
+                'cursor': cursor
             })
             if panel_is_active(active_view.window()):
                 update_panel_selection(**State)
@@ -411,7 +411,7 @@ def fill_panel(window):
         update_panel_selection(**State)
 
 
-def update_panel_selection(active_view, current_pos, **kwargs):
+def update_panel_selection(active_view, cursor, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.
@@ -422,7 +422,6 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     if not panel:
         return
 
-    cursor = current_pos
     if cursor == -1:
         return
 

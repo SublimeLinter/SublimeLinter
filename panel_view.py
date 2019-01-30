@@ -10,7 +10,7 @@ OUTPUT_PANEL = "output." + PANEL_NAME
 
 State = {
     'active_view': None,
-    'current_pos': (-1, -1),
+    'current_pos': -1,
     'just_saved_buffers': set(),
     'panel_opened_automatically': set()
 }
@@ -224,10 +224,7 @@ class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
 
 
 def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1
+    return next((s.begin() for s in view.sel()), -1)
 
 
 def get_common_parent(paths):
@@ -425,45 +422,41 @@ def update_panel_selection(active_view, current_pos, **kwargs):
     if not panel:
         return
 
-    line, col = current_pos
-    if (line, col) == (-1, -1):
+    cursor = current_pos
+    if cursor == -1:
         return
 
     bid = active_view.buffer_id()
     if not persist.errors[bid]:
         return
 
-    # Take only errors under or after the cursor
-    all_errors = sort_errors(
-        error for error in persist.errors[bid]
-        if (
-            error['line'] > line or
-            error['line'] == line and col <= error['end']
-        )
-    )
-
+    all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
     errors_under_cursor = [
-        error for error in all_errors
-        if error['line'] == line and error['start'] <= col <= error['end']
+        error
+        for error in all_errors
+        if error['region'].contains(cursor)
     ]
 
     if errors_under_cursor:
-        panel_lines = [error['panel_line'] for error in errors_under_cursor]
-
-        start = panel.text_point(panel_lines[0], 0)
-        end = panel.text_point(panel_lines[-1], 0)
+        start = panel.text_point(errors_under_cursor[0]['panel_line'], 0)
+        end = panel.text_point(errors_under_cursor[-1]['panel_line'], 0)
         region = panel.line(sublime.Region(start, end))
 
         clear_position_marker(panel)
         update_selection(panel, region)
 
     else:
-        if all_errors:
-            next_error = all_errors[0]
-            panel_line = next_error['panel_line']
-        else:
-            last_error = max(persist.errors[bid], key=lambda e: e['panel_line'])
+        try:
+            next_error = next(
+                error
+                for error in all_errors
+                if error['region'].begin() > cursor
+            )
+        except StopIteration:
+            last_error = all_errors[-1]
             panel_line = last_error['panel_line'] + 1
+        else:
+            panel_line = next_error['panel_line']
 
         start = panel.text_point(panel_line, 0)
         region = sublime.Region(start)

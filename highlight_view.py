@@ -377,8 +377,9 @@ def prepare_data(errors):
     # multiple linters running, we compare new lint results from the
     # 'fast' linters with old results from the 'slower' linters. The below
     # `filter_errors` produces wrong results with outdated priorities.
-    for error in errors:    # Warning: inline, so this change propagates
-                            # throughout the system
+    #
+    # ATT: inline, so this change propagates throughout the system
+    for error in errors:
         error['priority'] = style.get_value('priority', error, 0)
 
     # We need to filter the errors, bc we cannot draw multiple regions

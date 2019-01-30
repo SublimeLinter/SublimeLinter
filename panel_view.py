@@ -445,17 +445,58 @@ def update_panel_selection(active_view, cursor, **kwargs):
         update_selection(panel, region)
 
     else:
-        try:
-            next_error = next(
-                error
+        SNAP = (5, 0)  # (lines, characters)
+
+        row, _ = active_view.rowcol(cursor)
+        next_error = next(
+            (
+                (error, (error['line'] - row, error['region'].begin() - cursor))
                 for error in all_errors
                 if error['region'].begin() > cursor
+            ),
+            None
+        )
+        previous_error = next(
+            (
+                (error, (row - error['line'], cursor - error['region'].end()))
+                for error in reversed(all_errors)
+                if error['region'].end() < cursor
+            ),
+            None
+        )
+
+        nearest_error = None
+        try:
+            nearest_error, _ = min(
+                (
+                    e_d
+                    for e_d in (next_error, previous_error)
+                    if e_d and e_d[1] < SNAP
+                ),
+                key=lambda e_d: e_d[1]
             )
-        except StopIteration:
+        except ValueError:
+            ...
+
+        if nearest_error:
+            nearest_errors = [
+                e
+                for e in all_errors
+                if nearest_error['region'].contains(e['region'])
+            ]
+            start = panel.text_point(nearest_errors[0]['panel_line'], 0)
+            end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
+            region = panel.line(sublime.Region(start, end))
+
+            clear_position_marker(panel)
+            update_selection(panel, region)
+            return
+
+        if next_error:
+            panel_line = next_error[0]['panel_line']
+        else:
             last_error = all_errors[-1]
             panel_line = last_error['panel_line'] + 1
-        else:
-            panel_line = next_error['panel_line']
 
         start = panel.text_point(panel_line, 0)
         region = sublime.Region(start)

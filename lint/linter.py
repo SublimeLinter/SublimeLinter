@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict, ChainMap, Mapping, Sequence
+from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 import logging
@@ -43,20 +43,63 @@ _ACCEPTABLE_REASONS_MAP = {
 
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
+LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
+COMMON_CAPTURING_NAMES = ("filename", "error_type", "code") + LEGACY_LINT_MATCH_DEF
 
-MATCH_DICT = OrderedDict(
-    (
-        ("match", None),
-        ("line", None),
-        ("col", None),
-        ("error", None),
-        ("warning", None),
-        ("message", ''),
-        ("near", None)
-    )
-)
-LintMatch = namedtuple("LintMatch", MATCH_DICT.keys())
-LintMatch.__new__.__defaults__ = tuple(MATCH_DICT.values())
+
+class LintMatch(dict):
+    """Convenience dict-a-like type representing Lint errors.
+
+    Historically, lint errors were tuples, and later namedtuples. This dict
+    class implements enough to be backwards compatible to a namedtuple as a
+    `LEGACY_LINT_MATCH_DEF` set.
+
+    Some convenience for the user: All present keys can be accessed like an
+    attribute. All commonly used names (see: COMMON_CAPTURING_NAMES) can
+    be safely accessed like an attribute, returning `None` if not present.
+    E.g.
+
+        error = LintMatch({'foo': 'bar'})
+        error.foo  # 'bar'
+        error.error_type  # None
+        error.quux  # raises AttributeError
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 7:
+            self.update(zip(LEGACY_LINT_MATCH_DEF, args))
+        else:
+            super().__init__(*args, **kwargs)
+
+    def _replace(self, **kwargs):
+        self.update(kwargs)
+        return self
+
+    def __getattr__(self, name):
+        if name in COMMON_CAPTURING_NAMES:
+            return self.get(name, '' if name == 'message' else None)
+
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                "'{}' object has no attribute '{}'".format(type(self).__name__, name)
+            ) from None
+
+    def __getitem__(self, name):
+        if isinstance(name, int):
+            return tuple(iter(self))[name]
+        return super().__getitem__(name)
+
+    def __iter__(self):
+        return iter(tuple(getattr(self, name) for name in LEGACY_LINT_MATCH_DEF))
+
+    def copy(self):
+        return type(self)(self)
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, super().__repr__())
 
 
 class TransientError(Exception):
@@ -805,14 +848,6 @@ class Linter(metaclass=LinterMeta):
         """Return runtime environment for this lint."""
         return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
-    def get_error_type(self, error, warning):  # noqa:D102
-        if error:
-            return ERROR
-        elif warning:
-            return WARNING
-        else:
-            return self.default_type
-
     @classmethod
     def can_lint_view(cls, view, settings):
         if cls.disabled is True:
@@ -1022,49 +1057,59 @@ class Linter(metaclass=LinterMeta):
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
-    def split_match(self, match):
+    def split_match(self, match):  # type: (Match) -> LintMatch
+        """Convert the regex match to a `LintMatch`
+
+        Basically, a `LintMatch` is the dict of the named capturing groups
+        of the user provided regex (AKA `match.groupdict()`).
+
+        The only difference is that we cast `line` and `col` to int's if
+        provided.
+
+        Plugin authors can implement this method to skip or modify errors.
+        Notes: If you want to skip this error just return `None`. If you want
+        to modify the values just mutate the dict. E.g.
+
+            error = super().split_match(match)
+            error['message'] = 'The new message'
+            # OR:
+            error.update({'message': 'Hi!'})
+            return error
+
         """
-        Split a match into the standard elements of an error and return them.
+        error = LintMatch(match.groupdict())
+        error["match"] = match
 
-        If subclasses need to modify the values returned by the regex, they
-        should override this method, call super(), then modify the values
-        and return them.
-
-        """
-        match_dict = MATCH_DICT.copy()
-
-        match_dict.update({
-            k: v
-            for k, v in match.groupdict().items()
-            if k in match_dict
-        })
-        match_dict["match"] = match
-
-        # normalize line and col if necessary
-        line = match_dict["line"]
-        if line:
-            match_dict["line"] = int(line) - self.line_col_base[0]
+        # Normalize line and col if necessary
+        try:
+            line = error['line']
+        except KeyError:
+            pass
         else:
-            # `line` is not optional, but if a user implements `split_match`
-            # and calls `super` first, she has still the chance to fill in
-            # a value on her own.
-            match_dict["line"] = None
+            if line:
+                error['line'] = int(line) - self.line_col_base[0]
+            else:  # Exchange the empty string with `None`
+                error['line'] = None
 
-        col = match_dict["col"]
-        if col:
-            if col.isdigit():
-                col = int(col) - self.line_col_base[1]
-            else:
-                col = len(col)
-            match_dict["col"] = col
+        try:
+            col = error['col']
+        except KeyError:
+            pass
         else:
-            # `col` is optional, so we exchange an empty string with None
-            match_dict["col"] = None
+            if col:
+                if col.isdigit():
+                    col = int(col) - self.line_col_base[1]
+                else:
+                    col = len(col)
+                error['col'] = col
+            else:  # Exchange the empty string with `None`
+                error['col'] = None
 
-        return LintMatch(**match_dict)
+        return error
 
     def process_match(self, m, vv):
-        error_type = self.get_error_type(m.error, m.warning)
+        error_type = m.error_type or self.get_error_type(m.error, m.warning)
+        code = m.code or m.error or m.warning or ''
 
         col = m.col
         line = m.line
@@ -1092,9 +1137,17 @@ class Linter(metaclass=LinterMeta):
             "start": start,
             "end": end,
             "error_type": error_type,
-            "code": m.error or m.warning or '',
+            "code": code,
             "msg": m.message.strip(),
         }
+
+    def get_error_type(self, error, warning):
+        if error:
+            return ERROR
+        elif warning:
+            return WARNING
+        else:
+            return self.default_type
 
     def maybe_fix_tab_width(self, line, col, vv):
         # Adjust column numbers to match the linter's tabs if necessary

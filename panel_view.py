@@ -41,7 +41,10 @@ def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if buffer_id in buffer_ids_per_window(window):
             if panel_is_active(window):
-                fill_panel(window)
+                # `on_lint_result` runs on the worker thread, we lift
+                # `fill_panel` to the main thread to eliminate redraw jank.
+                # We just *want* this fast and smooth.
+                sublime.set_timeout(lambda: fill_panel(window))
 
             if maybe_toggle_panel_automatically:
                 toggle_panel_if_errors(window, buffer_id)
@@ -190,24 +193,34 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
     def run(self, edit, text="", clear_sel=False):
         """Replace a view's text entirely and attempt to restore previous selection."""
-        sel = self.view.sel()
-        # Doesn't make sense to consider multiple selections
-        try:
-            selected_text = self.view.substr(sel[0])
-        except IndexError:
-            selected_text = None
+        view = self.view
 
-        self.view.set_read_only(False)
-        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
-        self.view.set_read_only(True)
+        old_sel = [(view.rowcol(s.a), view.rowcol(s.b)) for s in view.sel()]
+        x, _ = view.viewport_position()
 
-        sel.clear()
-        if selected_text and not clear_sel:
-            new_selected_region = self.view.find(selected_text, 0, flags=sublime.LITERAL)
-            if new_selected_region:
-                sel.add(new_selected_region)
-                return
-        sel.add(0)
+        view.set_read_only(False)
+        view.replace(edit, sublime.Region(0, view.size()), text)
+        view.set_read_only(True)
+
+        view.sel().clear()
+        for a, b in old_sel:
+            view.sel().add(sublime.Region(view.text_point(*a), view.text_point(*b)))
+
+        # We cannot measure the `viewport_position` until right after this
+        # command actually finished. So we defer to the next tick/micro-task
+        # using `set_timeout`.
+        sublime.set_timeout(
+            lambda: view.run_command(
+                '_sublime_linter_pin_x_axis', {'x': x}
+            )
+        )
+
+
+class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
+    def run(self, edit, x):
+        x2, y2 = self.view.viewport_position()
+        if x != x2:
+            self.view.set_viewport_position((x, y2), False)
 
 
 def get_current_pos(view):

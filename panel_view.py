@@ -430,6 +430,8 @@ def update_panel_selection(active_view, cursor, **kwargs):
         return
 
     all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
+    mark_visible_viewport(panel, active_view, all_errors)
+
     errors_under_cursor = [
         error
         for error in all_errors
@@ -487,22 +489,55 @@ def update_panel_selection(active_view, cursor, **kwargs):
             start = panel.text_point(nearest_errors[0]['panel_line'], 0)
             end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
             region = panel.line(sublime.Region(start, end))
+            # regions = panel.lines(sublime.Region(start, end))
+            # regions = [sublime.Region(r.a, r.a + 1) for r in regions]
+
+            # panel.sel().clear()
+            # panel.sel().add_all(regions)
 
             clear_position_marker(panel)
             update_selection(panel, region)
-            return
-
-        if next_error:
-            panel_line = next_error[0]['panel_line']
         else:
-            last_error = all_errors[-1]
-            panel_line = last_error['panel_line'] + 1
+            if next_error:
+                panel_line = next_error[0]['panel_line']
+            else:
+                last_error = all_errors[-1]
+                panel_line = last_error['panel_line'] + 1
 
-        start = panel.text_point(panel_line, 0)
-        region = sublime.Region(start)
+            start = panel.text_point(panel_line, 0)
+            region = sublime.Region(start)
 
-        draw_position_marker(panel, panel_line)
-        update_selection(panel, region)
+            draw_position_marker(panel, panel_line)
+            update_selection(panel, region)
+
+
+if False:
+    from typing import Any, Dict, List
+
+
+def mark_visible_viewport(panel, view, errors):
+    # type: (sublime.View, sublime.View, List[Dict[str, Any]]) -> None
+    KEY = 'SL.Panel.ViewportMarker'
+    viewport = view.visible_region()
+
+    visible_errors = [e for e in errors if viewport.contains(e['region'])]
+    if visible_errors:
+        head, end = visible_errors[0], visible_errors[-1]
+        head_line = panel.text_point(head['panel_line'] - 1, 0)
+        end_line = panel.text_point(end['panel_line'], 0)
+
+        regions = [
+            sublime.Region(head_line, head_line),
+            sublime.Region(end_line, end_line)
+        ]
+        # scope = 'foo_means_forground'  # LOL
+        scope = 'region.bluish'
+        flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+                 sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+        print()
+        panel.add_regions(KEY, regions, scope=scope, flags=flags)
+    else:
+        panel.erase_regions(KEY)
 
 
 def update_selection(panel, region=None):
@@ -528,10 +563,11 @@ class _sublime_linter_update_selection(sublime_plugin.TextCommand):
             self.view.set_viewport_position((x1, y2))
 
 
-def draw_position_marker(panel, line):
+def draw_position_marker(panel, line):  # type: (sublime.View, int) -> None
     line_start = panel.text_point(line - 1, 0)
     region = sublime.Region(line_start, line_start)
-    scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+    # scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+    scope = 'region.yellowish'
     flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
              sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
     panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)

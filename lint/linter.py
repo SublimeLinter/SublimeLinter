@@ -13,6 +13,11 @@ from . import persist, util
 from .const import WARNING, ERROR
 
 
+MYPY = False
+if MYPY:
+    from typing import Match
+
+
 logger = logging.getLogger(__name__)
 
 

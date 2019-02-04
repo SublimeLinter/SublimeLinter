@@ -349,7 +349,7 @@ def format_row(
 ):
     line = item["line"] + 1
     start = item["start"] + 1
-    code_tmpl = ":{{code:{}}}".format(code_width)
+    code_tmpl = ":{{code:<{}}}".format(code_width)
     code = (
         code_tmpl.format(**item)
         if item['code']

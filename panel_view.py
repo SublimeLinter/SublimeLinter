@@ -389,7 +389,7 @@ def fill_panel(window):
                         len(str(error['start'])),
                         len(error['error_type']),
                         len(error['linter']),
-                        len(error['code']),
+                        len(str(error['code'])),
                     )
                     for error in chain(*errors_by_bid.values())
                 ])

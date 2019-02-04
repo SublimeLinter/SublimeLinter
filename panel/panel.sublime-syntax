@@ -76,7 +76,7 @@ contexts:
 
   expect-linter-type:
     - include: pop-at-end
-    - match: ([^\s:]+)(?:(:)(\S+))?
+    - match: ([^\s:]+)\s*(?:(:)(\S+))?
       captures:
         0: meta.linter-code.sublime_linter
         1: entity.name.label.linter-name.sublime_linter

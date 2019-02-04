@@ -343,22 +343,21 @@ def run_update_panel_cmd(panel, text=None):
     panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
 
 
-def format_row(
-    item, error_type_width=7, linter_name_width=12, line_width=5,
-    col_width=4, code_width=12
-):
+def format_row(item, widths):
+    code_width = widths['code']
+    code_tmpl = ":{{code:<{}}}".format(code_width)
+    tmpl = (
+        " {{LINE:>{line}}}:{{START:<{col}}}  {{error_type:{error_type}}}  "
+        "{{linter:<{linter_name}}}{{CODE}}  {{msg}}"
+        .format(**widths)
+    )
+
     line = item["line"] + 1
     start = item["start"] + 1
-    code_tmpl = ":{{code:{}}}".format(code_width)
     code = (
         code_tmpl.format(**item)
         if item['code']
         else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
-    )
-    tmpl = (
-        " {{LINE:>{}}}:{{START:<{}}}  {{error_type:{}}}  "
-        "{{linter:<{}}}{{CODE}}  {{msg}}"
-        .format(line_width, col_width, error_type_width, linter_name_width)
     )
     return tmpl.format(LINE=line, START=start, CODE=code, **item)
 
@@ -380,7 +379,7 @@ def fill_panel(window):
     to_render = []
     widths = dict(
         zip(
-            ('line_width', 'col_width', 'error_type_width', 'linter_name_width', 'code_width'),
+            ('line', 'col', 'error_type', 'linter_name', 'code'),
             map(
                 max,
                 zip(*[
@@ -389,7 +388,7 @@ def fill_panel(window):
                         len(str(error['start'])),
                         len(error['error_type']),
                         len(error['linter']),
-                        len(error['code']),
+                        len(str(error['code'])),
                     )
                     for error in chain(*errors_by_bid.values())
                 ])
@@ -403,7 +402,7 @@ def fill_panel(window):
         # append lines
         base_lineno = len(to_render)
         for i, item in enumerate(buf_errors):
-            to_render.append(format_row(item, **widths))
+            to_render.append(format_row(item, widths))
             item["panel_line"] = base_lineno + i
 
         # insert empty line between views sections

@@ -452,7 +452,7 @@ def update_panel_selection(active_view, cursor, **kwargs):
 
     if not all_errors:
         clear_position_marker(panel)
-        update_selection(panel, None)
+        mark_lines(panel, None)
         return
 
     row, _ = active_view.rowcol(cursor)
@@ -490,12 +490,12 @@ def update_panel_selection(active_view, cursor, **kwargs):
             for e in all_errors
             if nearest_error['region'].contains(e['region'])
         ]
-        start = panel.text_point(nearest_errors[0]['panel_line'], 0)
-        end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
-        region = panel.line(sublime.Region(start, end))
+
+        start = nearest_errors[0]['panel_line']
+        end = nearest_errors[-1]['panel_line']
+        mark_lines(panel, (start, end))
 
         clear_position_marker(panel)
-        update_selection(panel, region)
 
     else:
         try:
@@ -510,11 +510,8 @@ def update_panel_selection(active_view, cursor, **kwargs):
         else:
             panel_line = next_error['panel_line']
 
-        start = panel.text_point(panel_line, 0)
-        region = sublime.Region(start)
-
         draw_position_marker(panel, panel_line)
-        update_selection(panel, region)
+        mark_lines(panel, None)
 
 
 def mark_visible_viewport(panel, view, errors):
@@ -550,13 +547,19 @@ def mark_visible_viewport(panel, view, errors):
         panel.erase_regions(KEY2)
 
 
-def update_selection(panel, region=None):
-    # type: (sublime.View, Optional[sublime.Region]) -> None
-    if region is None:
+def mark_lines(panel, lines):
+    # type: (sublime.View, Optional[Tuple[int, int]]) -> None
+    if lines is None:
         panel.sel().clear()
-    else:
-        panel.run_command(
-            '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
+        return
+
+    start, end = lines
+    start = panel.text_point(start, 0)
+    end = panel.text_point(end, 0)
+    region = panel.line(sublime.Region(start, end))
+
+    panel.run_command(
+        '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
 
 
 class _sublime_linter_update_selection(sublime_plugin.TextCommand):

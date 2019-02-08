@@ -532,14 +532,12 @@ def mark_visible_viewport(panel, view, errors):
             sublime.Region(head_line, head_line),
             sublime.Region(end_line, end_line)
         ]
-        # scope = 'foo_means_forground'  # LOL
-        scope = 'region.bluish'
+        scope = 'region.bluish.visible_viewport.sublime_linter'
         flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
                  sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
         panel.add_regions(KEY, regions, scope=scope, flags=flags)
 
-        scope = 'comment'
-        scope = 'region.bluish'
+        scope = 'region.bluish.visible_viewport.sublime_linter'
         flags = sublime.DRAW_NO_OUTLINE
         head_line = panel.text_point(head['panel_line'], 0)
         end_line = panel.text_point(end['panel_line'] + 1, 0)

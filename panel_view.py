@@ -434,7 +434,13 @@ def update_panel_selection(active_view, cursor, **kwargs):
     if not persist.errors[bid]:
         return
 
-    all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
+    try:
+        # Rarely, and if so only on hot-reload, `update_panel_selection` runs
+        # before `fill_panel`, thus 'panel_line' has not been set.
+        all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
+    except KeyError:
+        all_errors = []
+
     mark_visible_viewport(panel, active_view, all_errors)
 
     row, _ = active_view.rowcol(cursor)

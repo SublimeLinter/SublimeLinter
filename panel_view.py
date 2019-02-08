@@ -447,7 +447,7 @@ def update_panel_selection(active_view, cursor, **kwargs):
         update_selection(panel, region)
 
     else:
-        SNAP = (5, 0)  # (lines, characters)
+        SNAP = (3, 0)  # (lines, characters)
 
         row, _ = active_view.rowcol(cursor)
         next_error = next(

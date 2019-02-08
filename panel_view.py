@@ -450,11 +450,6 @@ def update_panel_selection(active_view, cursor, **kwargs):
 
     mark_visible_viewport(panel, active_view, all_errors)
 
-    if not all_errors:
-        draw_position_marker(panel, None)
-        mark_lines(panel, None)
-        return
-
     row, _ = active_view.rowcol(cursor)
     errors_with_position = (
         (
@@ -504,8 +499,12 @@ def update_panel_selection(active_view, cursor, **kwargs):
                 if error['region'].begin() > cursor
             )
         except StopIteration:
-            last_error = all_errors[-1]
-            panel_line = last_error['panel_line'] + 1
+            try:
+                last_error = all_errors[-1]
+            except IndexError:
+                panel_line = None
+            else:
+                panel_line = last_error['panel_line'] + 1
         else:
             panel_line = next_error['panel_line']
 

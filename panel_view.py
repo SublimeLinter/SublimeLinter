@@ -5,6 +5,20 @@ import sublime_plugin
 
 from .lint import events, util, persist
 
+
+if False:
+    from typing import Any, Dict, List, Tuple, Iterable, Optional, Set
+    from mypy_extensions import TypedDict
+
+    State_ = TypedDict('State_', {
+        'active_view': Optional[sublime.View],
+        'cursor': int,
+        'just_saved_buffers': Set[sublime.BufferId],
+        'panel_opened_automatically': Set[sublime.WindowId]
+    })
+    LintError = Dict[str, Any]
+
+
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
 
@@ -13,7 +27,7 @@ State = {
     'cursor': -1,
     'just_saved_buffers': set(),
     'panel_opened_automatically': set()
-}
+}  # type: State_
 
 
 def plugin_loaded():
@@ -409,11 +423,6 @@ def fill_panel(window):
 
     if State['active_view'].window() == window:
         update_panel_selection(**State)
-
-
-if False:
-    from typing import Any, Dict, List, Tuple, Iterable, Optional
-    LintError = Dict[str, Any]
 
 
 def update_panel_selection(active_view, cursor, **kwargs):

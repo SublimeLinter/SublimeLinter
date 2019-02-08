@@ -451,7 +451,7 @@ def update_panel_selection(active_view, cursor, **kwargs):
     mark_visible_viewport(panel, active_view, all_errors)
 
     if not all_errors:
-        clear_position_marker(panel)
+        draw_position_marker(panel, None)
         mark_lines(panel, None)
         return
 
@@ -490,12 +490,11 @@ def update_panel_selection(active_view, cursor, **kwargs):
             for e in all_errors
             if nearest_error['region'].contains(e['region'])
         ]
-
         start = nearest_errors[0]['panel_line']
         end = nearest_errors[-1]['panel_line']
-        mark_lines(panel, (start, end))
 
-        clear_position_marker(panel)
+        mark_lines(panel, (start, end))
+        draw_position_marker(panel, None)
 
     else:
         try:
@@ -510,8 +509,8 @@ def update_panel_selection(active_view, cursor, **kwargs):
         else:
             panel_line = next_error['panel_line']
 
-        draw_position_marker(panel, panel_line)
         mark_lines(panel, None)
+        draw_position_marker(panel, panel_line)
 
 
 def mark_visible_viewport(panel, view, errors):
@@ -580,7 +579,12 @@ class _sublime_linter_update_selection(sublime_plugin.TextCommand):
             self.view.set_viewport_position((x1, y2))
 
 
-def draw_position_marker(panel, line):  # type: (sublime.View, int) -> None
+def draw_position_marker(panel, line):
+    # type: (sublime.View, Optional[int]) -> None
+    if line is None:
+        panel.erase_regions('SL.PanelMarker')
+        return
+
     line_start = panel.text_point(line - 1, 0)
     region = sublime.Region(line_start, line_start)
     # scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
@@ -588,7 +592,3 @@ def draw_position_marker(panel, line):  # type: (sublime.View, int) -> None
     flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
              sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
     panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
-
-
-def clear_position_marker(panel):
-    panel.erase_regions('SL.PanelMarker')

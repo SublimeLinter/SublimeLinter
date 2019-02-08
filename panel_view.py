@@ -489,11 +489,6 @@ def update_panel_selection(active_view, cursor, **kwargs):
             start = panel.text_point(nearest_errors[0]['panel_line'], 0)
             end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
             region = panel.line(sublime.Region(start, end))
-            # regions = panel.lines(sublime.Region(start, end))
-            # regions = [sublime.Region(r.a, r.a + 1) for r in regions]
-
-            # panel.sel().clear()
-            # panel.sel().add_all(regions)
 
             clear_position_marker(panel)
             update_selection(panel, region)

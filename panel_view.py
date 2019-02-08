@@ -412,7 +412,7 @@ def fill_panel(window):
 
 
 if False:
-    from typing import Any, Dict, List, Tuple, Iterable
+    from typing import Any, Dict, List, Tuple, Iterable, Optional
     LintError = Dict[str, Any]
 
 
@@ -431,8 +431,6 @@ def update_panel_selection(active_view, cursor, **kwargs):
         return
 
     bid = active_view.buffer_id()
-    if not persist.errors[bid]:
-        return
 
     try:
         # Rarely, and if so only on hot-reload, `update_panel_selection` runs
@@ -442,6 +440,11 @@ def update_panel_selection(active_view, cursor, **kwargs):
         all_errors = []
 
     mark_visible_viewport(panel, active_view, all_errors)
+
+    if not all_errors:
+        clear_position_marker(panel)
+        update_selection(panel, None)
+        return
 
     row, _ = active_view.rowcol(cursor)
     errors_with_position = (
@@ -539,8 +542,12 @@ def mark_visible_viewport(panel, view, errors):
 
 
 def update_selection(panel, region=None):
-    panel.run_command(
-        '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
+    # type: (sublime.View, Optional[sublime.Region]) -> None
+    if region is None:
+        panel.sel().clear()
+    else:
+        panel.run_command(
+            '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
 
 
 class _sublime_linter_update_selection(sublime_plugin.TextCommand):

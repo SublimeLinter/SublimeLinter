@@ -411,6 +411,11 @@ def fill_panel(window):
         update_panel_selection(**State)
 
 
+if False:
+    from typing import Any, Dict, List, Tuple, Iterable
+    LintError = Dict[str, Any]
+
+
 def update_panel_selection(active_view, cursor, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
@@ -432,82 +437,66 @@ def update_panel_selection(active_view, cursor, **kwargs):
     all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
     mark_visible_viewport(panel, active_view, all_errors)
 
-    errors_under_cursor = [
-        error
+    row, _ = active_view.rowcol(cursor)
+    errors_with_position = (
+        (
+            error,
+            (
+                abs(error['line'] - row),
+                min(
+                    abs(error['region'].begin() - cursor),
+                    abs(error['region'].end() - cursor)
+                )
+            )
+        )
         for error in all_errors
-        if error['region'].contains(cursor)
-    ]
+    )  # type: Iterable[Tuple[LintError, Tuple[int, int]]]
 
-    if errors_under_cursor:
-        start = panel.text_point(errors_under_cursor[0]['panel_line'], 0)
-        end = panel.text_point(errors_under_cursor[-1]['panel_line'], 0)
+    SNAP = (3, )  # [lines]
+    nearest_error = None
+    try:
+        nearest_error, _ = min(
+            (
+                e_p
+                for e_p in errors_with_position
+                if e_p[1] < SNAP
+            ),
+            key=lambda e_p: e_p[1]
+        )
+    except ValueError:
+        nearest_error = None
+
+    if nearest_error:
+        nearest_errors = [
+            e
+            for e in all_errors
+            if nearest_error['region'].contains(e['region'])
+        ]
+        start = panel.text_point(nearest_errors[0]['panel_line'], 0)
+        end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
         region = panel.line(sublime.Region(start, end))
 
         clear_position_marker(panel)
         update_selection(panel, region)
 
     else:
-        SNAP = (3, 0)  # (lines, characters)
-
-        row, _ = active_view.rowcol(cursor)
-        next_error = next(
-            (
-                (error, (error['line'] - row, error['region'].begin() - cursor))
+        try:
+            next_error = next(
+                error
                 for error in all_errors
                 if error['region'].begin() > cursor
-            ),
-            None
-        )
-        previous_error = next(
-            (
-                (error, (row - error['line'], cursor - error['region'].end()))
-                for error in reversed(all_errors)
-                if error['region'].end() < cursor
-            ),
-            None
-        )
-
-        nearest_error = None
-        try:
-            nearest_error, _ = min(
-                (
-                    e_d
-                    for e_d in (next_error, previous_error)
-                    if e_d and e_d[1] < SNAP
-                ),
-                key=lambda e_d: e_d[1]
             )
-        except ValueError:
-            ...
-
-        if nearest_error:
-            nearest_errors = [
-                e
-                for e in all_errors
-                if nearest_error['region'].contains(e['region'])
-            ]
-            start = panel.text_point(nearest_errors[0]['panel_line'], 0)
-            end = panel.text_point(nearest_errors[-1]['panel_line'], 0)
-            region = panel.line(sublime.Region(start, end))
-
-            clear_position_marker(panel)
-            update_selection(panel, region)
+        except StopIteration:
+            last_error = all_errors[-1]
+            panel_line = last_error['panel_line'] + 1
         else:
-            if next_error:
-                panel_line = next_error[0]['panel_line']
-            else:
-                last_error = all_errors[-1]
-                panel_line = last_error['panel_line'] + 1
+            panel_line = next_error['panel_line']
 
-            start = panel.text_point(panel_line, 0)
-            region = sublime.Region(start)
+        start = panel.text_point(panel_line, 0)
+        region = sublime.Region(start)
 
-            draw_position_marker(panel, panel_line)
-            update_selection(panel, region)
-
-
-if False:
-    from typing import Any, Dict, List
+        draw_position_marker(panel, panel_line)
+        update_selection(panel, region)
 
 
 def mark_visible_viewport(panel, view, errors):

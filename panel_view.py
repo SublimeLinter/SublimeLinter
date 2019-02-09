@@ -382,12 +382,11 @@ def fill_panel(window):
         return
 
     errors_by_bid = get_window_errors(window, persist.errors)
-    path_dict, base_dir = create_path_dict(window, errors_by_bid.keys())
+    fpath_by_bid, base_dir = create_path_dict(window, errors_by_bid.keys())
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
 
-    to_render = []
     widths = dict(
         zip(
             ('line', 'col', 'error_type', 'linter_name', 'code'),
@@ -406,13 +405,15 @@ def fill_panel(window):
             )
         )
     )
-    for bid, buf_errors in errors_by_bid.items():
-        # append header
-        to_render.append(format_header(path_dict[bid]))
 
-        # append lines
+    to_render = []
+    for fpath, errors in sorted(
+        (fpath_by_bid[bid], errors) for bid, errors in errors_by_bid.items()
+    ):
+        to_render.append(format_header(fpath))
+
         base_lineno = len(to_render)
-        for i, item in enumerate(buf_errors):
+        for i, item in enumerate(errors):
             to_render.append(format_row(item, widths))
             item["panel_line"] = base_lineno + i
 

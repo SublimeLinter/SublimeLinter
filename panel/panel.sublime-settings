@@ -7,7 +7,7 @@
     "is_widget": true,
     "line_numbers": false,
     "rulers": false,
-    "scroll_past_end": false,
+    "scroll_past_end": true,
     "spell_check": false,
     "translate_tabs_to_spaces": false,
     "word_wrap": false,

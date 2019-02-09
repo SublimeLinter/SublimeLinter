@@ -490,6 +490,7 @@ def update_panel_selection(active_view, cursor, **kwargs):
 
         mark_lines(panel, (start, end))
         draw_position_marker(panel, None)
+        scroll_into_view(panel, (start, end), all_errors)
 
     else:
         try:
@@ -503,13 +504,64 @@ def update_panel_selection(active_view, cursor, **kwargs):
                 last_error = all_errors[-1]
             except IndexError:
                 panel_line = None
+                wanted = None
             else:
                 panel_line = last_error['panel_line'] + 1
+                wanted = (panel_line, panel_line)
         else:
             panel_line = next_error['panel_line']
+            wanted = (panel_line, panel_line)
 
         mark_lines(panel, None)
         draw_position_marker(panel, panel_line)
+        scroll_into_view(panel, wanted, all_errors)
+
+
+INNER_MARGIN = 2  # [lines]
+JUMP_COEFFICIENT = 3
+
+
+def scroll_into_view(panel, wanted_lines, errors):
+    # type: (sublime.View, Optional[Tuple[int, int]], List[LintError]) -> None
+    if not errors or not wanted_lines:
+        return
+
+    _, vy = panel.viewport_position()
+    vtop = panel.rowcol(panel.layout_to_text((0.0, vy)))[0]
+    vheight = panel.viewport_extent()[1] // panel.line_height()
+    vbottom = vtop + vheight
+
+    # Before the first error comes the filename
+    ftop = errors[0]['panel_line'] - 1
+    # After the last error comes the empty line
+    fbottom = errors[-1]['panel_line'] + 1
+    fheight = fbottom - ftop + 1
+
+    if fheight <= vheight:
+        scroll_to_line(panel, ftop, animate=False)
+        return
+
+    wtop, wbottom = wanted_lines
+    out_of_bounds = False
+    jump_position = vheight // JUMP_COEFFICIENT
+
+    if fbottom < vbottom:
+        out_of_bounds = True
+        vtop = max(ftop, fbottom - vheight)
+    elif ftop > vtop:
+        out_of_bounds = True
+        vtop = ftop
+
+    if vtop + INNER_MARGIN < wbottom < vbottom - INNER_MARGIN:
+        if not out_of_bounds:
+            return
+    elif wtop < vtop + INNER_MARGIN:
+        vtop = max(ftop, wtop - jump_position)
+    elif vbottom - INNER_MARGIN < wbottom:
+        next_bottom = min(fbottom, wbottom + jump_position)
+        vtop = max(ftop, next_bottom - vheight)
+
+    scroll_to_line(panel, vtop, animate=not out_of_bounds)
 
 
 def mark_visible_viewport(panel, view, errors):
@@ -567,7 +619,6 @@ class _sublime_linter_update_selection(sublime_plugin.TextCommand):
         region = sublime.Region(a, b)
         self.view.sel().clear()
         self.view.sel().add(region)
-        self.view.show_at_center(region)
 
         # `show_at_center` will scroll the `b` part into the viewport. If
         # we have long lines that means we scroll on the x-axis as well.
@@ -576,6 +627,17 @@ class _sublime_linter_update_selection(sublime_plugin.TextCommand):
         x2, y2 = self.view.viewport_position()
         if x1 != x2:
             self.view.set_viewport_position((x1, y2))
+
+
+def scroll_to_line(view, line, animate):
+    x, y = view.text_to_layout(view.text_point(line, 0))
+    view.run_command('_sublime_linter_scroll_y', {'y': y, 'animate': animate})
+
+
+class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
+    def run(self, edit, y, animate):
+        x, _ = self.view.viewport_position()
+        self.view.set_viewport_position((x, y), animate)
 
 
 def draw_position_marker(panel, line):

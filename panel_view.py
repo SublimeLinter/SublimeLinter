@@ -565,37 +565,41 @@ def scroll_into_view(panel, wanted_lines, errors):
     scroll_to_line(panel, vtop, animate=not out_of_bounds)
 
 
+CONFUSION_THRESHOLD = 5
+
+
 def mark_visible_viewport(panel, view, errors):
     # type: (sublime.View, sublime.View, List[Dict[str, Any]]) -> None
     KEY = 'SL.Panel.ViewportMarker'
     KEY2 = 'SL.Panel.ViewportMarker2'
 
-    viewport = view.visible_region()
+    if len(errors) > CONFUSION_THRESHOLD:
+        viewport = view.visible_region()
+        visible_errors = [e for e in errors if viewport.contains(e['region'])]
+        if visible_errors and len(visible_errors) != len(errors):
+            head, end = visible_errors[0], visible_errors[-1]
+            head_line = panel.text_point(head['panel_line'] - 1, 0)
+            end_line = panel.text_point(end['panel_line'], 0)
 
-    visible_errors = [e for e in errors if viewport.contains(e['region'])]
-    if visible_errors:
-        head, end = visible_errors[0], visible_errors[-1]
-        head_line = panel.text_point(head['panel_line'] - 1, 0)
-        end_line = panel.text_point(end['panel_line'], 0)
+            regions = [
+                sublime.Region(head_line, head_line),
+                sublime.Region(end_line, end_line)
+            ]
+            scope = 'region.bluish.visible_viewport.sublime_linter'
+            flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+                     sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+            panel.add_regions(KEY, regions, scope=scope, flags=flags)
 
-        regions = [
-            sublime.Region(head_line, head_line),
-            sublime.Region(end_line, end_line)
-        ]
-        scope = 'region.bluish.visible_viewport.sublime_linter'
-        flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-                 sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-        panel.add_regions(KEY, regions, scope=scope, flags=flags)
+            scope = 'region.bluish.visible_viewport.sublime_linter'
+            flags = sublime.DRAW_NO_OUTLINE
+            head_line = panel.text_point(head['panel_line'], 0)
+            end_line = panel.text_point(end['panel_line'] + 1, 0)
+            regions = [sublime.Region(r.a, r.a + 1) for r in panel.lines(sublime.Region(head_line, end_line))]
+            panel.add_regions(KEY2, regions, scope=scope, flags=flags)
+            return
 
-        scope = 'region.bluish.visible_viewport.sublime_linter'
-        flags = sublime.DRAW_NO_OUTLINE
-        head_line = panel.text_point(head['panel_line'], 0)
-        end_line = panel.text_point(end['panel_line'] + 1, 0)
-        regions = [sublime.Region(r.a, r.a + 1) for r in panel.lines(sublime.Region(head_line, end_line))]
-        panel.add_regions(KEY2, regions, scope=scope, flags=flags)
-    else:
-        panel.erase_regions(KEY)
-        panel.erase_regions(KEY2)
+    panel.erase_regions(KEY)
+    panel.erase_regions(KEY2)
 
 
 def mark_lines(panel, lines):

@@ -206,27 +206,19 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
     def run(self, edit, text="", clear_sel=False):
-        """Replace a view's text entirely and attempt to restore previous selection."""
+        """Replace a view's text entirely and try to hold the viewport stable."""
         view = self.view
-
-        old_sel = [(view.rowcol(s.a), view.rowcol(s.b)) for s in view.sel()]
         x, _ = view.viewport_position()
 
         view.set_read_only(False)
         view.replace(edit, sublime.Region(0, view.size()), text)
         view.set_read_only(True)
 
-        view.sel().clear()
-        for a, b in old_sel:
-            view.sel().add(sublime.Region(view.text_point(*a), view.text_point(*b)))
-
         # We cannot measure the `viewport_position` until right after this
         # command actually finished. So we defer to the next tick/micro-task
         # using `set_timeout`.
         sublime.set_timeout(
-            lambda: view.run_command(
-                '_sublime_linter_pin_x_axis', {'x': x}
-            )
+            lambda: view.run_command('_sublime_linter_pin_x_axis', {'x': x})
         )
 
 

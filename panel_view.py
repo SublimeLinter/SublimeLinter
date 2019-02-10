@@ -55,10 +55,7 @@ def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
         if buffer_id in buffer_ids_per_window(window):
             if panel_is_active(window):
-                # `on_lint_result` runs on the worker thread, we lift
-                # `fill_panel` to the main thread to eliminate redraw jank.
-                # We just *want* this fast and smooth.
-                sublime.set_timeout(lambda: fill_panel(window))
+                fill_panel(window)
 
             if maybe_toggle_panel_automatically:
                 toggle_panel_if_errors(window, buffer_id)
@@ -365,7 +362,30 @@ def format_row(item, widths):
     return tmpl.format(LINE=line, START=start, CODE=code, **item)
 
 
-def fill_panel(window):
+def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
+    # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
+    if content is not None:
+        run_update_panel_cmd(panel, content)
+
+    if nearby_lines is None:
+        mark_lines(panel, None)
+        draw_position_marker(panel, None)
+        scroll_into_view(panel, None, errors_from_active_view)
+    elif isinstance(nearby_lines, tuple):
+        mark_lines(panel, nearby_lines)
+        draw_position_marker(panel, None)
+        scroll_into_view(panel, nearby_lines, errors_from_active_view)
+    else:
+        mark_lines(panel, None)
+        draw_position_marker(panel, nearby_lines)
+        scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
+
+
+def draw_on_main_thread(*a, **kw):
+    sublime.set_timeout(lambda: draw(*a, **kw))
+
+
+def fill_panel(window, then=draw_on_main_thread):
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
@@ -412,19 +432,28 @@ def fill_panel(window):
         # insert empty line between views sections
         to_render.append("")
 
-    run_update_panel_cmd(panel, text="\n".join(to_render))
+    content = '\n'.join(to_render)
+    draw_info = {
+        'panel': panel,
+        'content': content
+    }
 
     if State['active_view'].window() == window:
-        update_panel_selection(**State)
+        update_panel_selection(draw_info=draw_info, then=then, **State)
+    else:
+        then(**draw_info)
 
 
-def update_panel_selection(active_view, cursor, **kwargs):
+def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwargs):
     """Alter panel selection according to errors belonging to current position.
 
     If current position is between two errors, place empty panel selection on start of next error's panel line.
     If current position is past last error, place empty selection on the panel line following that of last error.
 
     """
+    if draw_info is None:
+        draw_info = {}
+
     panel = get_panel(active_view.window())
     if not panel:
         return
@@ -440,6 +469,11 @@ def update_panel_selection(active_view, cursor, **kwargs):
         all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
     except KeyError:
         all_errors = []
+
+    draw_info.update(
+        panel=panel,
+        errors_from_active_view=all_errors
+    )  # type: Dict[str, Any]
 
     mark_visible_viewport(panel, active_view, all_errors)
 
@@ -481,31 +515,24 @@ def update_panel_selection(active_view, cursor, **kwargs):
         start = nearest_errors[0]['panel_line']
         end = nearest_errors[-1]['panel_line']
 
-        mark_lines(panel, (start, end))
-        draw_position_marker(panel, None)
-        scroll_into_view(panel, (start, end), all_errors)
+        draw_info.update(nearby_lines=(start, end))
 
-    else:
-        mark_lines(panel, None)
-
-        if not all_errors:
-            draw_position_marker(panel, None)
-            scroll_into_view(panel, None, all_errors)
+    elif all_errors:
+        try:
+            next_error = next(
+                error
+                for error in all_errors
+                if error['region'].begin() > cursor
+            )
+        except StopIteration:
+            last_error = all_errors[-1]
+            panel_line = last_error['panel_line'] + 1
         else:
-            try:
-                next_error = next(
-                    error
-                    for error in all_errors
-                    if error['region'].begin() > cursor
-                )
-            except StopIteration:
-                last_error = all_errors[-1]
-                panel_line = last_error['panel_line'] + 1
-            else:
-                panel_line = next_error['panel_line']
+            panel_line = next_error['panel_line']
 
-            draw_position_marker(panel, panel_line)
-            scroll_into_view(panel, (panel_line, panel_line), all_errors)
+        draw_info.update(nearby_lines=panel_line)
+
+    then(**draw_info)
 
 
 INNER_MARGIN = 2  # [lines]

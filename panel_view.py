@@ -613,25 +613,8 @@ def mark_lines(panel, lines):
     end = panel.text_point(end, 0)
     region = panel.line(sublime.Region(start, end))
 
-    panel.run_command(
-        '_sublime_linter_update_selection', {'a': region.a, 'b': region.b})
-
-
-class _sublime_linter_update_selection(sublime_plugin.TextCommand):
-    def run(self, edit, a, b):
-        x1, y1 = self.view.viewport_position()
-
-        region = sublime.Region(a, b)
-        self.view.sel().clear()
-        self.view.sel().add(region)
-
-        # `show_at_center` will scroll the `b` part into the viewport. If
-        # we have long lines that means we scroll on the x-axis as well.
-        # But we don't want that, so we maybe halfway undo and pin the x-axis
-        # to the previous value.
-        x2, y2 = self.view.viewport_position()
-        if x1 != x2:
-            self.view.set_viewport_position((x1, y2))
+    panel.sel().clear()
+    panel.sel().add(region)
 
 
 def scroll_to_line(view, line, animate):

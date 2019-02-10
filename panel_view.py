@@ -486,28 +486,26 @@ def update_panel_selection(active_view, cursor, **kwargs):
         scroll_into_view(panel, (start, end), all_errors)
 
     else:
-        try:
-            next_error = next(
-                error
-                for error in all_errors
-                if error['region'].begin() > cursor
-            )
-        except StopIteration:
-            try:
-                last_error = all_errors[-1]
-            except IndexError:
-                panel_line = None
-                wanted = None
-            else:
-                panel_line = last_error['panel_line'] + 1
-                wanted = (panel_line, panel_line)
-        else:
-            panel_line = next_error['panel_line']
-            wanted = (panel_line, panel_line)
-
         mark_lines(panel, None)
-        draw_position_marker(panel, panel_line)
-        scroll_into_view(panel, wanted, all_errors)
+
+        if not all_errors:
+            draw_position_marker(panel, None)
+            scroll_into_view(panel, None, all_errors)
+        else:
+            try:
+                next_error = next(
+                    error
+                    for error in all_errors
+                    if error['region'].begin() > cursor
+                )
+            except StopIteration:
+                last_error = all_errors[-1]
+                panel_line = last_error['panel_line'] + 1
+            else:
+                panel_line = next_error['panel_line']
+
+            draw_position_marker(panel, panel_line)
+            scroll_into_view(panel, (panel_line, panel_line), all_errors)
 
 
 INNER_MARGIN = 2  # [lines]

@@ -268,20 +268,18 @@ def draw_on_main_thread(*args, **kwargs):
     sublime.set_timeout(lambda: draw(*args, **kwargs))
 
 
-def get_window_errors(window, all_errors):
-    bid_error_pairs = (
-        (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
-    )
+def get_window_errors(window, errors_by_bid):
     return {
-        bid: sort_errors(errors)
-        for bid, errors in bid_error_pairs
+        bid: sorted(
+            errors,
+            key=lambda e: (e["line"], e["start"], e["end"], e["linter"])
+        )
+        for bid, errors in (
+            (bid, errors_by_bid.get(bid))
+            for bid in buffer_ids_per_window(window)
+        )
         if errors
     }
-
-
-def sort_errors(errors):
-    return sorted(
-        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
 
 
 def buffer_ids_per_window(window):

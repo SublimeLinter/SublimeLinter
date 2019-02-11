@@ -445,12 +445,7 @@ def fill_panel(window, then=draw_on_main_thread):
 
 
 def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwargs):
-    """Alter panel selection according to errors belonging to current position.
-
-    If current position is between two errors, place empty panel selection on start of next error's panel line.
-    If current position is past last error, place empty selection on the panel line following that of last error.
-
-    """
+    """Alter panel highlighting according to the current cursor position."""
     if draw_info is None:
         draw_info = {}
 
@@ -535,15 +530,32 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
     then(**draw_info)
 
 
+#   Visual side-effects   #
+
+
 INNER_MARGIN = 2  # [lines]
 JUMP_COEFFICIENT = 3
 
 
 def scroll_into_view(panel, wanted_lines, errors):
     # type: (sublime.View, Optional[Tuple[int, int]], List[LintError]) -> None
+    """Compute and then scroll the view so that `wanted_lines` appear.
+
+    Basically an optimized, do-it-yourself version of `view.show()`. If
+    possible shows the start of this file section (the filename) at the top
+    of the viewport. Otherwise tries to not 'overscroll' so that errors from a
+    possible next file are essentially hidden. Inbetween tries to scroll as
+    much as possible.
+    """
     if not errors or not wanted_lines:
         return
 
+    # We would like to use just `view.visible_region()` but that doesn't count
+    # lines past the content. E.g. if you're at the eof it - for our purpose
+    # wrongly - tells you that the visible region is only 2 lines height.
+    # So we compute the values basically using `viewport_extent()`. This
+    # unfortunately leads to rounding errors bc we must convert from pixels
+    # to lines. See below.
     _, vy = panel.viewport_position()
     vtop = panel.rowcol(panel.layout_to_text((0.0, vy)))[0]
     vheight = panel.viewport_extent()[1] // panel.line_height()
@@ -572,7 +584,7 @@ def scroll_into_view(panel, wanted_lines, errors):
 
     if vtop + INNER_MARGIN < wbottom < vbottom - INNER_MARGIN:
         if not out_of_bounds:
-            return
+            return  # Do nothing bc `vtop` likely has rounding errors
     elif wtop < vtop + INNER_MARGIN:
         vtop = max(ftop, wtop - jump_position)
     elif vbottom - INNER_MARGIN < wbottom:
@@ -582,11 +594,66 @@ def scroll_into_view(panel, wanted_lines, errors):
     scroll_to_line(panel, vtop, animate=not out_of_bounds)
 
 
+def scroll_to_line(view, line, animate):
+    """Scroll y-axis so that `line` appears at the top of the viewport."""
+    x, y = view.text_to_layout(view.text_point(line, 0))
+    view.run_command('_sublime_linter_scroll_y', {'y': y, 'animate': animate})
+
+
+class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
+    def run(self, edit, y, animate):
+        x, _ = self.view.viewport_position()
+        self.view.set_viewport_position((x, y), animate)
+
+
+def mark_lines(panel, lines):
+    # type: (sublime.View, Optional[Tuple[int, int]]) -> None
+    """Select/Highlight given lines."""
+    if lines is None:
+        panel.sel().clear()
+        return
+
+    start, end = lines
+    start = panel.text_point(start, 0)
+    end = panel.text_point(end, 0)
+    region = panel.line(sublime.Region(start, end))
+
+    panel.sel().clear()
+    panel.sel().add(region)
+
+
+def draw_position_marker(panel, line):
+    # type: (sublime.View, Optional[int]) -> None
+    """Draw a visual cursor 'below' given line.
+
+    We draw a region 'dangle' (a region of length 0 at the start of a line)
+    *at* the given `line` which usually appears as if it were slightly below
+    the current line, or between this and the next line.
+
+    Basically a visual hack.
+    """
+    if line is None:
+        panel.erase_regions('SL.PanelMarker')
+        return
+
+    line_start = panel.text_point(line - 1, 0)
+    region = sublime.Region(line_start, line_start)
+    # scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
+    scope = 'region.yellowish'
+    flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+             sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+    panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+
+
 CONFUSION_THRESHOLD = 5
 
 
 def mark_visible_viewport(panel, view, errors):
     # type: (sublime.View, sublime.View, List[Dict[str, Any]]) -> None
+    """Compute and draw a fancy scrollbar like region on the left...
+
+    ... indicating the current viewport into that file or error(s) list.
+    """
     KEY = 'SL.Panel.ViewportMarker'
     KEY2 = 'SL.Panel.ViewportMarker2'
 
@@ -617,44 +684,3 @@ def mark_visible_viewport(panel, view, errors):
 
     panel.erase_regions(KEY)
     panel.erase_regions(KEY2)
-
-
-def mark_lines(panel, lines):
-    # type: (sublime.View, Optional[Tuple[int, int]]) -> None
-    if lines is None:
-        panel.sel().clear()
-        return
-
-    start, end = lines
-    start = panel.text_point(start, 0)
-    end = panel.text_point(end, 0)
-    region = panel.line(sublime.Region(start, end))
-
-    panel.sel().clear()
-    panel.sel().add(region)
-
-
-def scroll_to_line(view, line, animate):
-    x, y = view.text_to_layout(view.text_point(line, 0))
-    view.run_command('_sublime_linter_scroll_y', {'y': y, 'animate': animate})
-
-
-class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
-    def run(self, edit, y, animate):
-        x, _ = self.view.viewport_position()
-        self.view.set_viewport_position((x, y), animate)
-
-
-def draw_position_marker(panel, line):
-    # type: (sublime.View, Optional[int]) -> None
-    if line is None:
-        panel.erase_regions('SL.PanelMarker')
-        return
-
-    line_start = panel.text_point(line - 1, 0)
-    region = sublime.Region(line_start, line_start)
-    # scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
-    scope = 'region.yellowish'
-    flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-             sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-    panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)

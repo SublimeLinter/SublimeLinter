@@ -205,46 +205,6 @@ def get_current_pos(view):
     return next((s.begin() for s in view.sel()), -1)
 
 
-def get_common_parent(paths):
-    """Get the common parent directory of multiple absolute file paths."""
-    common_path = os.path.commonprefix(paths)
-    return os.path.dirname(common_path)
-
-
-def get_filenames(window, bids):
-    """
-    Return dict of buffer_id: file_name for all views in window.
-
-    Assign a substitute name to untitled buffers: <untitled buffer_id>
-    """
-    return {
-        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
-        for v in window.views()
-        if v.buffer_id() in bids
-    }
-
-
-def create_path_dict(window, bids):
-    file_names_by_bid = get_filenames(window, bids)
-
-    base_dir = get_common_parent([
-        path
-        for path in file_names_by_bid.values()
-        if not path.startswith('<untitled')
-    ])
-
-    rel_paths = {
-        bid: (
-            os.path.relpath(abs_path, base_dir)
-            if base_dir and not abs_path.startswith('<untitled')
-            else abs_path
-        )
-        for bid, abs_path in file_names_by_bid.items()
-    }
-
-    return rel_paths, base_dir
-
-
 def panel_is_active(window):
     if not window:
         return False
@@ -253,6 +213,14 @@ def panel_is_active(window):
         return True
     else:
         return False
+
+
+def ensure_panel(window: sublime.Window):
+    return get_panel(window) or create_panel(window)
+
+
+def get_panel(window):
+    return window.find_output_panel(PANEL_NAME)
 
 
 def create_panel(window):
@@ -277,17 +245,27 @@ def create_panel(window):
     return window.create_output_panel(PANEL_NAME)
 
 
-def get_panel(window):
-    return window.find_output_panel(PANEL_NAME)
+def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
+    # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
+    if content is not None:
+        update_panel_content(panel, content)
+
+    if nearby_lines is None:
+        mark_lines(panel, None)
+        draw_position_marker(panel, None)
+        scroll_into_view(panel, None, errors_from_active_view)
+    elif isinstance(nearby_lines, tuple):
+        mark_lines(panel, nearby_lines)
+        draw_position_marker(panel, None)
+        scroll_into_view(panel, nearby_lines, errors_from_active_view)
+    else:
+        mark_lines(panel, None)
+        draw_position_marker(panel, nearby_lines)
+        scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
 
 
-def ensure_panel(window: sublime.Window):
-    return get_panel(window) or create_panel(window)
-
-
-def sort_errors(errors):
-    return sorted(
-        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
+def draw_on_main_thread(*args, **kwargs):
+    sublime.set_timeout(lambda: draw(*args, **kwargs))
 
 
 def get_window_errors(window, all_errors):
@@ -301,8 +279,53 @@ def get_window_errors(window, all_errors):
     }
 
 
+def sort_errors(errors):
+    return sorted(
+        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
+
+
 def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
+
+
+def create_path_dict(window, bids):
+    file_names_by_bid = get_filenames(window, bids)
+
+    base_dir = get_common_parent([
+        path
+        for path in file_names_by_bid.values()
+        if not path.startswith('<untitled')
+    ])
+
+    rel_paths = {
+        bid: (
+            os.path.relpath(abs_path, base_dir)
+            if base_dir and not abs_path.startswith('<untitled')
+            else abs_path
+        )
+        for bid, abs_path in file_names_by_bid.items()
+    }
+
+    return rel_paths, base_dir
+
+
+def get_filenames(window, bids):
+    """
+    Return dict of buffer_id: file_name for all views in window.
+
+    Assign a substitute name to untitled buffers: <untitled buffer_id>
+    """
+    return {
+        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
+        for v in window.views()
+        if v.buffer_id() in bids
+    }
+
+
+def get_common_parent(paths):
+    """Get the common parent directory of multiple absolute file paths."""
+    common_path = os.path.commonprefix(paths)
+    return os.path.dirname(common_path)
 
 
 def format_header(f_path):
@@ -326,29 +349,6 @@ def format_row(item, widths):
         else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
     )
     return tmpl.format(LINE=line, START=start, CODE=code, **item)
-
-
-def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
-    # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
-    if content is not None:
-        update_panel_content(panel, content)
-
-    if nearby_lines is None:
-        mark_lines(panel, None)
-        draw_position_marker(panel, None)
-        scroll_into_view(panel, None, errors_from_active_view)
-    elif isinstance(nearby_lines, tuple):
-        mark_lines(panel, nearby_lines)
-        draw_position_marker(panel, None)
-        scroll_into_view(panel, nearby_lines, errors_from_active_view)
-    else:
-        mark_lines(panel, None)
-        draw_position_marker(panel, nearby_lines)
-        scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
-
-
-def draw_on_main_thread(*a, **kw):
-    sublime.set_timeout(lambda: draw(*a, **kw))
 
 
 def fill_panel(window, then=draw_on_main_thread):

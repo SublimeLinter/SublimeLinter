@@ -201,31 +201,6 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
-class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
-    def run(self, edit, text="", clear_sel=False):
-        """Replace a view's text entirely and try to hold the viewport stable."""
-        view = self.view
-        x, _ = view.viewport_position()
-
-        view.set_read_only(False)
-        view.replace(edit, sublime.Region(0, view.size()), text)
-        view.set_read_only(True)
-
-        # We cannot measure the `viewport_position` until right after this
-        # command actually finished. So we defer to the next tick/micro-task
-        # using `set_timeout`.
-        sublime.set_timeout(
-            lambda: view.run_command('_sublime_linter_pin_x_axis', {'x': x})
-        )
-
-
-class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
-    def run(self, edit, x):
-        x2, y2 = self.view.viewport_position()
-        if x != x2:
-            self.view.set_viewport_position((x, y2), False)
-
-
 def get_current_pos(view):
     return next((s.begin() for s in view.sel()), -1)
 
@@ -334,15 +309,6 @@ def format_header(f_path):
     return "{}:".format(f_path)
 
 
-def run_update_panel_cmd(panel, text=None):
-    cmd = "sublime_linter_update_panel"
-    clear_sel = False
-    if not text:
-        text = "No lint results."
-        clear_sel = True
-    panel.run_command(cmd, {'text': text, 'clear_sel': clear_sel})
-
-
 def format_row(item, widths):
     code_width = widths['code']
     code_tmpl = ":{{code:<{}}}".format(code_width)
@@ -365,7 +331,7 @@ def format_row(item, widths):
 def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
     # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
     if content is not None:
-        run_update_panel_cmd(panel, content)
+        update_panel_content(panel, content)
 
     if nearby_lines is None:
         mark_lines(panel, None)
@@ -531,6 +497,37 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
 
 
 #   Visual side-effects   #
+
+
+def update_panel_content(panel, text):
+    if not text:
+        text = "No lint results."
+    panel.run_command('_sublime_linter_update_panel_content', {'text': text})
+
+
+class _sublime_linter_update_panel_content(sublime_plugin.TextCommand):
+    def run(self, edit, text):
+        """Replace a view's text entirely and try to hold the viewport stable."""
+        view = self.view
+        x, _ = view.viewport_position()
+
+        view.set_read_only(False)
+        view.replace(edit, sublime.Region(0, view.size()), text)
+        view.set_read_only(True)
+
+        # We cannot measure the `viewport_position` until right after this
+        # command actually finished. So we defer to the next tick/micro-task
+        # using `set_timeout`.
+        sublime.set_timeout(
+            lambda: view.run_command('_sublime_linter_pin_x_axis', {'x': x})
+        )
+
+
+class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
+    def run(self, edit, x):
+        x2, y2 = self.view.viewport_position()
+        if x != x2:
+            self.view.set_viewport_position((x, y2), False)
 
 
 INNER_MARGIN = 2  # [lines]

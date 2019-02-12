@@ -1120,7 +1120,7 @@ class Linter(metaclass=LinterMeta):
         # determine a filename for this match
         filename = m.filename
 
-        if filename:
+        if filename and not self.is_stdin_filename(filename):
             # ensure that the filename is absolute by basing relative paths on
             # the working directory
             filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
@@ -1185,6 +1185,10 @@ class Linter(metaclass=LinterMeta):
             return WARNING
         else:
             return self.default_type
+
+    @staticmethod
+    def is_stdin_filename(filename):
+        return filename in ["stdin", "<stdin>", "-"]
 
     def maybe_fix_tab_width(self, line, col, vv):
         # Adjust column numbers to match the linter's tabs if necessary

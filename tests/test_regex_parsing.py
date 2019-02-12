@@ -813,6 +813,24 @@ class TestRegexBasedParsing(_BaseTestCase):
         self.assertEqual(result[0]['filename'], __file__)
 
     @p.expand([
+        (FakeLinterCaptureFilename, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "<stdin>:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "-:1:1 ERROR: The message"),
+    ])
+    def test_ensure_stdin_filename_is_replaced_with_main_filename(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    @p.expand([
         (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
         (FakeLinterCaptureFilename, "0123456789", "test_regex_parsing.py:1:1 ERROR: The message"),
         (FakeLinterCaptureFilename, "0123456789", "./test_regex_parsing.py:1:1 ERROR: The message"),

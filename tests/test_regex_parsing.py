@@ -1,6 +1,7 @@
 from functools import partial
 import os
 import re
+import tempfile
 from textwrap import dedent
 from unittest import expectedFailure  # noqa: F401
 
@@ -111,6 +112,10 @@ class FakeLinterCaptureFilename(Linter):
         (?P<near>'[^']+')?
         (?P<message>.*)$
     """
+
+
+class FakeLinterCaptureTempFilename(FakeLinterCaptureFilename):
+    tempfile_suffix = "tmp"
 
 
 class _BaseTestCase(DeferrableTestCase):
@@ -825,6 +830,21 @@ class TestRegexBasedParsing(_BaseTestCase):
         })
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
         when(self.view).file_name().thenReturn(__file__)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    def test_ensure_temp_filename_is_replaced_with_main_filename(self):
+        TEMP = os.path.join(tempfile.gettempdir(), "file.tmp")
+        INPUT = "0123456789"
+        OUTPUT = TEMP + ":1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureTempFilename)
+        when(self.view).file_name().thenReturn(__file__)
+
+        when(linter).tmpfile(...).thenReturn(OUTPUT)
+        linter.temp_filename = TEMP
 
         result = execute_lint_task(linter, INPUT)
 

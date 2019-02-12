@@ -613,6 +613,8 @@ class Linter(metaclass=LinterMeta):
         if self.defaults is not None:
             self.defaults = self.defaults.copy()
 
+        self.temp_filename = None
+
     @property
     def filename(self):
         """Return the view's file path or '' if unsaved."""
@@ -1120,14 +1122,19 @@ class Linter(metaclass=LinterMeta):
         # determine a filename for this match
         filename = m.filename
 
+        main_filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
         if filename and not self.is_stdin_filename(filename):
             # ensure that the filename is absolute by basing relative paths on
             # the working directory
             filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
 
+            # when the command was run on a temporary file we need to compare
+            # this filename with that temporary filename
+            cmd_filename = self.temp_filename or self.filename
+
             # if this is a match for a different file we need its contents for
             # the below checks
-            if os.path.normcase(filename) != os.path.normcase(self.filename):
+            if os.path.normcase(filename) != os.path.normcase(cmd_filename):
                 try:
                     vv = VirtualView.from_file(filename)
                 except OSError as err:
@@ -1135,9 +1142,12 @@ class Linter(metaclass=LinterMeta):
                     logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
                     return None
+            else:
+                # replace the temporary filename
+                filename = main_filename
         else:
             # use the filename of the current view
-            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
+            filename = main_filename
 
         col = m.col
         line = m.line
@@ -1310,6 +1320,9 @@ class Linter(metaclass=LinterMeta):
             suffix = self.get_tempfile_suffix()
 
         with make_temp_file(suffix, code) as file:
+            # store this filename to assign its errors to the main file later
+            self.temp_filename = file.name
+
             ctx = get_view_context(self.view)
             ctx['file_on_disk'] = self.filename
             ctx['temp_file'] = file.name

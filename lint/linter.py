@@ -1120,34 +1120,21 @@ class Linter(metaclass=LinterMeta):
         code = m.code or m.error or m.warning or ''
 
         # determine a filename for this match
-        filename = m.filename
+        filename = self.normalize_filename(m.filename)
 
-        main_filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
-        if filename and not self.is_stdin_filename(filename):
-            # ensure that the filename is absolute by basing relative paths on
-            # the working directory
-            filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
-
-            # when the command was run on a temporary file we need to compare
-            # this filename with that temporary filename
-            cmd_filename = self.temp_filename or self.filename
-
-            # if this is a match for a different file we need its contents for
+        if filename:
+            # this is a match for a different file so we need its contents for
             # the below checks
-            if os.path.normcase(filename) != os.path.normcase(cmd_filename):
-                try:
-                    vv = VirtualView.from_file(filename)
-                except OSError as err:
-                    # warn about the error and drop this match
-                    logger.warning('Exception: {}'.format(str(err)))
-                    self.notify_failure()
-                    return None
-            else:
-                # replace the temporary filename
-                filename = main_filename
-        else:
+            try:
+                vv = VirtualView.from_file(filename)
+            except OSError as err:
+                # warn about the error and drop this match
+                logger.warning('Exception: {}'.format(str(err)))
+                self.notify_failure()
+                return None
+        else:  # main file
             # use the filename of the current view
-            filename = main_filename
+            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
 
         col = m.col
         line = m.line
@@ -1195,6 +1182,24 @@ class Linter(metaclass=LinterMeta):
             return WARNING
         else:
             return self.default_type
+
+    def normalize_filename(self, filename):
+        """Return an absolute filename if it is not the main file."""
+        if filename and not self.is_stdin_filename(filename):
+            # ensure that the filename is absolute by basing relative paths on
+            # the working directory
+            filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
+
+            # when the command was run on a temporary file we need to compare
+            # this filename with that temporary filename
+            cmd_filename = self.temp_filename or self.filename
+
+            # only return a filename if it is a different file
+            if os.path.normcase(filename) != os.path.normcase(cmd_filename):
+                return filename
+
+        # must be the main file
+        return None
 
     @staticmethod
     def is_stdin_filename(filename):

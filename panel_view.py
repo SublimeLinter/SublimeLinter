@@ -540,7 +540,7 @@ def scroll_into_view(panel, wanted_lines, errors):
     possible shows the start of this file section (the filename) at the top
     of the viewport. Otherwise tries to not 'overscroll' so that errors from a
     possible next file are essentially hidden. Inbetween tries to scroll as
-    much as possible.
+    little as possible.
     """
     if not errors or not wanted_lines:
         return

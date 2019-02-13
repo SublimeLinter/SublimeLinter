@@ -650,7 +650,7 @@ def mark_visible_viewport(panel, view, errors):
     ... indicating the current viewport into that file or error(s) list.
     """
     KEY = 'SL.Panel.ViewportMarker'
-    KEY2 = 'SL.Panel.ViewportMarker2'
+    # KEY2 = 'SL.Panel.ViewportMarker2'
 
     if len(errors) > CONFUSION_THRESHOLD:
         viewport = view.visible_region()
@@ -669,13 +669,13 @@ def mark_visible_viewport(panel, view, errors):
                      sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
             panel.add_regions(KEY, regions, scope=scope, flags=flags)
 
-            scope = 'region.bluish.visible_viewport.sublime_linter'
-            flags = sublime.DRAW_NO_OUTLINE
-            head_line = panel.text_point(head['panel_line'], 0)
-            end_line = panel.text_point(end['panel_line'] + 1, 0)
-            regions = [sublime.Region(r.a, r.a + 1) for r in panel.lines(sublime.Region(head_line, end_line))]
-            panel.add_regions(KEY2, regions, scope=scope, flags=flags)
+            # scope = 'region.bluish.visible_viewport.sublime_linter'
+            # flags = sublime.DRAW_NO_OUTLINE
+            # head_line = panel.text_point(head['panel_line'], 0)
+            # end_line = panel.text_point(end['panel_line'] + 1, 0)
+            # regions = [sublime.Region(r.a, r.a + 1) for r in panel.lines(sublime.Region(head_line, end_line))]
+            # panel.add_regions(KEY2, regions, scope=scope, flags=flags)
             return
 
     panel.erase_regions(KEY)
-    panel.erase_regions(KEY2)
+    # panel.erase_regions(KEY2)

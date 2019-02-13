@@ -3,12 +3,16 @@ from itertools import chain
 import os
 import sublime
 import sublime_plugin
+import textwrap
 
 from .lint import events, util, persist
 
 
 if False:
-    from typing import Any, Callable, Dict, List, Tuple, Iterable, Optional, Set
+    from typing import (
+        Any, Callable, Dict, Iterable, List, Optional, Set, Tuple,
+        Union
+    )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
@@ -216,7 +220,8 @@ def panel_is_active(window):
         return False
 
 
-def ensure_panel(window: sublime.Window):
+def ensure_panel(window):
+    # type: (sublime.Window) -> Optional[sublime.View]
     return get_panel(window) or create_panel(window)
 
 
@@ -247,7 +252,7 @@ def create_panel(window):
 
 
 def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None, active_view=None):
-    # type: (sublime.View, str, List[LintError], Tuple[int, int], sublime.View) -> None
+    # type: (sublime.View, str, List[LintError], Union[int, List[int]], sublime.View) -> None
     if content is not None:
         update_panel_content(panel, content)
 
@@ -255,14 +260,14 @@ def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None, act
         mark_lines(panel, None)
         draw_position_marker(panel, None)
         scroll_into_view(panel, None, errors_from_active_view)
-    elif isinstance(nearby_lines, tuple):
+    elif isinstance(nearby_lines, list):
         mark_lines(panel, nearby_lines)
         draw_position_marker(panel, None)
         scroll_into_view(panel, nearby_lines, errors_from_active_view)
     else:
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
-        scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
+        scroll_into_view(panel, [nearby_lines], errors_from_active_view)
 
     if active_view:
         sink = partial(
@@ -336,23 +341,32 @@ def format_header(f_path):
     return "{}:".format(f_path)
 
 
-def format_row(item, widths):
+def format_error(error, widths):
+    # type: (LintError, Dict[str, int]) -> List[str]
     code_width = widths['code']
     code_tmpl = ":{{code:<{}}}".format(code_width)
     tmpl = (
         " {{LINE:>{line}}}:{{START:<{col}}}  {{error_type:{error_type}}}  "
-        "{{linter:<{linter_name}}}{{CODE}}  {{msg}}"
+        "{{linter:<{linter_name}}}{{CODE}}  "
         .format(**widths)
     )
 
-    line = item["line"] + 1
-    start = item["start"] + 1
+    line = error["line"] + 1
+    start = error["start"] + 1
     code = (
-        code_tmpl.format(**item)
-        if item['code']
+        code_tmpl.format(**error)
+        if error['code']
         else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
     )
-    return tmpl.format(LINE=line, START=start, CODE=code, **item)
+    info = tmpl.format(LINE=line, START=start, CODE=code, **error)
+    rv = textwrap.wrap(
+        error['msg'],
+        width=widths['viewport'],
+        initial_indent=" " * len(info),
+        subsequent_indent=" " * len(info)
+    )
+    rv[0] = info + rv[0].lstrip()
+    return rv
 
 
 def fill_panel(window, then=draw_on_main_thread):
@@ -386,7 +400,8 @@ def fill_panel(window, then=draw_on_main_thread):
                 ])
             )
         )
-    )
+    )  # type: Dict[str, int]
+    widths['viewport'] = int(panel.viewport_extent()[0] // panel.em_width() - 1)
 
     to_render = []
     for fpath, errors in sorted(
@@ -394,12 +409,12 @@ def fill_panel(window, then=draw_on_main_thread):
     ):
         to_render.append(format_header(fpath))
 
-        base_lineno = len(to_render)
-        for i, item in enumerate(errors):
-            to_render.append(format_row(item, widths))
-            item["panel_line"] = base_lineno + i
+        for error in errors:
+            lines = format_error(error, widths)
+            to_render.extend(lines)
+            error["panel_line"] = len(to_render) - len(lines)
 
-        # insert empty line between views sections
+        # Insert empty line between files
         to_render.append("")
 
     content = '\n'.join(to_render)
@@ -471,15 +486,12 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
         nearest_error = None
 
     if nearest_error:
-        nearest_errors = [
-            e
-            for e in all_errors
-            if nearest_error['region'].contains(e['region'])
+        panel_lines = [
+            error['panel_line']
+            for error in all_errors
+            if nearest_error['region'].contains(error['region'])
         ]
-        start = nearest_errors[0]['panel_line']
-        end = nearest_errors[-1]['panel_line']
-
-        draw_info.update(nearby_lines=(start, end))
+        draw_info.update(nearby_lines=panel_lines)
 
     elif all_errors:
         try:
@@ -538,7 +550,7 @@ JUMP_COEFFICIENT = 3
 
 
 def scroll_into_view(panel, wanted_lines, errors):
-    # type: (sublime.View, Optional[Tuple[int, int]], List[LintError]) -> None
+    # type: (sublime.View, Optional[List[int]], List[LintError]) -> None
     """Compute and then scroll the view so that `wanted_lines` appear.
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
@@ -571,7 +583,7 @@ def scroll_into_view(panel, wanted_lines, errors):
         scroll_to_line(panel, ftop, animate=False)
         return
 
-    wtop, wbottom = wanted_lines
+    wtop, wbottom = wanted_lines[0], wanted_lines[-1]
     out_of_bounds = False
     jump_position = int(vheight // JUMP_COEFFICIENT)
 
@@ -607,19 +619,15 @@ class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
 
 
 def mark_lines(panel, lines):
-    # type: (sublime.View, Optional[Tuple[int, int]]) -> None
+    # type: (sublime.View, Optional[List[int]]) -> None
     """Select/Highlight given lines."""
     if lines is None:
         panel.sel().clear()
         return
 
-    start, end = lines
-    start = panel.text_point(start, 0)
-    end = panel.text_point(end, 0)
-    region = panel.line(sublime.Region(start, end))
-
+    regions = [panel.line(panel.text_point(line, 0)) for line in lines]
     panel.sel().clear()
-    panel.sel().add(region)
+    panel.sel().add_all(regions)
 
 
 CURSOR_MARKER_KEY = 'SL.PanelMarker'

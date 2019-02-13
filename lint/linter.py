@@ -1188,7 +1188,8 @@ class Linter(metaclass=LinterMeta):
         if filename and not self.is_stdin_filename(filename):
             # ensure that the filename is absolute by basing relative paths on
             # the working directory
-            filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
+            cwd = self.get_working_dir(self.settings) or os.path.realpath('.')
+            filename = os.path.normpath(os.path.join(cwd, filename))
 
             # only return a filename if it is a different file
             normed_filename = os.path.normcase(filename)

@@ -22,6 +22,8 @@ if False:
         'just_saved_buffers': Set[sublime.BufferId],
         'panel_opened_automatically': Set[sublime.WindowId]
     })
+    bid = sublime.BufferId
+    ErrorsByBid = Dict[bid, List[LintError]]
 
 
 PANEL_NAME = "SublimeLinter"
@@ -280,6 +282,7 @@ def draw_on_main_thread(*args, **kwargs):
 
 
 def get_window_errors(window, errors_by_bid):
+    # type: (sublime.Window, ErrorsByBid) -> ErrorsByBid
     return {
         bid: sorted(
             errors,

@@ -167,10 +167,11 @@ def on_renamed_file(new_filename, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if not util.is_lintable(active_view):
+            return
+
         window = active_view.window()
-        # Sometimes a view is activated and then destructed before we get here
-        # and then it doesn't have a window anymore
-        if not window or active_view.settings().get('is_widget'):
+        if not window:
             return
 
         State.update({
@@ -180,7 +181,7 @@ class UpdateState(sublime_plugin.EventListener):
         })
         ensure_panel(window)
         if panel_is_active(window):
-            update_panel_selection(**State)
+            fill_panel(window)
             start_viewport_poller()
         else:
             stop_viewport_poller()
@@ -473,6 +474,10 @@ def fill_panel(window):
         return
 
     errors_by_file = get_window_errors(window, persist.file_errors)
+    active_filename = State['active_filename']
+    if active_filename and active_filename not in errors_by_file:
+        errors_by_file[active_filename] = []
+
     fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
     settings = panel.settings()
@@ -499,15 +504,30 @@ def fill_panel(window):
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
-    for fpath, errors in sorted(
-        (fpath_by_file[fn], errors) for fn, errors in errors_by_file.items()
-    ):
+    active_view = State['active_view']
+    if active_view:
+        assert active_filename
+        sorted_errors = sorted(
+            (fpath_by_file[filename], errors)
+            for filename, errors in errors_by_file.items()
+            if filename != active_filename
+        ) + (
+            [(fpath_by_file[active_filename], errors_by_file.get(active_filename, []))]
+        )
+    else:
+        sorted_errors = sorted(
+            (fpath_by_file[filename], errors) for filename, errors in errors_by_file.items()
+        )
+    for fpath, errors in sorted_errors:
         to_render.append(format_header(fpath))
 
-        for error in errors:
-            lines = format_error(error, widths)
-            to_render.extend(lines)
-            error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
+        if errors:
+            for error in errors:
+                lines = format_error(error, widths)
+                to_render.extend(lines)
+                error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
+        else:
+            to_render.append("  No lint results.")
 
         # Insert empty line between files
         to_render.append("")
@@ -645,6 +665,10 @@ def scroll_into_view(panel, wanted_lines, errors):
     little as possible.
     """
     if not errors or not wanted_lines:
+        # For clean files, we know that we have exactly two rows: the
+        # filename itself, and the "No lint results." message.
+        r, _ = panel.rowcol(panel.size())
+        scroll_to_line(panel, r - 2, animate=False)
         return
 
     # We would like to use just `view.visible_region()` but that doesn't count

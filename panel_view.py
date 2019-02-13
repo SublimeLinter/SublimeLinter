@@ -415,7 +415,7 @@ def fill_panel(window, then=draw_on_main_thread):
         for error in errors:
             lines = format_error(error, widths)
             to_render.extend(lines)
-            error["panel_line"] = len(to_render) - len(lines)
+            error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
 
         # Insert empty line between files
         to_render.append("")
@@ -490,7 +490,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
 
     if nearest_error:
         panel_lines = [
-            error['panel_line']
+            error['panel_line'][0]
             for error in all_errors
             if nearest_error['region'].contains(error['region'])
         ]
@@ -505,9 +505,9 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
             )
         except StopIteration:
             last_error = all_errors[-1]
-            panel_line = last_error['panel_line'] + 1
+            panel_line = last_error['panel_line'][1] + 1
         else:
-            panel_line = next_error['panel_line']
+            panel_line = next_error['panel_line'][0]
 
         draw_info.update(nearby_lines=panel_line)
 
@@ -577,9 +577,9 @@ def scroll_into_view(panel, wanted_lines, errors):
     vbottom = vtop + vheight
 
     # Before the first error comes the filename
-    ftop = errors[0]['panel_line'] - 1
+    ftop = errors[0]['panel_line'][0] - 1
     # After the last error comes the empty line
-    fbottom = errors[-1]['panel_line'] + 1
+    fbottom = errors[-1]['panel_line'][1] + 1
     fheight = fbottom - ftop + 1
 
     if fheight <= vheight:
@@ -695,8 +695,8 @@ def mark_visible_viewport(panel, view, errors):
         ]
         if visible_errors and len(visible_errors) != len(errors):
             head, end = visible_errors[0], visible_errors[-1]
-            head_line = panel.text_point(head['panel_line'] - 1, 0)
-            end_line = panel.text_point(end['panel_line'], 0)
+            head_line = panel.text_point(head['panel_line'][0] - 1, 0)
+            end_line = panel.text_point(end['panel_line'][1], 0)
 
             regions = [
                 sublime.Region(head_line, head_line),
@@ -708,8 +708,8 @@ def mark_visible_viewport(panel, view, errors):
                 panel, VIEWPORT_MARKER_KEY, VIEWPORT_MARKER_SCOPE, regions)
 
             if VIEWPORT_BACKGROUND_SCOPE:
-                head_line = panel.text_point(head['panel_line'], 0)
-                end_line = panel.text_point(end['panel_line'] + 1, 0)
+                head_line = panel.text_point(head['panel_line'][0], 0)
+                end_line = panel.text_point(end['panel_line'][1] + 1, 0)
                 regions = [
                     sublime.Region(r.a, r.a + 1)
                     for r in panel.lines(sublime.Region(head_line, end_line))

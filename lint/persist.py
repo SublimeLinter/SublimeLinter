@@ -8,7 +8,7 @@ from .settings import Settings
 
 
 if False:
-    from typing import DefaultDict, Dict, List, Type, Optional
+    from typing import DefaultDict, Dict, List, Tuple, Type, Optional
     from mypy_extensions import TypedDict
     import sublime
     import subprocess
@@ -23,7 +23,7 @@ if False:
         'error_type': str,
         'code': Optional[str],
         'msg': str,
-        'panel_line': int
+        'panel_line': Tuple[int, int]
     })
 
 

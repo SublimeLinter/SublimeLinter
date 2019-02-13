@@ -870,6 +870,22 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         verify(linter_module.VirtualView, times=0).from_file(...)
 
+    def test_ensure_no_new_virtual_view_for_main_file_with_temp_file(self):
+        TEMP = os.path.join(tempfile.gettempdir(), "file.tmp")
+        INPUT = "0123456789"
+        OUTPUT = __file__ + ":1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureTempFilename)
+        when(self.view).file_name().thenReturn(__file__)
+
+        when(linter).tmpfile(...).thenReturn(OUTPUT)
+        linter.temp_filename = TEMP
+
+        spy2(linter_module.VirtualView.from_file)
+        execute_lint_task(linter, INPUT)
+
+        verify(linter_module.VirtualView, times=0).from_file(...)
+
     def test_invalid_filename_is_dropped(self):
         INPUT = "0123456789"
         OUTPUT = "non_existing_file:1:1 ERROR: The message"

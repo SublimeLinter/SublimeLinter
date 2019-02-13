@@ -1190,13 +1190,17 @@ class Linter(metaclass=LinterMeta):
             # the working directory
             filename = os.path.normpath(os.path.join(self.get_working_dir(self.settings), filename))
 
-            # when the command was run on a temporary file we need to compare
-            # this filename with that temporary filename
-            cmd_filename = self.temp_filename or self.filename
-
             # only return a filename if it is a different file
-            if os.path.normcase(filename) != os.path.normcase(cmd_filename):
-                return filename
+            normed_filename = os.path.normcase(filename)
+            if normed_filename == os.path.normcase(self.filename):
+                return None
+
+            # when the command was run on a temporary file we also need to
+            # compare this filename with that temporary filename
+            if self.temp_filename and normed_filename == os.path.normcase(self.temp_filename):
+                return None
+
+            return filename
 
         # must be the main file
         return None

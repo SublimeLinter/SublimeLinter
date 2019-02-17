@@ -347,6 +347,11 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
             view = window.find_open_file(filename)
             if view:
                 this_bid = view.buffer_id()
+
+                # ignore errors of other files if their view is dirty
+                if this_bid != bid and view.is_dirty() and errors:
+                    continue
+
                 update_buffer_errors(this_bid, view_has_changed, linter, errors)
 
                 if this_bid == bid:

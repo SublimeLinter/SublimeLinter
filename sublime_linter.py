@@ -176,6 +176,7 @@ class BackendController(sublime_plugin.EventListener):
             persist.view_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
+            affected_filenames_per_bid.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
 
@@ -308,7 +309,7 @@ def kill_active_popen_calls(bid):
         proc.friendly_terminated = True
 
 
-affected_filenames_per_bid = defaultdict(set)
+affected_filenames_per_bid = defaultdict(lambda: defaultdict(set))
 
 
 def group_by_filename_and_update(bid, view_has_changed, linter, errors):
@@ -330,9 +331,8 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     # we must fake a `[]` response for every filename that is no longer
     # reported.
 
-    lint_id = (bid, linter.name)
     current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_bid[lint_id]
+    previous_filenames = affected_filenames_per_bid[bid][linter.name]
     clean_files = previous_filenames - current_filenames
 
     for filename in clean_files:
@@ -363,7 +363,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     if not did_update_main_view:
         update_buffer_errors(bid, view_has_changed, linter, [])
 
-    affected_filenames_per_bid[lint_id] = current_filenames
+    affected_filenames_per_bid[bid][linter.name] = current_filenames
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

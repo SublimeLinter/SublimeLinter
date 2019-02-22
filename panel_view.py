@@ -617,6 +617,10 @@ def mark_lines(panel, lines):
     panel.sel().add(region)
 
 
+CURSOR_MARKER_KEY = 'SL.PanelMarker'
+CURSOR_MARKER_SCOPE = 'region.yellowish.panel_cursor.sublime_linter'
+
+
 def draw_position_marker(panel, line):
     # type: (sublime.View, Optional[int]) -> None
     """Draw a visual cursor 'below' given line.
@@ -628,19 +632,17 @@ def draw_position_marker(panel, line):
     Basically a visual hack.
     """
     if line is None:
-        panel.erase_regions('SL.PanelMarker')
+        panel.erase_regions(CURSOR_MARKER_KEY)
         return
 
     line_start = panel.text_point(line - 1, 0)
     region = sublime.Region(line_start, line_start)
-    # scope = 'region.redish markup.deleted.sublime_linter markup.error.sublime_linter'
-    scope = 'region.yellowish'
-    flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-             sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-    panel.add_regions('SL.PanelMarker', [region], scope=scope, flags=flags)
+    draw_region_dangle(panel, CURSOR_MARKER_KEY, CURSOR_MARKER_SCOPE, [region])
 
 
 CONFUSION_THRESHOLD = 5
+VIEWPORT_MARKER_KEY = 'SL.Panel.ViewportMarker'
+VIEWPORT_MARKER_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
 
 
 def mark_visible_viewport(panel, view, errors):
@@ -649,7 +651,6 @@ def mark_visible_viewport(panel, view, errors):
 
     ... indicating the current viewport into that file or error(s) list.
     """
-    KEY = 'SL.Panel.ViewportMarker'
     # KEY2 = 'SL.Panel.ViewportMarker2'
 
     if len(errors) > CONFUSION_THRESHOLD:
@@ -664,10 +665,8 @@ def mark_visible_viewport(panel, view, errors):
                 sublime.Region(head_line, head_line),
                 sublime.Region(end_line, end_line)
             ]
-            scope = 'region.bluish.visible_viewport.sublime_linter'
-            flags = (sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
-                     sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
-            panel.add_regions(KEY, regions, scope=scope, flags=flags)
+            draw_region_dangle(
+                panel, VIEWPORT_MARKER_KEY, VIEWPORT_MARKER_SCOPE, regions)
 
             # scope = 'region.bluish.visible_viewport.sublime_linter'
             # flags = sublime.DRAW_NO_OUTLINE
@@ -677,5 +676,15 @@ def mark_visible_viewport(panel, view, errors):
             # panel.add_regions(KEY2, regions, scope=scope, flags=flags)
             return
 
-    panel.erase_regions(KEY)
+    panel.erase_regions(VIEWPORT_MARKER_KEY)
     # panel.erase_regions(KEY2)
+
+
+DANGLE_FLAGS = (
+    sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL |
+    sublime.DRAW_NO_OUTLINE | sublime.DRAW_EMPTY_AS_OVERWRITE)
+
+
+def draw_region_dangle(view, key, scope, regions):
+    # type: (sublime.View, str, str, List[sublime.Region]) -> None
+    view.add_regions(key, regions, scope=scope, flags=DANGLE_FLAGS)

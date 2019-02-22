@@ -658,6 +658,8 @@ _LAST = None  # type: Optional[Tuple[sublime.BufferId, sublime.Region]]
 def until_stable_viewport(view, sink):
     # type: (sublime.View, Callable[[], None]) -> None
     global _LAST
+    if view != State['active_view']:
+        return
 
     CUR = (view.buffer_id(), view.visible_region())
     if CUR != _LAST:

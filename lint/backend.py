@@ -58,13 +58,13 @@ def get_lint_tasks(linters, view, view_has_changed):
         tasks = []
         for region in regions:
             code = view.substr(region)
-            offset = view.rowcol(region.begin())
+            offsets = view.rowcol(region.begin()) + (region.begin(),)
 
             # Due to a limitation in python 3.3, we cannot 'name' a thread when
             # using the ThreadPoolExecutor. (This feature has been introduced
             # in python 3.6.) So, we do this manually.
             task_name = make_good_task_name(linter, view)
-            task = partial(execute_lint_task, linter, code, offset, view_has_changed)
+            task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
             executor = partial(modify_thread_name, task_name, task)
             tasks.append(executor)
 
@@ -106,10 +106,10 @@ def reduced_concurrency():
 
 
 @reduced_concurrency()
-def execute_lint_task(linter, code, offset, view_has_changed):
+def execute_lint_task(linter, code, offsets, view_has_changed):
     try:
         errors = linter.lint(code, view_has_changed) or []
-        finalize_errors(linter, errors, offset)
+        finalize_errors(linter, errors, offsets)
 
         return errors
     except linter_module.TransientError:
@@ -121,37 +121,60 @@ def execute_lint_task(linter, code, offset, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
-def finalize_errors(linter, errors, offset):
+def error_json_serializer(o):
+    """Return a JSON serializable representation of error properties."""
+    if isinstance(o, sublime.Region):
+        return (o.a, o.b)
+
+    return o
+
+
+def finalize_errors(linter, errors, offsets):
     linter_name = linter.name
     view = linter.view
-    line_offset, col_offset = offset
+    line_offset, col_offset, pt_offset = offsets
 
     for error in errors:
-        line, start, end = error['line'], error['start'], error['end']
-        if line == 0:
-            start += col_offset
-            end += col_offset
+        # see if this error belongs to the main file
+        belongs_to_main_file = True
+        if 'filename' in error:
+            if (os.path.normcase(error['filename']) != os.path.normcase(view.file_name() or '') and
+                    error['filename'] != "<untitled {}>".format(view.buffer_id())):
+                belongs_to_main_file = False
 
-        line += line_offset
+        line, start, end = error['line'], error['start'], error['end']
+        if belongs_to_main_file:  # offsets are for the main file only
+            if line == 0:
+                start += col_offset
+                end += col_offset
+
+            line += line_offset
+
+        try:
+            region = error['region']
+        except KeyError:
+            line_start = view.text_point(line, 0)
+            region = sublime.Region(line_start + start, line_start + end)
+            if len(region) == 0:
+                region.b = region.b + 1
+
+        else:
+            if belongs_to_main_file:  # offsets are for the main file only
+                region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
 
         error.update({
             'line': line,
             'start': start,
             'end': end,
-            'linter': linter_name
+            'linter': linter_name,
+            'region': region
         })
 
         uid = hashlib.sha256(
-            json.dumps(error, sort_keys=True).encode('utf-8')).hexdigest()
-
-        line_start = view.text_point(line, 0)
-        region = sublime.Region(line_start + start, line_start + end)
-        if len(region) == 0:
-            region.b = region.b + 1
+            json.dumps(error, sort_keys=True, default=error_json_serializer).encode('utf-8')).hexdigest()
 
         error.update({
             'uid': uid,
-            'region': region,
             'priority': style.get_value('priority', error, 0)
         })
 

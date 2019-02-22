@@ -152,6 +152,12 @@ class VirtualView:
     # def text_point(self, row, col) => Point
     # def rowcol(self, point) => (row, col)
 
+    @staticmethod
+    def from_file(filename):
+        """Return a VirtualView with the contents of file."""
+        with open(filename, 'r', encoding='utf8') as f:
+            return VirtualView(f.read())
+
 
 class ViewSettings:
     """
@@ -612,6 +618,8 @@ class Linter(metaclass=LinterMeta):
         if self.defaults is not None:
             self.defaults = self.defaults.copy()
 
+        self.temp_filename = None
+
     @property
     def filename(self):
         """Return the view's file path or '' if unsaved."""
@@ -989,7 +997,7 @@ class Linter(metaclass=LinterMeta):
         return [
             error
             for error in errors
-            if not any(
+            if error is not None and not any(
                 pattern.search(': '.join([error['error_type'], error['code'], error['msg']]))
                 for pattern in filters
             )
@@ -1116,6 +1124,23 @@ class Linter(metaclass=LinterMeta):
         error_type = m.error_type or self.get_error_type(m.error, m.warning)
         code = m.code or m.error or m.warning or ''
 
+        # determine a filename for this match
+        filename = self.normalize_filename(m.filename)
+
+        if filename:
+            # this is a match for a different file so we need its contents for
+            # the below checks
+            try:
+                vv = VirtualView.from_file(filename)
+            except OSError as err:
+                # warn about the error and drop this match
+                logger.warning('Exception: {}'.format(str(err)))
+                self.notify_failure()
+                return None
+        else:  # main file
+            # use the filename of the current view
+            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
+
         col = m.col
         line = m.line
 
@@ -1137,10 +1162,19 @@ class Linter(metaclass=LinterMeta):
             col = max(min(col, (end - start) - 1), 0)
 
         line, start, end = self.reposition_match(line, col, m, vv)
+
+        # find the region to highlight for this error
+        line_start, _ = vv.full_line(line)
+        region = sublime.Region(line_start + start, line_start + end)
+        if len(region) == 0:
+            region.b += 1
+
         return {
+            "filename": filename,
             "line": line,
             "start": start,
             "end": end,
+            "region": region,
             "error_type": error_type,
             "code": code,
             "msg": m.message.strip(),
@@ -1153,6 +1187,33 @@ class Linter(metaclass=LinterMeta):
             return WARNING
         else:
             return self.default_type
+
+    def normalize_filename(self, filename):
+        """Return an absolute filename if it is not the main file."""
+        if filename and not self.is_stdin_filename(filename):
+            # ensure that the filename is absolute by basing relative paths on
+            # the working directory
+            cwd = self.get_working_dir(self.settings) or os.path.realpath('.')
+            filename = os.path.normpath(os.path.join(cwd, filename))
+
+            # only return a filename if it is a different file
+            normed_filename = os.path.normcase(filename)
+            if normed_filename == os.path.normcase(self.filename):
+                return None
+
+            # when the command was run on a temporary file we also need to
+            # compare this filename with that temporary filename
+            if self.temp_filename and normed_filename == os.path.normcase(self.temp_filename):
+                return None
+
+            return filename
+
+        # must be the main file
+        return None
+
+    @staticmethod
+    def is_stdin_filename(filename):
+        return filename in ["stdin", "<stdin>", "-"]
 
     def maybe_fix_tab_width(self, line, col, vv):
         # Adjust column numbers to match the linter's tabs if necessary
@@ -1274,6 +1335,9 @@ class Linter(metaclass=LinterMeta):
             suffix = self.get_tempfile_suffix()
 
         with make_temp_file(suffix, code) as file:
+            # store this filename to assign its errors to the main file later
+            self.temp_filename = file.name
+
             ctx = get_view_context(self.view)
             ctx['file_on_disk'] = self.filename
             ctx['temp_file'] = file.name

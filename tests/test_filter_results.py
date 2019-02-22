@@ -46,7 +46,7 @@ class _BaseTestCase(DeferrableTestCase):
 
 VIEW_UNCHANGED = lambda: False  # noqa: E731
 execute_lint_task = partial(
-    backend.execute_lint_task, offset=(0, 0), view_has_changed=VIEW_UNCHANGED
+    backend.execute_lint_task, offsets=(0, 0, 0), view_has_changed=VIEW_UNCHANGED
 )
 
 

@@ -1,5 +1,7 @@
 from functools import partial
+import os
 import re
+import tempfile
 from textwrap import dedent
 from unittest import expectedFailure  # noqa: F401
 
@@ -30,7 +32,7 @@ version = sublime.version()
 
 VIEW_UNCHANGED = lambda: False  # noqa: E731
 execute_lint_task = partial(
-    backend.execute_lint_task, offset=(0, 0), view_has_changed=VIEW_UNCHANGED
+    backend.execute_lint_task, offsets=(0, 0, 0), view_has_changed=VIEW_UNCHANGED
 )
 
 
@@ -101,6 +103,21 @@ class FakeLinterColMatchesALength(Linter):
     """
 
 
+class FakeLinterCaptureFilename(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^(?P<filename>.+?):(?P<line>\d+):(?P<col>\d+)?\s
+        (?P<error>ERROR):\s
+        (?P<near>'[^']+')?
+        (?P<message>.*)$
+    """
+
+
+class FakeLinterCaptureTempFilename(FakeLinterCaptureFilename):
+    tempfile_suffix = "tmp"
+
+
 class _BaseTestCase(DeferrableTestCase):
     def setUp(self):
         self.view = self.create_view(sublime.active_window())
@@ -124,8 +141,8 @@ class _BaseTestCase(DeferrableTestCase):
         view.set_scratch(True)
         view.close()
 
-    def create_linter(self, linter_factory=FakeLinter):
-        linter = linter_factory(self.view, settings={})
+    def create_linter(self, linter_factory=FakeLinter, settings={}):
+        linter = linter_factory(self.view, settings)
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
         return linter
@@ -152,6 +169,7 @@ class TestRegexBasedParsing(_BaseTestCase):
                     'code': 'ERROR',
                     'msg': 'The message',
                     'linter': 'fakelinter',
+                    'filename': '<untitled {}>'.format(self.view.buffer_id())
                 }
             ],
             result,
@@ -184,7 +202,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['code', 'msg', 'linter'], result)
+        drop_keys(['code', 'msg', 'linter', 'filename'], result)
 
         self.assertResult([{'error_type': ERROR_TYPE}], result)
 
@@ -215,7 +233,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['error_type', 'msg', 'linter'], result)
+        drop_keys(['error_type', 'msg', 'linter', 'filename'], result)
 
         self.assertResult([{'code': CODE}], result)
 
@@ -246,7 +264,7 @@ class TestRegexBasedParsing(_BaseTestCase):
     # that the input string starts at the position (line, col) in the buffer.
     # If the linter then reports an error on line 1, the error is actually
     # on line (line + 1) in the buffer.
-    def test_if_col_and_on_a_word_apply_offset_first_line(self, offset=(5, 10)):
+    def test_if_col_and_on_a_word_apply_offset_first_line(self, offsets=(5, 10, 20)):
         PREFIX = dedent("""\
         0
         1
@@ -263,7 +281,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=offset)
+        result = execute_lint_task(linter, INPUT, offsets=offsets)
         drop_info_keys(result)
 
         # Whereby the offset is (line, col), regions represent ranges between
@@ -283,7 +301,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         )
 
     # See comment above
-    def test_if_col_and_on_a_word_apply_offset_next_line(self, offset=(5, 10)):
+    def test_if_col_and_on_a_word_apply_offset_next_line(self, offsets=(5, 10, 20)):
         PREFIX = dedent("""\
         0
         1
@@ -300,7 +318,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter()
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        result = execute_lint_task(linter, INPUT, offset=offset)
+        result = execute_lint_task(linter, INPUT, offsets=offsets)
         drop_info_keys(result)
 
         char_offset = len(PREFIX) + len('First line\n')
@@ -782,6 +800,182 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         verify(linter_module.logger, times=0).warning(...)
 
+    @p.expand([
+        (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "./test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", __file__ + ":1:1 ERROR: The message"),
+    ])
+    def test_filename_is_stored_absolute(self, linter_class, INPUT, OUTPUT):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    @p.expand([
+        (FakeLinterCaptureFilename, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "<stdin>:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "-:1:1 ERROR: The message"),
+    ])
+    def test_ensure_stdin_filename_is_replaced_with_main_filename(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    def test_ensure_temp_filename_is_replaced_with_main_filename(self):
+        TEMP = os.path.join(tempfile.gettempdir(), "file.tmp")
+        INPUT = "0123456789"
+        OUTPUT = TEMP + ":1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureTempFilename)
+        when(self.view).file_name().thenReturn(__file__)
+
+        when(linter).tmpfile(...).thenReturn(OUTPUT)
+        linter.temp_filename = TEMP
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'], __file__)
+
+    @p.expand([
+        (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", "./test_regex_parsing.py:1:1 ERROR: The message"),
+        (FakeLinterCaptureFilename, "0123456789", __file__ + ":1:1 ERROR: The message"),
+    ])
+    def test_ensure_no_new_virtual_view_for_main_file(
+        self, linter_class, INPUT, OUTPUT
+    ):
+        linter = self.create_linter(linter_class, {
+            'working_dir': os.path.dirname(__file__)
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(__file__)
+
+        spy2(linter_module.VirtualView.from_file)
+        execute_lint_task(linter, INPUT)
+
+        verify(linter_module.VirtualView, times=0).from_file(...)
+
+    def test_ensure_no_new_virtual_view_for_main_file_with_temp_file(self):
+        TEMP = os.path.join(tempfile.gettempdir(), "file.tmp")
+        INPUT = "0123456789"
+        OUTPUT = __file__ + ":1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureTempFilename)
+        when(self.view).file_name().thenReturn(__file__)
+
+        when(linter).tmpfile(...).thenReturn(OUTPUT)
+        linter.temp_filename = TEMP
+
+        spy2(linter_module.VirtualView.from_file)
+        execute_lint_task(linter, INPUT)
+
+        verify(linter_module.VirtualView, times=0).from_file(...)
+
+    def test_invalid_filename_is_dropped(self):
+        INPUT = "0123456789"
+        OUTPUT = "non_existing_file:1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureFilename)
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertResult([], result)
+
+    def test_invalid_filename_produces_a_warning(self):
+        INPUT = "0123456789"
+        OUTPUT = "non_existing_file:1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureFilename)
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        with expect(linter_module.logger, times=1).warning(...):
+            execute_lint_task(linter, INPUT)
+
+    def test_ensure_errors_from_other_files_have_correct_regions(self):
+        INPUT = "0123456789"
+        OUTPUT = "other_file:2:18 ERROR: The message"
+
+        OTHER_FILE_CONTENT = "0123\nShould highlight THIS word."
+        other_vv = linter_module.VirtualView(OTHER_FILE_CONTENT)
+        when(linter_module.VirtualView).from_file(...).thenReturn(other_vv)
+
+        working_dir = os.path.dirname(__file__)
+        linter = self.create_linter(FakeLinterCaptureFilename, {
+            'working_dir': working_dir
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        # the offsets must be ignored because this is not the main file
+        result = execute_lint_task(linter, INPUT, offsets=(42, 42, 42))
+        self.assertEqual(
+            result[0]['filename'],
+            os.path.join(working_dir, 'other_file')
+        )
+
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 1,
+            'start': 17,
+            'end': 21,
+            'region': sublime.Region(22, 26)
+        }], result)
+
+    def test_ensure_errors_from_other_files_ignore_offsets_on_first_line(self):
+        INPUT = "0123456789"
+        OUTPUT = "other_file:1:18 ERROR: The message"
+
+        OTHER_FILE_CONTENT = "Should highlight THIS word."
+        other_vv = linter_module.VirtualView(OTHER_FILE_CONTENT)
+        when(linter_module.VirtualView).from_file(...).thenReturn(other_vv)
+
+        working_dir = os.path.dirname(__file__)
+        linter = self.create_linter(FakeLinterCaptureFilename, {
+            'working_dir': working_dir
+        })
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT, offsets=(42, 42, 42))
+        self.assertEqual(
+            result[0]['filename'],
+            os.path.join(working_dir, 'other_file')
+        )
+
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 0,
+            'start': 17,
+            'end': 21,
+            'region': sublime.Region(17, 21)
+        }], result)
+
+    def test_filename_for_untitled_view(self):
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+
+        linter = self.create_linter()
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+
+        self.assertEqual(result[0]['filename'],
+                         "<untitled {}>".format(self.view.buffer_id()))
+
 
 class TestSplitMatchContract(_BaseTestCase):
     # Here we execute `linter.lint` bc `backend.execute_lint_task` eats all
@@ -904,6 +1098,26 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertEqual(0, len(result))
 
+    # Plugin authors used `match` to pass arbitrary additional information
+    # around. We support this for compatibility.
+    @p.expand([('dict', {'foo': 'bar'}), ('true', True)])
+    def test_allow_arbitrary_truthy_values_for_match(self, _, TRUTHY):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            match_, line, col, error, warning, message, near = m
+            return TRUTHY, line, col, error, warning, message, near
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(1, len(result))
+
 
 def drop_keys(keys, array, strict=False):
     for item in array:
@@ -911,5 +1125,5 @@ def drop_keys(keys, array, strict=False):
             item.pop(k) if strict else item.pop(k, None)
 
 
-drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter'])
+drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter', 'filename'])
 drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])

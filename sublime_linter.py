@@ -176,6 +176,7 @@ class BackendController(sublime_plugin.EventListener):
             persist.view_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
+            affected_filenames_per_bid.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
 
@@ -289,7 +290,7 @@ def lint(view, view_has_changed, lock, reason=None):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(update_buffer_errors, bid, view_has_changed)
+        sink = partial(group_by_filename_and_update, bid, view_has_changed)
         backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -306,6 +307,63 @@ def kill_active_popen_calls(bid):
     for proc in procs:
         proc.terminate()
         proc.friendly_terminated = True
+
+
+affected_filenames_per_bid = defaultdict(lambda: defaultdict(set))
+
+
+def group_by_filename_and_update(bid, view_has_changed, linter, errors):
+    """Group lint errors by filename and update them."""
+    if view_has_changed():  # abort early
+        return
+
+    window = linter.view.window()
+
+    # group all errors by filenames to update them separately
+    grouped = defaultdict(list)
+    for error in errors:
+        grouped[error.get('filename')].append(error)
+
+    # The contract for a simple linter is that it reports `[errors]` or an
+    # empty list `[]` if the buffer is clean. For linters that report errors
+    # for multiple files we collect information about which files are actually
+    # reported by a given `bid` so that we can clean the results. Basically,
+    # we must fake a `[]` response for every filename that is no longer
+    # reported.
+
+    current_filenames = set(grouped.keys())  # `set` for the immutable version
+    previous_filenames = affected_filenames_per_bid[bid][linter.name]
+    clean_files = previous_filenames - current_filenames
+
+    for filename in clean_files:
+        grouped[filename]  # For the side-effect of creating a new empty `list`
+
+    did_update_main_view = False
+    for filename, errors in grouped.items():
+        if not filename:  # backwards compatibility
+            update_buffer_errors(bid, view_has_changed, linter, errors)
+        else:
+            # search for an open view for this file to get a bid
+            view = window.find_open_file(filename)
+            if view:
+                this_bid = view.buffer_id()
+
+                # ignore errors of other files if their view is dirty
+                if this_bid != bid and view.is_dirty() and errors:
+                    continue
+
+                update_buffer_errors(this_bid, view_has_changed, linter, errors)
+
+                if this_bid == bid:
+                    did_update_main_view = True
+
+    # For the main view we MUST *always* report an outcome. This is not for
+    # cleanup but functions as a signal that we're done. Merely for the status
+    # bar view.
+    if not did_update_main_view:
+        update_buffer_errors(bid, view_has_changed, linter, [])
+
+    affected_filenames_per_bid[bid][linter.name] = current_filenames
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):

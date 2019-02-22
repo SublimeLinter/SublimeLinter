@@ -9,6 +9,7 @@ from .lint import events, util, persist
 if False:
     from typing import Any, Dict, List, Tuple, Iterable, Optional, Set
     from mypy_extensions import TypedDict
+    from .lint.persist import LintError
 
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
@@ -16,7 +17,6 @@ if False:
         'just_saved_buffers': Set[sublime.BufferId],
         'panel_opened_automatically': Set[sublime.WindowId]
     })
-    LintError = Dict[str, Any]
 
 
 PANEL_NAME = "SublimeLinter"
@@ -553,7 +553,7 @@ def scroll_into_view(panel, wanted_lines, errors):
     # to lines. See below.
     _, vy = panel.viewport_position()
     vtop = panel.rowcol(panel.layout_to_text((0.0, vy)))[0]
-    vheight = panel.viewport_extent()[1] // panel.line_height()
+    vheight = int(panel.viewport_extent()[1] // panel.line_height())
     vbottom = vtop + vheight
 
     # Before the first error comes the filename
@@ -568,7 +568,7 @@ def scroll_into_view(panel, wanted_lines, errors):
 
     wtop, wbottom = wanted_lines
     out_of_bounds = False
-    jump_position = vheight // JUMP_COEFFICIENT
+    jump_position = int(vheight // JUMP_COEFFICIENT)
 
     if fbottom < vbottom:
         out_of_bounds = True
@@ -644,7 +644,7 @@ CONFUSION_THRESHOLD = 5
 
 
 def mark_visible_viewport(panel, view, errors):
-    # type: (sublime.View, sublime.View, List[Dict[str, Any]]) -> None
+    # type: (sublime.View, sublime.View, List[LintError]) -> None
     """Compute and draw a fancy scrollbar like region on the left...
 
     ... indicating the current viewport into that file or error(s) list.

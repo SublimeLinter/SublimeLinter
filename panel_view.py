@@ -1,3 +1,4 @@
+from functools import partial
 from itertools import chain
 import os
 import sublime
@@ -7,7 +8,7 @@ from .lint import events, util, persist
 
 
 if False:
-    from typing import Any, Dict, List, Tuple, Iterable, Optional, Set
+    from typing import Any, Callable, Dict, List, Tuple, Iterable, Optional, Set
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
@@ -245,8 +246,8 @@ def create_panel(window):
     return window.create_output_panel(PANEL_NAME)
 
 
-def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
-    # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
+def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None, active_view=None):
+    # type: (sublime.View, str, List[LintError], Tuple[int, int], sublime.View) -> None
     if content is not None:
         update_panel_content(panel, content)
 
@@ -262,6 +263,11 @@ def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
         scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
+
+    if active_view:
+        sink = partial(
+            mark_visible_viewport, panel, active_view, errors_from_active_view)
+        until_stable_viewport(active_view, sink)
 
 
 def draw_on_main_thread(*args, **kwargs):
@@ -431,10 +437,9 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
 
     draw_info.update(
         panel=panel,
+        active_view=active_view,
         errors_from_active_view=all_errors
     )  # type: Dict[str, Any]
-
-    mark_visible_viewport(panel, active_view, all_errors)
 
     row, _ = active_view.rowcol(cursor)
     errors_with_position = (
@@ -643,6 +648,25 @@ def draw_position_marker(panel, line):
 CONFUSION_THRESHOLD = 5
 VIEWPORT_MARKER_KEY = 'SL.Panel.ViewportMarker'
 VIEWPORT_MARKER_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
+VIEWPORT_BACKGROUND_KEY = 'SL.Panel.ViewportBackground'
+# VIEWPORT_BACKGROUND_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
+VIEWPORT_BACKGROUND_SCOPE = ''
+
+_LAST = None  # type: Optional[Tuple[sublime.BufferId, sublime.Region]]
+
+
+def until_stable_viewport(view, sink):
+    # type: (sublime.View, Callable[[], None]) -> None
+    global _LAST
+
+    CUR = (view.buffer_id(), view.visible_region())
+    if CUR != _LAST:
+        _LAST = CUR
+        sublime.set_timeout(partial(until_stable_viewport, view, sink), 16)
+        if VIEWPORT_BACKGROUND_SCOPE:
+            sink()
+    else:
+        sink()
 
 
 def mark_visible_viewport(panel, view, errors):
@@ -651,11 +675,13 @@ def mark_visible_viewport(panel, view, errors):
 
     ... indicating the current viewport into that file or error(s) list.
     """
-    # KEY2 = 'SL.Panel.ViewportMarker2'
-
     if len(errors) > CONFUSION_THRESHOLD:
         viewport = view.visible_region()
-        visible_errors = [e for e in errors if viewport.contains(e['region'])]
+        visible_errors = [
+            error
+            for error in errors
+            if viewport.contains(error['region'])
+        ]
         if visible_errors and len(visible_errors) != len(errors):
             head, end = visible_errors[0], visible_errors[-1]
             head_line = panel.text_point(head['panel_line'] - 1, 0)
@@ -665,19 +691,26 @@ def mark_visible_viewport(panel, view, errors):
                 sublime.Region(head_line, head_line),
                 sublime.Region(end_line, end_line)
             ]
+            cursor = panel.get_regions(CURSOR_MARKER_KEY)
+            regions = [r for r in regions if r not in cursor]
             draw_region_dangle(
                 panel, VIEWPORT_MARKER_KEY, VIEWPORT_MARKER_SCOPE, regions)
 
-            # scope = 'region.bluish.visible_viewport.sublime_linter'
-            # flags = sublime.DRAW_NO_OUTLINE
-            # head_line = panel.text_point(head['panel_line'], 0)
-            # end_line = panel.text_point(end['panel_line'] + 1, 0)
-            # regions = [sublime.Region(r.a, r.a + 1) for r in panel.lines(sublime.Region(head_line, end_line))]
-            # panel.add_regions(KEY2, regions, scope=scope, flags=flags)
+            if VIEWPORT_BACKGROUND_SCOPE:
+                head_line = panel.text_point(head['panel_line'], 0)
+                end_line = panel.text_point(end['panel_line'] + 1, 0)
+                regions = [
+                    sublime.Region(r.a, r.a + 1)
+                    for r in panel.lines(sublime.Region(head_line, end_line))
+                ]
+                flags = sublime.DRAW_NO_OUTLINE
+                panel.add_regions(
+                    VIEWPORT_BACKGROUND_KEY, regions,
+                    scope=VIEWPORT_BACKGROUND_SCOPE, flags=flags)
             return
 
     panel.erase_regions(VIEWPORT_MARKER_KEY)
-    # panel.erase_regions(KEY2)
+    panel.erase_regions(VIEWPORT_BACKGROUND_KEY)
 
 
 DANGLE_FLAGS = (

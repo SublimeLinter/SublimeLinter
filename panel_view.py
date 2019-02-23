@@ -8,7 +8,7 @@ from .lint import events, util, persist
 
 
 if False:
-    from typing import Any, Callable, Dict, List, Tuple, Iterable, Optional, Set
+    from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
@@ -122,24 +122,26 @@ class UpdateState(sublime_plugin.EventListener):
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
             State['panel_opened_automatically'].discard(window.id())
+            stop_viewport_poller()
             return
 
-        if command_name != 'show_panel':
-            return
+        if command_name == 'show_panel':
 
-        panel_name = args.get('panel')
-        if panel_name == OUTPUT_PANEL:
-            fill_panel(window)
+            if args.get('panel') == OUTPUT_PANEL:
+                fill_panel(window)
 
-            # Apply focus fix to ensure `next_result` is bound to our panel.
-            active_group = window.active_group()
-            active_view = window.active_view()
+                # Apply focus fix to ensure `next_result` is bound to our panel.
+                active_group = window.active_group()
+                active_view = window.active_view()
 
-            panel = get_panel(window)
-            window.focus_view(panel)
+                panel = get_panel(window)
+                window.focus_view(panel)
 
-            window.focus_group(active_group)
-            window.focus_view(active_view)
+                window.focus_group(active_group)
+                window.focus_view(active_view)
+                sublime.set_timeout(start_viewport_poller)
+            else:
+                stop_viewport_poller()
 
 
 class JustSavedBufferController(sublime_plugin.EventListener):
@@ -221,6 +223,7 @@ def ensure_panel(window: sublime.Window):
 
 
 def get_panel(window):
+    # type: (sublime.Window) -> Optional[sublime.View]
     return window.find_output_panel(PANEL_NAME)
 
 
@@ -246,8 +249,8 @@ def create_panel(window):
     return window.create_output_panel(PANEL_NAME)
 
 
-def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None, active_view=None):
-    # type: (sublime.View, str, List[LintError], Tuple[int, int], sublime.View) -> None
+def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
+    # type: (sublime.View, str, List[LintError], Tuple[int, int]) -> None
     if content is not None:
         update_panel_content(panel, content)
 
@@ -263,11 +266,6 @@ def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None, act
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
         scroll_into_view(panel, (nearby_lines, nearby_lines), errors_from_active_view)
-
-    if active_view:
-        sink = partial(
-            mark_visible_viewport, panel, active_view, errors_from_active_view)
-        until_stable_viewport(active_view, sink)
 
 
 def draw_on_main_thread(*args, **kwargs):
@@ -437,7 +435,6 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
 
     draw_info.update(
         panel=panel,
-        active_view=active_view,
         errors_from_active_view=all_errors
     )  # type: Dict[str, Any]
 
@@ -652,31 +649,62 @@ VIEWPORT_BACKGROUND_KEY = 'SL.Panel.ViewportBackground'
 # VIEWPORT_BACKGROUND_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
 VIEWPORT_BACKGROUND_SCOPE = ''
 
-_LAST = None  # type: Optional[Tuple[sublime.BufferId, sublime.Region]]
+_RUNNING = False
 
 
-def until_stable_viewport(view, sink):
-    # type: (sublime.View, Callable[[], None]) -> None
-    global _LAST
-    if view != State['active_view']:
+def start_viewport_poller():
+    global _RUNNING
+    if _RUNNING:
         return
 
-    CUR = (view.buffer_id(), view.visible_region())
-    if CUR != _LAST:
-        _LAST = CUR
-        sublime.set_timeout(partial(until_stable_viewport, view, sink), 16)
-        if VIEWPORT_BACKGROUND_SCOPE:
-            sink()
-    else:
-        sink()
+    _RUNNING = True
+    update_viewport()
 
 
-def mark_visible_viewport(panel, view, errors):
-    # type: (sublime.View, sublime.View, List[LintError]) -> None
+def stop_viewport_poller():
+    global _RUNNING
+    _RUNNING = False
+
+
+def update_viewport(token=None):
+    global _RUNNING
+    if not _RUNNING:
+        return
+
+    next_token = maybe_render_viewport(token)
+    sublime.set_timeout(partial(update_viewport, next_token), 16)
+
+
+def maybe_render_viewport(previous_token):
+    view = State['active_view']
+    if not view:
+        return
+
+    window = view.window()
+    if not window:
+        return
+    panel = get_panel(window)
+    if not panel:
+        return
+
+    token = (
+        view.buffer_id(),
+        view.visible_region(),
+        panel.change_count(),
+        panel.get_regions(CURSOR_MARKER_KEY)
+    )
+    if token != previous_token:
+        render_visible_viewport(panel, view)
+    return token
+
+
+def render_visible_viewport(panel, view):
+    # type: (sublime.View, sublime.View) -> None
     """Compute and draw a fancy scrollbar like region on the left...
 
     ... indicating the current viewport into that file or error(s) list.
     """
+    errors = persist.errors.get(view.buffer_id(), [])
     if len(errors) > CONFUSION_THRESHOLD:
         viewport = view.visible_region()
         visible_errors = [
@@ -685,6 +713,11 @@ def mark_visible_viewport(panel, view, errors):
             if viewport.contains(error['region'])
         ]
         if visible_errors and len(visible_errors) != len(errors):
+            try:
+                visible_errors = sorted(
+                    visible_errors, key=lambda error: error['panel_line'])
+            except KeyError:
+                return
             head, end = visible_errors[0], visible_errors[-1]
             head_line = panel.text_point(head['panel_line'] - 1, 0)
             end_line = panel.text_point(end['panel_line'], 0)

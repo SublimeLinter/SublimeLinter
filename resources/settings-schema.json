@@ -178,6 +178,9 @@
                 },
                 "additionalProperties":false
             }
+        },
+        "xperiments":{
+            "additionalProperties": true
         }
     },
     "additionalProperties": false

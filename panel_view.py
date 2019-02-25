@@ -657,10 +657,12 @@ CONFUSION_THRESHOLD = 5
 VIEWPORT_MARKER_KEY = 'SL.Panel.ViewportMarker'
 VIEWPORT_MARKER_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
 VIEWPORT_BACKGROUND_KEY = 'SL.Panel.ViewportBackground'
-# VIEWPORT_BACKGROUND_SCOPE = 'region.bluish.visible_viewport.sublime_linter'
-VIEWPORT_BACKGROUND_SCOPE = ''
 
 _RUNNING = False
+
+
+def get_viewport_background_scope():
+    return persist.settings.get('xperiments', {}).get('viewport_background_scope')
 
 
 def start_viewport_poller():
@@ -742,7 +744,8 @@ def render_visible_viewport(panel, view):
             draw_region_dangle(
                 panel, VIEWPORT_MARKER_KEY, VIEWPORT_MARKER_SCOPE, regions)
 
-            if VIEWPORT_BACKGROUND_SCOPE:
+            viewport_background_scope = get_viewport_background_scope()
+            if viewport_background_scope:
                 head_line = panel.text_point(head['panel_line'][0], 0)
                 end_line = panel.text_point(end['panel_line'][1] + 1, 0)
                 regions = [
@@ -752,7 +755,7 @@ def render_visible_viewport(panel, view):
                 flags = sublime.DRAW_NO_OUTLINE
                 panel.add_regions(
                     VIEWPORT_BACKGROUND_KEY, regions,
-                    scope=VIEWPORT_BACKGROUND_SCOPE, flags=flags)
+                    scope=viewport_background_scope, flags=flags)
             return
 
     panel.erase_regions(VIEWPORT_MARKER_KEY)

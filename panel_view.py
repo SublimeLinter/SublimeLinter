@@ -679,13 +679,30 @@ def stop_viewport_poller():
     _RUNNING = False
 
 
-def update_viewport(token=None):
+def update_viewport(token1=None, token2=None):
     global _RUNNING
     if not _RUNNING:
         return
 
-    next_token = maybe_render_viewport(token)
-    sublime.set_timeout(partial(update_viewport, next_token), 16)
+    next_token1 = mayby_rerender_panel(token1)
+    next_token2 = maybe_render_viewport(token2)
+    sublime.set_timeout(partial(update_viewport, next_token1, next_token2), 16)
+
+
+def mayby_rerender_panel(previous_token):
+    view = State['active_view']
+    if not view:
+        return
+
+    token = (view.viewport_extent(),)
+    if token != previous_token:
+        window = view.window()
+        if not window:
+            return
+
+        fill_panel(window)
+
+    return token
 
 
 def maybe_render_viewport(previous_token):

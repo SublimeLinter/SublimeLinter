@@ -91,6 +91,9 @@ class UpdateState(sublime_plugin.EventListener):
         ensure_panel(window)
         if panel_is_active(window):
             update_panel_selection(**State)
+            start_viewport_poller()
+        else:
+            stop_viewport_poller()
 
     def on_selection_modified_async(self, view):
         active_view = State['active_view']

@@ -114,6 +114,8 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return errors
     except linter_module.TransientError:
         raise  # Raise here to abort in `await_futures` below
+    except linter_module.PermanentError:
+        return []  # Empty list here to clear old errors
     except Exception:
         linter.notify_failure()
         # Log while multi-threaded to get a nicer log message

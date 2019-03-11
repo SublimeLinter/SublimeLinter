@@ -58,3 +58,16 @@ highlight_view.py:
    669:1    info          flake8:E113         unexpected indentation
 #                                             ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
 
+   669:1    error         flake8:E113         wrapped
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+                                              message
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    warning       flake8:E113         wrapped
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+                                              message
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    info          flake8:E113         wrapped
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+                                              message
+#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+

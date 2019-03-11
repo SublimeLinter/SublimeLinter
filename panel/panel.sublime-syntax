@@ -49,18 +49,18 @@ contexts:
 
   ensure-error-meta-scope:
     - meta_scope: meta.linter.body.error.sublime_linter
-    - match: (?=$)
-      pop: true
+    - include: pop-on-new-error-line
+    - include: pop-at-end
 
   ensure-warning-meta-scope:
     - meta_scope: meta.linter.body.warning.sublime_linter
-    - match: (?=$)
-      pop: true
+    - include: pop-on-new-error-line
+    - include: pop-at-end
 
   ensure-warning-other-scope:
     - meta_scope: meta.linter.body.sublime_linter
-    - match: (?=$)
-      pop: true
+    - include: pop-on-new-error-line
+    - include: pop-at-end
 
   expect-linter-severity:
     - include: pop-at-end
@@ -85,10 +85,11 @@ contexts:
       pop: true
 
   expect-linter-message:
-    - include: pop-at-end
-    - match: .*$
-      scope: markup.quote.linter-message.sublime_linter
+    - include: pop-on-new-error-line
+    - match: ^$
       pop: true
+    - match: .*
+      scope: markup.quote.linter-message.sublime_linter
 
   expect-line-maybe-column:
     - include: pop-at-end
@@ -102,4 +103,8 @@ contexts:
 
   pop-at-end:
     - match: $
+      pop: true
+
+  pop-on-new-error-line:
+    - match: '^(?=\s{1,6}\d+:\d+)'
       pop: true

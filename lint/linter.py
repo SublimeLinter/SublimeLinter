@@ -203,36 +203,44 @@ class LinterSettings:
     substitute/expand variables found in the settings
     """
 
-    def __init__(self, settings, context):
-        self.settings = settings
+    def __init__(self, raw_settings, context, _computed_settings=None):
+        self.raw_settings = raw_settings
         self.context = context
 
-        self.computed_settings = {}
+        self._computed_settings = {} if _computed_settings is None else _computed_settings
 
     def __getitem__(self, key):
         try:
-            return self.computed_settings[key]
+            return self._computed_settings[key]
         except KeyError:
             try:
-                value = self.settings[key]
+                value = self.raw_settings[key]
             except KeyError:
                 raise KeyError(key)
             else:
                 final_value = substitute_variables(self.context, value)
-                self.computed_settings[key] = final_value
+                self._computed_settings[key] = final_value
                 return final_value
 
     def get(self, key, default=None):
         return self[key] if key in self else default
 
     def __contains__(self, key):
-        return key in self.computed_settings or key in self.settings
+        return key in self._computed_settings or key in self.raw_settings
 
     def __setitem__(self, key, value):
-        self.computed_settings[key] = value
+        self._computed_settings[key] = value
 
     has = __contains__
     set = __setitem__
+
+    def clone(self):
+        # type: () -> LinterSettings
+        return self.__class__(
+            self.raw_settings,
+            self.context,
+            ChainMap({}, self._computed_settings)
+        )
 
 
 def get_raw_linter_settings(linter, view):

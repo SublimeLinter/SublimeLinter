@@ -1045,24 +1045,6 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertResult([], result)
 
-    @p.expand([('empty_string', ''), ('none', None), ('false', False)])
-    def test_do_not_pass_if_1st_item_is_falsy(self, _, FALSY):
-        linter = self.create_linter()
-
-        INPUT = "0123456789"
-        OUTPUT = "stdin:1:1 ERROR: The message"
-        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-
-        def split_match(match):
-            m = Linter.split_match(linter, match)
-            match_, line, col, error, warning, message, near = m
-            return FALSY, line, col, error, warning, message, near
-
-        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
-            result = linter.lint(INPUT, VIEW_UNCHANGED)
-
-        self.assertEqual(0, len(result))
-
     def test_do_not_pass_if_2nd_item_is_None(self):
         linter = self.create_linter()
 

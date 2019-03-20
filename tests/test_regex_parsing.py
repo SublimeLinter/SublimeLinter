@@ -10,6 +10,7 @@ from SublimeLinter.tests.parameterized import parameterized as p
 import sublime
 from SublimeLinter.lint import (
     Linter,
+    LintMatch,
     linter as linter_module,
     backend,
     persist,
@@ -1100,6 +1101,22 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertEqual(1, len(result))
 
+    def test_match_is_optional(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            m = Linter.split_match(linter, match)
+            m.pop('match')
+            return m
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(1, len(result))
 
 def drop_keys(keys, array, strict=False):
     for item in array:

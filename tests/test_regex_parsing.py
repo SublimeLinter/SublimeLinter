@@ -1118,6 +1118,22 @@ class TestSplitMatchContract(_BaseTestCase):
 
         self.assertEqual(1, len(result))
 
+    def test_only_line_and_message_are_mandatory(self):
+        linter = self.create_linter()
+
+        INPUT = "0123456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        def split_match(match):
+            return LintMatch(line=1, message="Hi")
+
+        with expect(linter, times=1).split_match(...).thenAnswer(split_match):
+            result = linter.lint(INPUT, VIEW_UNCHANGED)
+
+        self.assertEqual(1, len(result))
+
+
 def drop_keys(keys, array, strict=False):
     for item in array:
         for k in keys:

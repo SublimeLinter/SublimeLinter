@@ -103,14 +103,19 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         view, linter_name, errors_for_the_gutter)
 
     for view in views:
+        vid = view.id()
+
+        if persist.settings.get('highlights.start_hidden') and vid not in State['quiet_views']:
+            State['quiet_views'].add(vid)
+
         draw(
             view,
             linter_name,
             highlight_regions,
             gutter_regions,
             protected_regions,
-            idle=(view.id() in State['idle_views']),
-            quiet=(view.id() in State['quiet_views'])
+            idle=(vid in State['idle_views']),
+            quiet=(vid in State['quiet_views'])
         )
 
 

@@ -13,9 +13,13 @@ Improved panel view
 
 Backend
 
-- We introduced `LintMatch` which makes esp. JSON reporters way more readable
+- We introduced* `LintMatch` which makes esp. JSON reporters way more readable
 - We support `error_type` (aka severity), `code` (aka rule name), and `filename` in the regexes (and via `LintMatch` for JSON reporters)
+- We claim the keys `end_line`, `end_col`, and `region`. They don't do anything right now, just don't use them for anything not obvious.
 - `error_type` is not restricted to 'warning/error' anymore
 - A linter can report errors coming from multiple files. We currently keep errors from open files. We throw away errors from files without a view automatically. @mheinzler contributed this!
 
-Note: We actually shipped the new `LintMatch` silently a few weeks ago to see if it breaks. 
+*Note: We actually shipped the new `LintMatch` silently a few weeks ago to see if it breaks. 
+
+A year has passed, and we will begin to remove deprecated code. Open the Sublime console, look for deprecation warnings, and open a PR against the outdated linter. 
+

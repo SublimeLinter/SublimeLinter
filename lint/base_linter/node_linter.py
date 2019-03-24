@@ -51,7 +51,13 @@ class NodeLinter(linter.Linter):
                 return True, local_cmd
 
         if self.get_view_settings().get('disable_if_not_dependency', False):
-            return True, None
+            logger.info(
+                "Skipping '{}' since it is not installed locally.\n"
+                "You can change this behavior by setting 'disable_if_not_dependency' to 'false'."
+                .format(self.name)
+            )
+            self.notify_unassign()
+            raise linter.PermanentError('disable_if_not_dependency')
 
         global_cmd = util.which(cmd[0])
         if global_cmd:

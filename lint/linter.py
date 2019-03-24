@@ -111,6 +111,10 @@ class TransientError(Exception):
     ...
 
 
+class PermanentError(Exception):
+    ...
+
+
 # SublimeLinter can lint partial buffers, e.g. `<script>` tags inside a
 # HTML-file. The tiny `VirtualView` is just enough code, so we can get the
 # source code of a line, the linter reported to be problematic.
@@ -636,9 +640,19 @@ class Linter(metaclass=LinterMeta):
         return self.settings
 
     def notify_failure(self):
+        # Side-effect: the status bar will show `(erred)`
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_failed', {
+                'bid': self.view.buffer_id(),
+                'linter_name': self.name
+            })
+
+    def notify_unassign(self):
+        # Side-effect: the status bar will not show the linter at all
+        window = self.view.window()
+        if window:
+            window.run_command('sublime_linter_unassigned', {
                 'bid': self.view.buffer_id(),
                 'linter_name': self.name
             })

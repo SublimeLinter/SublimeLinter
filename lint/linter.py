@@ -1049,7 +1049,7 @@ class Linter(metaclass=LinterMeta):
                 self.name, textwrap.indent(output.strip(), '  ')))
 
         for m in self.find_errors(output):
-            if not m or not m[0]:
+            if not m:
                 continue
 
             if not isinstance(m, LintMatch):  # ensure right type

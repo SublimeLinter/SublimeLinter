@@ -127,6 +127,14 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         )
 
 
+class GarbageController(sublime_plugin.EventListener):
+    def on_pre_close(self, view):
+        vid = view.id()
+        State['idle_views'].discard(vid)
+        State['quiet_views'].discard(vid)
+        State['views'].discard(vid)
+
+
 class UpdateErrorRegions(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
     def on_modified_async(self, view):

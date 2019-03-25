@@ -54,7 +54,8 @@ State = {
     'active_view': None,
     'current_sel': tuple(),
     'idle_views': set(),
-    'quiet_views': set()
+    'quiet_views': set(),
+    'views': set()
 }
 
 
@@ -105,8 +106,11 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
     for view in views:
         vid = view.id()
 
-        if persist.settings.get('highlights.start_hidden') and vid not in State['quiet_views']:
+        if persist.settings.get('highlights.start_hidden') and vid not in State['quiet_views'] and vid not in State['views']:
             State['quiet_views'].add(vid)
+
+        if vid not in State['views']:
+            State['views'].add(vid)
 
         draw(
             view,

@@ -397,14 +397,14 @@ class LinterMeta(type):
             'npm_name', 'composer_name'
         ):
             if key in attrs:
-                logger.info(
-                    "{}: Defining 'cls.{}' has no effect anymore. You can "
-                    "safely remove these settings.".format(name, key))
+                logger.warning(
+                    "{}: Defining 'cls.{}' has no effect. Please cleanup and "
+                    "remove these settings.".format(name, key))
 
         for key in ('build_cmd', 'insert_args'):
             if key in attrs:
                 logger.warning(
-                    "{}: Do not implement 'cls.{}()'. SublimeLinter will "
+                    "{}: Do not implement '{}'. SublimeLinter will "
                     "change here in the near future.".format(name, key))
 
         for key in ('can_lint', 'can_lint_syntax'):

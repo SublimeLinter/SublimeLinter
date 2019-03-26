@@ -1,25 +1,33 @@
 SublimeLinter 4.10.0
 ====================
 
-Improved panel view
+New setting: highlights.start_hidden
+Enabling this setting will hide all highlights until you explicitly Toggle Highlights.
+Thanks to @AndrewMast for this! 🎉 (See #1576)
 
-- More tabular layout (automatic column widths)
-- Files are sorted (yay!) 
-- Highlight error if the cursor is nearby (before: if the cursor is on an error)
-- Show a viewport marker if the file has lots of errors
-- Improved scrolling so that the current file is always shown at the top of the panel
-- Improved syntax highlighting: The header line conatining the filename can be styled using `output.sublime_linter meta.error_panel.fileline.sublime_linter`
-- Wrap long error messages
 
-Backend
+Improved functionality of the disable_if_not_dependency setting.
 
-- We introduced* `LintMatch` which makes esp. JSON reporters way more readable
-- We support `error_type` (aka severity), `code` (aka rule name), and `filename` in the regexes (and via `LintMatch` for JSON reporters)
+
+Improved panel view:
+- Tabular layout (automatic column widths)
+- Files are sorted (yay!)
+- Highlight error if the cursor is nearby (before the cursor had to be _on_ an error)
+- New viewport markers indicate which errors are inside the current viewport
+- Scrolls so that the current file is always at the top of the panel
+- Improved scopes for syntax highlighting
+- Long error messages now wrap
+
+
+For linter plugin authors:
+- New `LintMatch` to make esp. JSON reporters way more readable
+- Support for `error_type` (aka severity), `code` (aka rule name), and `filename` in the regexes (and via `LintMatch` for JSON reporters)
+- Severity is no longer restricted to 'warning/error', e.g. so you can report 'info' level feedback
 - We claim the keys `end_line`, `end_col`, and `region`. They don't do anything right now, just don't use them for anything not obvious.
-- `error_type` is not restricted to 'warning/error' anymore
-- A linter can report errors coming from multiple files. We currently keep errors from open files. We throw away errors from files without a view automatically. @mheinzler contributed this!
+- A linter can report errors coming from multiple files. Thanks @mheinzler (#1528) 🚀!
 
-*Note: We actually shipped the new `LintMatch` silently a few weeks ago to see if it breaks. 
 
-A year has passed, and we will begin to remove deprecated code. Open the Sublime console, look for deprecation warnings, and open a PR against the outdated linter. 
-
+Finally, a house keeping notice:
+A year has passed, and we will begin to remove deprecated code.
+Look for deprecation warnings in the Sublime Text console.
+If you find any, let the plugin author know (or open a PR to fix it of course 😉)!

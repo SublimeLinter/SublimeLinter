@@ -54,7 +54,8 @@ State = {
     'active_view': None,
     'current_sel': tuple(),
     'idle_views': set(),
-    'quiet_views': set()
+    'quiet_views': set(),
+    'views': set()
 }
 
 
@@ -103,15 +104,35 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         view, linter_name, errors_for_the_gutter)
 
     for view in views:
+        vid = view.id()
+
+        if (
+            persist.settings.get('highlights.start_hidden') and
+            vid not in State['quiet_views'] and
+            vid not in State['views']
+        ):
+            State['quiet_views'].add(vid)
+
+        if vid not in State['views']:
+            State['views'].add(vid)
+
         draw(
             view,
             linter_name,
             highlight_regions,
             gutter_regions,
             protected_regions,
-            idle=(view.id() in State['idle_views']),
-            quiet=(view.id() in State['quiet_views'])
+            idle=(vid in State['idle_views']),
+            quiet=(vid in State['quiet_views'])
         )
+
+
+class ViewListCleanupController(sublime_plugin.EventListener):
+    def on_pre_close(self, view):
+        vid = view.id()
+        State['idle_views'].discard(vid)
+        State['quiet_views'].discard(vid)
+        State['views'].discard(vid)
 
 
 class UpdateErrorRegions(sublime_plugin.EventListener):

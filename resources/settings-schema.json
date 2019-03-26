@@ -24,6 +24,9 @@
         "highlights.demote_scope": {
             "type":"string"
         },
+        "highlights.start_hidden":{
+            "type":"boolean"
+        },
         "lint_mode":{
             "type":"string",
             "enum":["background", "load_save", "manual", "save"]

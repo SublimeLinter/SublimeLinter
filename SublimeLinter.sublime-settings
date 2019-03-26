@@ -40,6 +40,10 @@
     // you save the buffer.
     "highlights.time_to_idle": 1.5,
 
+    // Set to true to start the highlights hidden. Use the command
+    // "SublimeLinter: Toggle Highlights" to toggle the highlights
+    "highlights.start_hidden": false,
+
     // Send a "terminate" signal to old lint processes, if their result would
     // be thrown away. If false we fire-and-forget processes instead.
     "kill_old_processes": false,

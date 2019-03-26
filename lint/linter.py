@@ -412,6 +412,14 @@ class LinterMeta(type):
                 logger.warning(
                     "{}: Implementing 'cls.{}' has no effect anymore. You "
                     "can safely remove these methods.".format(name, key))
+
+        if 'should_lint' in attrs:
+            logger.warning(
+                "{}: Do *NOT* implement 'should_lint'. SublimeLinter will "
+                "have a breaking change here in the near future.  "
+                "Note: The 'self' you see in there is probably not the "
+                "same 'self' you see in other methods. Do *not* mutate 'self'!"
+                .format(name))
         # END DEPRECATIONS
 
         cmd = attrs.get('cmd')
@@ -932,8 +940,9 @@ class Linter(metaclass=LinterMeta):
         """
         should_lint takes reason then decides whether the linter should start or not.
 
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
+        DO NOT USE except for experiments! WILL CHANGE!
+        Note that `self` here is probably not the same `self` you later
+        see e.g. in `split_match`. Do *NOT* mutate `self`!
         """
         # A 'saved-file-only' linter does not run on unsaved views
         if self.tempfile_suffix == '-' and self.view.is_dirty():

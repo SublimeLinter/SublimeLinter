@@ -127,7 +127,7 @@ def on_lint_result(buffer_id, linter_name, **kwargs):
         )
 
 
-class GarbageController(sublime_plugin.EventListener):
+class ViewListCleanupController(sublime_plugin.EventListener):
     def on_pre_close(self, view):
         vid = view.id()
         State['idle_views'].discard(vid)

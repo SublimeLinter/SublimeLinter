@@ -1490,7 +1490,12 @@ def store_proc_while_running(bid, proc):
         yield proc
     finally:
         with persist.active_procs_lock:
-            persist.active_procs[bid].remove(proc)
+            # During hot-reload `active_procs` gets evicted so we must
+            # expect a `ValueError` from time to time
+            try:
+                persist.active_procs[bid].remove(proc)
+            except ValueError:
+                pass
 
 
 RUNNING_TEMPLATE = """{headline}

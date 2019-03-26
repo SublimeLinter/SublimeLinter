@@ -41,7 +41,7 @@
     "highlights.time_to_idle": 1.5,
 
     // Set to true to start the highlights hidden. Use the command
-    // "sublime_linter_toggle_highlights" to toggle the highlights
+    // "SublimeLinter: Toggle Highlights" to toggle the highlights
     "highlights.start_hidden": false,
 
     // Send a "terminate" signal to old lint processes, if their result would

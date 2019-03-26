@@ -1142,7 +1142,11 @@ class Linter(metaclass=LinterMeta):
                 vv = VirtualView.from_file(filename)
             except OSError as err:
                 # warn about the error and drop this match
-                logger.warning('Exception: {}'.format(str(err)))
+                logger.warning(
+                    "{} reported errors coming from '{}'. "
+                    "However, reading that file raised:\n  {}."
+                    .format(self.name, filename, str(err))
+                )
                 self.notify_failure()
                 return None
         else:  # main file

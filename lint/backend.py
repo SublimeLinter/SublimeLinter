@@ -54,8 +54,17 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, view_has_changed):
+    total_tasks = 0
     for (linter, regions) in get_lint_regions(linters, view):
-        yield linter, _make_tasks(linter, regions, view, view_has_changed)
+        tasks = _make_tasks(linter, regions, view, view_has_changed)
+        total_tasks += len(tasks)
+        yield linter, tasks
+
+    if total_tasks > 4:
+        logger.warning(
+            "'{}' puts in total {}(!) tasks on the queue."
+            .format(short_canonical_filename(view), total_tasks)
+        )
 
 
 def _make_tasks(linter_, regions, view, view_has_changed):
@@ -73,6 +82,11 @@ def _make_tasks(linter_, regions, view, view_has_changed):
         executor = partial(modify_thread_name, task_name, task)
         tasks.append(executor)
 
+    if len(tasks) > 3:
+        logger.warning(
+            "'{}' puts {} {} tasks on the queue."
+            .format(short_canonical_filename(view), len(tasks), linter_.name)
+        )
     return tasks
 
 
@@ -89,14 +103,19 @@ def clone_linter(linter):
     return linter.__class__(linter.view, linter.settings.clone())
 
 
+def short_canonical_filename(view):
+    return (
+        os.path.basename(view.file_name())
+        if view.file_name()
+        else '<untitled {}>'.format(view.buffer_id())
+    )
+
+
 def make_good_task_name(linter, view):
     with counter_lock:
         task_number = next(task_count)
 
-    canonical_filename = (
-        os.path.basename(view.file_name()) if view.file_name()
-        else '<untitled {}>'.format(view.buffer_id()))
-
+    canonical_filename = short_canonical_filename(view)
     return 'LintTask|{}|{}|{}|{}'.format(
         task_number, linter.name, canonical_filename, view.id())
 

@@ -54,31 +54,68 @@ def run_tasks(tasks, next):
 
 
 def get_lint_tasks(linters, view, view_has_changed):
+    total_tasks = 0
     for (linter, regions) in get_lint_regions(linters, view):
-        tasks = []
-        for region in regions:
-            code = view.substr(region)
-            offsets = view.rowcol(region.begin()) + (region.begin(),)
-
-            # Due to a limitation in python 3.3, we cannot 'name' a thread when
-            # using the ThreadPoolExecutor. (This feature has been introduced
-            # in python 3.6.) So, we do this manually.
-            task_name = make_good_task_name(linter, view)
-            task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
-            executor = partial(modify_thread_name, task_name, task)
-            tasks.append(executor)
-
+        tasks = _make_tasks(linter, regions, view, view_has_changed)
+        total_tasks += len(tasks)
         yield linter, tasks
+
+    if total_tasks > 4:
+        logger.warning(
+            "'{}' puts in total {}(!) tasks on the queue."
+            .format(short_canonical_filename(view), total_tasks)
+        )
+
+
+def _make_tasks(linter_, regions, view, view_has_changed):
+    independent_linters = create_n_independent_linters(linter_, len(regions))
+    tasks = []
+    for linter, region in zip(independent_linters, regions):
+        code = view.substr(region)
+        offsets = view.rowcol(region.begin()) + (region.begin(),)
+
+        # Due to a limitation in python 3.3, we cannot 'name' a thread when
+        # using the ThreadPoolExecutor. (This feature has been introduced
+        # in python 3.6.) So, we do this manually.
+        task_name = make_good_task_name(linter, view)
+        task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
+        executor = partial(modify_thread_name, task_name, task)
+        tasks.append(executor)
+
+    if len(tasks) > 3:
+        logger.warning(
+            "'{}' puts {} {} tasks on the queue."
+            .format(short_canonical_filename(view), len(tasks), linter_.name)
+        )
+    return tasks
+
+
+def create_n_independent_linters(linter, n):
+    return (
+        [linter]
+        if n == 1
+        else [clone_linter(linter) for _ in range(n)]
+    )
+
+
+def clone_linter(linter):
+    # type: (linter_module.Linter) -> linter_module.Linter
+    return linter.__class__(linter.view, linter.settings.clone())
+
+
+def short_canonical_filename(view):
+    return (
+        os.path.basename(view.file_name())
+        if view.file_name()
+        else '<untitled {}>'.format(view.buffer_id())
+    )
 
 
 def make_good_task_name(linter, view):
     with counter_lock:
         task_number = next(task_count)
 
-    canonical_filename = (
-        os.path.basename(view.file_name()) if view.file_name()
-        else '<untitled {}>'.format(view.buffer_id()))
-
+    canonical_filename = short_canonical_filename(view)
     return 'LintTask|{}|{}|{}|{}'.format(
         task_number, linter.name, canonical_filename, view.id())
 

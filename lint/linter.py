@@ -207,36 +207,44 @@ class LinterSettings:
     substitute/expand variables found in the settings
     """
 
-    def __init__(self, settings, context):
-        self.settings = settings
+    def __init__(self, raw_settings, context, _computed_settings=None):
+        self.raw_settings = raw_settings
         self.context = context
 
-        self.computed_settings = {}
+        self._computed_settings = {} if _computed_settings is None else _computed_settings
 
     def __getitem__(self, key):
         try:
-            return self.computed_settings[key]
+            return self._computed_settings[key]
         except KeyError:
             try:
-                value = self.settings[key]
+                value = self.raw_settings[key]
             except KeyError:
                 raise KeyError(key)
             else:
                 final_value = substitute_variables(self.context, value)
-                self.computed_settings[key] = final_value
+                self._computed_settings[key] = final_value
                 return final_value
 
     def get(self, key, default=None):
         return self[key] if key in self else default
 
     def __contains__(self, key):
-        return key in self.computed_settings or key in self.settings
+        return key in self._computed_settings or key in self.raw_settings
 
     def __setitem__(self, key, value):
-        self.computed_settings[key] = value
+        self._computed_settings[key] = value
 
     has = __contains__
     set = __setitem__
+
+    def clone(self):
+        # type: () -> LinterSettings
+        return self.__class__(
+            self.raw_settings,
+            self.context,
+            ChainMap({}, self._computed_settings)
+        )
 
 
 def get_raw_linter_settings(linter, view):
@@ -393,14 +401,14 @@ class LinterMeta(type):
             'npm_name', 'composer_name'
         ):
             if key in attrs:
-                logger.info(
-                    "{}: Defining 'cls.{}' has no effect anymore. You can "
-                    "safely remove these settings.".format(name, key))
+                logger.warning(
+                    "{}: Defining 'cls.{}' has no effect. Please cleanup and "
+                    "remove these settings.".format(name, key))
 
         for key in ('build_cmd', 'insert_args'):
             if key in attrs:
                 logger.warning(
-                    "{}: Do not implement 'cls.{}()'. SublimeLinter will "
+                    "{}: Do not implement '{}'. SublimeLinter will "
                     "change here in the near future.".format(name, key))
 
         for key in ('can_lint', 'can_lint_syntax'):
@@ -408,6 +416,14 @@ class LinterMeta(type):
                 logger.warning(
                     "{}: Implementing 'cls.{}' has no effect anymore. You "
                     "can safely remove these methods.".format(name, key))
+
+        if 'should_lint' in attrs:
+            logger.warning(
+                "{}: Do *NOT* implement 'should_lint'. SublimeLinter will "
+                "have a breaking change here in the near future.  "
+                "Note: The 'self' you see in there is probably not the "
+                "same 'self' you see in other methods. Do *not* mutate 'self'!"
+                .format(name))
         # END DEPRECATIONS
 
         cmd = attrs.get('cmd')
@@ -938,8 +954,9 @@ class Linter(metaclass=LinterMeta):
         """
         should_lint takes reason then decides whether the linter should start or not.
 
-        should_lint allows each Linter to programmatically decide whether it should take
-        action on each trigger or not.
+        DO NOT USE except for experiments! WILL CHANGE!
+        Note that `self` here is probably not the same `self` you later
+        see e.g. in `split_match`. Do *NOT* mutate `self`!
         """
         # A 'saved-file-only' linter does not run on unsaved views
         if self.tempfile_suffix == '-' and self.view.is_dirty():
@@ -1148,7 +1165,11 @@ class Linter(metaclass=LinterMeta):
                 vv = VirtualView.from_file(filename)
             except OSError as err:
                 # warn about the error and drop this match
-                logger.warning('Exception: {}'.format(str(err)))
+                logger.warning(
+                    "{} reported errors coming from '{}'. "
+                    "However, reading that file raised:\n  {}."
+                    .format(self.name, filename, str(err))
+                )
                 self.notify_failure()
                 return None
         else:  # main file
@@ -1496,7 +1517,12 @@ def store_proc_while_running(bid, proc):
         yield proc
     finally:
         with persist.active_procs_lock:
-            persist.active_procs[bid].remove(proc)
+            # During hot-reload `active_procs` gets evicted so we must
+            # expect a `ValueError` from time to time
+            try:
+                persist.active_procs[bid].remove(proc)
+            except ValueError:
+                pass
 
 
 RUNNING_TEMPLATE = """{headline}

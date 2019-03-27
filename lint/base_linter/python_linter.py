@@ -9,6 +9,10 @@ import sublime
 from .. import linter, util
 
 
+if False:
+    from typing import List, Optional, Tuple, Union
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +29,7 @@ class PythonLinter(linter.Linter):
     """
 
     def context_sensitive_executable_path(self, cmd):
+        # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]
         """Try to find an executable for a given cmd."""
         # The default implementation will look for a user defined `executable`
         # setting.
@@ -42,7 +47,7 @@ class PythonLinter(linter.Linter):
             "{}: wanted python is '{}'".format(self.name, python)
         )
 
-        cmd_name = cmd[0] if isinstance(cmd, (list, tuple)) else cmd
+        cmd_name = cmd[0]
 
         if python:
             python = str(python)
@@ -103,7 +108,8 @@ class PythonLinter(linter.Linter):
         return True, executable
 
 
-def find_python_version(version):  # type: (str) -> str
+def find_python_version(version):
+    # type: (str) -> Optional[str]
     """Return python binaries on PATH matching a specific version."""
     requested_version = extract_major_minor_version(version)
     for python in util.find_executables('python'):

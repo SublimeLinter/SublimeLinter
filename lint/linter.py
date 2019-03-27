@@ -15,7 +15,7 @@ from .const import WARNING, ERROR
 
 MYPY = False
 if MYPY:
-    from typing import Match
+    from typing import Any, Dict, List, Match, Optional, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
@@ -208,6 +208,7 @@ class LinterSettings:
     """
 
     def __init__(self, raw_settings, context, _computed_settings=None):
+        # type: (Mapping[str, Any], Mapping[str, str], Mapping[str, Any]) -> None
         self.raw_settings = raw_settings
         self.context = context
 
@@ -525,6 +526,8 @@ class Linter(metaclass=LinterMeta):
     # Public attributes
     #
 
+    name = ''
+
     # The syntax that the linter handles. May be a string or
     # list/tuple of strings. Names should be all lowercase.
     syntax = ''
@@ -626,12 +629,13 @@ class Linter(metaclass=LinterMeta):
     disabled = None
 
     def __init__(self, view, settings):
+        # type: (sublime.View, LinterSettings) -> None
         self.view = view
         self.settings = settings
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
-        self.env = {}
+        self.env = {}  # type: Dict[str, str]
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.
@@ -757,6 +761,7 @@ class Linter(metaclass=LinterMeta):
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):
+        # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]
         """Calculate the context-sensitive executable path.
 
         Subclasses may override this to return a special path. The default
@@ -868,6 +873,7 @@ class Linter(metaclass=LinterMeta):
         return args
 
     def get_working_dir(self, settings):
+        # type: (LinterSettings) -> Optional[str]
         """Return the working dir for this lint."""
         cwd = settings.get('working_dir', None)
 

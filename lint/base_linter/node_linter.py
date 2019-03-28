@@ -1,6 +1,7 @@
 """This module exports the NodeLinter subclass of Linter."""
 
 from functools import lru_cache
+from itertools import takewhile
 import json
 import logging
 import os
@@ -14,6 +15,7 @@ if False:
 
 
 logger = logging.getLogger(__name__)
+HOME = os.path.expanduser('~')
 
 
 def paths_upwards(path):
@@ -32,14 +34,9 @@ def paths_upwards(path):
         path = next_path
 
 
-def paths_with_installed_package_json(start_dir):
+def paths_upwards_until_home(path):
     # type: (str) -> Iterator[str]
-    for path in paths_upwards(start_dir):
-        if (
-            os.path.exists(os.path.join(path, 'package.json')) and
-            os.path.exists(os.path.join(path, 'node_modules', '.bin'))
-        ):
-            yield path
+    return takewhile(lambda p: p != HOME, paths_upwards(path))
 
 
 def read_json_file(path):
@@ -104,24 +101,66 @@ class NodeLinter(linter.Linter):
         )
 
     def find_local_executable(self, start_dir, npm_name):
-        # type: (str, str) -> Optional[str]
-        manifest_path = next(paths_with_installed_package_json(start_dir), None)
-        if not manifest_path:
-            return None
-
-        try:
-            manifest = read_json_file(os.path.join(manifest_path, 'package.json'))
-        except Exception:
-            ...
-        else:
-            try:
-                return os.path.normpath(os.path.join(manifest_path, manifest['bin'][npm_name]))
-            except KeyError:
-                ...
-
-        for path in paths_upwards(manifest_path):
+        # type: (str, str) -> Union[None, str, List[str]]
+        for path in paths_upwards(start_dir):
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
             if executable:
                 return executable
-        else:
-            return None
+
+        for path in paths_upwards_until_home(start_dir):
+            manifest_file = os.path.join(path, 'package.json')
+            if os.path.exists(manifest_file):
+                try:
+                    manifest = read_json_file(manifest_file)
+                except Exception as err:
+                    logger.warning(
+                        "We found a 'package.json' at {}; however, reading it raised\n  {}"
+                        .format(path, str(err))
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
+
+                # Edge case: when hacking on the linter itself it is not installed
+                # but must run as a normal script. E.g. `/usr/bin/env node eslint.js`
+                try:
+                    script = os.path.normpath(os.path.join(path, manifest['bin'][npm_name]))
+                except KeyError:
+                    pass
+                else:
+                    if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
+                        logger.warning(
+                            "We want to execute 'node {}'; but you should first "
+                            "'npm install' this project.".format(script)
+                        )
+                        self.notify_failure()
+                        raise linter.PermanentError()
+
+                    node_binary = self.which('node')
+                    if node_binary:
+                        return [node_binary, script]
+
+                    logger.warning(
+                        "We want to execute 'node {}'; however, finding a node executable "
+                        "failed.".format(script)
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
+
+                # A 'package.json' not yet installed?
+                if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
+                    is_dep = bool(manifest.get('dependencies', {}).get(npm_name))
+                    is_dev_dep = bool(manifest.get('devDependencies', {}).get(npm_name))
+                    if is_dep or is_dev_dep:
+                        logger.warning(
+                            "Skipping '{}' for now which is listed as a {} "
+                            "in {} but not installed.  Forgot to 'npm install'?"
+                            .format(
+                                npm_name,
+                                'dependency' if is_dep else 'devDependency',
+                                manifest_file
+                            )
+                        )
+                        self.notify_failure()
+                        raise linter.PermanentError()
+
+        return None

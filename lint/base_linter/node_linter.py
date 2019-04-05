@@ -1,16 +1,54 @@
 """This module exports the NodeLinter subclass of Linter."""
 
-import codecs
+from functools import lru_cache
+from itertools import takewhile
 import json
-import hashlib
 import logging
 import os
 import shutil
 
-from .. import linter, util
+from .. import linter
+
+
+if False:
+    from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
+HOME = os.path.expanduser('~')
+
+
+def paths_upwards(path):
+    # type: (str) -> Iterator[str]
+    while True:
+        yield path
+
+        next_path = os.path.dirname(path)
+        # Stop just before root in *nix systems
+        if next_path == '/':
+            return
+
+        if next_path == path:
+            return
+
+        path = next_path
+
+
+def paths_upwards_until_home(path):
+    # type: (str) -> Iterator[str]
+    return takewhile(lambda p: p != HOME, paths_upwards(path))
+
+
+def read_json_file(path):
+    # type: (str) -> Dict[str, Any]
+    return _read_json_file(path, os.path.getmtime(path))
+
+
+@lru_cache(maxsize=4)
+def _read_json_file(path, _mtime):
+    # type: (str, float) -> Dict[str, Any]
+    with open(path, 'r', encoding='utf8') as f:
+        return json.load(f)
 
 
 class NodeLinter(linter.Linter):
@@ -22,16 +60,8 @@ class NodeLinter(linter.Linter):
 
     """
 
-    def __init__(self, view, settings):
-        """Initialize a new NodeLinter instance."""
-        super().__init__(view, settings)
-
-        self.manifest_path = self.get_manifest_path()
-
-        if self.manifest_path:
-            self.read_manifest(os.path.getmtime(self.manifest_path))
-
     def context_sensitive_executable_path(self, cmd):
+        # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]
         """
         Attempt to locate the npm module specified in cmd.
 
@@ -45,8 +75,10 @@ class NodeLinter(linter.Linter):
         if success:
             return True, executable
 
-        if self.manifest_path:
-            local_cmd = self.find_local_cmd_path(cmd[0])
+        npm_name = cmd[0]
+        start_dir = self.get_start_dir()
+        if start_dir:
+            local_cmd = self.find_local_executable(start_dir, npm_name)
             if local_cmd:
                 return True, local_cmd
 
@@ -59,108 +91,76 @@ class NodeLinter(linter.Linter):
             self.notify_unassign()
             raise linter.PermanentError('disable_if_not_dependency')
 
-        global_cmd = util.which(cmd[0])
-        if global_cmd:
-            return True, global_cmd
-        else:
-            logger.warning('{} cannot locate \'{}\'\n'
-                           'Please refer to the readme of this plugin and our troubleshooting guide: '
-                           'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, cmd[0]))
-            return True, None
+        return False, None
 
-    def get_manifest_path(self):
-        """Get the path to the package.json file for the current file."""
-        filename = self.view.file_name()
-        cwd = (
-            os.path.dirname(filename) if filename else
-            linter.guess_project_root_of_view(self.view)
+    def get_start_dir(self):
+        # type: () -> Optional[str]
+        return (
+            self.settings.context.get('file_path') or
+            self.get_working_dir(self.settings)
         )
-        return self.rev_parse_manifest_path(cwd) if cwd else None
 
-    def rev_parse_manifest_path(self, cwd):
-        """
-        Search parent directories for package.json.
+    def find_local_executable(self, start_dir, npm_name):
+        # type: (str, str) -> Union[None, str, List[str]]
+        for path in paths_upwards(start_dir):
+            executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
+            if executable:
+                return executable
 
-        Starting at the current working directory. Go up one directory
-        at a time checking if that directory contains a package.json
-        file. If it does, return that directory.
-        """
-        manifest_path = os.path.join(cwd, 'package.json')
-        bin_path = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
+        for path in paths_upwards_until_home(start_dir):
+            manifest_file = os.path.join(path, 'package.json')
+            if os.path.exists(manifest_file):
+                try:
+                    manifest = read_json_file(manifest_file)
+                except Exception as err:
+                    logger.warning(
+                        "We found a 'package.json' at {}; however, reading it raised\n  {}"
+                        .format(path, str(err))
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
 
-        if os.path.isfile(manifest_path) and os.path.isdir(bin_path):
-            return manifest_path
+                # Edge case: when hacking on the linter itself it is not installed
+                # but must run as a normal script. E.g. `/usr/bin/env node eslint.js`
+                try:
+                    script = os.path.normpath(os.path.join(path, manifest['bin'][npm_name]))
+                except KeyError:
+                    pass
+                else:
+                    if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
+                        logger.warning(
+                            "We want to execute 'node {}'; but you should first "
+                            "'npm install' this project.".format(script)
+                        )
+                        self.notify_failure()
+                        raise linter.PermanentError()
 
-        parent = os.path.dirname(cwd)
+                    node_binary = self.which('node')
+                    if node_binary:
+                        return [node_binary, script]
 
-        if parent == '/' or parent == cwd:
-            return None
+                    logger.warning(
+                        "We want to execute 'node {}'; however, finding a node executable "
+                        "failed.".format(script)
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
 
-        return self.rev_parse_manifest_path(parent)
+                # A 'package.json' not yet installed?
+                if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
+                    is_dep = bool(manifest.get('dependencies', {}).get(npm_name))
+                    is_dev_dep = bool(manifest.get('devDependencies', {}).get(npm_name))
+                    if is_dep or is_dev_dep:
+                        logger.warning(
+                            "Skipping '{}' for now which is listed as a {} "
+                            "in {} but not installed.  Forgot to 'npm install'?"
+                            .format(
+                                npm_name,
+                                'dependency' if is_dep else 'devDependency',
+                                manifest_file
+                            )
+                        )
+                        self.notify_failure()
+                        raise linter.PermanentError()
 
-    def find_local_cmd_path(self, cmd):
-        """
-        Find a local binary in node_modules/.bin.
-
-        Given package.json filepath and a local binary to find,
-        look in node_modules/.bin for that binary.
-        """
-        cwd = os.path.dirname(self.manifest_path)
-
-        binary = self.get_pkg_bin_cmd(cmd)
-
-        if binary:
-            return os.path.normpath(os.path.join(cwd, binary))
-
-        return self.find_ancestor_cmd_path(cmd, cwd)
-
-    def find_ancestor_cmd_path(self, cmd, cwd):
-        """Recursively check for command binary in ancestors' node_modules/.bin directories."""
-        node_modules_bin = os.path.normpath(os.path.join(cwd, 'node_modules/.bin/'))
-
-        binary = shutil.which(cmd, path=node_modules_bin)
-        if binary:
-            return binary
-
-        parent = os.path.dirname(cwd)
-
-        if parent == '/' or parent == cwd:
-            return None
-
-        return self.find_ancestor_cmd_path(cmd, parent)
-
-    def get_pkg_bin_cmd(self, cmd):
-        """
-        Check is binary path is defined in package.json bin property.
-
-        Loading a linter to check its own source code is a special case.
-        For example, the local eslint binary when linting eslint is
-        installed at ./bin/eslint.js and not ./node_modules/.bin/eslint
-
-        This function checks the package.json `bin` property keys to
-        see if the cmd we're looking for is defined for the current
-        project.
-        """
-        pkg = self.get_manifest()
-        return pkg['bin'][cmd] if 'bin' in pkg and cmd in pkg['bin'] else None
-
-    def get_manifest(self):
-        """Load manifest file (package.json)."""
-        current_manifest_mtime = os.path.getmtime(self.manifest_path)
-
-        if (current_manifest_mtime != self.cached_manifest_mtime and
-                self.hash_manifest() != self.cached_manifest_hash):
-            self.read_manifest(current_manifest_mtime)
-
-        return self.cached_manifest
-
-    def read_manifest(self, current_manifest_mtime):
-        """Read manifest and cache mtime, hash and json content."""
-        self.cached_manifest_mtime = current_manifest_mtime
-        self.cached_manifest_hash = self.hash_manifest()
-        self.cached_manifest = json.load(codecs.open(self.manifest_path, 'r', 'utf-8'))
-
-    def hash_manifest(self):
-        """Calculate the hash of the manifest file."""
-        f = codecs.open(self.manifest_path, 'r', 'utf-8')
-        return hashlib.sha1(f.read().encode('utf-8')).hexdigest()
+        return None

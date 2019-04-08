@@ -1377,11 +1377,11 @@ class Linter(metaclass=LinterMeta):
 
         with make_temp_file(suffix, code) as file:
             # store this filename to assign its errors to the main file later
-            self.temp_filename = file.name
+            self.temp_filename = os.path.realpath(file.name)
 
             ctx = get_view_context(self.view)
             ctx['file_on_disk'] = self.filename
-            ctx['temp_file'] = file.name
+            ctx['temp_file'] = self.temp_filename
 
             cmd = self.finalize_cmd(
                 cmd, ctx, at_value=file.name, auto_append=True)

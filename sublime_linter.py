@@ -21,6 +21,11 @@ from .lint import reloader
 from .lint import settings
 
 
+MYPY = False
+if MYPY:
+    from typing import Optional
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -416,7 +421,7 @@ def get_linters_for_view(view):
         logger.info(
             "Skipping buffer {}; '{}' is unreachable".format(bid, filename))
         flash_once(
-            none_for_none(lambda: view.window().id()),
+            view.window(),
             "{} has become unreachable".format(filename)
         )
         wanted_linters = []
@@ -510,18 +515,14 @@ def remember_runtime(log_msg):
         elapsed_runtimes.append(runtime)
 
 
-def none_for_none(fn):
-    try:
-        return fn()
-    except Exception as exc:
-        if 'NoneType' in str(exc):
-            return None
-        else:
-            raise
+def flash_once(window, message):
+    # type: (Optional[sublime.Window], str) -> None
+    if window:
+        _flash_once(window.id(), message)
 
 
 @lru_cache()
-def flash_once(wid, message):
-    if wid is not None:
-        window = sublime.Window(wid)
-        window.status_message(message)
+def _flash_once(wid, message):
+    # type: (sublime.WindowId, str) -> None
+    window = sublime.Window(wid)
+    window.status_message(message)

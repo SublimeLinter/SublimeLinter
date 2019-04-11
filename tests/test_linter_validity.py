@@ -19,6 +19,9 @@ from SublimeLinter.tests.mockito import (
 
 
 class TestLinterValidity(DeferrableTestCase):
+    def setUp(self):
+        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+
     def tearDown(self):
         unstub()
 
@@ -88,4 +91,68 @@ class TestLinterValidity(DeferrableTestCase):
 
         self.assertTrue(linter.disabled)
 
+class TestRegexCompiling(DeferrableTestCase):
+    def setUp(self):
+        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
 
+    def tearDown(self):
+        unstub()
+
+    def test_not_multiline_by_default(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+                regex = r'bar'
+
+            return Fake
+
+        import re
+        linter = def_linter()
+        self.assertTrue(linter.regex.flags == re.U)
+        self.assertFalse(linter.multiline)
+
+    def test_set_multiline_automatically(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+                regex = r'(?m)bar'
+
+            return Fake
+
+        import re
+        linter = def_linter()
+
+        self.assertTrue(linter.regex.flags & re.M == re.M)
+        self.assertTrue(linter.multiline)
+
+    def test_set_multiline_manually(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+                regex = r'bar'
+                multiline = True
+
+            return Fake
+
+        import re
+        linter = def_linter()
+
+        self.assertTrue(linter.regex.flags & re.M == re.M)
+        self.assertTrue(linter.multiline)
+
+    def test_invalid_regex_disables(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+                regex = r'ba(r'
+
+            return Fake
+
+        when(linter_module.logger).error(...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertTrue(linter.disabled)

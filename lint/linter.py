@@ -435,13 +435,13 @@ class LinterMeta(type):
         if isinstance(cmd, str):
             setattr(cls, 'cmd', shlex.split(cmd))
 
+        if attrs.get('multiline', False):
+            cls.re_flags |= re.MULTILINE
+
         for regex in ('regex', 'word_re'):
-            attr = getattr(cls, regex)
+            attr = attrs.get(regex)
 
             if isinstance(attr, str):
-                if regex == 'regex' and cls.multiline:
-                    setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
-
                 try:
                     setattr(cls, regex, re.compile(attr, cls.re_flags))
                 except re.error as err:
@@ -450,6 +450,9 @@ class LinterMeta(type):
                         .format(name, regex, str(err))
                     )
                     cls.disabled = True
+                else:
+                    if regex == 'regex' and cls.regex.flags & re.M == re.M:
+                        cls.multiline = True
 
         # If this class has its own defaults, create an args_map.
         defaults = attrs.get('defaults', None)

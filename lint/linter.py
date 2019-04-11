@@ -532,10 +532,6 @@ class Linter(metaclass=LinterMeta):
     #
     name = ''
 
-    # The syntax that the linter handles. May be a string or
-    # list/tuple of strings. Names should be all lowercase.
-    syntax = ''
-
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
     cmd = ''
@@ -589,16 +585,6 @@ class Linter(metaclass=LinterMeta):
 
     # Tab width
     tab_width = 1
-
-    # If a linter can be used with embedded code, you need to tell SublimeLinter
-    # which portions of the source code contain the embedded code by specifying
-    # the embedded scope selectors. This attribute maps syntax names
-    # to embedded scope selectors.
-    #
-    # For example, the HTML syntax uses the scope `source.js.embedded.html`
-    # for embedded JavaScript. To allow a JavaScript linter to lint that embedded
-    # JavaScript, you would set this attribute to {'html': 'source.js.embedded.html'}.
-    selectors = {}
 
     # If a linter reports a column position, SublimeLinter highlights the nearest
     # word at that point. You can customize the regex used to highlight words
@@ -941,24 +927,7 @@ class Linter(metaclass=LinterMeta):
                 view.score_selector(0, selector) or
                 view.find_by_selector(selector)
             )
-
-        # Fallback using deprecated `cls.syntax`
-        syntax = util.get_syntax(view).lower()
-
-        if not syntax:
-            return False
-
-        if cls.syntax == '*':
-            return True
-
-        if hasattr(cls.syntax, 'match'):
-            return cls.syntax.match(syntax) is not None
-
-        syntaxes = (
-            [cls.syntax] if isinstance(cls.syntax, str)
-            else list(cls.syntax)
-        )
-        return syntax in syntaxes
+        return False
 
     def should_lint(self, reason=None):
         """

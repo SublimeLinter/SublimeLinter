@@ -430,55 +430,57 @@ class LinterMeta(type):
                 .format(name))
         # END DEPRECATIONS
 
+        # BEGIN CLASS MUTATIONS
         cmd = attrs.get('cmd')
-
         if isinstance(cmd, str):
             setattr(cls, 'cmd', shlex.split(cmd))
 
-        syntax = attrs.get('syntax')
+        for regex in ('regex', 'word_re'):
+            attr = getattr(cls, regex)
 
-        try:
-            if isinstance(syntax, str) and syntax[0] == '^':
-                setattr(cls, 'syntax', re.compile(syntax))
-        except re.error as err:
-            logger.error(
-                '{} disabled, error compiling syntax: {}'
-                .format(name, str(err))
-            )
-            setattr(cls, 'disabled', True)
+            if isinstance(attr, str):
+                if regex == 'regex' and cls.multiline:
+                    setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
 
-        if not cls.disabled:
-            for regex in ('regex', 'word_re'):
-                attr = getattr(cls, regex)
-
-                if isinstance(attr, str):
-                    if regex == 'regex' and cls.multiline:
-                        setattr(cls, 're_flags', cls.re_flags | re.MULTILINE)
-
-                    try:
-                        setattr(cls, regex, re.compile(attr, cls.re_flags))
-                    except re.error as err:
-                        logger.error(
-                            '{} disabled, error compiling {}: {}'
-                            .format(name, regex, str(err))
-                        )
-                        setattr(cls, 'disabled', True)
-
-        if not cls.disabled:
-            if (cls.cmd is not None and not cls.cmd) or not cls.regex:
-                logger.error('{} disabled, not fully implemented'.format(name))
-                setattr(cls, 'disabled', True)
+                try:
+                    setattr(cls, regex, re.compile(attr, cls.re_flags))
+                except re.error as err:
+                    logger.error(
+                        '{} disabled, error compiling {}: {}'
+                        .format(name, regex, str(err))
+                    )
+                    cls.disabled = True
 
         # If this class has its own defaults, create an args_map.
-        # Otherwise we use the superclass' args_map.
-        if 'defaults' in attrs and attrs['defaults']:
+        defaults = attrs.get('defaults', None)
+        if defaults and isinstance(defaults, dict):
             cls.map_args(attrs['defaults'])
+        # END CLASS MUTATIONS
 
-        if not cls.syntax and 'selector' not in cls.defaults:
+        # BEGIN VALIDATION
+        if not cls.cmd and cls.cmd is not None:
             logger.error(
-                "{} disabled, either 'syntax' or 'selector' must be specified"
+                "{} disabled, 'cmd' must be specified."
+                .format(name)
+            )
+            cls.disabled = True
+
+        if not isinstance(cls.defaults, dict):
+            logger.error(
+                "{} disabled. 'cls.defaults' is mandatory and MUST be a dict."
+                .format(name)
+            )
+            cls.disabled = True
+        elif 'selector' not in cls.defaults:
+            logger.error(
+                "{} disabled. 'selector' is mandatory in 'cls.defaults'.\n See "
+                "http://www.sublimelinter.com/en/stable/linter_settings.html#selector  "
                 .format(name))
-            setattr(cls, 'disabled', True)
+            cls.disabled = True
+        # END VALIDATION
+
+        if cls.disabled:
+            return
 
         cls.register_linter(name)
 

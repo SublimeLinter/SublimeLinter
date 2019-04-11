@@ -390,11 +390,13 @@ class LinterMeta(type):
         # BEGIN DEPRECATIONS
         for key in ('syntax', 'selectors'):
             if key in attrs:
-                logger.warning(
-                    "{}: Defining 'cls.{}' has been deprecated. Use "
-                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector"
+                logger.error(
+                    "{}: Defining 'cls.{}' has no effect anymore. Use "
+                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector "
+                    "instead."
                     .format(name, key)
                 )
+                cls.disabled = True
 
         for key in (
             'version_args', 'version_re', 'version_requirement',

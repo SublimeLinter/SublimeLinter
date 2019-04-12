@@ -45,7 +45,7 @@ _ACCEPTABLE_REASONS_MAP = {
     "save": ("on_user_request", "on_save"),
     "load_save": ("on_user_request", "on_save", "on_load"),
     "background": ("on_user_request", "on_save", "on_load", None),
-}
+}  # type: Dict[str, Tuple[Union[str, None], ...]]
 
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
@@ -280,7 +280,8 @@ def get_raw_linter_settings(linter, view):
         project_settings = {}
 
     view_settings = ViewSettings(
-        view, 'SublimeLinter.linters.{}.'.format(linter.name))
+        view, 'SublimeLinter.linters.{}.'.format(linter.name)
+    )  # type: Mapping[str, Any]  # type: ignore
 
     return ChainMap({}, view_settings, project_settings, user_settings, defaults)
 
@@ -936,6 +937,7 @@ class Linter(metaclass=LinterMeta):
         return False
 
     def should_lint(self, reason=None):
+        # type: (Optional[str]) -> bool
         """
         should_lint takes reason then decides whether the linter should start or not.
 

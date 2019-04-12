@@ -1197,8 +1197,8 @@ class Linter(metaclass=LinterMeta):
             # use the filename of the current view
             filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
 
-        col = m.col
-        line = m.line
+        line = m.line  # type: int
+        col = m.col    # type: Optional[int]
 
         # Ensure `line` is within bounds
         line = max(min(line, vv.max_lines()), 0)
@@ -1290,7 +1290,7 @@ class Linter(metaclass=LinterMeta):
         return col
 
     def reposition_match(self, line, col, m, vv):
-        # type: (int, int, LintMatch, VirtualView) -> Tuple[int, int, int]
+        # type: (int, Optional[int], LintMatch, VirtualView) -> Tuple[int, int, int]
         """Chance to reposition the error.
 
         Must return a tuple (line, start, end)
@@ -1362,6 +1362,9 @@ class Linter(metaclass=LinterMeta):
 
     def run(self, cmd, code):
         # type: (Union[List[str], None], str) -> Union[util.popen_output, str]
+        # Note the type here is the interface we accept. But we only actually
+        # implement `(List[str], str) -> util.popen_output` here. Subclassers
+        # might do differently.
         """
         Execute the linter's executable or built in code and return its output.
 
@@ -1385,7 +1388,7 @@ class Linter(metaclass=LinterMeta):
     # popen wrappers
 
     def communicate(self, cmd, code=None):
-        # type: (List[str], Optional[str]) -> Union[util.popen_output, str]
+        # type: (List[str], Optional[str]) -> util.popen_output
         """Run an external executable using stdin to pass code and return its output."""
         ctx = get_view_context(self.view)
         ctx['file_on_disk'] = self.filename
@@ -1395,7 +1398,7 @@ class Linter(metaclass=LinterMeta):
         return self._communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=None):
-        # type: (List[str], str, Optional[str]) -> Union[util.popen_output, str]
+        # type: (List[str], str, Optional[str]) -> util.popen_output
         """Create temporary file with code and lint it."""
         if suffix is None:
             suffix = self.get_tempfile_suffix()
@@ -1460,7 +1463,7 @@ class Linter(metaclass=LinterMeta):
         return suffix
 
     def _communicate(self, cmd, code=None):
-        # type: (List[str], Optional[str]) -> Union[util.popen_output, str]
+        # type: (List[str], Optional[str]) -> util.popen_output
         """Run command and return result."""
         settings = self.get_view_settings()
         cwd = self.get_working_dir(settings)
@@ -1489,7 +1492,7 @@ class Linter(metaclass=LinterMeta):
                 cmd, uses_stdin, cwd, view, augmented_env))
 
             self.notify_failure()
-            return ''
+            raise PermanentError("popen constructor failed")
 
         if logger.isEnabledFor(logging.INFO):
             logger.info(make_nice_log_message(
@@ -1509,7 +1512,7 @@ class Linter(metaclass=LinterMeta):
                 else:
                     logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
-                    return ''
+                    raise PermanentError("non-friendly broken pipe")
 
             except OSError as err:
                 # There are rare reports of '[Errno 9] Bad file descriptor'.

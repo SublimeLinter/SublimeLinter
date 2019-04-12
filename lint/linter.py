@@ -446,7 +446,7 @@ class LinterMeta(type):
                     setattr(cls, regex, re.compile(attr, cls.re_flags))
                 except re.error as err:
                     logger.error(
-                        '{} disabled, error compiling {}: {}'
+                        '{} disabled, error compiling {}: {}.'
                         .format(name, regex, str(err))
                     )
                     cls.disabled = True

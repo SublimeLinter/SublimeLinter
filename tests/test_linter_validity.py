@@ -56,6 +56,9 @@ class TestLinterValidity(DeferrableTestCase):
         linter = def_linter()
 
         self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains("'cmd' must be specified.")
+        )
 
     def test_no_defaults_fails(self):
         def def_linter():
@@ -68,6 +71,9 @@ class TestLinterValidity(DeferrableTestCase):
         linter = def_linter()
 
         self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains("'cls.defaults' is mandatory")
+        )
 
     @p.expand([
         (None, ),
@@ -76,7 +82,6 @@ class TestLinterValidity(DeferrableTestCase):
         ('foo',),
         ([], ),
         (lambda x: x,),
-        ({},),
     ])
     def test_wrong_defaults_fails(self, VAL):
         def def_linter():
@@ -90,6 +95,25 @@ class TestLinterValidity(DeferrableTestCase):
         linter = def_linter()
 
         self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains("'cls.defaults' is mandatory and MUST be a dict.")
+        )
+
+    def test_selector_is_mandatory(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {}
+
+            return Fake
+
+        when(linter_module.logger).error(...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains("'selector' is mandatory")
+        )
 
 class TestRegexCompiling(DeferrableTestCase):
     def setUp(self):
@@ -156,6 +180,9 @@ class TestRegexCompiling(DeferrableTestCase):
         linter = def_linter()
 
         self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains("error compiling regex: unbalanced parenthesis.")
+        )
 
     def test_valid_and_registered_without_defining_regex(self):
         def def_linter():

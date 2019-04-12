@@ -1014,7 +1014,7 @@ class Linter(metaclass=LinterMeta):
         return [
             error
             for error in errors
-            if error is not None and not any(
+            if not any(
                 pattern.search(': '.join([error['error_type'], error['code'], error['msg']]))
                 for pattern in filters
             )
@@ -1059,7 +1059,9 @@ class Linter(metaclass=LinterMeta):
                 m = LintMatch(*m)
 
             if m.message and m.line is not None:
-                yield self.process_match(m, virtual_view)
+                error = self.process_match(m, virtual_view)
+                if error:
+                    yield error
 
     def find_errors(self, output):
         # type: (str) -> Iterable[LintMatch]

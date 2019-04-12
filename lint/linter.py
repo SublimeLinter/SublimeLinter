@@ -15,7 +15,10 @@ from .const import WARNING, ERROR
 
 MYPY = False
 if MYPY:
-    from typing import Any, Callable, Dict, List, Iterable, Match, Optional, Tuple, Union
+    from typing import (
+        Any, Callable, Dict, List, IO, Iterator, Match, Optional,
+        Pattern, Tuple, Union
+    )
     from .persist import LintError
 
 
@@ -541,7 +544,7 @@ class Linter(metaclass=LinterMeta):
 
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
-    cmd = ''
+    cmd = ''  # type: Union[None, str, List[str], Tuple[str]]
 
     # DEPRECATED: Will not be evaluated. They stay here so that old plugins
     # do not throw an AttributeError, but they will always be None
@@ -549,7 +552,7 @@ class Linter(metaclass=LinterMeta):
     executable_path = None
 
     # A regex pattern used to extract information from the executable's output.
-    regex = None
+    regex = None  # type: Union[None, str, Pattern]
 
     # Set to True if the linter outputs multiline error messages. When True,
     # regex will be created with the re.MULTILINE flag. Do NOT rely on setting
@@ -582,7 +585,7 @@ class Linter(metaclass=LinterMeta):
     # to a temp directory (e.g. javac). In such cases, set this attribute to '-',
     # which marks the linter as "file-only". That will disable the linter for
     # any views that are dirty.
-    tempfile_suffix = None
+    tempfile_suffix = None  # type: Union[None, str, Dict[str, str]]
 
     # Linters may output to both stdout and stderr. By default stdout and sterr are captured.
     # If a linter will never output anything useful on a stream (including when
@@ -619,11 +622,11 @@ class Linter(metaclass=LinterMeta):
     #
     # After the format is parsed, the prefix and suffix are removed and the
     # setting is replaced with <name>.
-    defaults = None
+    defaults = {}  # type: Dict[str, Any]
 
     # `disabled` has three states (None, True, False). It takes precedence
     # over all other user or project settings.
-    disabled = None
+    disabled = None  # type: Union[None, bool]
 
     def __init__(self, view, settings):
         # type: (sublime.View, LinterSettings) -> None
@@ -639,7 +642,7 @@ class Linter(metaclass=LinterMeta):
         if self.defaults is not None:
             self.defaults = self.defaults.copy()
 
-        self.temp_filename = None
+        self.temp_filename = None  # type: Optional[str]
 
     @property
     def filename(self):
@@ -691,6 +694,7 @@ class Linter(metaclass=LinterMeta):
         return util.which(cmd)
 
     def get_cmd(self):
+        # type: () -> Optional[List[str]]
         """
         Calculate and return a tuple/list of the command line to be executed.
 
@@ -700,8 +704,9 @@ class Linter(metaclass=LinterMeta):
 
         Otherwise the result of build_cmd is returned.
         """
-        cmd = self.cmd
+        assert self.cmd is not None
 
+        cmd = self.cmd
         if callable(cmd):
             cmd = cmd()
 
@@ -723,6 +728,7 @@ class Linter(metaclass=LinterMeta):
         return self.build_cmd(cmd)
 
     def build_cmd(self, cmd):
+        # type: (List[str]) -> Optional[List[str]]
         """
         Return a tuple with the command line to execute.
 
@@ -794,6 +800,7 @@ class Linter(metaclass=LinterMeta):
         return False, None
 
     def insert_args(self, cmd):
+        # type: (List[str]) -> List[str]
         """Insert user arguments into cmd and return the result."""
         settings = self.get_view_settings()
         args = self.build_args(settings)
@@ -810,6 +817,7 @@ class Linter(metaclass=LinterMeta):
         return cmd
 
     def get_user_args(self, settings):
+        # type: (LinterSettings) -> List[str]
         """Return any args the user specifies in settings as a list."""
         args = settings.get('args', [])
 
@@ -821,6 +829,7 @@ class Linter(metaclass=LinterMeta):
         return args
 
     def build_args(self, settings):
+        # type: (LinterSettings) -> List[str]
         """Return a list of args to add to cls.cmd.
 
         This basically implements our DSL around arguments on the command
@@ -891,11 +900,13 @@ class Linter(metaclass=LinterMeta):
         )
 
     def get_environment(self, settings):
+        # type: (LinterSettings) -> ChainMap
         """Return runtime environment for this lint."""
         return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
     @classmethod
     def can_lint_view(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> bool
         if cls.disabled is True:
             return False
 
@@ -926,6 +937,7 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def matches_selector(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> bool
         selector = settings.get('selector', None)
         if selector is not None:
             return bool(
@@ -993,7 +1005,7 @@ class Linter(metaclass=LinterMeta):
         return self.filter_errors(self.parse_output(output, virtual_view))
 
     def filter_errors(self, errors):
-        # type: (Iterable[LintError]) -> List[LintError]
+        # type: (Iterator[LintError]) -> List[LintError]
         filter_patterns = self.get_view_settings().get('filter_errors') or []
         if isinstance(filter_patterns, str):
             filter_patterns = [filter_patterns]
@@ -1024,7 +1036,7 @@ class Linter(metaclass=LinterMeta):
         ]
 
     def parse_output(self, proc, virtual_view):
-        # type: (Union[str, util.popen_output], VirtualView) -> Iterable[LintError]
+        # type: (Union[str, util.popen_output], VirtualView) -> Iterator[LintError]
         # Note: We support type str for `proc`. E.g. the user might have
         # implemented `run`.
         if isinstance(proc, util.popen_output):
@@ -1046,7 +1058,7 @@ class Linter(metaclass=LinterMeta):
         return self.parse_output_via_regex(output, virtual_view)
 
     def parse_output_via_regex(self, output, virtual_view):
-        # type: (str, VirtualView) -> Iterable[LintError]
+        # type: (str, VirtualView) -> Iterator[LintError]
         if not output:
             logger.info('{}: no output'.format(self.name))
             return
@@ -1069,7 +1081,7 @@ class Linter(metaclass=LinterMeta):
                     yield error
 
     def find_errors(self, output):
-        # type: (str) -> Iterable[LintMatch]
+        # type: (str) -> Iterator[LintMatch]
         """
         Match the linter's regex against the linter output with this generator.
 
@@ -1085,6 +1097,10 @@ class Linter(metaclass=LinterMeta):
                 .format(self.name)
             )
             raise PermanentError("regex not defined")
+
+        if MYPY:
+            assert isinstance(self.regex, Pattern)
+            match = None  # type: Optional[Match]
 
         if self.multiline:
             matches = list(self.regex.finditer(output))
@@ -1104,7 +1120,8 @@ class Linter(metaclass=LinterMeta):
                     logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
-    def split_match(self, match):  # type: (Match) -> LintMatch
+    def split_match(self, match):
+        # type: (Match) -> LintMatch
         """Convert the regex match to a `LintMatch`
 
         Basically, a `LintMatch` is the dict of the named capturing groups
@@ -1228,6 +1245,7 @@ class Linter(metaclass=LinterMeta):
             return self.default_type
 
     def normalize_filename(self, filename):
+        # type: (str) -> Optional[str]
         """Return an absolute filename if it is not the main file."""
         if filename and not self.is_stdin_filename(filename):
             # ensure that the filename is absolute by basing relative paths on
@@ -1252,9 +1270,11 @@ class Linter(metaclass=LinterMeta):
 
     @staticmethod
     def is_stdin_filename(filename):
+        # type: (str) -> bool
         return filename in ["stdin", "<stdin>", "-"]
 
     def maybe_fix_tab_width(self, line, col, vv):
+        # type: (int, int, VirtualView) -> int
         # Adjust column numbers to match the linter's tabs if necessary
         if self.tab_width > 1:
             code_line = vv.select_line(line)
@@ -1270,6 +1290,7 @@ class Linter(metaclass=LinterMeta):
         return col
 
     def reposition_match(self, line, col, m, vv):
+        # type: (int, int, LintMatch, VirtualView) -> Tuple[int, int, int]
         """Chance to reposition the error.
 
         Must return a tuple (line, start, end)
@@ -1327,6 +1348,7 @@ class Linter(metaclass=LinterMeta):
 
     @staticmethod
     def strip_quotes(text):
+        # type: (str) -> str
         """Return text stripped of enclosing single/double quotes."""
         if len(text) < 2:
             return text
@@ -1339,6 +1361,7 @@ class Linter(metaclass=LinterMeta):
         return text
 
     def run(self, cmd, code):
+        # type: (Union[List[str], None], str) -> Union[util.popen_output, str]
         """
         Execute the linter's executable or built in code and return its output.
 
@@ -1349,6 +1372,8 @@ class Linter(metaclass=LinterMeta):
         method, it will need to override this method.
 
         """
+        assert cmd is not None
+
         if self.tempfile_suffix:
             if self.tempfile_suffix != '-':
                 return self.tmpfile(cmd, code)
@@ -1360,6 +1385,7 @@ class Linter(metaclass=LinterMeta):
     # popen wrappers
 
     def communicate(self, cmd, code=None):
+        # type: (List[str], Optional[str]) -> Union[util.popen_output, str]
         """Run an external executable using stdin to pass code and return its output."""
         ctx = get_view_context(self.view)
         ctx['file_on_disk'] = self.filename
@@ -1369,6 +1395,7 @@ class Linter(metaclass=LinterMeta):
         return self._communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=None):
+        # type: (List[str], str, Optional[str]) -> Union[util.popen_output, str]
         """Create temporary file with code and lint it."""
         if suffix is None:
             suffix = self.get_tempfile_suffix()
@@ -1386,6 +1413,7 @@ class Linter(metaclass=LinterMeta):
             return self._communicate(cmd)
 
     def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
+        # type: (List[str], Dict[str, str], str, bool) -> List[str]
         # Note: Both keyword arguments are deprecated.
         original_cmd = cmd
         cmd = substitute_variables(context, cmd)
@@ -1404,10 +1432,13 @@ class Linter(metaclass=LinterMeta):
         return cmd
 
     def get_tempfile_suffix(self):
+        # type: () -> str
         """Return a good filename suffix."""
-        if self.view.file_name():
-            name = self.view.file_name()
-            _, suffix = os.path.splitext(name)
+        assert self.tempfile_suffix
+
+        filename = self.filename
+        if filename:
+            _, suffix = os.path.splitext(filename)
 
         elif isinstance(self.tempfile_suffix, dict):
             syntax = util.get_syntax(self.view)
@@ -1429,6 +1460,7 @@ class Linter(metaclass=LinterMeta):
         return suffix
 
     def _communicate(self, cmd, code=None):
+        # type: (List[str], Optional[str]) -> Union[util.popen_output, str]
         """Run command and return result."""
         settings = self.get_view_settings()
         cwd = self.get_working_dir(settings)
@@ -1437,9 +1469,7 @@ class Linter(metaclass=LinterMeta):
         output_stream = self.error_stream
         view = self.view
 
-        if code is not None:
-            code = code.encode('utf8')
-
+        code_b = code.encode('utf8') if code is not None else None
         uses_stdin = code is not None
         stdin = subprocess.PIPE if uses_stdin else None
         stdout = subprocess.PIPE if output_stream & util.STREAM_STDOUT else None
@@ -1468,7 +1498,7 @@ class Linter(metaclass=LinterMeta):
         bid = view.buffer_id()
         with store_proc_while_running(bid, proc):
             try:
-                out = proc.communicate(code)
+                out = proc.communicate(code_b)
 
             except BrokenPipeError as err:
                 friendly_terminated = getattr(proc, 'friendly_terminated', False)
@@ -1502,6 +1532,7 @@ class Linter(metaclass=LinterMeta):
 
 @contextmanager
 def make_temp_file(suffix, code):
+    # type: (str, str) -> Iterator[IO]
     file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
         file.write(bytes(code, 'UTF-8'))
@@ -1514,6 +1545,7 @@ def make_temp_file(suffix, code):
 
 @contextmanager
 def store_proc_while_running(bid, proc):
+    # type: (sublime.BufferId, subprocess.Popen) -> Iterator[subprocess.Popen]
     with persist.active_procs_lock:
         persist.active_procs[bid].append(proc)
 
@@ -1547,6 +1579,7 @@ ENV_TEMPLATE = """
 
 def make_nice_log_message(headline, cmd, is_stdin,
                           cwd, view, env=None):
+    # type: (str, List[str], bool, Optional[str], sublime.View, Optional[Dict[str, str]]) -> str
     import pprint
     import textwrap
 

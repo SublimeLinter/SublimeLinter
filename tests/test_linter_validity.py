@@ -11,10 +11,7 @@ from SublimeLinter.tests.mockito import (
     when,
     verify,
     contains,
-    verifyNoUnwantedInteractions,
-    expect,
     unstub,
-    mock
 )
 
 
@@ -35,7 +32,6 @@ class TestLinterValidity(DeferrableTestCase):
                 locals()[KEY] = 'foo'
 
             return Fake
-
 
         when(linter_module.logger).error(...).thenReturn(None)
         linter = def_linter()
@@ -114,6 +110,7 @@ class TestLinterValidity(DeferrableTestCase):
         verify(linter_module.logger).error(
             contains("'selector' is mandatory")
         )
+
 
 class TestRegexCompiling(DeferrableTestCase):
     def setUp(self):

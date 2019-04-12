@@ -156,3 +156,17 @@ class TestRegexCompiling(DeferrableTestCase):
         linter = def_linter()
 
         self.assertTrue(linter.disabled)
+
+    def test_valid_and_registered_without_defining_regex(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+            return Fake
+
+        when(linter_module).register_linter('fake', ...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertFalse(linter.disabled)
+        verify(linter_module).register_linter('fake', linter)

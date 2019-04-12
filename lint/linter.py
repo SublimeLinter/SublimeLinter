@@ -715,16 +715,6 @@ class Linter(metaclass=LinterMeta):
         else:
             cmd = list(cmd)
 
-        # For backwards compatibility: SL3 allowed a '@python' suffix which,
-        # when set, triggered special handling. SL4 doesn't need this marker,
-        # bc all the special handling is just done in the subclass.
-        which = cmd[0]
-        if '@python' in which:
-            logger.warning(
-                "The '@python' in '{}' has been deprecated and no effect "
-                "anymore. You can safely remove it.".format(which))
-            cmd[0] = which[:which.find('@python')]
-
         return self.build_cmd(cmd)
 
     def build_cmd(self, cmd):

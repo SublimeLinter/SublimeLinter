@@ -122,6 +122,15 @@ class TestRegexCompiling(DeferrableTestCase):
     def tearDown(self):
         unstub()
 
+    def create_view(self, window):
+        view = window.new_file()
+        self.addCleanup(self.close_view, view)
+        return view
+
+    def close_view(self, view):
+        view.set_scratch(True)
+        view.close()
+
     def test_not_multiline_by_default(self):
         def def_linter():
             class Fake(Linter):
@@ -197,3 +206,34 @@ class TestRegexCompiling(DeferrableTestCase):
 
         self.assertFalse(linter.disabled)
         verify(linter_module).register_linter('fake', linter)
+
+    def test_show_nice_error_message_for_missing_regex(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+            return Fake
+
+        INPUT = """\
+        foo = bar
+        """
+        OUTPUT = """\
+        errrrors
+        """
+        when(linter_module.logger).error(...).thenReturn(None)
+
+        linter_class = def_linter()
+        view = self.create_view(sublime.active_window())
+        linter = linter_class(view, {})
+        when(util).which('foo').thenReturn('foo.exe')
+        when(linter)._communicate(...).thenReturn(OUTPUT)
+
+        try:
+            linter.lint(INPUT, lambda: False)
+        except Exception:
+            pass
+
+        verify(linter_module.logger).error(
+            contains("'self.regex' is not defined.")
+        )

@@ -10,6 +10,10 @@ import sublime
 import subprocess
 
 
+if False:
+    from typing import Optional
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -263,6 +267,9 @@ class popen_output(str):
     Small compatibility layer: It is both the decoded output
     as str and partially the Popen object.
     """
+    stdout = ''  # type: Optional[str]
+    stderr = ''  # type: Optional[str]
+    combined_output = ''
 
     def __new__(cls, proc, stdout, stderr):
         if stdout is not None:
@@ -272,7 +279,7 @@ class popen_output(str):
 
         combined_output = ''.join(filter(None, [stdout, stderr]))
 
-        rv = super().__new__(cls, combined_output)
+        rv = super().__new__(cls, combined_output)  # type: ignore
         rv.combined_output = combined_output
         rv.stdout = stdout
         rv.stderr = stderr

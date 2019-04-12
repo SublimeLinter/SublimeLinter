@@ -975,14 +975,14 @@ class Linter(metaclass=LinterMeta):
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
         if self.cmd is None:
-            output = self.run(None, code)     # type: str
+            output = self.run(None, code)  # type: Union[str, util.popen_output]
         else:
             cmd = self.get_cmd()
             if not cmd:  # We couldn't find an executable
                 self.notify_failure()
                 return []
 
-            output = self.run(cmd, code)  # type: util.popen_output
+            output = self.run(cmd, code)
 
         if view_has_changed():
             raise TransientError('View not consistent.')
@@ -991,6 +991,7 @@ class Linter(metaclass=LinterMeta):
         return self.filter_errors(self.parse_output(output, virtual_view))
 
     def filter_errors(self, errors):
+        # type: (Iterable[LintError]) -> List[LintError]
         filter_patterns = self.get_view_settings().get('filter_errors') or []
         if isinstance(filter_patterns, str):
             filter_patterns = [filter_patterns]
@@ -1021,27 +1022,29 @@ class Linter(metaclass=LinterMeta):
         ]
 
     def parse_output(self, proc, virtual_view):
+        # type: (Union[str, util.popen_output], VirtualView) -> Iterable[LintError]
         # Note: We support type str for `proc`. E.g. the user might have
         # implemented `run`.
-        try:
-            output, stderr = proc.stdout, proc.stderr
-        except AttributeError:
-            output = proc
-        else:
-            # Try to handle `on_stderr`, but only for STREAM_BOTH linters
+        if isinstance(proc, util.popen_output):
+            # Split output, but only for STREAM_BOTH linters, and if
+            # `on_stderr` is defined.
             if (
-                output is not None and
-                stderr is not None and
+                proc.stdout is not None and
+                proc.stderr is not None and
                 callable(self.on_stderr)
             ):
+                output, stderr = proc.stdout, proc.stderr
                 if stderr.strip():
                     self.on_stderr(stderr)
             else:
                 output = proc.combined_output
+        else:
+            output = proc
 
         return self.parse_output_via_regex(output, virtual_view)
 
     def parse_output_via_regex(self, output, virtual_view):
+        # type: (str, VirtualView) -> Iterable[LintError]
         if not output:
             logger.info('{}: no output'.format(self.name))
             return
@@ -1150,6 +1153,7 @@ class Linter(metaclass=LinterMeta):
         return error
 
     def process_match(self, m, vv):
+        # type: (LintMatch, VirtualView) -> Optional[LintError]
         error_type = m.error_type or self.get_error_type(m.error, m.warning)
         code = m.code or m.error or m.warning or ''
 

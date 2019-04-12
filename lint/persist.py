@@ -27,7 +27,7 @@ if False:
         'uid': str,
         'priority': int,
         'panel_line': Tuple[int, int]
-    })
+    }, total=False)
 
 
 api_ready = False

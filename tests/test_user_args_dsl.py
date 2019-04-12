@@ -31,7 +31,7 @@ class _BaseTestCase(DeferrableTestCase):
         when(util).which('fake_linter_1').thenReturn('fake_linter_1')
 
         # it's just faster if we mock this out
-        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+        when(linter_module).register_linter(...).thenReturn(None)
 
     @classmethod
     def tearDownClass(cls):

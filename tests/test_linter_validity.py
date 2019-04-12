@@ -20,7 +20,7 @@ from SublimeLinter.tests.mockito import (
 
 class TestLinterValidity(DeferrableTestCase):
     def setUp(self):
-        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+        when(linter_module).register_linter(...).thenReturn(None)
 
     def tearDown(self):
         unstub()
@@ -93,7 +93,7 @@ class TestLinterValidity(DeferrableTestCase):
 
 class TestRegexCompiling(DeferrableTestCase):
     def setUp(self):
-        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+        when(linter_module).register_linter(...).thenReturn(None)
 
     def tearDown(self):
         unstub()

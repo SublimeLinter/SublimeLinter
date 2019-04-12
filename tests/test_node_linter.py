@@ -40,7 +40,7 @@ class TestNodeLinters(DeferrableTestCase):
         s.set("close_windows_when_empty", False)
 
         # it's just faster if we mock this out
-        when(linter_module.LinterMeta).register_linter(...).thenReturn(None)
+        when(linter_module).register_linter(...).thenReturn(None)
 
     @classmethod
     def tearDownClass(cls):

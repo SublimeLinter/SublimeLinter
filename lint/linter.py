@@ -485,16 +485,7 @@ class LinterMeta(type):
         if cls.disabled:
             return
 
-        cls.register_linter(name)
-
-    def register_linter(cls, name):
-        """Add a linter class to our mapping of class names <-> linter classes."""
-        persist.linter_classes[name] = cls
-
-        # The sublime plugin API is not available until plugin_loaded is executed
-        if persist.api_ready:
-            sublime.run_command('sublime_linter_config_changed')
-            logger.info('{} linter reloaded'.format(name))
+        register_linter(name, cls)
 
     def map_args(cls, defaults):
         """
@@ -520,6 +511,18 @@ class LinterMeta(type):
             cls.defaults[name] = value
 
         setattr(cls, 'args_map', args_map)
+
+
+def register_linter(name, cls):
+    """Add a linter class to our mapping of class names <-> linter classes."""
+    persist.linter_classes[name] = cls
+
+    # Trigger a re-lint if SublimeLinter is already up and running. On Sublime
+    # start, this is generally not necessary, because SL will trigger various
+    # synthetic `on_activated_async` events on load.
+    if persist.api_ready:
+        sublime.run_command('sublime_linter_config_changed')
+        logger.info('{} linter reloaded'.format(name))
 
 
 class Linter(metaclass=LinterMeta):

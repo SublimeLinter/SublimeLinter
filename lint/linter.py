@@ -487,7 +487,7 @@ class LinterMeta(type):
             else:
                 logger.error(
                     "{} disabled. 'selector' is mandatory in 'cls.defaults'.\n See "
-                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector  "
+                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector"
                     .format(name))
             cls.disabled = True
         # END VALIDATION

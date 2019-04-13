@@ -289,12 +289,13 @@ def lint(view, view_has_changed, lock, reason=None):
     if not linters:
         return
 
+    window = view.window()
+    bid = view.buffer_id()
+
     # Very, very unlikely that `view_has_changed` is already True at this
     # point, but it also implements the kill_switch, so we ask here
     if view_has_changed():  # abort early
         return
-
-    bid = view.buffer_id()
 
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
@@ -304,7 +305,7 @@ def lint(view, view_has_changed, lock, reason=None):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(group_by_filename_and_update, bid, view_has_changed)
+        sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
         backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -328,13 +329,11 @@ affected_filenames_per_bid = defaultdict(
 )  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
 
 
-def group_by_filename_and_update(bid, view_has_changed, linter, errors):
-    # type: (Bid, ViewChangedFn, Linter, List[LintError]) -> None
+def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
+    # type: (sublime.Window, Bid, ViewChangedFn, Linter, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
-
-    window = linter.view.window()
 
     # group all errors by filenames to update them separately
     grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]

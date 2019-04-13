@@ -278,14 +278,15 @@ def lint(view, view_has_changed, lock, reason=None):
     This method is called asynchronously by queue.Daemon when a lint
     request is pulled off the queue.
     """
-    # We call `get_linters_for_view` first and unconditionally for its
-    # side-effect. Yeah, it's a *getter* LOL.
-    with lock:  # We're already debounced, so races are actually unlikely.
-        linters = get_linters_for_view(view)
+    linters = get_linters_for_view(view)
+
+    with lock:
+        _assign_linters_to_view(view, linters)
 
     linters = [
         linter for linter in linters
-        if linter.should_lint(reason)]
+        if linter.should_lint(reason)
+    ]
     if not linters:
         return
 
@@ -425,7 +426,6 @@ def get_linters_for_view(view):
     # type: (sublime.View) -> List[Linter]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
-    current_linters = persist.view_linters.get(bid, [])
 
     filename = view.file_name()
     # Unassign all linters from orphaned views
@@ -444,19 +444,27 @@ def get_linters_for_view(view):
             if linter_class.can_lint_view(view, settings):
                 wanted_linters.append(linter_class(view, settings))
 
+    return wanted_linters
+
+
+def _assign_linters_to_view(view, next_linters):
+    # type: (sublime.View, List[Linter]) -> None
+    bid = view.buffer_id()
+    window = view.window()
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
     # pass a valid `window` around bc we do not want to update `view_linters`
     # for detached views as well bc `on_pre_close` already has been called
     # at this time.
-    window = view.window()
-    if window is None:
-        return []
+    if not window:
+        return
 
+    current_linters = persist.view_linters.get(bid, [])
     current_linter_names = {linter.name for linter in current_linters}
-    next_linter_names = {linter.name for linter in wanted_linters}
-    persist.view_linters[bid] = wanted_linters
+    next_linter_names = {linter.name for linter in next_linters}
+
+    persist.view_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
         'linter_names': list(next_linter_names)
@@ -464,8 +472,6 @@ def get_linters_for_view(view):
 
     for linter in (current_linter_names - next_linter_names):
         update_buffer_errors(bid, linter, [])
-
-    return wanted_linters
 
 
 def make_view_has_changed_fn(view):

@@ -358,7 +358,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
-            update_buffer_errors(bid, view_has_changed, linter.name, errors)
+            update_buffer_errors(bid, linter.name, errors)
         else:
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
@@ -369,7 +369,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
                 if this_bid != bid and view.is_dirty() and errors:
                     continue
 
-                update_buffer_errors(this_bid, view_has_changed, linter.name, errors)
+                update_buffer_errors(this_bid, linter.name, errors)
 
                 if this_bid == bid:
                     did_update_main_view = True
@@ -378,17 +378,14 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
     if not did_update_main_view:
-        update_buffer_errors(bid, view_has_changed, linter.name, [])
+        update_buffer_errors(bid, linter.name, [])
 
     affected_filenames_per_bid[bid][linter.name] = current_filenames
 
 
-def update_buffer_errors(bid, view_has_changed, linter, errors):
-    # type: (Bid, ViewChangedFn, LinterName, List[LintError]) -> None
+def update_buffer_errors(bid, linter, errors):
+    # type: (Bid, LinterName, List[LintError]) -> None
     """Persist lint error changes and broadcast."""
-    if view_has_changed():  # abort early
-        return
-
     update_errors_store(bid, linter, errors)
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
@@ -466,9 +463,8 @@ def get_linters_for_view(view):
     })
 
     for linter in current_linters:
-        unchanged_buffer = lambda: False  # noqa: E731
         if linter.name not in next_linter_names:
-            update_buffer_errors(bid, unchanged_buffer, linter.name, [])
+            update_buffer_errors(bid, linter.name, [])
 
     return wanted_linters
 

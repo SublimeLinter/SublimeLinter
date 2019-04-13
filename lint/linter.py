@@ -479,10 +479,16 @@ class LinterMeta(type):
             )
             cls.disabled = True
         elif 'selector' not in cls.defaults:
-            logger.error(
-                "{} disabled. 'selector' is mandatory in 'cls.defaults'.\n See "
-                "http://www.sublimelinter.com/en/stable/linter_settings.html#selector  "
-                .format(name))
+            if 'defaults' not in attrs:
+                logger.error(
+                    "{} disabled. 'cls.defaults' is mandatory and MUST be a dict."
+                    .format(name)
+                )
+            else:
+                logger.error(
+                    "{} disabled. 'selector' is mandatory in 'cls.defaults'.\n See "
+                    "http://www.sublimelinter.com/en/stable/linter_settings.html#selector  "
+                    .format(name))
             cls.disabled = True
         # END VALIDATION
 

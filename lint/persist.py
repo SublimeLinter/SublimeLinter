@@ -8,7 +8,7 @@ from .settings import Settings
 
 
 if False:
-    from typing import DefaultDict, Dict, List, Tuple, Type, Optional
+    from typing import DefaultDict, Dict, List, Tuple, Type
     from mypy_extensions import TypedDict
     import sublime
     import subprocess
@@ -21,7 +21,7 @@ if False:
         'region': sublime.Region,
         'linter': str,
         'error_type': str,
-        'code': Optional[str],
+        'code': str,
         'msg': str,
         'filename': str,
         'uid': str,

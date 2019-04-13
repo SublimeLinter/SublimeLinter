@@ -275,8 +275,7 @@ def lint(view, view_has_changed, lock, reason=None):
     # type: (sublime.View, ViewChangedFn, threading.Lock, Optional[str]) -> None
     """Lint the view with the given id.
 
-    This method is called asynchronously by queue.Daemon when a lint
-    request is pulled off the queue.
+    This function MUST run on a thread because it blocks!
     """
     linters = get_linters_for_view(view)
 

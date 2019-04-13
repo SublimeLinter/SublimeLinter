@@ -454,16 +454,16 @@ def get_linters_for_view(view):
     if window is None:
         return []
 
-    next_linter_names = [linter.name for linter in wanted_linters]
+    current_linter_names = {linter.name for linter in current_linters}
+    next_linter_names = {linter.name for linter in wanted_linters}
     persist.view_linters[bid] = wanted_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': next_linter_names
+        'linter_names': list(next_linter_names)
     })
 
-    for linter in current_linters:
-        if linter.name not in next_linter_names:
-            update_buffer_errors(bid, linter.name, [])
+    for linter in (current_linter_names - next_linter_names):
+        update_buffer_errors(bid, linter, [])
 
     return wanted_linters
 

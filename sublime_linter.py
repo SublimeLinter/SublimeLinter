@@ -509,6 +509,7 @@ MAX_AUTOMATIC_DELAY = 2.0
 
 
 def get_delay():
+    # type: () -> float
     """Return the delay between a lint request and when it will be processed."""
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]

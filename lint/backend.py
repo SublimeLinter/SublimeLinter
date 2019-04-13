@@ -21,6 +21,7 @@ if False:
     T = TypeVar('T')
     LintResult = List[LintError]
     Task = Callable[[], T]
+    LinterName = str
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def lint_view(
     linters,           # type: List[Linter]
     view,              # type: sublime.View
     view_has_changed,  # type: Callable[[], bool]
-    next               # type: Callable[[Linter, LintResult], None]
+    next               # type: Callable[[LinterName, LintResult], None]
 ):
     # type: (...) -> None
     """Lint the given view.
@@ -50,7 +51,7 @@ def lint_view(
     lint_tasks = get_lint_tasks(linters, view, view_has_changed)
 
     run_concurrently([
-        partial(run_tasks, tasks, next=partial(next, linter))
+        partial(run_tasks, tasks, next=partial(next, linter.name))
         for linter, tasks in lint_tasks
     ], executor=orchestrator)
 

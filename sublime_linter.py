@@ -330,7 +330,7 @@ affected_filenames_per_bid = defaultdict(
 
 
 def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
-    # type: (sublime.Window, Bid, ViewChangedFn, Linter, List[LintError]) -> None
+    # type: (sublime.Window, Bid, ViewChangedFn, LinterName, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
@@ -348,7 +348,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
     # reported.
 
     current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_bid[bid][linter.name]
+    previous_filenames = affected_filenames_per_bid[bid][linter]
     clean_files = previous_filenames - current_filenames
 
     for filename in clean_files:
@@ -357,7 +357,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
     did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
-            update_buffer_errors(bid, linter.name, errors)
+            update_buffer_errors(bid, linter, errors)
         else:
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
@@ -368,7 +368,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
                 if this_bid != bid and view.is_dirty() and errors:
                     continue
 
-                update_buffer_errors(this_bid, linter.name, errors)
+                update_buffer_errors(this_bid, linter, errors)
 
                 if this_bid == bid:
                     did_update_main_view = True
@@ -377,9 +377,9 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
     if not did_update_main_view:
-        update_buffer_errors(bid, linter.name, [])
+        update_buffer_errors(bid, linter, [])
 
-    affected_filenames_per_bid[bid][linter.name] = current_filenames
+    affected_filenames_per_bid[bid][linter] = current_filenames
 
 
 def update_buffer_errors(bid, linter, errors):

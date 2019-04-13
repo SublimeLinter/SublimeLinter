@@ -652,6 +652,7 @@ class Linter(metaclass=LinterMeta):
 
     @property
     def filename(self):
+        # type: () -> str
         """Return the view's file path or '' if unsaved."""
         return self.view.file_name() or ''
 
@@ -1241,28 +1242,25 @@ class Linter(metaclass=LinterMeta):
             return self.default_type
 
     def normalize_filename(self, filename):
-        # type: (str) -> Optional[str]
+        # type: (Optional[str]) -> Optional[str]
         """Return an absolute filename if it is not the main file."""
-        if filename and not self.is_stdin_filename(filename):
-            # ensure that the filename is absolute by basing relative paths on
-            # the working directory
+        if not filename:
+            return None
+
+        if self.is_stdin_filename(filename):
+            return None
+
+        if not os.path.isabs(filename):
             cwd = self.get_working_dir(self.settings) or os.path.realpath('.')
             filename = os.path.normpath(os.path.join(cwd, filename))
 
-            # only return a filename if it is a different file
-            normed_filename = os.path.normcase(filename)
-            if normed_filename == os.path.normcase(self.filename):
+        # Some linters work on temp files but actually output 'real', user
+        # filenames, so we need to check both.
+        for processed_file in filter(None, (self.temp_filename, self.filename)):
+            if os.path.normcase(filename) == os.path.normcase(processed_file):
                 return None
 
-            # when the command was run on a temporary file we also need to
-            # compare this filename with that temporary filename
-            if self.temp_filename and normed_filename == os.path.normcase(self.temp_filename):
-                return None
-
-            return filename
-
-        # must be the main file
-        return None
+        return filename
 
     @staticmethod
     def is_stdin_filename(filename):

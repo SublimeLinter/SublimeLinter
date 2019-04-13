@@ -267,6 +267,7 @@ class popen_output(str):
     Small compatibility layer: It is both the decoded output
     as str and partially the Popen object.
     """
+
     stdout = ''  # type: Optional[str]
     stderr = ''  # type: Optional[str]
     combined_output = ''

@@ -21,6 +21,18 @@ from .lint import reloader
 from .lint import settings
 
 
+MYPY = False
+if MYPY:
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set
+
+    Bid = sublime.BufferId
+    LinterName = str
+    FileName = str
+    LintError = persist.LintError
+    Linter = linter_module.Linter
+    ViewChangedFn = Callable[[], bool]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,8 +128,8 @@ def other_visible_views():
 
 
 global_lock = threading.RLock()
-guard_check_linters_for_view = defaultdict(threading.Lock)
-buffer_syntaxes = {}
+guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
+buffer_syntaxes = {}  # type: Dict[Bid, str]
 
 
 class BackendController(sublime_plugin.EventListener):
@@ -244,6 +256,7 @@ def relint_views(wid=None):
 
 
 def hit(view, reason=None):
+    # type: (sublime.View, Optional[str]) -> None
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
@@ -259,6 +272,7 @@ def hit(view, reason=None):
 
 
 def lint(view, view_has_changed, lock, reason=None):
+    # type: (sublime.View, ViewChangedFn, threading.Lock, Optional[str]) -> None
     """Lint the view with the given id.
 
     This method is called asynchronously by queue.Daemon when a lint
@@ -306,13 +320,16 @@ def kill_active_popen_calls(bid):
         ))
     for proc in procs:
         proc.terminate()
-        proc.friendly_terminated = True
+        setattr(proc, 'friendly_terminated', True)
 
 
-affected_filenames_per_bid = defaultdict(lambda: defaultdict(set))
+affected_filenames_per_bid = defaultdict(
+    lambda: defaultdict(set)
+)  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
 
 
 def group_by_filename_and_update(bid, view_has_changed, linter, errors):
+    # type: (Bid, ViewChangedFn, Linter, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
@@ -320,7 +337,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     window = linter.view.window()
 
     # group all errors by filenames to update them separately
-    grouped = defaultdict(list)
+    grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
     for error in errors:
         grouped[error.get('filename')].append(error)
 
@@ -367,6 +384,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
 
 
 def update_buffer_errors(bid, view_has_changed, linter, errors):
+    # type: (Bid, ViewChangedFn, Linter, List[LintError]) -> None
     """Persist lint error changes and broadcast."""
     if view_has_changed():  # abort early
         return
@@ -380,6 +398,7 @@ def update_buffer_errors(bid, view_has_changed, linter, errors):
 
 
 def update_errors_store(bid, linter_name, errors):
+    # type: (Bid, LinterName, List[LintError]) -> None
     persist.errors[bid] = [
         error
         for error in persist.errors[bid]
@@ -398,7 +417,8 @@ def force_redraw():
 
 
 def group_by_linter(errors):
-    by_linter = defaultdict(list)
+    # type: (List[LintError]) -> DefaultDict[LinterName, List[LintError]]
+    by_linter = defaultdict(list)  # type: DefaultDict[LinterName, List[LintError]]
     for error in errors:
         by_linter[error['linter']].append(error)
 
@@ -406,6 +426,7 @@ def group_by_linter(errors):
 
 
 def get_linters_for_view(view):
+    # type: (sublime.View) -> List[Linter]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
     current_linters = persist.view_linters.get(bid, [])
@@ -416,10 +437,10 @@ def get_linters_for_view(view):
         logger.info(
             "Skipping buffer {}; '{}' is unreachable".format(bid, filename))
         flash_once(
-            none_for_none(lambda: view.window().id()),
+            view.window(),
             "{} has become unreachable".format(filename)
         )
-        wanted_linters = []
+        wanted_linters = []  # type: List[Linter]
     else:
         wanted_linters = []
         for linter_class in persist.linter_classes.values():
@@ -453,6 +474,7 @@ def get_linters_for_view(view):
 
 
 def make_view_has_changed_fn(view):
+    # type: (sublime.View) -> ViewChangedFn
     initial_change_count = view.change_count()
 
     def view_has_changed():
@@ -510,18 +532,14 @@ def remember_runtime(log_msg):
         elapsed_runtimes.append(runtime)
 
 
-def none_for_none(fn):
-    try:
-        return fn()
-    except Exception as exc:
-        if 'NoneType' in str(exc):
-            return None
-        else:
-            raise
+def flash_once(window, message):
+    # type: (Optional[sublime.Window], str) -> None
+    if window:
+        _flash_once(window.id(), message)
 
 
 @lru_cache()
-def flash_once(wid, message):
-    if wid is not None:
-        window = sublime.Window(wid)
-        window.status_message(message)
+def _flash_once(wid, message):
+    # type: (sublime.WindowId, str) -> None
+    window = sublime.Window(wid)
+    window.status_message(message)

@@ -207,7 +207,7 @@ def has_syntax_changed(view):
         buffer_syntaxes[bid] = current_syntax
 
 
-class SublimeLinterLintCommand(sublime_plugin.TextCommand):
+class sublime_linter_lint(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):

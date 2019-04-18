@@ -463,7 +463,7 @@ def _assign_linters_to_view(view, next_linters):
     current_linter_names = {linter.name for linter in current_linters}
     next_linter_names = {linter.name for linter in next_linters}
 
-    persist.view_linters[bid] = next_linters
+    persist.view_linters[bid] = {linter.__class__ for linter in next_linters}
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
         'linter_names': list(next_linter_names)

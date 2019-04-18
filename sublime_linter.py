@@ -219,20 +219,15 @@ class SublimeLinterLintCommand(sublime_plugin.TextCommand):
 
         Otherwise it can be linted.
         """
-        has_non_file_only_linter = False
-
         bid = self.view.buffer_id()
-        linters = persist.view_linters.get(bid, [])
 
-        for lint in linters:
-            if lint.tempfile_suffix != '-':
-                has_non_file_only_linter = True
-                break
-
-        if not has_non_file_only_linter:
+        if all(
+            linter.tempfile_suffix == '-'
+            for linter in persist.view_linters.get(bid, [])
+        ):
             return not self.view.is_dirty()
-
-        return True
+        else:
+            return True
 
     def run(self, edit):
         """Lint the current view."""

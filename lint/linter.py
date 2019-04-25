@@ -349,6 +349,9 @@ def substitute_variables(variables, value):
     # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
 
     if isinstance(value, str):
+        # Workaround https://github.com/SublimeTextIssues/Core/issues/1878
+        # (E.g. UNC paths on Windows start with double slashes.)
+        value = value.replace(r'\\', r'\\\\')
         value = sublime.expand_variables(value, variables)
         return os.path.expanduser(value)
     elif isinstance(value, Mapping):

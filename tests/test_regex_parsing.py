@@ -30,6 +30,8 @@ from SublimeLinter.tests.mockito import (
 
 version = sublime.version()
 
+RUNNING_ON_LINUX_TRAVIS = os.environ.get('TRAVIS_OS_NAME') == 'linux'
+expectedFailureOnLinuxTravis = expectedFailure if RUNNING_ON_LINUX_TRAVIS else lambda f: f
 
 VIEW_UNCHANGED = lambda: False  # noqa: E731
 execute_lint_task = partial(
@@ -817,6 +819,19 @@ class TestRegexBasedParsing(_BaseTestCase):
         result = execute_lint_task(linter, INPUT)
 
         self.assertEqual(result[0]['filename'], __file__)
+
+    @expectedFailureOnLinuxTravis
+    def test_ensure_correct_filename_case_UNC(self):
+        FILENAME = "\\\\HOST\\a\\b\\c.py"
+        INPUT = "0123456789"
+        OUTPUT = FILENAME + ":1:1 ERROR: The message"
+
+        linter = self.create_linter(FakeLinterCaptureFilename)
+        when(linter)._communicate(...).thenReturn(OUTPUT)
+        when(self.view).file_name().thenReturn(FILENAME)
+
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual(result[0]['filename'], FILENAME)
 
     @p.expand([
         (FakeLinterCaptureFilename, "0123456789", "stdin:1:1 ERROR: The message"),

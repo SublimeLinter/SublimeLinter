@@ -91,6 +91,39 @@ class TestArgsSetting(_BaseTestCase):
         with expect(linter)._communicate(result, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
+    # Related bug: https://github.com/SublimeTextIssues/Core/issues/1878
+    @p.expand([
+        ("\\a\\b\\c.py", ),
+        ("\\\\HOST\\a\\b\\c.py", ),
+    ])
+    def test_ensure_paths_format(self, FILENAME):
+        class FakeLinter(Linter):
+            cmd = 'fake_linter_1'
+            defaults = {'selector': None, '--foo': '${file}'}
+
+        FINAL_CMD = ["fake_linter_1", "--foo", FILENAME]
+        when(self.view).file_name().thenReturn(FILENAME)
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
+        linter = FakeLinter(self.view, settings)
+
+        with expect(linter)._communicate(FINAL_CMD, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @p.expand([
+        ("\\a\\b\\c.py", ),
+        ("\\\\HOST\\a\\b\\c.py", ),
+    ])
+    def test_do_not_mangle_literal_paths_in_cmd(self, FILENAME):
+        class FakeLinter(Linter):
+            cmd = "fake_linter_1 '{}'".format(FILENAME)
+            defaults = {'selector': None}
+
+        FINAL_CMD = ["fake_linter_1", FILENAME]
+        linter = FakeLinter(self.view, {})
+
+        with expect(linter)._communicate(FINAL_CMD, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
 
 class TestExecutableSetting(_BaseTestCase):
 
@@ -318,6 +351,23 @@ class TestCmdType(_BaseTestCase):
         linter = FakeLinter(self.view, {})
         with expect(linter)._communicate(final_cmd, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @p.expand([
+        ("\\a\\b\\c.py", ),
+        ("\\\\HOST\\a\\b\\c.py", ),
+    ])
+    def test_substitute_variables_in_cmd(self, FILENAME):
+        class FakeLinter(Linter):
+            cmd = 'fake_linter_1 ${file}'
+            defaults = {'selector': None}
+
+        FINAL_CMD = ["fake_linter_1", FILENAME]
+        when(linter_module).get_view_context(self.view).thenReturn({'file': FILENAME})
+        linter = FakeLinter(self.view, {})
+
+        with expect(linter)._communicate(FINAL_CMD, ...):
+            linter.lint(INPUT, VIEW_UNCHANGED)
+
 
 # TODO
 #

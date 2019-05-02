@@ -308,16 +308,19 @@ class TestWorkingDirSetting(_BaseTestCase):
 
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
-    def test_returns_true_and_a_path_indicates_success(self):
+    @p.expand([
+        ('/foo/foz.exe', ),
+        ('\\\\HOST\\foo\\foz.exe'),
+    ])
+    def test_returns_true_and_a_path_indicates_success(self, EXECUTABLE):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        executable = '/foo/foz.exe'
         linter = FakeLinter(self.view, {})
-        when(linter).context_sensitive_executable_path(...).thenReturn((True, executable))
+        when(linter).context_sensitive_executable_path(...).thenReturn((True, EXECUTABLE))
 
-        result = [executable]
+        result = [EXECUTABLE]
         with expect(linter)._communicate(result, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
 

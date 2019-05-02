@@ -865,13 +865,19 @@ class Linter(metaclass=LinterMeta):
 
             joiner = arg_info['joiner']
             for value in values:
+                # We call `substitute_variables` in `finalize_cmd` on the whole
+                # command. Since all settings are already transparently
+                # 'expanded' we need to make sure to escape remaining '$' chars
+                # in the arg value here which otherwise denote variables within
+                # Sublime.
+                final_value = str(value).replace('$', r'\$')
                 if prefix == '@':
-                    args.append(str(value))
+                    args.append(final_value)
                 elif joiner == '=':
-                    args.append('{}={}'.format(arg, value))
+                    args.append('{}={}'.format(arg, final_value))
                 else:  # joiner == ':' or ''
                     args.append(arg)
-                    args.append(str(value))
+                    args.append(final_value)
 
         return args
 

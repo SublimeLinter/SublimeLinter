@@ -95,6 +95,8 @@ class TestArgsSetting(_BaseTestCase):
     @p.expand([
         ("\\a\\b\\c.py", ),
         ("\\\\HOST\\a\\b\\c.py", ),
+        ("\\a\\b\\c$foo.py", ),
+        ("\\a\\b\\c{foo}.py", ),
     ])
     def test_ensure_paths_format(self, FILENAME):
         class FakeLinter(Linter):
@@ -112,6 +114,8 @@ class TestArgsSetting(_BaseTestCase):
     @p.expand([
         ("\\a\\b\\c.py", ),
         ("\\\\HOST\\a\\b\\c.py", ),
+        # ("\\a\\b\\c$foo.py", ),  # `$foo` on the cmd denotes a variable!
+        ("\\a\\b\\c{foo}.py", ),
     ])
     def test_do_not_mangle_literal_paths_in_cmd(self, FILENAME):
         class FakeLinter(Linter):
@@ -123,6 +127,25 @@ class TestArgsSetting(_BaseTestCase):
 
         with expect(linter)._communicate(FINAL_CMD, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @p.expand([
+        ("\\a\\b\\c.py", ),
+        ("\\\\HOST\\a\\b\\c.py", ),
+        ("\\a\\b\\c$foo.py", ),
+        ("\\a\\b\\c$$foo.py", ),
+        ("\\a\\b\\c{foo}.py", ),
+        ("\\a\\b\\c{{foo}}.py", ),
+    ])
+    def test_ensure_transparent_settings(self, FILENAME):
+        class FakeLinter(Linter):
+            cmd = 'fake_linter_1'
+            defaults = {'selector': None, '--foo': '${file}'}
+
+        when(self.view).file_name().thenReturn(FILENAME)
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
+        linter = FakeLinter(self.view, settings)
+
+        self.assertEqual(linter.settings['foo'], FILENAME)
 
 
 class TestExecutableSetting(_BaseTestCase):
@@ -285,16 +308,19 @@ class TestWorkingDirSetting(_BaseTestCase):
 
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
-    def test_returns_true_and_a_path_indicates_success(self):
+    @p.expand([
+        ('/foo/foz.exe', ),
+        ('\\\\HOST\\foo\\foz.exe'),
+    ])
+    def test_returns_true_and_a_path_indicates_success(self, EXECUTABLE):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        executable = '/foo/foz.exe'
         linter = FakeLinter(self.view, {})
-        when(linter).context_sensitive_executable_path(...).thenReturn((True, executable))
+        when(linter).context_sensitive_executable_path(...).thenReturn((True, EXECUTABLE))
 
-        result = [executable]
+        result = [EXECUTABLE]
         with expect(linter)._communicate(result, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
@@ -355,6 +381,8 @@ class TestCmdType(_BaseTestCase):
     @p.expand([
         ("\\a\\b\\c.py", ),
         ("\\\\HOST\\a\\b\\c.py", ),
+        ("\\a\\b\\c$foo.py", ),
+        ("\\a\\b\\c{foo}.py", ),
     ])
     def test_substitute_variables_in_cmd(self, FILENAME):
         class FakeLinter(Linter):

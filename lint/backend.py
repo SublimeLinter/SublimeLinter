@@ -47,7 +47,8 @@ def lint_view(
     This is the top level lint dispatcher. It is called
     asynchronously.
     """
-    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
+    lint_tasks = list(get_lint_tasks(linters, view, view_has_changed))
+    warn_excessive_tasks(view, lint_tasks)
 
     run_concurrently([
         partial(run_tasks, tasks, next=partial(next, linter.name))
@@ -69,22 +70,31 @@ def run_tasks(tasks, next):
     sublime.set_timeout_async(lambda: next(errors))
 
 
-def get_lint_tasks(
-    linters,           # type: List[Linter]
-    view,              # type: sublime.View
-    view_has_changed,  # type: Callable[[], bool]
-):                     # type: (...) -> Iterator[Tuple[Linter, List[Task[LintResult]]]]
-    total_tasks = 0
-    for (linter, regions) in get_lint_regions(linters, view):
-        tasks = _make_tasks(linter, regions, view, view_has_changed)
-        total_tasks += len(tasks)
-        yield linter, tasks
+def warn_excessive_tasks(view, uow):
+    # type: (sublime.View, List[Tuple[Linter, List[Task[LintResult]]]]) -> None
+    for linter, tasks in uow:
+        if len(tasks) > 3:
+            logger.warning(
+                "'{}' puts {} {} tasks on the queue."
+                .format(short_canonical_filename(view), len(tasks), linter.name)
+            )
 
+    total_tasks = sum(len(tasks) for _, tasks in uow)
     if total_tasks > 4:
         logger.warning(
             "'{}' puts in total {}(!) tasks on the queue."
             .format(short_canonical_filename(view), total_tasks)
         )
+
+
+def get_lint_tasks(
+    linters,           # type: List[Linter]
+    view,              # type: sublime.View
+    view_has_changed,  # type: Callable[[], bool]
+):                     # type: (...) -> Iterator[Tuple[Linter, List[Task[LintResult]]]]
+    for (linter, regions) in get_lint_regions(linters, view):
+        tasks = _make_tasks(linter, regions, view, view_has_changed)
+        yield linter, tasks
 
 
 def _make_tasks(linter_, regions, view, view_has_changed):
@@ -103,11 +113,6 @@ def _make_tasks(linter_, regions, view, view_has_changed):
         executor = partial(modify_thread_name, task_name, task)
         tasks.append(executor)
 
-    if len(tasks) > 3:
-        logger.warning(
-            "'{}' puts {} {} tasks on the queue."
-            .format(short_canonical_filename(view), len(tasks), linter_.name)
-        )
     return tasks
 
 

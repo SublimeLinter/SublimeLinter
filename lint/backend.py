@@ -14,9 +14,10 @@ from . import style, linter as linter_module
 
 
 if False:
-    from typing import Callable, Iterator, List, Optional, Tuple, TypeVar
+    from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
     from .persist import LintError
     Linter = linter_module.Linter
+    LinterSettings = linter_module.LinterSettings
 
     T = TypeVar('T')
     LintResult = List[LintError]
@@ -47,12 +48,15 @@ def lint_view(
     This is the top level lint dispatcher. It is called
     asynchronously.
     """
-    lint_tasks = list(get_lint_tasks(linters, view, view_has_changed))
+    lint_tasks = {
+        linter.name: list(tasks_per_linter(view, view_has_changed, linter.__class__, linter.settings))
+        for linter in linters
+    }
     warn_excessive_tasks(view, lint_tasks)
 
     run_concurrently([
-        partial(run_tasks, tasks, next=partial(next, linter.name))
-        for linter, tasks in lint_tasks
+        partial(run_tasks, tasks, next=partial(next, linter_name))
+        for linter_name, tasks in lint_tasks.items()
     ], executor=orchestrator)
 
 
@@ -71,15 +75,15 @@ def run_tasks(tasks, next):
 
 
 def warn_excessive_tasks(view, uow):
-    # type: (sublime.View, List[Tuple[Linter, List[Task[LintResult]]]]) -> None
-    for linter, tasks in uow:
+    # type: (sublime.View, Dict[LinterName, List[Task[LintResult]]]) -> None
+    for linter_name, tasks in uow.items():
         if len(tasks) > 3:
             logger.warning(
                 "'{}' puts {} {} tasks on the queue."
-                .format(short_canonical_filename(view), len(tasks), linter.name)
+                .format(short_canonical_filename(view), len(tasks), linter_name)
             )
 
-    total_tasks = sum(len(tasks) for _, tasks in uow)
+    total_tasks = sum(len(tasks) for tasks in uow.values())
     if total_tasks > 4:
         logger.warning(
             "'{}' puts in total {}(!) tasks on the queue."
@@ -87,26 +91,14 @@ def warn_excessive_tasks(view, uow):
         )
 
 
-def get_lint_tasks(
-    linters,           # type: List[Linter]
-    view,              # type: sublime.View
-    view_has_changed,  # type: Callable[[], bool]
-):                     # type: (...) -> Iterator[Tuple[Linter, List[Task[LintResult]]]]
-    for linter in linters:
-        tasks = _make_tasks(linter, view, view_has_changed)
-        yield linter, tasks
-
-
-def _make_tasks(linter_, view, view_has_changed):
-    # type: (Linter, sublime.View, Callable[[], bool]) -> List[Task[LintResult]]
-    selector = linter_.settings.get('selector')
+def tasks_per_linter(view, view_has_changed, linter_class, settings):
+    # type: (sublime.View, Callable[[], bool], Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
+    selector = settings.get('selector')
     if selector is None:
         return []
 
-    regions = extract_lintable_regions(view, selector)
-    independent_linters = create_n_independent_linters(linter_, len(regions))
-    tasks = []  # type: List[Task[LintResult]]
-    for linter, region in zip(independent_linters, regions):
+    for region in extract_lintable_regions(view, selector):
+        linter = linter_class(view, settings.clone())
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
@@ -116,9 +108,7 @@ def _make_tasks(linter_, view, view_has_changed):
         task_name = make_good_task_name(linter, view)
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
         executor = partial(modify_thread_name, task_name, task)
-        tasks.append(executor)
-
-    return tasks
+        yield executor
 
 
 def extract_lintable_regions(view, selector):
@@ -128,19 +118,6 @@ def extract_lintable_regions(view, selector):
         return [sublime.Region(0, view.size())]
     else:
         return [region for region in view.find_by_selector(selector)]
-
-
-def create_n_independent_linters(linter, n):
-    return (
-        [linter]
-        if n == 1
-        else [clone_linter(linter) for _ in range(n)]
-    )
-
-
-def clone_linter(linter):
-    # type: (linter_module.Linter) -> linter_module.Linter
-    return linter.__class__(linter.view, linter.settings.clone())
 
 
 def short_canonical_filename(view):

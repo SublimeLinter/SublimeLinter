@@ -301,7 +301,8 @@ def lint(view, view_has_changed, lock, reason=None):
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
-        backend.lint_view(linters, view, view_has_changed, sink)
+        linter_info = [(linter.__class__, linter.settings) for linter in linters]
+        backend.lint_view(linter_info, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 

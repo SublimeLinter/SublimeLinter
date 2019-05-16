@@ -24,6 +24,7 @@ if False:
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
     LinterName = str
+    LinterInfo = Tuple[Type[Linter], LinterSettings]
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ counter_lock = threading.Lock()
 
 
 def lint_view(
-    linters,           # type: List[Linter]
+    linters,           # type: List[LinterInfo]
     view,              # type: sublime.View
     view_has_changed,  # type: ViewChangedFn
     next               # type: Callable[[LinterName, LintResult], None]
@@ -50,8 +51,8 @@ def lint_view(
     asynchronously.
     """
     lint_tasks = {
-        linter.name: list(tasks_per_linter(view, view_has_changed, linter.__class__, linter.settings))
-        for linter in linters
+        linter_class.name: list(tasks_per_linter(view, view_has_changed, linter_class, settings))
+        for linter_class, settings in linters
     }
     warn_excessive_tasks(view, lint_tasks)
 

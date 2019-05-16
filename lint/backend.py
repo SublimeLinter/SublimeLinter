@@ -22,6 +22,7 @@ if False:
     T = TypeVar('T')
     LintResult = List[LintError]
     Task = Callable[[], T]
+    ViewChangedFn = Callable[[], bool]
     LinterName = str
 
 
@@ -39,7 +40,7 @@ counter_lock = threading.Lock()
 def lint_view(
     linters,           # type: List[Linter]
     view,              # type: sublime.View
-    view_has_changed,  # type: Callable[[], bool]
+    view_has_changed,  # type: ViewChangedFn
     next               # type: Callable[[LinterName, LintResult], None]
 ):
     # type: (...) -> None
@@ -92,7 +93,7 @@ def warn_excessive_tasks(view, uow):
 
 
 def tasks_per_linter(view, view_has_changed, linter_class, settings):
-    # type: (sublime.View, Callable[[], bool], Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
+    # type: (sublime.View, ViewChangedFn, Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
     selector = settings.get('selector')
     if selector is None:
         return []
@@ -148,7 +149,7 @@ def modify_thread_name(name, sink):
 
 
 def execute_lint_task(linter, code, offsets, view_has_changed):
-    # type: (Linter, str, Tuple, Callable[[], bool]) -> LintResult
+    # type: (Linter, str, Tuple, ViewChangedFn) -> LintResult
     try:
         errors = linter.lint(code, view_has_changed)
         finalize_errors(linter, errors, offsets)

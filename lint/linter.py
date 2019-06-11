@@ -917,8 +917,7 @@ class Linter(metaclass=LinterMeta):
         if not cls.matches_selector(view, settings):
             return False
 
-        filename = view.file_name()
-        filename = os.path.realpath(filename) if filename else '<untitled>'
+        filename = view.file_name() or '<untitled>'
         excludes = util.convert_type(settings.get('excludes', []), [])
         if excludes:
             for pattern in excludes:
@@ -1244,7 +1243,7 @@ class Linter(metaclass=LinterMeta):
         if filename and not self.is_stdin_filename(filename):
             # ensure that the filename is absolute by basing relative paths on
             # the working directory
-            cwd = self.get_working_dir(self.settings) or os.path.realpath('.')
+            cwd = self.get_working_dir(self.settings) or os.getcwd()
             filename = os.path.normpath(os.path.join(cwd, filename))
 
             # only return a filename if it is a different file
@@ -1568,12 +1567,10 @@ def make_nice_log_message(headline, cmd, is_stdin,
     elif not filename:
         rel_filename = '<buffer {}>'.format(view.buffer_id())
 
-    real_cwd = cwd if cwd else os.path.realpath(os.path.curdir)
-
     on_win = os.name == 'nt'
     exec_msg = RUNNING_TEMPLATE.format(
         headline=headline,
-        cwd=real_cwd,
+        cwd=cwd or os.getcwd(),
         prompt='>' if on_win else '$',
         pipe=PIPE_TEMPLATE.format(rel_filename) if is_stdin else '',
         cmd=subprocess.list2cmdline(cmd) if on_win else ' '.join(cmd)

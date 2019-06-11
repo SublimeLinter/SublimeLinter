@@ -3,6 +3,7 @@ import html
 from itertools import chain
 from functools import partial
 import re
+import textwrap
 
 import sublime
 import sublime_plugin
@@ -660,7 +661,7 @@ TOOLTIP_STYLES = '''
 TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
-        <div>{message}</div>
+        <div>{content}</div>
     </body>
 '''
 
@@ -691,16 +692,18 @@ def open_tooltip(view, point, line_report=False):
     if not errors:
         return
 
-    tooltip_message = join_msgs(errors, line_report)
+    max_width = min(1000, view.viewport_extent()[0])
+    max_chars = int(max_width // view.em_width() - 1)
+    tooltip_message = join_msgs(errors, show_count=line_report, width=max_chars)
     view.show_popup(
-        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, message=tooltip_message),
+        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
-        max_width=1000
+        max_width=max_width
     )
 
 
-def join_msgs(errors, show_count=False):
+def join_msgs(errors, show_count, width):
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -711,26 +714,37 @@ def join_msgs(errors, show_count=False):
             <div>{messages}</div>
         '''
 
-    tmpl_with_code = "{linter}: {code} - {escaped_msg}"
-    tmpl_sans_code = "{linter}: {escaped_msg}"
+    tmpl_with_code = "{code} - {msg}"
+    tmpl_sans_code = "{msg}"
 
     all_msgs = ""
     for error_type in (WARNING, ERROR):
-        heading = error_type
-        filled_templates = []
-        msg_list = [e for e in errors if e["error_type"] == error_type]
-
-        if not msg_list:
+        errors_by_type = sorted(
+            (e for e in errors if e["error_type"] == error_type),
+            key=lambda x: (x["start"], x["end"])
+        )
+        if not errors_by_type:
             continue
 
-        msg_list = sorted(msg_list, key=lambda x: (x["start"], x["end"]))
-        count = len(msg_list)
+        filled_templates = []
+        for error in errors_by_type:
+            tmpl = tmpl_with_code if error.get('code') else tmpl_sans_code
+            prefix_len = len(error['linter']) + 2
+            lines = textwrap.wrap(
+                tmpl.format(**error),
+                width=width,
+                initial_indent=" " * prefix_len,
+                subsequent_indent=" " * prefix_len
+            )
+            lines[0] = "{linter}: ".format(**error) + lines[0].lstrip()
 
-        for item in msg_list:
-            msg = html.escape(item["msg"], quote=False)
-            tmpl = tmpl_with_code if item.get('code') else tmpl_sans_code
-            filled_templates.append(tmpl.format(escaped_msg=msg, **item))
+            filled_templates.extend([
+                html.escape(line, quote=False).replace(' ', '&nbsp;')
+                for line in lines
+            ])
 
+        heading = error_type
+        count = len(errors_by_type)
         if count > 1:  # pluralize
             heading += "s"
 

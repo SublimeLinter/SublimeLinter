@@ -423,7 +423,6 @@ def get_linters_for_view(view):
     bid = view.buffer_id()
 
     filename = view.file_name()
-    # Unassign all linters from orphaned views
     if filename and not os.path.exists(filename):
         logger.info(
             "Skipping buffer {}; '{}' is unreachable".format(bid, filename))
@@ -431,13 +430,13 @@ def get_linters_for_view(view):
             view.window(),
             "{} has become unreachable".format(filename)
         )
-        wanted_linters = []  # type: List[Linter]
-    else:
-        wanted_linters = []
-        for linter_class in persist.linter_classes.values():
-            settings = linter_module.get_linter_settings(linter_class, view)
-            if linter_class.can_lint_view(view, settings):
-                wanted_linters.append(linter_class(view, settings))
+        return []
+
+    wanted_linters = []
+    for linter_class in persist.linter_classes.values():
+        settings = linter_module.get_linter_settings(linter_class, view)
+        if linter_class.can_lint_view(view, settings):
+            wanted_linters.append(linter_class(view, settings))
 
     return wanted_linters
 

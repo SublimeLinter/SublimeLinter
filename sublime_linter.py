@@ -279,7 +279,7 @@ def lint(view, view_has_changed, lock, reason=None):
 
     linters = [
         linter for linter in linters
-        if linter.should_lint(reason)
+        if linter.__class__.should_lint(view, linter.settings, reason)
     ]
     if not linters:
         return

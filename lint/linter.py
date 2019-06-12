@@ -431,9 +431,7 @@ class LinterMeta(type):
         if 'should_lint' in attrs:
             logger.warning(
                 "{}: Do *NOT* implement 'should_lint'. SublimeLinter will "
-                "have a breaking change here in the near future.  "
-                "Note: The 'self' you see in there is probably not the "
-                "same 'self' you see in other methods. Do *not* mutate 'self'!"
+                "have a breaking change here in the near future."
                 .format(name))
         # END DEPRECATIONS
 
@@ -913,6 +911,7 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def can_lint_view(cls, view, settings):
         # type: (sublime.View, LinterSettings) -> bool
+        """Decide wheter the linter is applicable to given view."""
         if cls.disabled is True:
             return False
 
@@ -953,25 +952,19 @@ class Linter(metaclass=LinterMeta):
             )
         return False
 
-    def should_lint(self, reason=None):
-        # type: (Optional[str]) -> bool
-        """
-        should_lint takes reason then decides whether the linter should start or not.
-
-        DO NOT USE except for experiments! WILL CHANGE!
-        Note that `self` here is probably not the same `self` you later
-        see e.g. in `split_match`. Do *NOT* mutate `self`!
-        """
+    @classmethod
+    def should_lint(cls, view, settings, reason=None):
+        # type: (sublime.View, LinterSettings, Optional[str]) -> bool
+        """Decide whether the linter can run at this point in time."""
         # A 'saved-file-only' linter does not run on unsaved views
-        if self.tempfile_suffix == '-' and self.view.is_dirty():
+        if cls.tempfile_suffix == '-' and view.is_dirty():
             return False
 
         fallback_mode = persist.settings.get('lint_mode', 'background')
-        settings = self.get_view_settings()
         lint_mode = settings.get('lint_mode', fallback_mode)
         logger.info(
             "{}: checking lint mode '{}' vs lint reason '{}'"
-            .format(self.name, lint_mode, reason)
+            .format(cls.name, lint_mode, reason)
         )
 
         return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]

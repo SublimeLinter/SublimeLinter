@@ -269,8 +269,7 @@ def get_raw_linter_settings(linter, view):
 
     # We actually don't want to lint detached views, so failing here
     # when there is no window would be more appropriate, but also less
-    # convenient. See `get_linters_for_view` where we check once for detached
-    # views, and actually abort the lint job.
+    # convenient.
     window = view.window()
     if window:
         data = window.project_data() or {}

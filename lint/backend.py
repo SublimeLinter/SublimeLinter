@@ -10,7 +10,7 @@ import multiprocessing
 import os
 import threading
 
-from . import style, util, linter as linter_module
+from . import style, linter as linter_module
 
 
 if False:
@@ -26,7 +26,6 @@ if False:
 
 logger = logging.getLogger(__name__)
 
-WILDCARD_SYNTAX = '*'
 MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 orchestrator = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
 executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
@@ -238,7 +237,6 @@ def finalize_errors(linter, errors, offsets):
 
 def get_lint_regions(linters, view):
     # type: (List[Linter], sublime.View) -> Iterator[Tuple[Linter, List[sublime.Region]]]
-    syntax = util.get_syntax(view)
     for linter in linters:
         settings = linter.get_view_settings()
         selector = settings.get('selector', None)
@@ -250,31 +248,6 @@ def get_lint_regions(linters, view):
                 yield linter, [
                     region for region in view.find_by_selector(selector)
                 ]
-
-            continue
-
-        # Fallback using deprecated `cls.syntax` and `cls.selectors`
-        if (
-            syntax not in linter.selectors and
-            WILDCARD_SYNTAX not in linter.selectors
-        ):
-            yield linter, [sublime.Region(0, view.size())]
-
-        else:
-            yield linter, [
-                region
-                for selector in get_selectors(linter, syntax)
-                for region in view.find_by_selector(selector)
-            ]
-
-
-def get_selectors(linter, wanted_syntax):
-    # type: (Linter, str) -> Iterator[str]
-    for syntax in [wanted_syntax, WILDCARD_SYNTAX]:
-        try:
-            yield linter.selectors[syntax]
-        except KeyError:
-            pass
 
 
 def run_concurrently(tasks, executor):

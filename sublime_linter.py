@@ -24,13 +24,21 @@ from .lint import settings
 MYPY = False
 if MYPY:
     from typing import Callable, DefaultDict, Dict, List, Optional, Set, Type
+    from mypy_extensions import TypedDict
 
     Bid = sublime.BufferId
     LinterName = str
     FileName = str
     LintError = persist.LintError
     Linter = linter_module.Linter
+    LinterSettings = linter_module.LinterSettings
     ViewChangedFn = Callable[[], bool]
+
+    LinterInfo = TypedDict('LinterInfo', {
+        'name': LinterName,
+        'klass': Type[Linter],
+        'settings': LinterSettings
+    })
 
 
 logger = logging.getLogger(__name__)
@@ -275,11 +283,11 @@ def lint(view, view_has_changed, lock, reason=None):
     linters = get_linters_for_view(view)
 
     with lock:
-        _assign_linters_to_view(view, {linter.__class__ for linter in linters})
+        _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
     linters = [
         linter for linter in linters
-        if linter.__class__.should_lint(view, linter.settings, reason)
+        if linter['klass'].should_lint(view, linter['settings'], reason)
     ]
     if not linters:
         return
@@ -301,8 +309,7 @@ def lint(view, view_has_changed, lock, reason=None):
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
-        linter_info = [(linter.__class__, linter.settings) for linter in linters]
-        backend.lint_view(linter_info, view, view_has_changed, sink)
+        backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 
@@ -418,7 +425,7 @@ def group_by_linter(errors):
 
 
 def get_linters_for_view(view):
-    # type: (sublime.View) -> List[Linter]
+    # type: (sublime.View) -> List[LinterInfo]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
@@ -432,11 +439,15 @@ def get_linters_for_view(view):
         )
         return []
 
-    wanted_linters = []
-    for linter_class in persist.linter_classes.values():
-        settings = linter_module.get_linter_settings(linter_class, view)
-        if linter_class.can_lint_view(view, settings):
-            wanted_linters.append(linter_class(view, settings))
+    wanted_linters = []  # type: List[LinterInfo]
+    for name, klass in persist.linter_classes.items():
+        settings = linter_module.get_linter_settings(klass, view)
+        if klass.can_lint_view(view, settings):
+            wanted_linters.append({
+                'name': name,
+                'klass': klass,
+                'settings': settings
+            })
 
     return wanted_linters
 

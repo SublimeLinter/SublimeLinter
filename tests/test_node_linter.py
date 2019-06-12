@@ -263,7 +263,9 @@ class TestNodeLinters(DeferrableTestCase):
         view_has_changed = lambda: False
         sink = mock()
         when(sink).__call__(...).thenReturn(None)
-        backend.lint_view([(linter.__class__, linter.settings)], self.view, view_has_changed, sink)
+        backend.lint_view(
+            [{'name': linter.name, 'klass': linter.__class__, 'settings': linter.settings}],
+            self.view, view_has_changed, sink)
 
         yield AWAIT_WORKER
 

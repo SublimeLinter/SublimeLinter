@@ -16,6 +16,7 @@ from . import style, linter as linter_module
 if False:
     from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
     from .persist import LintError
+    from ..sublime_linter import LinterInfo
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
 
@@ -24,7 +25,6 @@ if False:
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
     LinterName = str
-    LinterInfo = Tuple[Type[Linter], LinterSettings]
 
 
 logger = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ def lint_view(
     asynchronously.
     """
     lint_tasks = {
-        linter_class.name: list(tasks_per_linter(view, view_has_changed, linter_class, settings))
-        for linter_class, settings in linters
+        linter['name']: list(tasks_per_linter(view, view_has_changed, linter['klass'], linter['settings']))
+        for linter in linters
     }
     warn_excessive_tasks(view, lint_tasks)
 

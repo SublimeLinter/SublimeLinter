@@ -267,4 +267,4 @@ class TestNodeLinters(DeferrableTestCase):
 
         yield AWAIT_WORKER
 
-        verify(sink).__call__(linter, [])
+        verify(sink).__call__(linter.name, [])

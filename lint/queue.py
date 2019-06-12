@@ -1,11 +1,19 @@
 import threading
 
 
+MYPY = False
+if MYPY:
+    from typing import Callable, Dict, Hashable
+
+    Key = Hashable
+
+
 # Map from key to threading.Timer objects
-timers = {}
+timers = {}  # type: Dict[Key, threading.Timer]
 
 
 def debounce(callback, delay, key):
+    # type: (Callable[[], None], float, Key) -> threading.Timer
     try:
         timers[key].cancel()
     except KeyError:
@@ -17,6 +25,7 @@ def debounce(callback, delay, key):
 
 
 def cleanup(key):
+    # type: (Key) -> None
     try:
         timers.pop(key).cancel()
     except KeyError:

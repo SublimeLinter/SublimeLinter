@@ -275,26 +275,27 @@ def lint(view, view_has_changed, lock, reason=None):
     # type: (sublime.View, ViewChangedFn, threading.Lock, Optional[str]) -> None
     """Lint the view with the given id.
 
-    This method is called asynchronously by queue.Daemon when a lint
-    request is pulled off the queue.
+    This function MUST run on a thread because it blocks!
     """
-    # We call `get_linters_for_view` first and unconditionally for its
-    # side-effect. Yeah, it's a *getter* LOL.
-    with lock:  # We're already debounced, so races are actually unlikely.
-        linters = get_linters_for_view(view)
+    linters = get_linters_for_view(view)
+
+    with lock:
+        _assign_linters_to_view(view, linters)
 
     linters = [
         linter for linter in linters
-        if linter.should_lint(reason)]
+        if linter.should_lint(reason)
+    ]
     if not linters:
         return
+
+    window = view.window()
+    bid = view.buffer_id()
 
     # Very, very unlikely that `view_has_changed` is already True at this
     # point, but it also implements the kill_switch, so we ask here
     if view_has_changed():  # abort early
         return
-
-    bid = view.buffer_id()
 
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
@@ -304,7 +305,7 @@ def lint(view, view_has_changed, lock, reason=None):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(group_by_filename_and_update, bid, view_has_changed)
+        sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
         backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -328,13 +329,11 @@ affected_filenames_per_bid = defaultdict(
 )  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
 
 
-def group_by_filename_and_update(bid, view_has_changed, linter, errors):
-    # type: (Bid, ViewChangedFn, Linter, List[LintError]) -> None
+def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
+    # type: (sublime.Window, Bid, ViewChangedFn, LinterName, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
-
-    window = linter.view.window()
 
     # group all errors by filenames to update them separately
     grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
@@ -349,7 +348,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     # reported.
 
     current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_bid[bid][linter.name]
+    previous_filenames = affected_filenames_per_bid[bid][linter]
     clean_files = previous_filenames - current_filenames
 
     for filename in clean_files:
@@ -358,7 +357,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
-            update_buffer_errors(bid, view_has_changed, linter, errors)
+            update_buffer_errors(bid, linter, errors)
         else:
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
@@ -369,7 +368,7 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
                 if this_bid != bid and view.is_dirty() and errors:
                     continue
 
-                update_buffer_errors(this_bid, view_has_changed, linter, errors)
+                update_buffer_errors(this_bid, linter, errors)
 
                 if this_bid == bid:
                     did_update_main_view = True
@@ -378,21 +377,18 @@ def group_by_filename_and_update(bid, view_has_changed, linter, errors):
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
     if not did_update_main_view:
-        update_buffer_errors(bid, view_has_changed, linter, [])
+        update_buffer_errors(bid, linter, [])
 
-    affected_filenames_per_bid[bid][linter.name] = current_filenames
+    affected_filenames_per_bid[bid][linter] = current_filenames
 
 
-def update_buffer_errors(bid, view_has_changed, linter, errors):
-    # type: (Bid, ViewChangedFn, Linter, List[LintError]) -> None
+def update_buffer_errors(bid, linter, errors):
+    # type: (Bid, LinterName, List[LintError]) -> None
     """Persist lint error changes and broadcast."""
-    if view_has_changed():  # abort early
-        return
-
-    update_errors_store(bid, linter.name, errors)
+    update_errors_store(bid, linter, errors)
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
-        'linter_name': linter.name,
+        'linter_name': linter,
         'errors': errors
     })
 
@@ -429,7 +425,6 @@ def get_linters_for_view(view):
     # type: (sublime.View) -> List[Linter]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
-    current_linters = persist.view_linters.get(bid, [])
 
     filename = view.file_name()
     # Unassign all linters from orphaned views
@@ -448,29 +443,34 @@ def get_linters_for_view(view):
             if linter_class.can_lint_view(view, settings):
                 wanted_linters.append(linter_class(view, settings))
 
+    return wanted_linters
+
+
+def _assign_linters_to_view(view, next_linters):
+    # type: (sublime.View, List[Linter]) -> None
+    bid = view.buffer_id()
+    window = view.window()
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
     # pass a valid `window` around bc we do not want to update `view_linters`
     # for detached views as well bc `on_pre_close` already has been called
     # at this time.
-    window = view.window()
-    if window is None:
-        return []
+    if not window:
+        return
 
-    next_linter_names = [linter.name for linter in wanted_linters]
-    persist.view_linters[bid] = wanted_linters
+    current_linters = persist.view_linters.get(bid, [])
+    current_linter_names = {linter.name for linter in current_linters}
+    next_linter_names = {linter.name for linter in next_linters}
+
+    persist.view_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': next_linter_names
+        'linter_names': list(next_linter_names)
     })
 
-    for linter in current_linters:
-        unchanged_buffer = lambda: False  # noqa: E731
-        if linter.name not in next_linter_names:
-            update_buffer_errors(bid, unchanged_buffer, linter, [])
-
-    return wanted_linters
+    for linter in (current_linter_names - next_linter_names):
+        update_buffer_errors(bid, linter, [])
 
 
 def make_view_has_changed_fn(view):
@@ -509,6 +509,7 @@ MAX_AUTOMATIC_DELAY = 2.0
 
 
 def get_delay():
+    # type: () -> float
     """Return the delay between a lint request and when it will be processed."""
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]

@@ -439,9 +439,10 @@ def get_linters_for_view(view):
         )
         return []
 
+    ctx = linter_module.get_view_context(view)
     wanted_linters = []  # type: List[LinterInfo]
     for name, klass in persist.linter_classes.items():
-        settings = linter_module.get_linter_settings(klass, view)
+        settings = linter_module.get_linter_settings(klass, view, ctx)
         if klass.can_lint_view(view, settings):
             wanted_linters.append({
                 'name': name,

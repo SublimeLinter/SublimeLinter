@@ -16,8 +16,8 @@ from .const import WARNING, ERROR
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Dict, List, IO, Iterator, Match, Optional,
-        Pattern, Tuple, Union
+        Any, Callable, Dict, List, IO, Iterator, Match, MutableMapping,
+        Optional, Pattern, Tuple, Type, Union
     )
     from .persist import LintError
 
@@ -288,11 +288,15 @@ def get_raw_linter_settings(linter, view):
     return ChainMap({}, view_settings, project_settings, user_settings, defaults)
 
 
-def get_linter_settings(linter, view):
+def get_linter_settings(linter, view, context=None):
+    # type: (Type[Linter], sublime.View, Optional[Mapping[str, str]]) -> LinterSettings
     """Return 'final' linter settings with all variables expanded."""
-    # Note: linter can be a linter class or a linter instance
+    if context is None:
+        context = get_view_context(view)
+    else:
+        context = ChainMap({}, context)
+
     settings = get_raw_linter_settings(linter, view)
-    context = get_view_context(view)
     return LinterSettings(settings, context)
 
 
@@ -318,6 +322,7 @@ def guess_project_root_of_view(view):
 
 
 def get_view_context(view):
+    # type: (sublime.View) -> MutableMapping[str, str]
     # Note that we ship a enhanced version for 'folder' if you have multiple
     # folders open in a window. See `guess_project_root_of_view`.
 
@@ -1410,7 +1415,7 @@ class Linter(metaclass=LinterMeta):
             return self._communicate(cmd)
 
     def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
-        # type: (List[str], Dict[str, str], str, bool) -> List[str]
+        # type: (List[str], Mapping[str, str], str, bool) -> List[str]
         # Note: Both keyword arguments are deprecated.
         original_cmd = cmd
         cmd = substitute_variables(context, cmd)

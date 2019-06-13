@@ -212,13 +212,14 @@ class LinterSettings:
     """
 
     def __init__(self, raw_settings, context, _computed_settings=None):
-        # type: (Mapping[str, Any], Mapping[str, str], Mapping[str, Any]) -> None
+        # type: (Mapping[str, Any], Mapping[str, str], MutableMapping[str, Any]) -> None
         self.raw_settings = raw_settings
         self.context = context
 
         self._computed_settings = {} if _computed_settings is None else _computed_settings
 
     def __getitem__(self, key):
+        # type: (str) -> Any
         try:
             return self._computed_settings[key]
         except KeyError:
@@ -232,12 +233,15 @@ class LinterSettings:
                 return final_value
 
     def get(self, key, default=None):
+        # type: (str, Any) -> Any
         return self[key] if key in self else default
 
     def __contains__(self, key):
+        # type: (str) -> bool
         return key in self._computed_settings or key in self.raw_settings
 
     def __setitem__(self, key, value):
+        # type: (str, Any) -> None
         self._computed_settings[key] = value
 
     has = __contains__
@@ -353,6 +357,7 @@ def get_view_context(view):
 
 
 def substitute_variables(variables, value):
+    # type: (Mapping, Any) -> Any
     # Utilizes Sublime Text's `expand_variables` API, which uses the
     # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
 

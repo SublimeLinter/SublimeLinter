@@ -251,7 +251,10 @@ class LinterSettings:
         # type: () -> LinterSettings
         return self.__class__(
             self.raw_settings,
-            self.context,
+            # Dirt-alert: We clone here bc we extract this context-object
+            # in `Linter.__init__`. In the scope of a linter instance,
+            # `self.context == self.settings.context` must hold.
+            ChainMap({}, self.context),
             ChainMap({}, self._computed_settings)
         )
 
@@ -648,6 +651,9 @@ class Linter(metaclass=LinterMeta):
         # type: (sublime.View, LinterSettings) -> None
         self.view = view
         self.settings = settings
+        # Simplify tests which often just pass in a dict instead of
+        # real `LinterSettings`.
+        self.context = getattr(settings, 'context', {})  # type: MutableMapping[str, str]
         # Using `self.env` is deprecated, bc it can have surprising
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.

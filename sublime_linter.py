@@ -146,7 +146,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        hit(view)
+        hit(view, 'on_modified')
 
     def on_activated_async(self, view):
         # If the user changes the buffers syntax via the command palette,
@@ -161,7 +161,7 @@ class BackendController(sublime_plugin.EventListener):
             return
 
         if has_syntax_changed(view):
-            hit(view, "on_load")
+            hit(view, 'on_load')
 
     @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
@@ -181,7 +181,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        hit(view, reason='on_save')
+        hit(view, 'on_save')
 
     def on_pre_close(self, view):
         bid = view.buffer_id()
@@ -239,7 +239,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Lint the current view."""
-        hit(self.view, reason='on_user_request')
+        hit(self.view, 'on_user_request')
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
@@ -258,12 +258,12 @@ def relint_views(wid=None):
                 hit(view, 'on_user_request')
 
 
-def hit(view, reason=None):
-    # type: (sublime.View, Optional[str]) -> None
+def hit(view, reason):
+    # type: (sublime.View, str) -> None
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
-    delay = get_delay() if not reason else 0.0
+    delay = get_delay() if reason == 'on_modified' else 0.0
     logger.info(
         "Delay linting '{}' for {:.2}s"
         .format(util.canonical_filename(view), delay)
@@ -274,8 +274,8 @@ def hit(view, reason=None):
     queue.debounce(fn, delay=delay, key=bid)
 
 
-def lint(view, view_has_changed, lock, reason=None):
-    # type: (sublime.View, ViewChangedFn, threading.Lock, Optional[str]) -> None
+def lint(view, view_has_changed, lock, reason):
+    # type: (sublime.View, ViewChangedFn, threading.Lock, str) -> None
     """Lint the view with the given id.
 
     This function MUST run on a thread because it blocks!

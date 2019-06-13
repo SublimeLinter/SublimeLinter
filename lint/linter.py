@@ -39,16 +39,16 @@ UTF8_ENV_VARS = {
     'LC_CTYPE': 'en_US.UTF-8',
 }
 
-# _ACCEPTABLE_REASONS_MAP defines a list of acceptable reasons
+# _ACCEPTED_REASONS_PER_MODE defines a list of acceptable reasons
 # for each lint_mode. It aims to provide a better visibility to
 # how lint_mode is implemented. The map is supposed to be used in
 # this module only.
-_ACCEPTABLE_REASONS_MAP = {
+_ACCEPTED_REASONS_PER_MODE = {
     "manual": ("on_user_request",),
     "save": ("on_user_request", "on_save"),
     "load_save": ("on_user_request", "on_save", "on_load"),
-    "background": ("on_user_request", "on_save", "on_load", None),
-}  # type: Dict[str, Tuple[Union[str, None], ...]]
+    "background": ("on_user_request", "on_save", "on_load", 'on_modified'),
+}  # type: Dict[str, Tuple[str, ...]]
 
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
@@ -952,8 +952,8 @@ class Linter(metaclass=LinterMeta):
         return False
 
     @classmethod
-    def should_lint(cls, view, settings, reason=None):
-        # type: (sublime.View, LinterSettings, Optional[str]) -> bool
+    def should_lint(cls, view, settings, reason):
+        # type: (sublime.View, LinterSettings, str) -> bool
         """Decide whether the linter can run at this point in time."""
         # A 'saved-file-only' linter does not run on unsaved views
         if cls.tempfile_suffix == '-' and view.is_dirty():
@@ -966,7 +966,7 @@ class Linter(metaclass=LinterMeta):
             .format(cls.name, lint_mode, reason)
         )
 
-        return reason in _ACCEPTABLE_REASONS_MAP[lint_mode]
+        return reason in _ACCEPTED_REASONS_PER_MODE[lint_mode]
 
     def lint(self, code, view_has_changed):
         # type: (str, Callable[[], bool]) -> List[LintError]

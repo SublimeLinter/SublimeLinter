@@ -210,13 +210,14 @@ class TestWorkingDirSetting(_BaseTestCase):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        settings = {'working_dir': None}
-
         window = mock(sublime.Window)
         when(window).folders().thenReturn(folders)
+        when(window).extract_variables().thenReturn({})
+        when(window).project_data().thenReturn({})
         when(self.view).file_name().thenReturn(filename)
         when(self.view).window().thenReturn(window)
 
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
         self.assertEqual(result, actual)
@@ -233,16 +234,17 @@ class TestWorkingDirSetting(_BaseTestCase):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        settings = {'working_dir': None}
         filename = '/foo/bar.py'
         result = '/foo'
 
         window = mock(sublime.Window)
         when(window).folders().thenReturn(folders)
+        when(window).extract_variables().thenReturn({})
+        when(window).project_data().thenReturn({})
         when(self.view).window().thenReturn(window if has_window else None)
-
         when(self.view).file_name().thenReturn(filename)
 
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
         linter = FakeLinter(self.view, settings)
         actual = linter.get_working_dir(settings)
         self.assertEqual(result, actual)
@@ -265,7 +267,6 @@ class TestWorkingDirSetting(_BaseTestCase):
         window = mock(sublime.Window)
         when(window).folders().thenReturn(folders)
         when(self.view).window().thenReturn(window if has_window else None)
-
         when(self.view).file_name().thenReturn(filename)
 
         linter = FakeLinter(self.view, settings)

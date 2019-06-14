@@ -906,15 +906,11 @@ class Linter(metaclass=LinterMeta):
             else:
                 logger.error(
                     "{}: wanted working_dir '{}' is not a directory"
-                    "".format(self.name, cwd)
+                    .format(self.name, cwd)
                 )
                 return None
 
-        filename = self.view.file_name()
-        return (
-            guess_project_root_of_view(self.view) or
-            (os.path.dirname(filename) if filename else None)
-        )
+        return self.context.get('folder') or self.context.get('file_path')
 
     def get_environment(self, settings):
         # type: (LinterSettings) -> ChainMap

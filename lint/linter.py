@@ -678,6 +678,11 @@ class Linter(metaclass=LinterMeta):
         return self.executable
 
     def get_view_settings(self):
+        logger.warning(
+            "{}: `self.get_view_settings()` has been deprecated.  "
+            "Just use the member `self.settings` which is the same thing."
+            .format(self.name)
+        )
         return self.settings
 
     def notify_failure(self):
@@ -790,8 +795,7 @@ class Linter(metaclass=LinterMeta):
         Notable: `<path>` can be a list/tuple or str
 
         """
-        settings = self.get_view_settings()
-        executable = settings.get('executable', None)
+        executable = self.settings.get('executable', None)
         if executable:
             logger.info(
                 "{}: wanted executable is '{}'".format(self.name, executable)
@@ -813,8 +817,7 @@ class Linter(metaclass=LinterMeta):
     def insert_args(self, cmd):
         # type: (List[str]) -> List[str]
         """Insert user arguments into cmd and return the result."""
-        settings = self.get_view_settings()
-        args = self.build_args(settings)
+        args = self.build_args(self.settings)
 
         if '${args}' in cmd:
             i = cmd.index('${args}')
@@ -1028,7 +1031,7 @@ class Linter(metaclass=LinterMeta):
 
     def filter_errors(self, errors):
         # type: (Iterator[LintError]) -> List[LintError]
-        filter_patterns = self.get_view_settings().get('filter_errors') or []
+        filter_patterns = self.settings.get('filter_errors') or []
         if isinstance(filter_patterns, str):
             filter_patterns = [filter_patterns]
 

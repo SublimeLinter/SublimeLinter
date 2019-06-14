@@ -37,12 +37,9 @@ class PythonLinter(linter.Linter):
         if success:
             return success, executable
 
-        settings = self.get_view_settings()
-
         # `python` can be number or a string. If it is a string it should
         # point to a python environment, NOT a python binary.
-        python = settings.get('python', None)
-
+        python = self.settings.get('python', None)
         logger.info(
             "{}: wanted python is '{}'".format(self.name, python)
         )

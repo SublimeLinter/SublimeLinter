@@ -326,6 +326,8 @@ class TestWorkingDirSetting(_BaseTestCase):
 
         self.assertEqual(None, actual)
 
+
+class TestDeprecations(_BaseTestCase):
     def test_working_dir_takes_no_arg_anymore(self):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
@@ -339,6 +341,35 @@ class TestWorkingDirSetting(_BaseTestCase):
             "fakelinter: Passing a `settings` object down to `get_working_dir` "
             "has been deprecated and no effect anymore.  "
             "Just use `self.get_working_dir()`."
+        )
+
+    def test_get_environment_takes_no_arg_anymore(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.get_environment({})
+        verify(linter_module.logger).warning(
+            "fakelinter: Passing a `settings` object down to `get_environment` "
+            "has been deprecated and no effect anymore.  "
+            "Just use `self.get_environment()`."
+        )
+
+    def test_get_view_settings_warns(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.get_view_settings()
+        verify(linter_module.logger).warning(
+            "fakelinter: `self.get_view_settings()` has been deprecated.  "
+            "Just use the member `self.settings` which is the same thing."
         )
 
 

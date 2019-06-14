@@ -1,6 +1,7 @@
 from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
+from functools import lru_cache
 import logging
 import os
 import re
@@ -549,6 +550,11 @@ def register_linter(name, cls):
         logger.info('{} linter reloaded'.format(name))
 
 
+@lru_cache(4)
+def deprecation_warning(msg):
+    logger.warning(msg)
+
+
 class Linter(metaclass=LinterMeta):
     """
     The base class for linters.
@@ -668,7 +674,7 @@ class Linter(metaclass=LinterMeta):
 
     @property
     def executable_path(self):
-        logger.warning(
+        deprecation_warning(
             "{}: `executable_path` has been deprecated. "
             "Just use an ordinary binary name instead. "
             .format(self.name)
@@ -676,7 +682,7 @@ class Linter(metaclass=LinterMeta):
         return getattr(self, 'executable', '')
 
     def get_view_settings(self):
-        logger.warning(
+        deprecation_warning(
             "{}: `self.get_view_settings()` has been deprecated.  "
             "Just use the member `self.settings` which is the same thing."
             .format(self.name)
@@ -900,7 +906,7 @@ class Linter(metaclass=LinterMeta):
         # type: (...) -> Optional[str]
         """Return the working dir for this lint."""
         if settings is not None:
-            logger.warning(
+            deprecation_warning(
                 "{}: Passing a `settings` object down to `get_working_dir` "
                 "has been deprecated and no effect anymore.  "
                 "Just use `self.get_working_dir()`."
@@ -924,7 +930,7 @@ class Linter(metaclass=LinterMeta):
         # type: (...) -> ChainMap
         """Return runtime environment for this lint."""
         if settings is not None:
-            logger.warning(
+            deprecation_warning(
                 "{}: Passing a `settings` object down to `get_environment` "
                 "has been deprecated and no effect anymore.  "
                 "Just use `self.get_environment()`."

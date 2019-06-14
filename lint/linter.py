@@ -895,11 +895,18 @@ class Linter(metaclass=LinterMeta):
 
         return args
 
-    def get_working_dir(self, settings):
-        # type: (LinterSettings) -> Optional[str]
+    def get_working_dir(self, settings=None):
+        # type: (...) -> Optional[str]
         """Return the working dir for this lint."""
-        cwd = settings.get('working_dir', None)
+        if settings is not None:
+            logger.warning(
+                "{}: Passing a `settings` object down to `get_working_dir` "
+                "has been deprecated and no effect anymore.  "
+                "Just use `self.get_working_dir()`."
+                .format(self.name)
+            )
 
+        cwd = self.settings.get('working_dir', None)
         if cwd:
             if os.path.isdir(cwd):
                 return cwd
@@ -1261,7 +1268,7 @@ class Linter(metaclass=LinterMeta):
             return None
 
         if not os.path.isabs(filename):
-            cwd = self.get_working_dir(self.settings) or os.getcwd()
+            cwd = self.get_working_dir() or os.getcwd()
             filename = os.path.normpath(os.path.join(cwd, filename))
 
         # Some linters work on temp files but actually output 'real', user
@@ -1465,7 +1472,7 @@ class Linter(metaclass=LinterMeta):
         # type: (List[str], Optional[str]) -> util.popen_output
         """Run command and return result."""
         settings = self.get_view_settings()
-        cwd = self.get_working_dir(settings)
+        cwd = self.get_working_dir()
         env = self.get_environment(settings)
 
         output_stream = self.error_stream

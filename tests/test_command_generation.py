@@ -10,11 +10,12 @@ from SublimeLinter.lint import (
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
-    when,
-    verifyNoUnwantedInteractions,
     expect,
+    mock,
     unstub,
-    mock
+    verify,
+    verifyNoUnwantedInteractions,
+    when,
 )
 
 
@@ -214,8 +215,6 @@ class TestViewContext(_BaseTestCase):
 
 
 class TestWorkingDirSetting(_BaseTestCase):
-    # XXX: `get_working_dir` is a getter and shouldn't require `settings` to get
-    # injected.
     # XXX: We shouldn't have to mock anything here but use the settings context
 
     @p.expand([
@@ -239,7 +238,7 @@ class TestWorkingDirSetting(_BaseTestCase):
 
         settings = linter_module.get_linter_settings(FakeLinter, self.view)
         linter = FakeLinter(self.view, settings)
-        actual = linter.get_working_dir(settings)
+        actual = linter.get_working_dir()
         self.assertEqual(result, actual)
 
     @p.expand([
@@ -266,7 +265,7 @@ class TestWorkingDirSetting(_BaseTestCase):
 
         settings = linter_module.get_linter_settings(FakeLinter, self.view)
         linter = FakeLinter(self.view, settings)
-        actual = linter.get_working_dir(settings)
+        actual = linter.get_working_dir()
         self.assertEqual(result, actual)
 
     @p.expand([
@@ -290,7 +289,7 @@ class TestWorkingDirSetting(_BaseTestCase):
         when(self.view).file_name().thenReturn(filename)
 
         linter = FakeLinter(self.view, settings)
-        actual = linter.get_working_dir(settings)
+        actual = linter.get_working_dir()
         self.assertEqual(result, actual)
 
     def test_working_dir_set_to_valid_path_returns_path(self):
@@ -303,7 +302,7 @@ class TestWorkingDirSetting(_BaseTestCase):
         when('os.path').isdir(dir).thenReturn(True)
 
         linter = FakeLinter(self.view, settings)
-        actual = linter.get_working_dir(settings)
+        actual = linter.get_working_dir()
         self.assertEqual('/foo', actual)
 
     def test_working_dir_set_to_invalid_path_returns_none(self):
@@ -319,13 +318,28 @@ class TestWorkingDirSetting(_BaseTestCase):
         with expect(linter_module.logger).error(
             "{}: wanted working_dir '{}' is not a directory".format('fakelinter', dir)
         ):
-            actual = linter.get_working_dir(settings)
+            actual = linter.get_working_dir()
 
             # Looks like we're using an outdated version of mockito,
             # which does not automatically verify on `__exit__`.
             verifyNoUnwantedInteractions(linter_module.logger)
 
         self.assertEqual(None, actual)
+
+    def test_working_dir_takes_no_arg_anymore(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.get_working_dir({})
+        verify(linter_module.logger).warning(
+            "fakelinter: Passing a `settings` object down to `get_working_dir` "
+            "has been deprecated and no effect anymore.  "
+            "Just use `self.get_working_dir()`."
+        )
 
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):

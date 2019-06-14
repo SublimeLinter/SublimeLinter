@@ -97,7 +97,7 @@ class NodeLinter(linter.Linter):
         # type: () -> Optional[str]
         return (
             self.context.get('file_path') or
-            self.get_working_dir(self.settings)
+            self.get_working_dir()
         )
 
     def find_local_executable(self, start_dir, npm_name):

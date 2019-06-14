@@ -81,7 +81,7 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        cwd = self.get_working_dir(settings)
+        cwd = self.get_working_dir()
         executable = ask_pipenv(cmd_name, cwd)
         if executable:
             logger.info(

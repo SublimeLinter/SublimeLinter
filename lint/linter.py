@@ -919,10 +919,18 @@ class Linter(metaclass=LinterMeta):
 
         return self.context.get('folder') or self.context.get('file_path')
 
-    def get_environment(self, settings):
-        # type: (LinterSettings) -> ChainMap
+    def get_environment(self, settings=None):
+        # type: (...) -> ChainMap
         """Return runtime environment for this lint."""
-        return ChainMap({}, settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
+        if settings is not None:
+            logger.warning(
+                "{}: Passing a `settings` object down to `get_environment` "
+                "has been deprecated and no effect anymore.  "
+                "Just use `self.get_environment()`."
+                .format(self.name)
+            )
+
+        return ChainMap({}, self.settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
 
     @classmethod
     def can_lint_view(cls, view, settings):
@@ -1471,9 +1479,8 @@ class Linter(metaclass=LinterMeta):
     def _communicate(self, cmd, code=None):
         # type: (List[str], Optional[str]) -> util.popen_output
         """Run command and return result."""
-        settings = self.get_view_settings()
         cwd = self.get_working_dir()
-        env = self.get_environment(settings)
+        env = self.get_environment()
 
         output_stream = self.error_stream
         view = self.view

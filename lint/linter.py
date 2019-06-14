@@ -260,6 +260,39 @@ class LinterSettings:
         )
 
 
+def substitute_variables(variables, value):
+    # type: (Mapping, Any) -> Any
+    # Utilizes Sublime Text's `expand_variables` API, which uses the
+    # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
+
+    if isinstance(value, str):
+        # Workaround https://github.com/SublimeTextIssues/Core/issues/1878
+        # (E.g. UNC paths on Windows start with double slashes.)
+        value = value.replace(r'\\', r'\\\\')
+        value = sublime.expand_variables(value, variables)
+        return os.path.expanduser(value)
+    elif isinstance(value, Mapping):
+        return {key: substitute_variables(variables, val)
+                for key, val in value.items()}
+    elif isinstance(value, Sequence):
+        return [substitute_variables(variables, item)
+                for item in value]
+    else:
+        return value
+
+
+def get_linter_settings(linter, view, context=None):
+    # type: (Type[Linter], sublime.View, Optional[Mapping[str, str]]) -> LinterSettings
+    """Return 'final' linter settings with all variables expanded."""
+    if context is None:
+        context = get_view_context(view)
+    else:
+        context = ChainMap({}, context)
+
+    settings = get_raw_linter_settings(linter, view)
+    return LinterSettings(settings, context)
+
+
 def get_raw_linter_settings(linter, view):
     """Return 'raw' linter settings without variables substituted.
 
@@ -296,39 +329,6 @@ def get_raw_linter_settings(linter, view):
     return ChainMap({}, view_settings, project_settings, user_settings, defaults)
 
 
-def get_linter_settings(linter, view, context=None):
-    # type: (Type[Linter], sublime.View, Optional[Mapping[str, str]]) -> LinterSettings
-    """Return 'final' linter settings with all variables expanded."""
-    if context is None:
-        context = get_view_context(view)
-    else:
-        context = ChainMap({}, context)
-
-    settings = get_raw_linter_settings(linter, view)
-    return LinterSettings(settings, context)
-
-
-def guess_project_root_of_view(view):
-    window = view.window()
-    if not window:
-        return None
-
-    folders = window.folders()
-    if not folders:
-        return None
-
-    filename = view.file_name()
-    if not filename:
-        return folders[0]
-
-    for folder in folders:
-        # Take the first one; should we take the deepest one? The shortest?
-        if os.path.commonprefix([folder, filename]) == folder:
-            return folder
-
-    return None
-
-
 def get_view_context(view, additional_context=None):
     # type: (sublime.View, Optional[Mapping]) -> MutableMapping[str, str]
     # Note that we ship a enhanced version for 'folder' if you have multiple
@@ -363,25 +363,25 @@ def get_view_context(view, additional_context=None):
     return context
 
 
-def substitute_variables(variables, value):
-    # type: (Mapping, Any) -> Any
-    # Utilizes Sublime Text's `expand_variables` API, which uses the
-    # `${varname}` syntax and supports placeholders (`${varname:placeholder}`).
+def guess_project_root_of_view(view):
+    window = view.window()
+    if not window:
+        return None
 
-    if isinstance(value, str):
-        # Workaround https://github.com/SublimeTextIssues/Core/issues/1878
-        # (E.g. UNC paths on Windows start with double slashes.)
-        value = value.replace(r'\\', r'\\\\')
-        value = sublime.expand_variables(value, variables)
-        return os.path.expanduser(value)
-    elif isinstance(value, Mapping):
-        return {key: substitute_variables(variables, val)
-                for key, val in value.items()}
-    elif isinstance(value, Sequence):
-        return [substitute_variables(variables, item)
-                for item in value]
-    else:
-        return value
+    folders = window.folders()
+    if not folders:
+        return None
+
+    filename = view.file_name()
+    if not filename:
+        return folders[0]
+
+    for folder in folders:
+        # Take the first one; should we take the deepest one? The shortest?
+        if os.path.commonprefix([folder, filename]) == folder:
+            return folder
+
+    return None
 
 
 class LinterMeta(type):

@@ -421,7 +421,8 @@ class LinterMeta(type):
             'version_args', 'version_re', 'version_requirement',
             'inline_settings', 'inline_overrides',
             'comment_re', 'shebang_match',
-            'npm_name', 'composer_name'
+            'npm_name', 'composer_name',
+            'executable', 'executable_path'
         ):
             if key in attrs:
                 logger.warning(
@@ -565,11 +566,6 @@ class Linter(metaclass=LinterMeta):
     # command line (with arguments) used to lint.
     cmd = ''  # type: Union[None, str, List[str], Tuple[str]]
 
-    # DEPRECATED: Will not be evaluated. They stay here so that old plugins
-    # do not throw an AttributeError, but they will always be None
-    executable = None
-    executable_path = None
-
     # A regex pattern used to extract information from the executable's output.
     regex = None  # type: Union[None, str, Pattern]
 
@@ -672,10 +668,12 @@ class Linter(metaclass=LinterMeta):
 
     @property
     def executable_path(self):
-        logger.info(
-            "'executable_path' has been deprecated. "
-            "Just use an ordinary binary name instead. ")
-        return self.executable
+        logger.warning(
+            "{}: `executable_path` has been deprecated. "
+            "Just use an ordinary binary name instead. "
+            .format(self.name)
+        )
+        return getattr(self, 'executable', '')
 
     def get_view_settings(self):
         logger.warning(

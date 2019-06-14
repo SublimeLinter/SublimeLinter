@@ -372,6 +372,20 @@ class TestDeprecations(_BaseTestCase):
             "Just use the member `self.settings` which is the same thing."
         )
 
+    def test_executable_path_warns(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.executable_path
+        verify(linter_module.logger).warning(
+            "fakelinter: `executable_path` has been deprecated. "
+            "Just use an ordinary binary name instead. "
+        )
+
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
     @p.expand([

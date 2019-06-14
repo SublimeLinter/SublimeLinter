@@ -96,7 +96,7 @@ class NodeLinter(linter.Linter):
     def get_start_dir(self):
         # type: () -> Optional[str]
         return (
-            self.settings.context.get('file_path') or
+            self.context.get('file_path') or
             self.get_working_dir(self.settings)
         )
 

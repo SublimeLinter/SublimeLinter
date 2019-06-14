@@ -860,7 +860,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         when(self.view).file_name().thenReturn(__file__)
 
         when(linter).tmpfile(...).thenReturn(OUTPUT)
-        linter.temp_filename = TEMP
+        linter.context['temp_file'] = TEMP
 
         result = execute_lint_task(linter, INPUT)
 

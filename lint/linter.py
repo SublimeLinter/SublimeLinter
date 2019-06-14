@@ -664,8 +664,6 @@ class Linter(metaclass=LinterMeta):
         if self.defaults is not None:
             self.defaults = self.defaults.copy()
 
-        self.temp_filename = None  # type: Optional[str]
-
     @property
     def filename(self):
         # type: () -> str
@@ -1272,7 +1270,7 @@ class Linter(metaclass=LinterMeta):
 
         # Some linters work on temp files but actually output 'real', user
         # filenames, so we need to check both.
-        for processed_file in filter(None, (self.temp_filename, self.filename)):
+        for processed_file in filter(None, (self.context.get('temp_file'), self.filename)):
             if os.path.normcase(filename) == os.path.normcase(processed_file):
                 return None
 
@@ -1400,11 +1398,10 @@ class Linter(metaclass=LinterMeta):
     def communicate(self, cmd, code=None):
         # type: (List[str], Optional[str]) -> util.popen_output
         """Run an external executable using stdin to pass code and return its output."""
-        ctx = get_view_context(self.view)
-        ctx['file_on_disk'] = self.filename
+        self.context['file_on_disk'] = self.filename
 
         cmd = self.finalize_cmd(
-            cmd, ctx, at_value=self.filename, auto_append=code is None)
+            cmd, self.context, at_value=self.filename, auto_append=code is None)
         return self._communicate(cmd, code)
 
     def tmpfile(self, cmd, code, suffix=None):
@@ -1414,15 +1411,11 @@ class Linter(metaclass=LinterMeta):
             suffix = self.get_tempfile_suffix()
 
         with make_temp_file(suffix, code) as file:
-            # store this filename to assign its errors to the main file later
-            self.temp_filename = file.name
-
-            ctx = get_view_context(self.view)
-            ctx['file_on_disk'] = self.filename
-            ctx['temp_file'] = file.name
+            self.context['file_on_disk'] = self.filename
+            self.context['temp_file'] = file.name
 
             cmd = self.finalize_cmd(
-                cmd, ctx, at_value=file.name, auto_append=True)
+                cmd, self.context, at_value=file.name, auto_append=True)
             return self._communicate(cmd)
 
     def finalize_cmd(self, cmd, context, at_value='', auto_append=False):

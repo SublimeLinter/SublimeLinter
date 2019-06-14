@@ -390,8 +390,9 @@ class TestCmdType(_BaseTestCase):
             defaults = {'selector': None}
 
         FINAL_CMD = ["fake_linter_1", FILENAME]
-        when(linter_module).get_view_context(self.view).thenReturn({'file': FILENAME})
-        linter = FakeLinter(self.view, {})
+        when(self.view).file_name().thenReturn(FILENAME)
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
+        linter = FakeLinter(self.view, settings)
 
         with expect(linter)._communicate(FINAL_CMD, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)

@@ -294,6 +294,7 @@ def get_linter_settings(linter, view, context=None):
 
 
 def get_raw_linter_settings(linter, view):
+    # type: (Type[Linter], sublime.View) -> MutableMapping[str, Any]
     """Return 'raw' linter settings without variables substituted.
 
     Settings are merged in the following order:
@@ -303,8 +304,6 @@ def get_raw_linter_settings(linter, view):
     project settings
     view settings
     """
-    # Note: linter can be a linter class or a linter instance
-
     defaults = linter.defaults or {}
     user_settings = persist.settings.get('linters', {}).get(linter.name, {})
 

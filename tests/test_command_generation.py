@@ -193,6 +193,26 @@ class TestExecutableSetting(_BaseTestCase):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
 
+class TestViewContext(_BaseTestCase):
+    @p.expand([
+        (['/foo'], None, '/foo'),
+        (['/foo'], '/foo/faa/foz.py', '/foo'),
+        (['/bar', '/foo'], '/foo/faa/foz.py', '/foo'),
+        (['/bar'], '/foo/faa/foz.py', None),
+        ([], '/foo/faa/foz.py', None),
+        ([], None, None),
+    ])
+    def test_folder_setting(self, FOLDERS, FILENAME, RESULT):
+        window = mock(sublime.Window)
+        when(window).folders().thenReturn(FOLDERS)
+        when(window).extract_variables().thenReturn({})
+        when(self.view).file_name().thenReturn(FILENAME)
+        when(self.view).window().thenReturn(window)
+
+        context = linter_module.get_view_context(self.view)
+        self.assertEqual(RESULT, context.get('folder'))
+
+
 class TestWorkingDirSetting(_BaseTestCase):
     # XXX: `get_working_dir` is a getter and shouldn't require `settings` to get
     # injected.
@@ -200,8 +220,8 @@ class TestWorkingDirSetting(_BaseTestCase):
 
     @p.expand([
         (['/foo'], None, '/foo'),
-        (['/foo'], '/foo/foz.py', '/foo'),
-        (['/bar', '/foo'], '/foo/foz.py', '/foo'),
+        (['/foo'], '/foo/faa/boz.py', '/foo'),
+        (['/bar', '/foo'], '/foo/faa/boz.py', '/foo'),
     ])
     def test_working_dir_set_none_returns_project_root(
         self, folders, filename, result
@@ -234,8 +254,8 @@ class TestWorkingDirSetting(_BaseTestCase):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        filename = '/foo/bar.py'
-        result = '/foo'
+        filename = '/foo/faa/bar.py'
+        result = '/foo/faa'
 
         window = mock(sublime.Window)
         when(window).folders().thenReturn(folders)

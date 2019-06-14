@@ -322,7 +322,7 @@ def guess_project_root_of_view(view):
 
     for folder in folders:
         # Take the first one; should we take the deepest one? The shortest?
-        if filename.startswith(folder + os.path.sep):
+        if os.path.commonprefix([folder, filename]) == folder:
             return folder
 
     return None

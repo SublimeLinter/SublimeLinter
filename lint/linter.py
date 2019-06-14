@@ -329,8 +329,8 @@ def guess_project_root_of_view(view):
     return None
 
 
-def get_view_context(view):
-    # type: (sublime.View) -> MutableMapping[str, str]
+def get_view_context(view, additional_context=None):
+    # type: (sublime.View, Optional[Mapping]) -> MutableMapping[str, str]
     # Note that we ship a enhanced version for 'folder' if you have multiple
     # folders open in a window. See `guess_project_root_of_view`.
 
@@ -356,6 +356,9 @@ def get_view_context(view):
         context['file_name'] = basename
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
+
+    if additional_context:
+        context.update(additional_context)
 
     return context
 

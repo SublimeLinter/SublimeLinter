@@ -34,3 +34,23 @@ class TestCloningSettings(DeferrableTestCase):
         cloneB['a'] = 'bar'
         self.assertEqual('foo', cloneA['a'])
         self.assertEqual('bar', cloneB['a'])
+
+    def test_parent_context_is_shared_after_cloning_settings(self):
+        settings = linter_module.LinterSettings({}, {})
+        cloneA, cloneB = settings.clone().context, settings.clone().context
+
+        self.assertIsNot(cloneA, settings)
+        self.assertIsNot(cloneB, settings)
+
+        settings.context['foo'] = 'bar'
+        self.assertIn('foo', cloneA)
+        self.assertIn('foo', cloneB)
+
+    def test_contexts_are_independent_after_cloning_settings(self):
+        settings = linter_module.LinterSettings({}, {})
+        cloneA, cloneB = settings.clone().context, settings.clone().context
+
+        cloneA['a'] = 'foo'
+        cloneB['a'] = 'bar'
+        self.assertEqual('foo', cloneA['a'])
+        self.assertEqual('bar', cloneB['a'])

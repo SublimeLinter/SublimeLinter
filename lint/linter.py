@@ -40,6 +40,7 @@ UTF8_ENV_VARS = {
     'LANG': 'en_US.UTF-8',
     'LC_CTYPE': 'en_US.UTF-8',
 }
+BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
 # ACCEPTED_REASONS_PER_MODE defines a list of acceptable reasons
 # for each lint_mode. It aims to provide a better visibility to
@@ -52,8 +53,6 @@ ACCEPTED_REASONS_PER_MODE = {
     "background": ("on_user_request", "on_save", "on_load", 'on_modified'),
 }  # type: Dict[str, Tuple[str, ...]]
 KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
-
-BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
 COMMON_CAPTURING_NAMES = ("filename", "error_type", "code") + LEGACY_LINT_MATCH_DEF

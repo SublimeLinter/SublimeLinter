@@ -280,7 +280,7 @@ def lint(view, view_has_changed, lock, reason):
 
     This function MUST run on a thread because it blocks!
     """
-    linters = get_linters_for_view(view, reason)
+    linters = elect_linters_for_view(view, reason)
     with lock:
         _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
@@ -430,7 +430,7 @@ def group_by_linter(errors):
     return by_linter
 
 
-def get_linters_for_view(view, reason):
+def elect_linters_for_view(view, reason):
     # type: (sublime.View, str) -> List[LinterInfo]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()

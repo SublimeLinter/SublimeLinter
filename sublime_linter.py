@@ -281,14 +281,10 @@ def lint(view, view_has_changed, lock, reason):
     This function MUST run on a thread because it blocks!
     """
     linters = get_linters_for_view(view, reason)
-
     with lock:
         _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
-    linters = [
-        linter for linter in linters
-        if linter['klass'].should_lint(view, linter['settings'], reason)
-    ]
+    linters = filter_runnable_linters(view, reason, linters)
     if not linters:
         return
 
@@ -312,6 +308,16 @@ def lint(view, view_has_changed, lock, reason):
         backend.lint_view(linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
+
+
+def filter_runnable_linters(view, reason, linters):
+    # type: (sublime.View, str, List[LinterInfo]) -> List[LinterInfo]
+    return [linter for linter in linters if can_run_now(view, reason, linter)]
+
+
+def can_run_now(view, reason, linter):
+    # type: (sublime.View, str, LinterInfo) -> bool
+    return linter['klass'].should_lint(view, linter['settings'], reason)
 
 
 def kill_active_popen_calls(bid):

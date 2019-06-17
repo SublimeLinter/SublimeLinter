@@ -2,6 +2,7 @@ from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache
+from itertools import chain
 import logging
 import os
 import re
@@ -40,16 +41,17 @@ UTF8_ENV_VARS = {
     'LC_CTYPE': 'en_US.UTF-8',
 }
 
-# _ACCEPTED_REASONS_PER_MODE defines a list of acceptable reasons
+# ACCEPTED_REASONS_PER_MODE defines a list of acceptable reasons
 # for each lint_mode. It aims to provide a better visibility to
 # how lint_mode is implemented. The map is supposed to be used in
 # this module only.
-_ACCEPTED_REASONS_PER_MODE = {
+ACCEPTED_REASONS_PER_MODE = {
     "manual": ("on_user_request",),
     "save": ("on_user_request", "on_save"),
     "load_save": ("on_user_request", "on_save", "on_load"),
     "background": ("on_user_request", "on_save", "on_load", 'on_modified'),
 }  # type: Dict[str, Tuple[str, ...]]
+KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
 
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
@@ -993,14 +995,29 @@ class Linter(metaclass=LinterMeta):
         if cls.tempfile_suffix == '-' and view.is_dirty():
             return False
 
+        if reason not in KNOWN_REASONS:  # be open
+            logger.info(
+                "{}: Unknown reason '{}' is okay."
+                .format(cls.name, reason)
+            )
+            return True
+
         fallback_mode = persist.settings.get('lint_mode', 'background')
         lint_mode = settings.get('lint_mode', fallback_mode)
-        logger.info(
-            "{}: checking lint mode '{}' vs lint reason '{}'"
-            .format(cls.name, lint_mode, reason)
-        )
+        if lint_mode not in ACCEPTED_REASONS_PER_MODE:
+            logger.warning(
+                "{}: Unknown lint mode '{}'.  "
+                "Check your SublimeLinter settings for typos."
+                .format(cls.name, lint_mode)
+            )
+            return True
 
-        return reason in _ACCEPTED_REASONS_PER_MODE[lint_mode]
+        ok = reason in ACCEPTED_REASONS_PER_MODE[lint_mode]
+        logger.info(
+            "{}: Checking lint mode '{}' vs lint reason '{}'.  {}"
+            .format(cls.name, lint_mode, reason, 'Ok.' if ok else 'Skip.')
+        )
+        return ok
 
     def lint(self, code, view_has_changed):
         # type: (str, Callable[[], bool]) -> List[LintError]

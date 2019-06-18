@@ -258,12 +258,12 @@ def lint(view, view_has_changed, lock, reason):
 
     This function MUST run on a thread because it blocks!
     """
-    linters = elect.assignable_linters_for_view(view, reason)
+    linters = list(elect.assignable_linters_for_view(view, reason))
     with lock:
         _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
-    linters = elect.filter_runnable_linters(view, reason, linters)
-    if not linters:
+    runnable_linters = list(elect.filter_runnable_linters(view, reason, linters))
+    if not runnable_linters:
         return
 
     window = view.window()
@@ -283,7 +283,7 @@ def lint(view, view_has_changed, lock, reason):
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
-        backend.lint_view(linters, view, view_has_changed, sink)
+        backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
 

@@ -10,7 +10,7 @@ from . import persist
 
 MYPY = False
 if MYPY:
-    from typing import List, Optional, Type
+    from typing import Iterable, Iterator, Optional, Type
     from mypy_extensions import TypedDict
 
     Linter = linter_module.Linter
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def assignable_linters_for_view(view, reason):
-    # type: (sublime.View, str) -> List[LinterInfo]
+    # type: (sublime.View, str) -> Iterator[LinterInfo]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
@@ -41,32 +41,29 @@ def assignable_linters_for_view(view, reason):
             view.window(),
             "{} has become unreachable".format(filename)
         )
-        return []
+        return
 
     ctx = linter_module.get_view_context(view, {'reason': reason})
-    wanted_linters = []  # type: List[LinterInfo]
     for name, klass in persist.linter_classes.items():
         settings = linter_module.get_linter_settings(klass, view, ctx)
         if klass.can_lint_view(view, settings):
-            wanted_linters.append({
+            yield {
                 'name': name,
                 'klass': klass,
                 'settings': settings
-            })
-
-    return wanted_linters
+            }
 
 
 def runnable_linters_for_view(view, reason):
-    # type: (sublime.View, str) -> List[LinterInfo]
+    # type: (sublime.View, str) -> Iterator[LinterInfo]
     return filter_runnable_linters(
         view, reason, assignable_linters_for_view(view, reason)
     )
 
 
 def filter_runnable_linters(view, reason, linters):
-    # type: (sublime.View, str, List[LinterInfo]) -> List[LinterInfo]
-    return [linter for linter in linters if can_run_now(view, reason, linter)]
+    # type: (sublime.View, str, Iterable[LinterInfo]) -> Iterator[LinterInfo]
+    return (linter for linter in linters if can_run_now(view, reason, linter))
 
 
 def can_run_now(view, reason, linter):

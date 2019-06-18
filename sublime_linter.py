@@ -214,26 +214,9 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):
-        """
-        Return True if the current view can be linted.
-
-        If the view has *only* file-only linters, it can be linted
-        only if the view is not dirty.
-
-        Otherwise it can be linted.
-        """
-        bid = self.view.buffer_id()
-
-        if all(
-            linter.tempfile_suffix == '-'
-            for linter in persist.view_linters.get(bid, [])
-        ):
-            return not self.view.is_dirty()
-        else:
-            return True
+        return any(elect.runnable_linters_for_view(self.view, 'on_user_request'))
 
     def run(self, edit):
-        """Lint the current view."""
         hit(self.view, 'on_user_request')
 
 

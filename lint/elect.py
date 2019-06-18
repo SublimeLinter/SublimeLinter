@@ -57,6 +57,13 @@ def assignable_linters_for_view(view, reason):
     return wanted_linters
 
 
+def runnable_linters_for_view(view, reason):
+    # type: (sublime.View, str) -> List[LinterInfo]
+    return filter_runnable_linters(
+        view, reason, assignable_linters_for_view(view, reason)
+    )
+
+
 def filter_runnable_linters(view, reason, linters):
     # type: (sublime.View, str, List[LinterInfo]) -> List[LinterInfo]
     return [linter for linter in linters if can_run_now(view, reason, linter)]

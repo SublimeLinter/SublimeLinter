@@ -23,7 +23,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Set, Type
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Type
 
     Bid = sublime.BufferId
     LinterName = str
@@ -233,7 +233,7 @@ def relint_views(wid=None):
     for window in windows:
         for view in window.views():
             if view.buffer_id() in persist.view_linters and view.is_primary():
-                hit(view, 'on_user_request')
+                hit(view, 'relint_views')
 
 
 def hit(view, reason):
@@ -282,7 +282,7 @@ def lint(view, view_has_changed, lock, reason):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
+        sink = partial(group_by_filename_and_update, window, bid, view_has_changed, reason)
         backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -306,8 +306,8 @@ affected_filenames_per_bid = defaultdict(
 )  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
 
 
-def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
-    # type: (sublime.Window, Bid, ViewChangedFn, LinterName, List[LintError]) -> None
+def group_by_filename_and_update(window, bid, view_has_changed, reason, linter, errors):
+    # type: (sublime.Window, Bid, ViewChangedFn, str, LinterName, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
@@ -334,7 +334,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
     did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
-            update_buffer_errors(bid, linter, errors)
+            update_buffer_errors(bid, linter, errors, reason)
         else:
             # search for an open view for this file to get a bid
             view = window.find_open_file(filename)
@@ -345,7 +345,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
                 if this_bid != bid and view.is_dirty() and errors:
                     continue
 
-                update_buffer_errors(this_bid, linter, errors)
+                update_buffer_errors(this_bid, linter, errors, reason)
 
                 if this_bid == bid:
                     did_update_main_view = True
@@ -354,19 +354,20 @@ def group_by_filename_and_update(window, bid, view_has_changed, linter, errors):
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
     if not did_update_main_view:
-        update_buffer_errors(bid, linter, [])
+        update_buffer_errors(bid, linter, [], reason)
 
     affected_filenames_per_bid[bid][linter] = current_filenames
 
 
-def update_buffer_errors(bid, linter, errors):
-    # type: (Bid, LinterName, List[LintError]) -> None
+def update_buffer_errors(bid, linter, errors, reason=None):
+    # type: (Bid, LinterName, List[LintError], Optional[str]) -> None
     """Persist lint error changes and broadcast."""
     update_errors_store(bid, linter, errors)
     events.broadcast(events.LINT_RESULT, {
         'buffer_id': bid,
         'linter_name': linter,
-        'errors': errors
+        'errors': errors,
+        'reason': reason
     })
 
 

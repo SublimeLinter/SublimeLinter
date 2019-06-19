@@ -5,7 +5,7 @@ import sublime
 import sublime_plugin
 import textwrap
 
-from .lint import events, util, persist
+from .lint import elect, events, persist, util
 
 
 if False:
@@ -121,12 +121,11 @@ class UpdateState(sublime_plugin.EventListener):
 
     @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
+        # type: (sublime.View) -> None
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
-        window = view.window()
-        bid = view.buffer_id()
-        if buffers_effective_lint_mode_is_background(bid):
-            toggle_panel_if_errors(window, bid)
+        if view_gets_linted_on_modified_event(view):
+            toggle_panel_if_errors(view.window(), view.buffer_id())
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -169,14 +168,9 @@ class JustSavedBufferController(sublime_plugin.EventListener):
         State['just_saved_buffers'].discard(bid)
 
 
-def buffers_effective_lint_mode_is_background(bid):
-    return (
-        persist.settings.get('lint_mode') == 'background' and
-        any(
-            True for linter in persist.view_linters.get(bid, [])
-            if linter.tempfile_suffix != '-'
-        )
-    )
+def view_gets_linted_on_modified_event(view):
+    # type: (sublime.View) -> bool
+    return any(elect.runnable_linters_for_view(view, 'on_modified'))
 
 
 def toggle_panel_if_errors(window, bid):

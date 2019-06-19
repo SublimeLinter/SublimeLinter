@@ -2,9 +2,8 @@
 
 from collections import defaultdict, deque
 from contextlib import contextmanager
-from functools import lru_cache, partial
+from functools import partial
 import logging
-import os
 import time
 import threading
 
@@ -13,6 +12,7 @@ import sublime_plugin
 
 from . import log_handler
 from .lint import backend
+from .lint import elect
 from .lint import events
 from .lint import linter as linter_module
 from .lint import queue
@@ -23,8 +23,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Type
-    from mypy_extensions import TypedDict
+    from typing import Callable, DefaultDict, Dict, List, Set, Type
 
     Bid = sublime.BufferId
     LinterName = str
@@ -34,11 +33,7 @@ if MYPY:
     LinterSettings = linter_module.LinterSettings
     ViewChangedFn = Callable[[], bool]
 
-    LinterInfo = TypedDict('LinterInfo', {
-        'name': LinterName,
-        'klass': Type[Linter],
-        'settings': LinterSettings
-    })
+    LinterInfo = elect.LinterInfo
 
 
 logger = logging.getLogger(__name__)
@@ -219,26 +214,9 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):
-        """
-        Return True if the current view can be linted.
-
-        If the view has *only* file-only linters, it can be linted
-        only if the view is not dirty.
-
-        Otherwise it can be linted.
-        """
-        bid = self.view.buffer_id()
-
-        if all(
-            linter.tempfile_suffix == '-'
-            for linter in persist.view_linters.get(bid, [])
-        ):
-            return not self.view.is_dirty()
-        else:
-            return True
+        return any(elect.runnable_linters_for_view(self.view, 'on_user_request'))
 
     def run(self, edit):
-        """Lint the current view."""
         hit(self.view, 'on_user_request')
 
 
@@ -280,12 +258,12 @@ def lint(view, view_has_changed, lock, reason):
 
     This function MUST run on a thread because it blocks!
     """
-    linters = elect_linters_for_view(view, reason)
+    linters = list(elect.assignable_linters_for_view(view, reason))
     with lock:
         _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
-    linters = filter_runnable_linters(view, reason, linters)
-    if not linters:
+    runnable_linters = list(elect.filter_runnable_linters(linters))
+    if not runnable_linters:
         return
 
     window = view.window()
@@ -305,19 +283,9 @@ def lint(view, view_has_changed, lock, reason):
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(group_by_filename_and_update, window, bid, view_has_changed)
-        backend.lint_view(linters, view, view_has_changed, sink)
+        backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
-
-
-def filter_runnable_linters(view, reason, linters):
-    # type: (sublime.View, str, List[LinterInfo]) -> List[LinterInfo]
-    return [linter for linter in linters if can_run_now(view, reason, linter)]
-
-
-def can_run_now(view, reason, linter):
-    # type: (sublime.View, str, LinterInfo) -> bool
-    return linter['klass'].should_lint(view, linter['settings'], reason)
 
 
 def kill_active_popen_calls(bid):
@@ -430,35 +398,6 @@ def group_by_linter(errors):
     return by_linter
 
 
-def elect_linters_for_view(view, reason):
-    # type: (sublime.View, str) -> List[LinterInfo]
-    """Check and eventually instantiate linters for a view."""
-    bid = view.buffer_id()
-
-    filename = view.file_name()
-    if filename and not os.path.exists(filename):
-        logger.info(
-            "Skipping buffer {}; '{}' is unreachable".format(bid, filename))
-        flash_once(
-            view.window(),
-            "{} has become unreachable".format(filename)
-        )
-        return []
-
-    ctx = linter_module.get_view_context(view, {'reason': reason})
-    wanted_linters = []  # type: List[LinterInfo]
-    for name, klass in persist.linter_classes.items():
-        settings = linter_module.get_linter_settings(klass, view, ctx)
-        if klass.can_lint_view(view, settings):
-            wanted_linters.append({
-                'name': name,
-                'klass': klass,
-                'settings': settings
-            })
-
-    return wanted_linters
-
-
 def _assign_linters_to_view(view, next_linters):
     # type: (sublime.View, Set[Type[Linter]]) -> None
     bid = view.buffer_id()
@@ -544,16 +483,3 @@ def remember_runtime(log_msg):
 
     with global_lock:
         elapsed_runtimes.append(runtime)
-
-
-def flash_once(window, message):
-    # type: (Optional[sublime.Window], str) -> None
-    if window:
-        _flash_once(window.id(), message)
-
-
-@lru_cache()
-def _flash_once(wid, message):
-    # type: (sublime.WindowId, str) -> None
-    window = sublime.Window(wid)
-    window.status_message(message)

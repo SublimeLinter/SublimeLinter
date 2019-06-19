@@ -16,7 +16,7 @@ from . import style, linter as linter_module
 if False:
     from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
     from .persist import LintError
-    from ..sublime_linter import LinterInfo
+    from .elect import LinterInfo
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
 

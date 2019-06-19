@@ -21,7 +21,8 @@ if MYPY:
     LinterInfo = TypedDict('LinterInfo', {
         'name': LinterName,
         'klass': Type[Linter],
-        'settings': LinterSettings
+        'settings': LinterSettings,
+        'runnable': bool
     })
 
 
@@ -50,25 +51,24 @@ def assignable_linters_for_view(view, reason):
             yield {
                 'name': name,
                 'klass': klass,
-                'settings': settings
+                'settings': settings,
+                'runnable': can_run_now(view, reason, klass, settings)
             }
 
 
 def runnable_linters_for_view(view, reason):
     # type: (sublime.View, str) -> Iterator[LinterInfo]
-    return filter_runnable_linters(
-        view, reason, assignable_linters_for_view(view, reason)
-    )
+    return filter_runnable_linters(assignable_linters_for_view(view, reason))
 
 
-def filter_runnable_linters(view, reason, linters):
-    # type: (sublime.View, str, Iterable[LinterInfo]) -> Iterator[LinterInfo]
-    return (linter for linter in linters if can_run_now(view, reason, linter))
+def filter_runnable_linters(linters):
+    # type: (Iterable[LinterInfo]) -> Iterator[LinterInfo]
+    return (linter for linter in linters if linter['runnable'])
 
 
-def can_run_now(view, reason, linter):
-    # type: (sublime.View, str, LinterInfo) -> bool
-    return linter['klass'].should_lint(view, linter['settings'], reason)
+def can_run_now(view, reason, linter, settings):
+    # type: (sublime.View, str, Type[Linter], LinterSettings) -> bool
+    return linter.should_lint(view, settings, reason)
 
 
 def flash_once(window, message):

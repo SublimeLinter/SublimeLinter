@@ -262,7 +262,7 @@ def lint(view, view_has_changed, lock, reason):
     with lock:
         _assign_linters_to_view(view, {linter['klass'] for linter in linters})
 
-    runnable_linters = list(elect.filter_runnable_linters(view, reason, linters))
+    runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:
         return
 

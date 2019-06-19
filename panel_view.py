@@ -19,7 +19,6 @@ if False:
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
         'cursor': int,
-        'just_saved_buffers': Set[sublime.BufferId],
         'panel_opened_automatically': Set[sublime.WindowId]
     })
     bid = sublime.BufferId
@@ -32,7 +31,6 @@ OUTPUT_PANEL = "output." + PANEL_NAME
 State = {
     'active_view': None,
     'cursor': -1,
-    'just_saved_buffers': set(),
     'panel_opened_automatically': set()
 }  # type: State_
 
@@ -54,11 +52,8 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_RESULT)
-def on_lint_result(buffer_id, **kwargs):
-    maybe_toggle_panel_automatically = (
-        persist.settings.get('lint_mode') == 'manual' or
-        buffer_id in State['just_saved_buffers']
-    )
+def on_lint_result(buffer_id, reason=None, **kwargs):
+    maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
     for window in sublime.windows():
         if buffer_id in buffer_ids_per_window(window):
             if panel_is_active(window):
@@ -150,22 +145,6 @@ class UpdateState(sublime_plugin.EventListener):
                 sublime.set_timeout(start_viewport_poller)
             else:
                 stop_viewport_poller()
-
-
-class JustSavedBufferController(sublime_plugin.EventListener):
-    @util.distinct_until_buffer_changed
-    def on_post_save_async(self, view):
-        bid = view.buffer_id()
-        State['just_saved_buffers'].add(bid)
-
-    def on_pre_close(self, view):
-        bid = view.buffer_id()
-        State['just_saved_buffers'].discard(bid)
-
-    @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
-        bid = view.buffer_id()
-        State['just_saved_buffers'].discard(bid)
 
 
 def view_gets_linted_on_modified_event(view):

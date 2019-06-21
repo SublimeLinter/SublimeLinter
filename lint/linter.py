@@ -573,7 +573,7 @@ class Linter(metaclass=LinterMeta):
 
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
-    cmd = ''  # type: Union[None, str, List[str], Tuple[str]]
+    cmd = ''  # type: Union[None, str, List[str], Tuple[str, ...]]
 
     # A regex pattern used to extract information from the executable's output.
     regex = None  # type: Union[None, str, Pattern]

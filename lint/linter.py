@@ -579,8 +579,9 @@ class Linter(metaclass=LinterMeta):
     regex = None  # type: Union[None, str, Pattern]
 
     # Set to True if the linter outputs multiline error messages. When True,
-    # regex will be created with the re.MULTILINE flag. Do NOT rely on setting
-    # the re.MULTILINE flag within the regex yourself, this attribute must be set.
+    # regex will be created with the re.MULTILINE flag. If instead, you set
+    # the re.MULTILINE flag within the regex yourself, we in turn set this attribute
+    # to True automatically.
     multiline = False
 
     # If you want to set flags on the regex *other* than re.MULTILINE, set this.

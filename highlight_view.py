@@ -692,14 +692,13 @@ def open_tooltip(view, point, line_report=False):
     if not errors:
         return
 
-    max_width = min(1000, view.viewport_extent()[0])
-    max_chars = int(max_width // view.em_width() - 1)
+    max_chars = 80
     tooltip_message = join_msgs(errors, show_count=line_report, width=max_chars)
     view.show_popup(
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
-        max_width=max_width
+        max_width=1000
     )
 
 

@@ -394,8 +394,8 @@ def fill_panel(window, then=draw_on_main_thread):
                 max,
                 zip(*[
                     (
-                        len(str(error['line'])),
-                        len(str(error['start'])),
+                        len(str(error['line'] + 1)),
+                        len(str(error['start'] + 1)),
                         len(error['error_type']),
                         len(error['linter']),
                         len(str(error['code'])),

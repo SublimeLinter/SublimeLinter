@@ -351,15 +351,14 @@ def group_by_filename_and_update(
             view = window.find_open_file(filename)
             if view:
                 this_bid = view.buffer_id()
+                if this_bid == bid:
+                    did_update_main_view = True
 
                 # ignore errors of other files if their view is dirty
                 if this_bid != bid and view.is_dirty() and errors:
                     continue
 
-                update_file_errors(filename, linter, errors, reason)
-
-                if this_bid == bid:
-                    did_update_main_view = True
+            update_file_errors(filename, linter, errors, reason)
 
     # For the main view we MUST *always* report an outcome. This is not for
     # cleanup but functions as a signal that we're done. Merely for the status

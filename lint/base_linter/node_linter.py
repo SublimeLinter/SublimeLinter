@@ -124,7 +124,7 @@ class NodeLinter(linter.Linter):
                 # but must run as a normal script. E.g. `/usr/bin/env node eslint.js`
                 try:
                     script = os.path.normpath(os.path.join(path, manifest['bin'][npm_name]))
-                except KeyError:
+                except (KeyError, TypeError):
                     pass
                 else:
                     if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):

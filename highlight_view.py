@@ -696,7 +696,8 @@ def open_tooltip(view, point, line_report=False):
     view.show_popup(
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-        location=point
+        location=point,
+        max_width=1000
     )
 
 

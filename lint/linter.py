@@ -445,11 +445,20 @@ class LinterMeta(type):
                     "{}: Implementing 'cls.{}' has no effect anymore. You "
                     "can safely remove these methods.".format(name, key))
 
-        if 'should_lint' in attrs:
-            logger.warning(
-                "{}: Do *NOT* implement 'should_lint'. SublimeLinter will "
-                "have a breaking change here in the near future."
+        if (
+            'should_lint' in attrs
+            and not isinstance(attrs['should_lint'], classmethod)
+        ):
+            logger.error(
+                "{} disabled. 'should_lint' now is a `@classmethod` and has a "
+                "different call signature. \nYou need to adapt the plugin code "
+                "because as it is the linter cannot run and thus will be "
+                "disabled.  :-( \n\n"
+                "(Extending 'should_lint' is an edge-case and you probably don't "
+                "even need it, but if you do look it up \nin the source code on "
+                "GitHub.)"
                 .format(name))
+            cls.disabled = True
         # END DEPRECATIONS
 
         # BEGIN CLASS MUTATIONS

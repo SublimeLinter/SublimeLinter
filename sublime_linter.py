@@ -28,6 +28,7 @@ if MYPY:
     Bid = sublime.BufferId
     LinterName = str
     FileName = str
+    Reason = str
     LintError = persist.LintError
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
@@ -237,7 +238,7 @@ def relint_views(wid=None):
 
 
 def hit(view, reason):
-    # type: (sublime.View, str) -> None
+    # type: (sublime.View, Reason) -> None
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
@@ -253,7 +254,7 @@ def hit(view, reason):
 
 
 def lint(view, view_has_changed, lock, reason):
-    # type: (sublime.View, ViewChangedFn, threading.Lock, str) -> None
+    # type: (sublime.View, ViewChangedFn, threading.Lock, Reason) -> None
     """Lint the view with the given id.
 
     This function MUST run on a thread because it blocks!
@@ -307,7 +308,7 @@ affected_filenames_per_bid = defaultdict(
 
 
 def group_by_filename_and_update(window, bid, view_has_changed, reason, linter, errors):
-    # type: (sublime.Window, Bid, ViewChangedFn, str, LinterName, List[LintError]) -> None
+    # type: (sublime.Window, Bid, ViewChangedFn, Reason, LinterName, List[LintError]) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
@@ -360,7 +361,7 @@ def group_by_filename_and_update(window, bid, view_has_changed, reason, linter, 
 
 
 def update_buffer_errors(bid, linter, errors, reason=None):
-    # type: (Bid, LinterName, List[LintError], Optional[str]) -> None
+    # type: (Bid, LinterName, List[LintError], Optional[Reason]) -> None
     """Persist lint error changes and broadcast."""
     update_errors_store(bid, linter, errors)
     events.broadcast(events.LINT_RESULT, {

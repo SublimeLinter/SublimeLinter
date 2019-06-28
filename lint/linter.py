@@ -23,6 +23,8 @@ if MYPY:
     )
     from .persist import LintError
 
+    Reason = str
+
 
 logger = logging.getLogger(__name__)
 
@@ -998,7 +1000,7 @@ class Linter(metaclass=LinterMeta):
 
     @classmethod
     def should_lint(cls, view, settings, reason):
-        # type: (sublime.View, LinterSettings, str) -> bool
+        # type: (sublime.View, LinterSettings, Reason) -> bool
         """Decide whether the linter can run at this point in time."""
         # A 'saved-file-only' linter does not run on unsaved views
         if cls.tempfile_suffix == '-' and view.is_dirty():

@@ -17,6 +17,7 @@ if MYPY:
     LinterName = str
     LinterSettings = linter_module.LinterSettings
     LintError = persist.LintError
+    Reason = str
 
     LinterInfo = TypedDict('LinterInfo', {
         'name': LinterName,
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def assignable_linters_for_view(view, reason):
-    # type: (sublime.View, str) -> Iterator[LinterInfo]
+    # type: (sublime.View, Reason) -> Iterator[LinterInfo]
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
@@ -57,7 +58,7 @@ def assignable_linters_for_view(view, reason):
 
 
 def runnable_linters_for_view(view, reason):
-    # type: (sublime.View, str) -> Iterator[LinterInfo]
+    # type: (sublime.View, Reason) -> Iterator[LinterInfo]
     return filter_runnable_linters(assignable_linters_for_view(view, reason))
 
 
@@ -67,7 +68,7 @@ def filter_runnable_linters(linters):
 
 
 def can_run_now(view, reason, linter, settings):
-    # type: (sublime.View, str, Type[Linter], LinterSettings) -> bool
+    # type: (sublime.View, Reason, Type[Linter], LinterSettings) -> bool
     return linter.should_lint(view, settings, reason)
 
 

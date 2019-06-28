@@ -189,7 +189,7 @@ class BackendController(sublime_plugin.EventListener):
         # Cleanup bid-based stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
             persist.errors.pop(bid, None)
-            persist.view_linters.pop(bid, None)
+            persist.assigned_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
             affected_filenames_per_bid.pop(bid, None)
@@ -233,7 +233,7 @@ def relint_views(wid=None):
     windows = [sublime.Window(wid)] if wid else sublime.windows()
     for window in windows:
         for view in window.views():
-            if view.buffer_id() in persist.view_linters and view.is_primary():
+            if view.buffer_id() in persist.assigned_linters and view.is_primary():
                 hit(view, 'relint_views')
 
 
@@ -407,17 +407,17 @@ def _assign_linters_to_view(view, next_linters):
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
-    # pass a valid `window` around bc we do not want to update `view_linters`
+    # pass a valid `window` around bc we do not want to update `assigned_linters`
     # for detached views as well bc `on_pre_close` already has been called
     # at this time.
     if not window:
         return
 
-    current_linters = persist.view_linters.get(bid, set())
+    current_linters = persist.assigned_linters.get(bid, set())
     current_linter_names = {linter.name for linter in current_linters}
     next_linter_names = {linter.name for linter in next_linters}
 
-    persist.view_linters[bid] = next_linters
+    persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
         'linter_names': list(next_linter_names)

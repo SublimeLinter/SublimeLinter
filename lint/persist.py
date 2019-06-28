@@ -43,7 +43,7 @@ errors = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[LintError
 linter_classes = {}  # type: Dict[str, Type[Linter]]
 
 # A mapping between buffer ids and a list of linter instances
-view_linters = {}  # type: Dict[sublime.BufferId, Set[Type[Linter]]]
+assigned_linters = {}  # type: Dict[sublime.BufferId, Set[Type[Linter]]]
 
 # Dict[buffer_id, [Popen]]
 active_procs = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[subprocess.Popen]]

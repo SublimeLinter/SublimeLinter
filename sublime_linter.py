@@ -23,7 +23,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Type
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set
 
     Bid = sublime.BufferId
     LinterName = str
@@ -261,7 +261,7 @@ def lint(view, view_has_changed, lock, reason):
     """
     linters = list(elect.assignable_linters_for_view(view, reason))
     with lock:
-        _assign_linters_to_view(view, {linter['klass'] for linter in linters})
+        _assign_linters_to_view(view, {linter['name'] for linter in linters})
 
     runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:
@@ -401,7 +401,7 @@ def group_by_linter(errors):
 
 
 def _assign_linters_to_view(view, next_linters):
-    # type: (sublime.View, Set[Type[Linter]]) -> None
+    # type: (sublime.View, Set[LinterName]) -> None
     bid = view.buffer_id()
     window = view.window()
     # It is possible that the user closes the view during debounce time,
@@ -414,16 +414,14 @@ def _assign_linters_to_view(view, next_linters):
         return
 
     current_linters = persist.assigned_linters.get(bid, set())
-    current_linter_names = {linter.name for linter in current_linters}
-    next_linter_names = {linter.name for linter in next_linters}
 
     persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'bid': bid,
-        'linter_names': list(next_linter_names)
+        'linter_names': list(next_linters)
     })
 
-    for linter in (current_linter_names - next_linter_names):
+    for linter in (current_linters - next_linters):
         update_buffer_errors(bid, linter, [])
 
 

@@ -14,12 +14,13 @@ if False:
     import subprocess
     from .linter import Linter
 
+    LinterName = str
     LintError = TypedDict('LintError', {
         'line': int,
         'start': int,
         'end': int,
         'region': sublime.Region,
-        'linter': str,
+        'linter': LinterName,
         'error_type': str,
         'code': str,
         'msg': str,
@@ -43,7 +44,7 @@ errors = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[LintError
 linter_classes = {}  # type: Dict[str, Type[Linter]]
 
 # A mapping between buffer ids and a list of linter instances
-assigned_linters = {}  # type: Dict[sublime.BufferId, Set[Type[Linter]]]
+assigned_linters = {}  # type: Dict[sublime.BufferId, Set[LinterName]]
 
 # Dict[buffer_id, [Popen]]
 active_procs = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[subprocess.Popen]]

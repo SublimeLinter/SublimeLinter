@@ -1342,6 +1342,8 @@ class Linter(metaclass=LinterMeta):
         if not os.path.isabs(filename):
             cwd = self.get_working_dir() or os.getcwd()
             filename = os.path.normpath(os.path.join(cwd, filename))
+        else:
+            filename = os.path.normpath(filename)
 
         # Some linters work on temp files but actually output 'real', user
         # filenames, so we need to check both.

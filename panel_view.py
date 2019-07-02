@@ -46,6 +46,7 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_lint_result)
     events.off(on_updated_error_positions)
+    events.off(on_renamed_file)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
@@ -69,6 +70,15 @@ def on_updated_error_positions(view, **kwargs):
     window = view.window()
     if panel_is_active(window) and bid in buffer_ids_per_window(window):
         fill_panel(window)
+
+
+@events.on('renamed_file')
+def on_renamed_file(new_filename, **kwargs):
+    # update all panels that contain this file
+    for window in sublime.windows():
+        if new_filename in filenames_per_window(window):
+            if panel_is_active(window):
+                fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):

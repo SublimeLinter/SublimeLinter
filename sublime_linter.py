@@ -23,7 +23,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Tuple
 
     Bid = sublime.BufferId
     LinterName = str
@@ -133,6 +133,7 @@ def other_visible_views():
 
 global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
+buffer_filenames = {}  # type: Dict[Bid, FileName]
 buffer_syntaxes = {}  # type: Dict[Bid, str]
 
 
@@ -155,6 +156,19 @@ class BackendController(sublime_plugin.EventListener):
         # good enough.
         if not util.is_lintable(view):
             return
+
+        # check if the view has been renamed
+        renamed_filename = detect_rename(view)
+        if renamed_filename:
+            # update the error store and the views
+            old_filename, new_filename = renamed_filename
+            if old_filename in persist.file_errors:
+                persist.file_errors[new_filename] = persist.file_errors.pop(old_filename)
+
+            events.broadcast('renamed_file', {
+                'new_filename': new_filename,
+                'old_filename': old_filename
+            })
 
         if has_syntax_changed(view):
             hit(view, 'on_load')
@@ -188,13 +202,33 @@ class BackendController(sublime_plugin.EventListener):
 
         # Cleanup bid-based stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
-            persist.file_errors.pop(util.get_filename(view), None)
+            filename = util.get_filename(view)
+            persist.file_errors.pop(filename, None)
             persist.assigned_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
             affected_filenames_per_bid.pop(bid, None)
+            buffer_filenames.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
+
+
+def detect_rename(view):
+    # type: (sublime.View) -> Optional[Tuple[FileName, FileName]]
+    bid = view.buffer_id()
+    current_filename = util.get_filename(view)
+
+    try:
+        old_filename = buffer_filenames[bid]
+    except KeyError:
+        return None
+    else:
+        if old_filename != current_filename:
+            return (old_filename, current_filename)
+
+        return None
+    finally:
+        buffer_filenames[bid] = current_filename
 
 
 def has_syntax_changed(view):

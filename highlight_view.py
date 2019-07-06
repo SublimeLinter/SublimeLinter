@@ -80,6 +80,22 @@ def on_lint_result(filename, linter_name, **kwargs):
     if not views:
         return
 
+    highlight_linter_errors(views, filename, linter_name)
+
+
+class UpdateOnLoadController(sublime_plugin.EventListener):
+    def on_load_async(self, view):
+        # update this new view with any errors it currently has
+        filename = util.get_filename(view)
+        errors = persist.file_errors.get(filename)
+        if errors:
+            set_idle(view, True)  # show errors immediately
+            linter_names = set(error['linter'] for error in errors)
+            for linter_name in linter_names:
+                highlight_linter_errors([view], filename, linter_name)
+
+
+def highlight_linter_errors(views, filename, linter_name):
     errors = persist.file_errors[filename]
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 

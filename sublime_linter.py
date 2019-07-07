@@ -363,6 +363,8 @@ def group_by_filename_and_update(
     for filename in clean_files:
         grouped[filename]  # For the side-effect of creating a new empty `list`
 
+    affected_filenames[linter] = current_filenames
+
     did_update_main_view = False
     for filename, errors in grouped.items():
         if not filename:  # backwards compatibility
@@ -385,8 +387,6 @@ def group_by_filename_and_update(
     # bar view.
     if not did_update_main_view:
         update_file_errors(main_filename, linter, [], reason)
-
-    affected_filenames[linter] = current_filenames
 
 
 def update_file_errors(filename, linter, errors, reason=None):

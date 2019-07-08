@@ -207,7 +207,7 @@ class BackendController(sublime_plugin.EventListener):
             persist.assigned_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
-            affected_filenames_per_bid.pop(bid, None)
+            affected_filenames_per_filename.pop(filename, None)
             buffer_filenames.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
@@ -319,7 +319,7 @@ def lint(view, view_has_changed, lock, reason):
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(
-            group_by_filename_and_update, window, bid, filename, view_has_changed, reason)
+            group_by_filename_and_update, window, filename, view_has_changed, reason)
         backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -338,14 +338,13 @@ def kill_active_popen_calls(bid):
         setattr(proc, 'friendly_terminated', True)
 
 
-affected_filenames_per_bid = defaultdict(
+affected_filenames_per_filename = defaultdict(
     lambda: defaultdict(set)
-)  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
+)  # type: DefaultDict[FileName, DefaultDict[LinterName, Set[FileName]]]
 
 
 def group_by_filename_and_update(
     window,            # type: sublime.Window
-    bid,               # type: Bid
     main_filename,     # type: FileName
     view_has_changed,  # type: ViewChangedFn
     reason,            # type: Reason
@@ -365,12 +364,12 @@ def group_by_filename_and_update(
     # The contract for a simple linter is that it reports `[errors]` or an
     # empty list `[]` if the buffer is clean. For linters that report errors
     # for multiple files we collect information about which files are actually
-    # reported by a given `bid` so that we can clean the results. Basically,
-    # we must fake a `[]` response for every filename that is no longer
-    # reported.
+    # reported by a given linted file so that we can clean the results.
+    # Basically, we must fake a `[]` response for every filename that is no
+    # longer reported.
 
     current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_bid[bid][linter]
+    previous_filenames = affected_filenames_per_filename[main_filename][linter]
     clean_files = previous_filenames - current_filenames
 
     for filename in clean_files:
@@ -381,15 +380,14 @@ def group_by_filename_and_update(
         if not filename:  # backwards compatibility
             update_file_errors(main_filename, linter, errors, reason)
         else:
-            # search for an open view for this file to get a bid
+            # search for an open view for this file
             view = window.find_open_file(filename)
             if view:
-                this_bid = view.buffer_id()
-                if this_bid == bid:
+                if filename == main_filename:
                     did_update_main_view = True
 
                 # ignore errors of other files if their view is dirty
-                if this_bid != bid and view.is_dirty() and errors:
+                if filename != main_filename and view.is_dirty() and errors:
                     continue
 
             update_file_errors(filename, linter, errors, reason)
@@ -400,7 +398,7 @@ def group_by_filename_and_update(
     if not did_update_main_view:
         update_file_errors(main_filename, linter, [], reason)
 
-    affected_filenames_per_bid[bid][linter] = current_filenames
+    affected_filenames_per_filename[main_filename][linter] = current_filenames
 
 
 def update_file_errors(filename, linter, errors, reason=None):

@@ -2,6 +2,7 @@ from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache
+import inspect
 from itertools import chain
 import logging
 import os
@@ -459,6 +460,32 @@ class LinterMeta(type):
                 "(Extending 'should_lint' is an edge-case and you probably don't "
                 "even need it, but if you do look it up \nin the source code on "
                 "GitHub.)"
+                .format(name))
+            cls.disabled = True
+
+        if (
+            'get_environment' in attrs
+            and not len(inspect.getfullargspec(attrs['get_environment']).args) == 1
+        ):
+            logger.error(
+                "{} disabled. 'get_environment' now has a simplified signature:\n"
+                "    def get_environment(self): ...\n"
+                "The settings object can be retrieved via `self.settings`.\n"
+                "You need to update the linter plugin because as it is the "
+                "linter cannot run and thus will be disabled.  :-("
+                .format(name))
+            cls.disabled = True
+
+        if (
+            'get_working_dir' in attrs
+            and not len(inspect.getfullargspec(attrs['get_working_dir']).args) == 1
+        ):
+            logger.error(
+                "{} disabled. 'get_working_dir' now has a simplified signature:\n"
+                "    def get_working_dir(self): ...\n"
+                "The settings object can be retrieved via `self.settings`.\n"
+                "You need to update the linter plugin because as it is the "
+                "linter cannot run and thus will be disabled.  :-("
                 .format(name))
             cls.disabled = True
         # END DEPRECATIONS

@@ -20,7 +20,7 @@ before_install:
       fi
 
 install:
-    - pip install flake8 flake8-docstrings Sphinx sphinx_rtd_theme codecov
+    - pip install flake8 flake8-docstrings "pydocstyle<4.0.0" Sphinx sphinx_rtd_theme codecov
     - sh travis.sh bootstrap
     - sh travis.sh install_package_control
 

@@ -1,14 +1,11 @@
 from unittesting import DeferrableTestCase
 
-import sublime
 from SublimeLinter.lint import (
-    Linter,
     linter as linter_module,
-    backend,
 )
 
 
-class TestCloningLinters(DeferrableTestCase):
+class TestCloningSettings(DeferrableTestCase):
     def create_view(self, window):
         view = window.new_file()
         self.addCleanup(self.close_view, view)
@@ -18,26 +15,42 @@ class TestCloningLinters(DeferrableTestCase):
         view.set_scratch(True)
         view.close()
 
-    def test_independent_linters_inherit_settings_from_parent(self):
-        view = self.create_view(sublime.active_window())
+    def test_independent_settings_inherit_settings_from_parent(self):
         settings = linter_module.LinterSettings({}, {})
-        linter = Linter(view, settings)
+        cloneA, cloneB = settings.clone(), settings.clone()
 
-        cloneA, cloneB = backend.create_n_independent_linters(linter, 2)
-        self.assertIsNot(cloneA, linter)
-        self.assertIsNot(cloneB, linter)
+        self.assertIsNot(cloneA, settings)
+        self.assertIsNot(cloneB, settings)
 
-        linter.settings['foo'] = 'bar'
-        self.assertIn('foo', cloneA.settings)
-        self.assertIn('foo', cloneB.settings)
+        settings['foo'] = 'bar'
+        self.assertIn('foo', cloneA)
+        self.assertIn('foo', cloneB)
 
-    def test_independent_linter_do_not_share_their_own_settings(self):
-        view = self.create_view(sublime.active_window())
+    def test_independent_settings_do_not_share_their_own_settings(self):
         settings = linter_module.LinterSettings({}, {})
-        linter = Linter(view, settings)
-        cloneA, cloneB = backend.create_n_independent_linters(linter, 2)
+        cloneA, cloneB = settings.clone(), settings.clone()
 
-        cloneA.settings['a'] = 'foo'
-        cloneB.settings['a'] = 'bar'
-        self.assertEqual('foo', cloneA.settings['a'])
-        self.assertEqual('bar', cloneB.settings['a'])
+        cloneA['a'] = 'foo'
+        cloneB['a'] = 'bar'
+        self.assertEqual('foo', cloneA['a'])
+        self.assertEqual('bar', cloneB['a'])
+
+    def test_parent_context_is_shared_after_cloning_settings(self):
+        settings = linter_module.LinterSettings({}, {})
+        cloneA, cloneB = settings.clone().context, settings.clone().context
+
+        self.assertIsNot(cloneA, settings)
+        self.assertIsNot(cloneB, settings)
+
+        settings.context['foo'] = 'bar'
+        self.assertIn('foo', cloneA)
+        self.assertIn('foo', cloneB)
+
+    def test_contexts_are_independent_after_cloning_settings(self):
+        settings = linter_module.LinterSettings({}, {})
+        cloneA, cloneB = settings.clone().context, settings.clone().context
+
+        cloneA['a'] = 'foo'
+        cloneB['a'] = 'bar'
+        self.assertEqual('foo', cloneA['a'])
+        self.assertEqual('bar', cloneB['a'])

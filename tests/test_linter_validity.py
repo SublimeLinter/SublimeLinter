@@ -111,6 +111,118 @@ class TestLinterValidity(DeferrableTestCase):
             contains("'selector' is mandatory")
         )
 
+    def test_having_a_should_lint_instance_method_fails(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                def should_lint(self, reason=None):
+                    pass
+
+            return Fake
+
+        when(linter_module.logger).error(...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains(
+                "fake disabled. 'should_lint' now is a `@classmethod` and has a "
+                "different call signature."
+            )
+        )
+
+    def test_implementing_should_lint_as_a_classmethod_is_ok(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                @classmethod
+                def should_lint(cls, view, settings, reason):
+                    pass
+
+            return Fake
+
+        linter = def_linter()
+
+        self.assertIsNone(linter.disabled)
+
+    def test_implementing_get_environment_old_signature_fails(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                def get_environment(self, settings):
+                    pass
+
+            return Fake
+
+        when(linter_module.logger).error(...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains(
+                "fake disabled. 'get_environment' now has a simplified signature:\n"
+                "    def get_environment(self): ...\n"
+            )
+        )
+
+    def test_implementing_get_environment_new_signature_is_ok(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                def get_environment(self):
+                    pass
+
+            return Fake
+
+        linter = def_linter()
+
+        self.assertIsNone(linter.disabled)
+
+    def test_implementing_get_working_dir_old_signature_fails(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                def get_working_dir(self, settings):
+                    pass
+
+            return Fake
+
+        when(linter_module.logger).error(...).thenReturn(None)
+        linter = def_linter()
+
+        self.assertTrue(linter.disabled)
+        verify(linter_module.logger).error(
+            contains(
+                "fake disabled. 'get_working_dir' now has a simplified signature:\n"
+                "    def get_working_dir(self): ...\n"
+            )
+        )
+
+    def test_implementing_get_working_dir_new_signature_is_ok(self):
+        def def_linter():
+            class Fake(Linter):
+                cmd = 'foo'
+                defaults = {'selector': ''}
+
+                def get_working_dir(self):
+                    pass
+
+            return Fake
+
+        linter = def_linter()
+
+        self.assertIsNone(linter.disabled)
+
 
 class TestRegexCompiling(DeferrableTestCase):
     def setUp(self):

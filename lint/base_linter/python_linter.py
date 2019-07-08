@@ -37,12 +37,9 @@ class PythonLinter(linter.Linter):
         if success:
             return success, executable
 
-        settings = self.get_view_settings()
-
         # `python` can be number or a string. If it is a string it should
         # point to a python environment, NOT a python binary.
-        python = settings.get('python', None)
-
+        python = self.settings.get('python', None)
         logger.info(
             "{}: wanted python is '{}'".format(self.name, python)
         )
@@ -81,7 +78,7 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        cwd = self.get_working_dir(settings)
+        cwd = self.get_working_dir()
         executable = ask_pipenv(cmd_name, cwd)
         if executable:
             logger.info(

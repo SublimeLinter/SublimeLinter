@@ -8,22 +8,25 @@ from .settings import Settings
 
 
 if False:
-    from typing import DefaultDict, Dict, List, Tuple, Type
+    from typing import DefaultDict, Dict, List, Set, Tuple, Type
     from mypy_extensions import TypedDict
     import sublime
     import subprocess
     from .linter import Linter
 
+    Bid = sublime.BufferId
+    FileName = str
+    LinterName = str
     LintError = TypedDict('LintError', {
         'line': int,
         'start': int,
         'end': int,
         'region': sublime.Region,
-        'linter': str,
+        'linter': LinterName,
         'error_type': str,
         'code': str,
         'msg': str,
-        'filename': str,
+        'filename': FileName,
         'uid': str,
         'priority': int,
         'panel_line': Tuple[int, int]
@@ -35,18 +38,11 @@ kill_switch = True
 
 settings = Settings()
 
-# A mapping between buffer ids and errors,
-# Dict[buffer_id, [error]]
-errors = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[LintError]]
-
-# A mapping between linter class names and linter classes
+errors = defaultdict(list)  # type: DefaultDict[Bid, List[LintError]]
 linter_classes = {}  # type: Dict[str, Type[Linter]]
+assigned_linters = {}  # type: Dict[Bid, Set[LinterName]]
 
-# A mapping between buffer ids and a list of linter instances
-view_linters = {}  # type: Dict[sublime.BufferId, List[Linter]]
-
-# Dict[buffer_id, [Popen]]
-active_procs = defaultdict(list)  # type: DefaultDict[sublime.BufferId, List[subprocess.Popen]]
+active_procs = defaultdict(list)  # type: DefaultDict[Bid, List[subprocess.Popen]]
 active_procs_lock = threading.Lock()
 
 

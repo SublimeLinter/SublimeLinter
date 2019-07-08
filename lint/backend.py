@@ -14,13 +14,16 @@ from . import style, linter as linter_module
 
 
 if False:
-    from typing import Callable, Iterator, List, Optional, Tuple, TypeVar
+    from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
     from .persist import LintError
+    from .elect import LinterInfo
     Linter = linter_module.Linter
+    LinterSettings = linter_module.LinterSettings
 
     T = TypeVar('T')
     LintResult = List[LintError]
     Task = Callable[[], T]
+    ViewChangedFn = Callable[[], bool]
     LinterName = str
 
 
@@ -36,9 +39,9 @@ counter_lock = threading.Lock()
 
 
 def lint_view(
-    linters,           # type: List[Linter]
+    linters,           # type: List[LinterInfo]
     view,              # type: sublime.View
-    view_has_changed,  # type: Callable[[], bool]
+    view_has_changed,  # type: ViewChangedFn
     next               # type: Callable[[LinterName, LintResult], None]
 ):
     # type: (...) -> None
@@ -47,11 +50,15 @@ def lint_view(
     This is the top level lint dispatcher. It is called
     asynchronously.
     """
-    lint_tasks = get_lint_tasks(linters, view, view_has_changed)
+    lint_tasks = {
+        linter['name']: list(tasks_per_linter(view, view_has_changed, linter['klass'], linter['settings']))
+        for linter in linters
+    }
+    warn_excessive_tasks(view, lint_tasks)
 
     run_concurrently([
-        partial(run_tasks, tasks, next=partial(next, linter.name))
-        for linter, tasks in lint_tasks
+        partial(run_tasks, tasks, next=partial(next, linter_name))
+        for linter_name, tasks in lint_tasks.items()
     ], executor=orchestrator)
 
 
@@ -69,17 +76,16 @@ def run_tasks(tasks, next):
     sublime.set_timeout_async(lambda: next(errors))
 
 
-def get_lint_tasks(
-    linters,           # type: List[Linter]
-    view,              # type: sublime.View
-    view_has_changed,  # type: Callable[[], bool]
-):                     # type: (...) -> Iterator[Tuple[Linter, List[Task[LintResult]]]]
-    total_tasks = 0
-    for (linter, regions) in get_lint_regions(linters, view):
-        tasks = _make_tasks(linter, regions, view, view_has_changed)
-        total_tasks += len(tasks)
-        yield linter, tasks
+def warn_excessive_tasks(view, uow):
+    # type: (sublime.View, Dict[LinterName, List[Task[LintResult]]]) -> None
+    for linter_name, tasks in uow.items():
+        if len(tasks) > 3:
+            logger.warning(
+                "'{}' puts {} {} tasks on the queue."
+                .format(short_canonical_filename(view), len(tasks), linter_name)
+            )
 
+    total_tasks = sum(len(tasks) for tasks in uow.values())
     if total_tasks > 4:
         logger.warning(
             "'{}' puts in total {}(!) tasks on the queue."
@@ -87,11 +93,14 @@ def get_lint_tasks(
         )
 
 
-def _make_tasks(linter_, regions, view, view_has_changed):
-    # type: (Linter, List[sublime.Region], sublime.View, Callable[[], bool]) -> List[Task[LintResult]]
-    independent_linters = create_n_independent_linters(linter_, len(regions))
-    tasks = []  # type: List[Task[LintResult]]
-    for linter, region in zip(independent_linters, regions):
+def tasks_per_linter(view, view_has_changed, linter_class, settings):
+    # type: (sublime.View, ViewChangedFn, Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
+    selector = settings.get('selector')
+    if selector is None:
+        return []
+
+    for region in extract_lintable_regions(view, selector):
+        linter = linter_class(view, settings.clone())
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
@@ -101,27 +110,16 @@ def _make_tasks(linter_, regions, view, view_has_changed):
         task_name = make_good_task_name(linter, view)
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
         executor = partial(modify_thread_name, task_name, task)
-        tasks.append(executor)
-
-    if len(tasks) > 3:
-        logger.warning(
-            "'{}' puts {} {} tasks on the queue."
-            .format(short_canonical_filename(view), len(tasks), linter_.name)
-        )
-    return tasks
+        yield executor
 
 
-def create_n_independent_linters(linter, n):
-    return (
-        [linter]
-        if n == 1
-        else [clone_linter(linter) for _ in range(n)]
-    )
-
-
-def clone_linter(linter):
-    # type: (linter_module.Linter) -> linter_module.Linter
-    return linter.__class__(linter.view, linter.settings.clone())
+def extract_lintable_regions(view, selector):
+    # type: (sublime.View, str) -> List[sublime.Region]
+    # Inspecting just the first char is faster
+    if view.score_selector(0, selector):
+        return [sublime.Region(0, view.size())]
+    else:
+        return [region for region in view.find_by_selector(selector)]
 
 
 def short_canonical_filename(view):
@@ -152,7 +150,7 @@ def modify_thread_name(name, sink):
 
 
 def execute_lint_task(linter, code, offsets, view_has_changed):
-    # type: (Linter, str, Tuple, Callable[[], bool]) -> LintResult
+    # type: (Linter, str, Tuple, ViewChangedFn) -> LintResult
     try:
         errors = linter.lint(code, view_has_changed)
         finalize_errors(linter, errors, offsets)
@@ -233,21 +231,6 @@ def finalize_errors(linter, errors, offsets):
             'uid': uid,
             'priority': style.get_value('priority', error, 0)
         })
-
-
-def get_lint_regions(linters, view):
-    # type: (List[Linter], sublime.View) -> Iterator[Tuple[Linter, List[sublime.Region]]]
-    for linter in linters:
-        settings = linter.get_view_settings()
-        selector = settings.get('selector', None)
-        if selector is not None:
-            # Inspecting just the first char is faster
-            if view.score_selector(0, selector):
-                yield linter, [sublime.Region(0, view.size())]
-            else:
-                yield linter, [
-                    region for region in view.find_by_selector(selector)
-                ]
 
 
 def run_concurrently(tasks, executor):

@@ -38,7 +38,7 @@ kill_switch = True
 
 settings = Settings()
 
-errors = defaultdict(list)  # type: DefaultDict[Bid, List[LintError]]
+file_errors = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
 linter_classes = {}  # type: Dict[str, Type[Linter]]
 assigned_linters = {}  # type: Dict[Bid, Set[LinterName]]
 

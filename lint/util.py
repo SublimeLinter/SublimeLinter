@@ -70,6 +70,11 @@ def canonical_filename(view):
     )
 
 
+def get_filename(view):
+    # type: (sublime.View) -> str
+    return view.file_name() or '<untitled {}>'.format(view.buffer_id())
+
+
 def get_syntax(view):
     """
     Return the view's syntax.

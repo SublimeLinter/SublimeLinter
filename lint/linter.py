@@ -736,7 +736,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_failed', {
-                'bid': self.view.buffer_id(),
+                'filename': util.get_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -745,7 +745,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_unassigned', {
-                'bid': self.view.buffer_id(),
+                'filename': util.get_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -1281,7 +1281,7 @@ class Linter(metaclass=LinterMeta):
                 return None
         else:  # main file
             # use the filename of the current view
-            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
+            filename = util.get_filename(self.view)
 
         line = m.line  # type: int
         col = m.col    # type: Optional[int]

@@ -3,7 +3,7 @@ import sublime_plugin
 
 from itertools import dropwhile, takewhile
 
-from .lint import persist
+from .lint import persist, util
 
 
 """
@@ -19,8 +19,8 @@ class SublimeLinterGotoError(sublime_plugin.WindowCommand):
 
 
 def goto(view, direction, count, wrap):
-    bid = view.buffer_id()
-    errors = persist.errors.get(bid)
+    filename = util.get_filename(view)
+    errors = persist.file_errors.get(filename)
     if not errors:
         flash(view, 'No problems')
         return
@@ -87,7 +87,7 @@ def move_to(view, point):
     if view == window.active_view():
         view.run_command('_sublime_linter_move_cursor', {'point': point})
     else:
-        filename = view.file_name() or "<untitled {}>".format(view.buffer_id())
+        filename = util.get_filename(view)
         line, col = view.rowcol(point)
         target = "{}:{}:{}".format(filename, line + 1, col + 1)
         window.open_file(target, sublime.ENCODED_POSITION)

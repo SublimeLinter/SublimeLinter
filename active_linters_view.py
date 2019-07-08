@@ -3,22 +3,22 @@ from collections import defaultdict
 import sublime
 import sublime_plugin
 
-from .lint import events, persist
+from .lint import events, persist, util
 from .lint.const import WARNING, ERROR
 
 
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 
 State = {
-    'assigned_linters_per_bid': defaultdict(set),
-    'failed_linters_per_bid': defaultdict(set),
-    'problems_per_bid': defaultdict(dict),
+    'assigned_linters_per_file': defaultdict(set),
+    'failed_linters_per_file': defaultdict(set),
+    'problems_per_file': defaultdict(dict),
     'needs_redraw': set()
 }
 
 
 def plugin_unloaded():
-    events.off(redraw_bid)
+    events.off(redraw_file)
 
     for window in sublime.windows():
         for view in window.views():
@@ -26,11 +26,11 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_RESULT)
-def redraw_bid(buffer_id, linter_name, errors, **kwargs):
-    problems = State['problems_per_bid'][buffer_id]
-    if linter_name in State['failed_linters_per_bid'][buffer_id]:
+def redraw_file(filename, linter_name, errors, **kwargs):
+    problems = State['problems_per_file'][filename]
+    if linter_name in State['failed_linters_per_file'][filename]:
         problems[linter_name] = '(erred)'
-    elif linter_name in State['assigned_linters_per_bid'][buffer_id]:
+    elif linter_name in State['assigned_linters_per_file'][filename]:
         we_count = count_problems(errors)
         if we_count == (0, 0):
             problems[linter_name] = '(ok)'
@@ -40,16 +40,16 @@ def redraw_bid(buffer_id, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
-    for view in views_into_buffer(buffer_id):
+    for view in views_into_file(filename):
         draw(view, problems)
 
 
-def views_into_buffer(bid):
+def views_into_file(filename):
     return (
         view
         for window in sublime.windows()
         for view in window.views()
-        if view.buffer_id() == bid
+        if util.get_filename(view) == filename
     )
 
 
@@ -65,26 +65,27 @@ def count_problems(errors):
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
-    def run(self, bid, linter_names):
-        State['assigned_linters_per_bid'][bid] = set(linter_names)
-        State['failed_linters_per_bid'][bid] = set()
+    def run(self, filename, linter_names):
+        State['assigned_linters_per_file'][filename] = set(linter_names)
+        State['failed_linters_per_file'][filename] = set()
 
 
 class sublime_linter_unassigned(sublime_plugin.WindowCommand):
-    def run(self, bid, linter_name):
-        State['assigned_linters_per_bid'][bid].discard(linter_name)
-        State['failed_linters_per_bid'][bid].discard(linter_name)
+    def run(self, filename, linter_name):
+        State['assigned_linters_per_file'][filename].discard(linter_name)
+        State['failed_linters_per_file'][filename].discard(linter_name)
 
 
 class sublime_linter_failed(sublime_plugin.WindowCommand):
-    def run(self, bid, linter_name):
-        State['failed_linters_per_bid'][bid].add(linter_name)
+    def run(self, filename, linter_name):
+        State['failed_linters_per_file'][filename].add(linter_name)
 
 
 class UpdateState(sublime_plugin.EventListener):
     # Fires once per view with the actual view, not necessary the primary
     def on_activated_async(self, active_view):
-        draw(active_view, State['problems_per_bid'][active_view.buffer_id()])
+        filename = util.get_filename(active_view)
+        draw(active_view, State['problems_per_file'][filename])
 
 
 def draw(view, problems):

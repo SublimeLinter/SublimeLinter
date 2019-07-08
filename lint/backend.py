@@ -10,7 +10,7 @@ import multiprocessing
 import os
 import threading
 
-from . import style, linter as linter_module
+from . import linter as linter_module, style, util
 
 
 if False:
@@ -192,8 +192,8 @@ def finalize_errors(linter, errors, offsets):
         # see if this error belongs to the main file
         belongs_to_main_file = True
         if 'filename' in error:
-            if (os.path.normcase(error['filename']) != os.path.normcase(view.file_name() or '') and
-                    error['filename'] != "<untitled {}>".format(view.buffer_id())):
+            view_filename = os.path.normcase(util.get_filename(view))
+            if os.path.normcase(error['filename']) != view_filename:
                 belongs_to_main_file = False
 
         line, start, end = error['line'], error['start'], error['end']

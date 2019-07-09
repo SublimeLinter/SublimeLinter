@@ -699,7 +699,7 @@ def open_tooltip(view, point, line_report=False):
     def on_navigate(href: str) -> None:
         if href == "copy":
             sublime.set_clipboard(join_msgs_raw(errors))
-            sublime.active_window().status_message("SublimeLinter: info copied to clipboard")
+            view.window().status_message("SublimeLinter: info copied to clipboard")
             view.hide_popup()
 
     tooltip_message = join_msgs(errors, show_count=line_report, width=80)

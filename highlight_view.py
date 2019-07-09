@@ -657,7 +657,7 @@ TOOLTIP_STYLES = '''
         font-weight: bold;
     }
     .copy {
-        margin-top: 8px;
+        margin-top: 0.5em;
     }
 '''
 

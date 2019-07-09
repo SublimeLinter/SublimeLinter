@@ -692,12 +692,27 @@ def open_tooltip(view, point, line_report=False):
     if not errors:
         return
 
+    def on_navigate(href: str) -> None:
+        if href == "copy":
+            sublime.set_clipboard(join_msgs_raw(errors))
+            sublime.active_window().status_message("SublimeLinter: info copied to clipboard")
+            view.hide_popup()
+
     tooltip_message = join_msgs(errors, show_count=line_report, width=80)
     view.show_popup(
-        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
+        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message) + "<a href=\"copy\">Copy</a>",
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
-        max_width=1000
+        max_width=1000,
+        on_navigate=on_navigate
+    )
+
+
+def join_msgs_raw(errors):
+    # Take an `errors` iterable and reduce it to a string without HTML tags.
+    sorted_errors = sorted(errors, key=lambda r: (r["linter"], r["error_type"]))
+    return "\n\n".join("{}: {}\n{}{}".format(
+        e["linter"], e["error_type"], e["code"] + " - " if e["code"] else "", e["msg"]) for e in sorted_errors
     )
 
 

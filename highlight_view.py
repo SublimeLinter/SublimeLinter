@@ -656,12 +656,16 @@ TOOLTIP_STYLES = '''
         color: var(--yellowish);
         font-weight: bold;
     }
+    .copy {
+        margin-top: 8px;
+    }
 '''
 
 TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
         <div>{content}</div>
+        <div class="copy"><a href="copy">Copy</a></div>
     </body>
 '''
 
@@ -700,7 +704,7 @@ def open_tooltip(view, point, line_report=False):
 
     tooltip_message = join_msgs(errors, show_count=line_report, width=80)
     view.show_popup(
-        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message) + "<a href=\"copy\">Copy</a>",
+        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
         max_width=1000,

@@ -20,6 +20,10 @@
         }
     },
     {
+        "caption": "SublimeLinter: Clear Errors",
+        "command": "sublime_linter_clear_errors"
+    },
+    {
         "caption": "SublimeLinter: Toggle Highlights",
         "command": "sublime_linter_toggle_highlights"
 

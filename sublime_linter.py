@@ -23,7 +23,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Tuple
+    from typing import Callable, DefaultDict, Dict, List, Mapping, Optional, Set, Tuple
 
     Bid = sublime.BufferId
     LinterName = str
@@ -245,6 +245,44 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
 
     def run(self, edit):
         hit(self.view, 'on_user_request')
+
+
+class SublimeLinterClearErrorsCommand(sublime_plugin.WindowCommand):
+    """Present a list of filenames to clear errors for."""
+
+    def input(self, *args):
+        """Present a list of filenames to choose from."""
+        return SublimeLinterClearErrorsFilenameInput()
+
+    def run(self, filename):
+        # type: (str) -> None
+        """Clear errors for one or all filenames."""
+        if filename == "<All>":
+            errors_to_clear = persist.file_errors  # type: Mapping[str, List[LintError]]
+            persist.file_errors = defaultdict(list)
+        else:
+            errors_to_clear = {filename: persist.file_errors.pop(filename)}
+
+        for filename, errors in errors_to_clear.items():
+            linters = set(error['linter'] for error in errors)
+            for linter_name in linters:
+                events.broadcast(events.LINT_RESULT, {
+                    'filename': filename,
+                    'linter_name': linter_name,
+                    'errors': []
+                })
+
+
+class SublimeLinterClearErrorsFilenameInput(sublime_plugin.ListInputHandler):
+    def name(self):
+        """Name of the argument passed to the initiating command."""
+        return "filename"
+
+    def list_items(self):
+        """Return the list of filenames with errors to choose from."""
+        filenames = [filename for filename in persist.file_errors
+                     if persist.file_errors[filename]]
+        return ["<All>"] + filenames
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):

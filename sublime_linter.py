@@ -187,16 +187,42 @@ class BackendController(sublime_plugin.EventListener):
 
     def on_pre_close(self, view):
         bid = view.buffer_id()
+        filename = util.get_filename(view)
+
         buffers = []
+        open_filenames = set()
         for w in sublime.windows():
             for v in w.views():
                 buffers.append(v.buffer_id())
+                open_filenames.add(util.get_filename(v))
 
-        # Cleanup bid-based stores if this is the last view on the buffer
+        # Cleanup the stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
-            filename = util.get_filename(view)
-            persist.file_errors.pop(filename, None)
-            persist.affected_filenames_per_filename.pop(filename, None)
+            # we want to discard this file and its closed dependencies but no
+            # file that is still referenced by another
+            dependencies = persist.affected_filenames_per_filename
+
+            closed_deps = {
+                dependency
+                for linter, filenames in dependencies.get(filename, {}).items()
+                for dependency in filenames
+                if dependency not in open_filenames
+            }
+
+            other_deps = {
+                dependency
+                for fn, linter_deps in dependencies.items()
+                if fn != filename
+                for linter, filenames in linter_deps.items()
+                for dependency in filenames
+                if dependency != fn
+            }
+
+            filenames_to_discard = ({filename} | closed_deps) - other_deps
+            for fn in filenames_to_discard:
+                persist.file_errors.pop(fn, None)
+                persist.affected_filenames_per_filename.pop(fn, None)
+
             persist.assigned_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)

@@ -7,6 +7,19 @@ from .lint import events, persist, util
 from .lint.const import WARNING, ERROR
 
 
+if False:
+    from typing import DefaultDict, Dict, Set
+    from mypy_extensions import TypedDict
+
+    Filename = str
+    LinterName = str
+    State_ = TypedDict('State_', {
+        'assigned_linters_per_file': DefaultDict[Filename, Set[LinterName]],
+        'failed_linters_per_file': DefaultDict[Filename, Set[LinterName]],
+        'problems_per_file': DefaultDict[Filename, Dict[LinterName, str]]
+    })
+
+
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 
 State = {
@@ -14,7 +27,7 @@ State = {
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
     'needs_redraw': set()
-}
+}  # type: State_
 
 
 def plugin_unloaded():

@@ -25,8 +25,7 @@ STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 State = {
     'assigned_linters_per_file': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
-    'problems_per_file': defaultdict(dict),
-    'needs_redraw': set()
+    'problems_per_file': defaultdict(dict)
 }  # type: State_
 
 

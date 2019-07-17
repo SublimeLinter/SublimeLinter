@@ -410,7 +410,7 @@ def group_by_filename_and_update(
     # group all errors by filenames to update them separately
     grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
     for error in errors:
-        grouped[error.get('filename')].append(error)
+        grouped[error['filename']].append(error)
 
     # The contract for a simple linter is that it reports `[errors]` or an
     # empty list `[]` if the buffer is clean. For linters that report errors
@@ -431,20 +431,17 @@ def group_by_filename_and_update(
 
     did_update_main_view = False
     for filename, errors in grouped.items():
-        if not filename:  # backwards compatibility
-            update_file_errors(main_filename, linter, errors, reason)
-        else:
-            # search for an open view for this file
-            view = window.find_open_file(filename)
-            if view:
-                if filename == main_filename:
-                    did_update_main_view = True
+        # search for an open view for this file
+        view = window.find_open_file(filename)
+        if view:
+            if filename == main_filename:
+                did_update_main_view = True
 
-                # ignore errors of other files if their view is dirty
-                if filename != main_filename and view.is_dirty() and errors:
-                    continue
+            # ignore errors of other files if their view is dirty
+            if filename != main_filename and view.is_dirty() and errors:
+                continue
 
-            update_file_errors(filename, linter, errors, reason)
+        update_file_errors(filename, linter, errors, reason)
 
     # For the main view we MUST *always* report an outcome. This is not for
     # cleanup but functions as a signal that we're done. Merely for the status

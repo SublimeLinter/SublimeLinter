@@ -407,7 +407,6 @@ def group_by_filename_and_update(
     if view_has_changed():  # abort early
         return
 
-    # group all errors by filenames to update them separately
     grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
     for error in errors:
         grouped[error['filename']].append(error)
@@ -416,38 +415,29 @@ def group_by_filename_and_update(
     # empty list `[]` if the buffer is clean. For linters that report errors
     # for multiple files we collect information about which files are actually
     # reported by a given linted file so that we can clean the results.
+    affected_filenames = persist.affected_filenames_per_filename[main_filename]
+    previous_filenames = affected_filenames[linter]
+    affected_filenames[linter] = current_filenames = set(grouped.keys())
+
     # Basically, we must fake a `[]` response for every filename that is no
     # longer reported.
-    affected_filenames = persist.affected_filenames_per_filename[main_filename]
-
-    current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames[linter]
-    clean_files = previous_filenames - current_filenames
-
-    for filename in clean_files:
-        grouped[filename]  # For the side-effect of creating a new empty `list`
-
-    affected_filenames[linter] = current_filenames
-
-    did_update_main_view = False
-    for filename, errors in grouped.items():
-        # search for an open view for this file
-        view = window.find_open_file(filename)
-        if view:
-            if filename == main_filename:
-                did_update_main_view = True
-
-            # ignore errors of other files if their view is dirty
-            if filename != main_filename and view.is_dirty() and errors:
-                continue
-
-        update_file_errors(filename, linter, errors, reason)
-
     # For the main view we MUST *always* report an outcome. This is not for
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
-    if not did_update_main_view:
-        update_file_errors(main_filename, linter, [], reason)
+    clean_files = previous_filenames - current_filenames
+    for filename in clean_files | {main_filename}:
+        grouped[filename]  # For the side-effect of creating a new empty `list`
+
+    for filename, errors in grouped.items():
+        # Ignore errors of other files if their view is dirty; but still
+        # propagate if there are no errors, t.i. cleanup is allowed even
+        # then.
+        if filename != main_filename and errors:
+            view = window.find_open_file(filename)
+            if view and view.is_dirty():
+                continue
+
+        update_file_errors(filename, linter, errors, reason)
 
 
 def update_file_errors(filename, linter, errors, reason=None):

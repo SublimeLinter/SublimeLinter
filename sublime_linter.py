@@ -215,7 +215,6 @@ class BackendController(sublime_plugin.EventListener):
                 if fn != filename
                 for linter, filenames in linter_deps.items()
                 for dependency in filenames
-                if dependency != fn
             }
 
             filenames_to_discard = ({filename} | closed_deps) - other_deps
@@ -417,7 +416,9 @@ def group_by_filename_and_update(
     # reported by a given linted file so that we can clean the results.
     affected_filenames = persist.affected_filenames_per_filename[main_filename]
     previous_filenames = affected_filenames[linter]
-    affected_filenames[linter] = current_filenames = set(grouped.keys())
+
+    current_filenames = set(grouped.keys()) - {main_filename}
+    affected_filenames[linter] = current_filenames
 
     # Basically, we must fake a `[]` response for every filename that is no
     # longer reported.

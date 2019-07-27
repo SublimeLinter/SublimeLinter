@@ -360,6 +360,8 @@ def get_view_context(view, additional_context=None):
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
 
+    context['canonical_filename'] = util.get_filename(view)
+
     if additional_context:
         context.update(additional_context)
 

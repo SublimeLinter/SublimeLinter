@@ -195,31 +195,34 @@ Example: this changes the appearance of shellcheck warnings:
 .. code-block:: json
 
     {
-        "shellcheck": {
-            "styles": [
-                {
-                    "mark_style": "stippled_underline",
-                    "scope": "region.bluish",
-                    "types": ["warning"]
-                }
-            ]
+        "linters": {
+            "shellcheck": {
+                "styles": [
+                    {
+                        "mark_style": "stippled_underline",
+                        "scope": "region.bluish",
+                        "types": ["warning"]
+                    }
+                ]
+            }
         }
     }
 
 Example: this changes the appearance of whitespace warnings in flake8:
 
 .. code-block:: json
-
     {
-        "flake8": {
-            "styles": [
-                {
-                    "mark_style": "outline",
-                    "scope": "comment",
-                    "icon": "none",
-                    "codes": ["W293", "W291", "W292"]
-                }
-            ]
+        "linters": {
+            "flake8": {
+                "styles": [
+                    {
+                        "mark_style": "outline",
+                        "scope": "comment",
+                        "icon": "none",
+                        "codes": ["W293", "W291", "W292"]
+                    }
+                ]
+            }
         }
     }
 

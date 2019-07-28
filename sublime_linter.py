@@ -160,15 +160,7 @@ class BackendController(sublime_plugin.EventListener):
         # check if the view has been renamed
         renamed_filename = detect_rename(view)
         if renamed_filename:
-            # update the error store and the views
-            old_filename, new_filename = renamed_filename
-            if old_filename in persist.file_errors:
-                persist.file_errors[new_filename] = persist.file_errors.pop(old_filename)
-
-            events.broadcast('renamed_file', {
-                'new_filename': new_filename,
-                'old_filename': old_filename
-            })
+            update_on_filename_change(*renamed_filename)
 
         if has_syntax_changed(view):
             hit(view, 'on_load')
@@ -420,6 +412,25 @@ def update_errors_store(filename, linter_name, errors):
         for error in persist.file_errors[filename]
         if error['linter'] != linter_name
     ] + errors
+
+
+def update_on_filename_change(old_filename, new_filename):
+    # type: (FileName, FileName) -> None
+    # update the error store
+    if old_filename in persist.file_errors:
+        errors = persist.file_errors.pop(old_filename)
+        persist.file_errors[new_filename] = errors
+
+    # update the affected filenames
+    if old_filename in affected_filenames_per_filename:
+        filenames = affected_filenames_per_filename.pop(old_filename)
+        affected_filenames_per_filename[new_filename] = filenames
+
+    # notify the views
+    events.broadcast('renamed_file', {
+        'new_filename': new_filename,
+        'old_filename': old_filename
+    })
 
 
 def force_redraw():

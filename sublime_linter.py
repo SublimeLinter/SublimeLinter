@@ -196,10 +196,10 @@ class BackendController(sublime_plugin.EventListener):
         if buffers.count(bid) <= 1:
             filename = util.get_filename(view)
             persist.file_errors.pop(filename, None)
+            persist.affected_filenames_per_filename.pop(filename, None)
             persist.assigned_linters.pop(bid, None)
 
             guard_check_linters_for_view.pop(bid, None)
-            affected_filenames_per_filename.pop(filename, None)
             buffer_filenames.pop(bid, None)
             buffer_syntaxes.pop(bid, None)
             queue.cleanup(bid)
@@ -330,11 +330,6 @@ def kill_active_popen_calls(bid):
         setattr(proc, 'friendly_terminated', True)
 
 
-affected_filenames_per_filename = defaultdict(
-    lambda: defaultdict(set)
-)  # type: DefaultDict[FileName, DefaultDict[LinterName, Set[FileName]]]
-
-
 def group_by_filename_and_update(
     window,            # type: sublime.Window
     main_filename,     # type: FileName
@@ -359,9 +354,10 @@ def group_by_filename_and_update(
     # reported by a given linted file so that we can clean the results.
     # Basically, we must fake a `[]` response for every filename that is no
     # longer reported.
+    affected_filenames = persist.affected_filenames_per_filename[main_filename]
 
     current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_filename[main_filename][linter]
+    previous_filenames = affected_filenames[linter]
     clean_files = previous_filenames - current_filenames
 
     for filename in clean_files:
@@ -390,7 +386,7 @@ def group_by_filename_and_update(
     if not did_update_main_view:
         update_file_errors(main_filename, linter, [], reason)
 
-    affected_filenames_per_filename[main_filename][linter] = current_filenames
+    affected_filenames[linter] = current_filenames
 
 
 def update_file_errors(filename, linter, errors, reason=None):
@@ -422,9 +418,9 @@ def update_on_filename_change(old_filename, new_filename):
         persist.file_errors[new_filename] = errors
 
     # update the affected filenames
-    if old_filename in affected_filenames_per_filename:
-        filenames = affected_filenames_per_filename.pop(old_filename)
-        affected_filenames_per_filename[new_filename] = filenames
+    if old_filename in persist.affected_filenames_per_filename:
+        filenames = persist.affected_filenames_per_filename.pop(old_filename)
+        persist.affected_filenames_per_filename[new_filename] = filenames
 
     # notify the views
     events.broadcast('renamed_file', {

@@ -42,6 +42,12 @@ file_errors = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
 linter_classes = {}  # type: Dict[str, Type[Linter]]
 assigned_linters = {}  # type: Dict[Bid, Set[LinterName]]
 
+# A mapping between actually linted files and other filenames that they
+# reported errors for
+affected_filenames_per_filename = defaultdict(
+    lambda: defaultdict(set)
+)  # type: DefaultDict[FileName, DefaultDict[LinterName, Set[FileName]]]
+
 active_procs = defaultdict(list)  # type: DefaultDict[Bid, List[subprocess.Popen]]
 active_procs_lock = threading.Lock()
 

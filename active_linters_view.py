@@ -42,7 +42,10 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     problems = State['problems_per_file'][filename]
     if linter_name in State['failed_linters_per_file'][filename]:
         problems[linter_name] = '(erred)'
-    elif linter_name in State['assigned_linters_per_file'][filename]:
+    elif linter_name in State['assigned_linters_per_file'][filename] or errors:
+        if linter_name not in State['assigned_linters_per_file'][filename]:
+            State['assigned_linters_per_file'][filename].add(linter_name)
+
         we_count = count_problems(errors)
         if we_count == (0, 0):
             problems[linter_name] = '(ok)'

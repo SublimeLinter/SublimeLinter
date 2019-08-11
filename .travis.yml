@@ -11,13 +11,11 @@ matrix:
           language: python
           python: 3.6
           env: PCINSTALL=true
+          services:
+            - xvfb
 
 before_install:
     - curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/travis.sh
-    - if [ "$TRAVIS_OS_NAME" == "linux"  ]; then
-            export DISPLAY=:99.0;
-            sh -e /etc/init.d/xvfb start;
-      fi
 
 install:
     - pip install flake8 flake8-docstrings "pydocstyle<4.0.0" Sphinx sphinx_rtd_theme codecov

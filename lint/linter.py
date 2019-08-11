@@ -167,9 +167,16 @@ class VirtualView:
 
     @staticmethod
     def from_file(filename):
+        # type: (str) -> VirtualView
         """Return a VirtualView with the contents of file."""
-        with open(filename, 'r', encoding='utf8') as f:
-            return VirtualView(f.read())
+        return _virtual_view_from_file(filename, os.path.getmtime(filename))
+
+
+@lru_cache(maxsize=128)
+def _virtual_view_from_file(filename, mtime):
+    # type: (str, float) -> VirtualView
+    with open(filename, 'r', encoding='utf8') as f:
+        return VirtualView(f.read())
 
 
 class ViewSettings:
@@ -704,6 +711,7 @@ class Linter(metaclass=LinterMeta):
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
         self.env = {}  # type: Dict[str, str]
+        self.normalize_filename = lru_cache(maxsize=32)(self.normalize_filename)  # type: ignore
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.

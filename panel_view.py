@@ -334,7 +334,7 @@ def filenames_per_window(window):
     return window_filenames
 
 
-def create_path_dict(window, filenames):
+def create_path_dict(filenames):
     base_dir = get_common_parent([
         path
         for path in filenames
@@ -401,7 +401,7 @@ def fill_panel(window):
         return
 
     errors_by_file = get_window_errors(window, persist.file_errors)
-    fpath_by_file, base_dir = create_path_dict(window, errors_by_file.keys())
+    fpath_by_file, base_dir = create_path_dict(errors_by_file.keys())
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)

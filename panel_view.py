@@ -4,13 +4,15 @@ import os
 import sublime
 import sublime_plugin
 import textwrap
+import uuid
 
 from .lint import elect, events, persist, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import (
-        Any, Dict, Iterable, List, Optional, Set, Tuple,
+        Any, Callable, Dict, Iterable, List, Optional, Set, Tuple,
         Union
     )
     from mypy_extensions import TypedDict
@@ -23,6 +25,12 @@ if False:
         'panel_opened_automatically': Set[sublime.WindowId]
     })
     ErrorsByFile = Dict[Filename, List[LintError]]
+    DrawInfo = TypedDict('DrawInfo', {
+        'panel': sublime.View,
+        'content': str,
+        'errors_from_active_view': List[LintError],
+        'nearby_lines': Union[int, List[int]]
+    }, total=False)
 
 
 PANEL_NAME = "SublimeLinter"
@@ -242,7 +250,16 @@ def create_panel(window):
     return window.create_output_panel(PANEL_NAME)
 
 
-def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
+def draw(draw_info):
+    # type: (DrawInfo) -> None
+    content = draw_info.get('content')
+    if content is None:
+        draw_(**draw_info)
+    else:
+        request_draw_on_main_thread(draw_info)
+
+
+def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
     # type: (sublime.View, str, List[LintError], Union[int, List[int]]) -> None
     if content is not None:
         update_panel_content(panel, content)
@@ -261,8 +278,25 @@ def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
         scroll_into_view(panel, [nearby_lines], errors_from_active_view)
 
 
-def draw_on_main_thread(*args, **kwargs):
-    sublime.set_timeout(lambda: draw(*args, **kwargs))
+REQUESTED_MAIN_DRAWS = {}  # type: Dict[sublime.ViewId, str]
+
+
+def request_draw_on_main_thread(draw_info):
+    # type: (DrawInfo) -> None
+    global REQUESTED_MAIN_DRAWS
+
+    panel_id = draw_info['panel'].id()
+    token = REQUESTED_MAIN_DRAWS[panel_id] = uuid.uuid4().hex
+
+    proposition = lambda: REQUESTED_MAIN_DRAWS[panel_id] == token
+    action = lambda: draw_(**draw_info)
+    sublime.set_timeout_async(lambda: maybe_run_on_main_thread(proposition, action))
+
+
+def maybe_run_on_main_thread(prop, fn):
+    # type: (Callable[[], bool], Callable) -> None
+    if prop():
+        sublime.set_timeout(fn)
 
 
 def get_window_errors(window, errors_by_file):
@@ -357,7 +391,8 @@ def format_error(error, widths):
     return rv
 
 
-def fill_panel(window, then=draw_on_main_thread):
+def fill_panel(window):
+    # type: (sublime.Window) -> None
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
@@ -409,15 +444,17 @@ def fill_panel(window, then=draw_on_main_thread):
     draw_info = {
         'panel': panel,
         'content': content
-    }
+    }  # type: DrawInfo
 
-    if State['active_view'].window() == window:
-        update_panel_selection(draw_info=draw_info, then=then, **State)
+    active_view = State['active_view']
+    if active_view and active_view.window() == window:
+        update_panel_selection(draw_info=draw_info, **State)
     else:
-        then(**draw_info)
+        draw(draw_info)
 
 
-def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwargs):
+def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
+    # type: (sublime.View, int, Optional[DrawInfo], Any) -> None
     """Alter panel highlighting according to the current cursor position."""
     if draw_info is None:
         draw_info = {}
@@ -439,10 +476,10 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
     except KeyError:
         all_errors = []
 
-    draw_info.update(
-        panel=panel,
-        errors_from_active_view=all_errors
-    )  # type: Dict[str, Any]
+    draw_info.update({
+        'panel': panel,
+        'errors_from_active_view': all_errors
+    })
 
     row, _ = active_view.rowcol(cursor)
     errors_with_position = (
@@ -479,7 +516,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
             for error in all_errors
             if nearest_error['region'].contains(error['region'])
         ]
-        draw_info.update(nearby_lines=panel_lines)
+        draw_info.update({'nearby_lines': panel_lines})
 
     elif all_errors:
         try:
@@ -494,13 +531,12 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
         else:
             panel_line = next_error['panel_line'][0]
 
-        draw_info.update(nearby_lines=panel_line)
+        draw_info.update({'nearby_lines': panel_line})
 
-    then(**draw_info)
+    draw(draw_info)
 
 
 #   Visual side-effects   #
-
 
 def update_panel_content(panel, text):
     if not text:

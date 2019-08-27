@@ -97,10 +97,9 @@ class sublime_linter_failed(sublime_plugin.WindowCommand):
 
 
 class UpdateState(sublime_plugin.EventListener):
-    # Fires once per view with the actual view, not necessary the primary
-    def on_activated_async(self, active_view):
-        filename = util.get_filename(active_view)
-        draw(active_view, State['problems_per_file'][filename])
+    def on_load_async(self, view):
+        filename = util.get_filename(view)
+        draw(view, State['problems_per_file'][filename])
 
 
 def draw(view, problems):

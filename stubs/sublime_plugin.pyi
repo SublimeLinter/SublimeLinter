@@ -103,6 +103,7 @@ class TextCommand(Command):
 
 class EventListener:
     def on_activated_async(self, view: sublime.View): ...
+    def on_load_async(self, view: sublime.View): ...
 
 class ViewEventListener:
     @classmethod

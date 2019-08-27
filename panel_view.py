@@ -416,7 +416,7 @@ def fill_panel(window):
                         len(error['linter']),
                         len(str(error['code'])),
                     )
-                    for error in chain(*errors_by_file.values())
+                    for error in flatten(errors_by_file.values())
                 ])
             )
         )

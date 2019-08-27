@@ -13,7 +13,7 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Dict, Iterable, List, Optional, Set, Tuple,
+        Any, Callable, Collection, Dict, Iterable, List, Optional, Set, Tuple,
         Union
     )
     from mypy_extensions import TypedDict
@@ -332,6 +332,7 @@ def filenames_per_window(window):
 
 
 def create_path_dict(filenames):
+    # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
     base_dir = get_common_parent([
         path
         for path in filenames

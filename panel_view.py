@@ -7,6 +7,7 @@ import textwrap
 import uuid
 
 from .lint import elect, events, persist, util
+flatten = chain.from_iterable
 
 
 MYPY = False
@@ -319,19 +320,15 @@ def buffer_ids_per_window(window):
 
 
 def filenames_per_window(window):
-    # we want to have all open files
+    # type: (sublime.Window) -> Set[Filename]
+    """Return filenames of all open files plus their dependencies."""
     open_filenames = set(util.get_filename(v) for v in window.views())
-
-    # plus their dependencies
-    affected_filenames = persist.affected_filenames_per_filename.items()
-    window_filenames = open_filenames.union(*[
-        filenames
-        for filename, filenames_per_linter in affected_filenames
-        if filename in open_filenames
-        for filenames in filenames_per_linter.values()
-    ])
-
-    return window_filenames
+    return open_filenames | set(
+        flatten(
+            flatten(persist.affected_filenames_per_filename[filename].values())
+            for filename in open_filenames
+        )
+    )
 
 
 def create_path_dict(filenames):

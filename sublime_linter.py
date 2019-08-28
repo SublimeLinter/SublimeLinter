@@ -3,6 +3,7 @@
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from functools import partial
+from itertools import chain
 import logging
 import time
 import threading
@@ -38,6 +39,7 @@ if MYPY:
 
 
 logger = logging.getLogger(__name__)
+flatten = chain.from_iterable
 
 
 def plugin_loaded():
@@ -186,6 +188,7 @@ class BackendController(sublime_plugin.EventListener):
         hit(view, 'on_save')
 
     def on_pre_close(self, view):
+        # type: (sublime.View) -> None
         bid = view.buffer_id()
         filename = util.get_filename(view)
 
@@ -196,29 +199,21 @@ class BackendController(sublime_plugin.EventListener):
                 buffers.append(v.buffer_id())
                 open_filenames.add(util.get_filename(v))
 
+        open_filenames -= {filename}  # since we're running *pre* close
+
         # Cleanup the stores if this is the last view on the buffer
         if buffers.count(bid) <= 1:
-            # we want to discard this file and its closed dependencies but no
-            # file that is still referenced by another
-            dependencies = persist.affected_filenames_per_filename
-
-            closed_deps = {
-                dependency
-                for linter, filenames in dependencies.get(filename, {}).items()
-                for dependency in filenames
-                if dependency not in open_filenames
+            # We want to discard this file and its dependencies but never a
+            # file that is currently open or still referenced by another
+            dependencies_per_file = {
+                filename_: set(flatten(deps_per_linter.values()))
+                for filename_, deps_per_linter in persist.affected_filenames_per_filename.items()
             }
+            direct_deps = dependencies_per_file.pop(filename, set())
+            other_deps = set(flatten(dependencies_per_file.values()))
 
-            other_deps = {
-                dependency
-                for fn, linter_deps in dependencies.items()
-                if fn != filename
-                for linter, filenames in linter_deps.items()
-                for dependency in filenames
-            }
-
-            filenames_to_discard = ({filename} | closed_deps) - other_deps
-            for fn in filenames_to_discard:
+            to_discard = ({filename} | direct_deps) - open_filenames - other_deps
+            for fn in to_discard:
                 persist.file_errors.pop(fn, None)
                 persist.affected_filenames_per_filename.pop(fn, None)
 

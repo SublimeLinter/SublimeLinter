@@ -187,42 +187,39 @@ class BackendController(sublime_plugin.EventListener):
 
         hit(view, 'on_save')
 
-    def on_pre_close(self, view):
+    def on_close(self, view):
         # type: (sublime.View) -> None
         bid = view.buffer_id()
         filename = util.get_filename(view)
 
-        buffers = []
         open_filenames = set()
         for w in sublime.windows():
             for v in w.views():
-                buffers.append(v.buffer_id())
+                if v.buffer_id() == bid:
+                    # abort since another view into the same buffer is open
+                    return
+
                 open_filenames.add(util.get_filename(v))
 
-        open_filenames -= {filename}  # since we're running *pre* close
+        # We want to discard this file and its dependencies but never a
+        # file that is currently open or still referenced by another
+        dependencies_per_file = {
+            filename_: set(flatten(deps_per_linter.values()))
+            for filename_, deps_per_linter in persist.affected_filenames_per_filename.items()
+        }
+        direct_deps = dependencies_per_file.pop(filename, set())
+        other_deps = set(flatten(dependencies_per_file.values()))
 
-        # Cleanup the stores if this is the last view on the buffer
-        if buffers.count(bid) <= 1:
-            # We want to discard this file and its dependencies but never a
-            # file that is currently open or still referenced by another
-            dependencies_per_file = {
-                filename_: set(flatten(deps_per_linter.values()))
-                for filename_, deps_per_linter in persist.affected_filenames_per_filename.items()
-            }
-            direct_deps = dependencies_per_file.pop(filename, set())
-            other_deps = set(flatten(dependencies_per_file.values()))
+        to_discard = ({filename} | direct_deps) - open_filenames - other_deps
+        for fn in to_discard:
+            persist.file_errors.pop(fn, None)
+            persist.affected_filenames_per_filename.pop(fn, None)
 
-            to_discard = ({filename} | direct_deps) - open_filenames - other_deps
-            for fn in to_discard:
-                persist.file_errors.pop(fn, None)
-                persist.affected_filenames_per_filename.pop(fn, None)
-
-            persist.assigned_linters.pop(bid, None)
-
-            guard_check_linters_for_view.pop(bid, None)
-            buffer_filenames.pop(bid, None)
-            buffer_syntaxes.pop(bid, None)
-            queue.cleanup(bid)
+        persist.assigned_linters.pop(bid, None)
+        guard_check_linters_for_view.pop(bid, None)
+        buffer_filenames.pop(bid, None)
+        buffer_syntaxes.pop(bid, None)
+        queue.cleanup(bid)
 
 
 def detect_rename(view):

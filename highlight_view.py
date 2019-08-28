@@ -94,6 +94,8 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
             for linter_name in linter_names:
                 highlight_linter_errors([view], filename, linter_name)
 
+    on_clone_async = on_load_async
+
 
 def highlight_linter_errors(views, filename, linter_name):
     errors = persist.file_errors[filename]

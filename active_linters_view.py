@@ -101,6 +101,8 @@ class UpdateState(sublime_plugin.EventListener):
         filename = util.get_filename(view)
         draw(view, State['problems_per_file'][filename])
 
+    on_clone_async = on_load_async
+
 
 def draw(view, problems):
     if persist.settings.get('statusbar.show_active_linters'):

@@ -264,7 +264,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
         hit(self.view, 'on_user_request')
 
 
-class SublimeLinterClearErrorsCommand(sublime_plugin.WindowCommand):
+class sublime_linter_clear_errors(sublime_plugin.WindowCommand):
     """Present a list of filenames to clear errors for."""
 
     def input(self, *args):

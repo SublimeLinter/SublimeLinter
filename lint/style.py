@@ -1,9 +1,10 @@
-import sublime
-from . import persist, util
-
+from functools import lru_cache
 from itertools import chain
 import logging
 import os
+
+import sublime
+from . import persist, util
 
 
 logger = logging.getLogger(__name__)
@@ -31,13 +32,20 @@ def read_gutter_theme():
             COLORIZE = opts.get("colorize", True)
 
 
+def clear_caches():
+    get_value_.cache_clear()
+    get_icon_.cache_clear()
+
+
 def get_value(key, error, default=None):
     linter, code, error_type = error['linter'], error['code'], error['error_type']
+    return get_value_(key, linter, code, error_type, default)
 
+
+@lru_cache(maxsize=128)
+def get_value_(key, linter, code, error_type, default):
     linter_styles = persist.settings.get('linters', {}).get(linter, {}).get('styles', [])
     global_styles = persist.settings.get('styles', [])
-    default_styles = get_default_styles()
-
     for style_definition in linter_styles:
         if code in style_definition.get('codes', []):
             try:
@@ -55,6 +63,7 @@ def get_value(key, error, default=None):
             except KeyError:
                 ...
 
+    default_styles = get_default_styles()
     for style_definition in chain(global_styles, default_styles):
         if error_type in style_definition.get('types', [error_type]):
             try:
@@ -83,7 +92,13 @@ def get_default_styles():
 
 
 def get_icon(error):
-    icon = get_value('icon', error, 'none')
+    linter, code, error_type = error['linter'], error['code'], error['error_type']
+    return get_icon_(linter, code, error_type)
+
+
+@lru_cache(maxsize=16)
+def get_icon_(linter, code, error_type):
+    icon = get_value_('icon', linter, code, error_type, 'none')
 
     if icon in ('circle', 'dot', 'bookmark', 'none'):  # Sublime Text has some default icons
         return icon

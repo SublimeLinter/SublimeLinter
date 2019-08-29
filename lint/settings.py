@@ -63,10 +63,11 @@ class Settings:
         if not validate_global_settings():
             return
 
+        from . import style
         gutter_theme_changed = self.has_changed('gutter_theme')
         if gutter_theme_changed:
-            from . import style
             style.read_gutter_theme()
+        style.clear_caches()
 
         if (
             self.has_changed('linters') or

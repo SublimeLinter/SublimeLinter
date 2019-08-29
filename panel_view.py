@@ -715,7 +715,7 @@ def mayby_rerender_panel(previous_token):
         return
 
     token = (view.viewport_extent(),)
-    if token != previous_token:
+    if previous_token and token != previous_token:
         window = view.window()
         if not window:
             return

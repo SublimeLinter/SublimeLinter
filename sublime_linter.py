@@ -276,18 +276,13 @@ class SublimeLinterClearErrorsCommand(sublime_plugin.WindowCommand):
         """Clear errors for one or all filenames."""
         if filename == "<All>":
             errors_to_clear = persist.file_errors  # type: Mapping[str, List[LintError]]
-            persist.file_errors = defaultdict(list)
         else:
-            errors_to_clear = {filename: persist.file_errors.pop(filename)}
+            errors_to_clear = {filename: persist.file_errors[filename]}
 
         for filename, errors in errors_to_clear.items():
             linters = set(error['linter'] for error in errors)
             for linter_name in linters:
-                events.broadcast(events.LINT_RESULT, {
-                    'filename': filename,
-                    'linter_name': linter_name,
-                    'errors': []
-                })
+                update_file_errors(filename, linter_name, [])
 
 
 class SublimeLinterClearErrorsFilenameInput(sublime_plugin.ListInputHandler):

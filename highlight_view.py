@@ -75,12 +75,30 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_RESULT)
-def on_lint_result(buffer_id, linter_name, **kwargs):
-    views = list(all_views_into_buffer(buffer_id))
+def on_lint_result(filename, linter_name, **kwargs):
+    views = list(all_views_into_file(filename))
     if not views:
         return
 
-    errors = persist.errors[buffer_id]
+    highlight_linter_errors(views, filename, linter_name)
+
+
+class UpdateOnLoadController(sublime_plugin.EventListener):
+    def on_load_async(self, view):
+        # update this new view with any errors it currently has
+        filename = util.get_filename(view)
+        errors = persist.file_errors.get(filename)
+        if errors:
+            set_idle(view, True)  # show errors immediately
+            linter_names = set(error['linter'] for error in errors)
+            for linter_name in linter_names:
+                highlight_linter_errors([view], filename, linter_name)
+
+    on_clone_async = on_load_async
+
+
+def highlight_linter_errors(views, filename, linter_name):
+    errors = persist.file_errors[filename]
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 
     view = views[0]  # to calculate regions we can take any of the views
@@ -143,8 +161,8 @@ class UpdateErrorRegions(sublime_plugin.EventListener):
 
 
 def update_error_regions(view):
-    bid = view.buffer_id()
-    errors = persist.errors.get(bid)
+    filename = util.get_filename(view)
+    errors = persist.file_errors.get(filename)
     if not errors:
         return
 
@@ -170,7 +188,7 @@ def update_error_regions(view):
             'end': end
         })
 
-    events.broadcast('updated_error_positions', {'view': view, 'bid': bid})
+    events.broadcast('updated_error_positions', {'view': view})
 
 
 def head(iterable):
@@ -390,6 +408,13 @@ def all_views_into_buffer(buffer_id):
     for window in sublime.windows():
         for view in window.views():
             if view.buffer_id() == buffer_id:
+                yield view
+
+
+def all_views_into_file(filename):
+    for window in sublime.windows():
+        for view in window.views():
+            if util.get_filename(view) == filename:
                 yield view
 
 
@@ -671,9 +696,9 @@ TOOLTIP_TEMPLATE = '''
 
 
 def get_errors_where(view, fn):
-    bid = view.buffer_id()
+    filename = util.get_filename(view)
     return [
-        error for error in persist.errors[bid]
+        error for error in persist.file_errors[filename]
         if fn(error['region'])
     ]
 

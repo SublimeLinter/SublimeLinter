@@ -4,25 +4,34 @@ import os
 import sublime
 import sublime_plugin
 import textwrap
+import uuid
 
 from .lint import elect, events, persist, util
+flatten = chain.from_iterable
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import (
-        Any, Dict, Iterable, List, Optional, Set, Tuple,
+        Any, Callable, Collection, Dict, Iterable, List, Optional, Set, Tuple,
         Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
+    Filename = str
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
         'cursor': int,
         'panel_opened_automatically': Set[sublime.WindowId]
     })
-    bid = sublime.BufferId
-    ErrorsByBid = Dict[bid, List[LintError]]
+    ErrorsByFile = Dict[Filename, List[LintError]]
+    DrawInfo = TypedDict('DrawInfo', {
+        'panel': sublime.View,
+        'content': str,
+        'errors_from_active_view': List[LintError],
+        'nearby_lines': Union[int, List[int]]
+    }, total=False)
 
 
 PANEL_NAME = "SublimeLinter"
@@ -46,21 +55,22 @@ def plugin_loaded():
 def plugin_unloaded():
     events.off(on_lint_result)
     events.off(on_updated_error_positions)
+    events.off(on_renamed_file)
 
     for window in sublime.windows():
         window.destroy_output_panel(PANEL_NAME)
 
 
 @events.on(events.LINT_RESULT)
-def on_lint_result(buffer_id, reason=None, **kwargs):
+def on_lint_result(filename, reason=None, **kwargs):
     maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
     for window in sublime.windows():
-        if buffer_id in buffer_ids_per_window(window):
+        if filename in filenames_per_window(window):
             if panel_is_active(window):
                 fill_panel(window)
 
             if maybe_toggle_panel_automatically:
-                toggle_panel_if_errors(window, buffer_id)
+                toggle_panel_if_errors(window, filename)
 
 
 @events.on('updated_error_positions')
@@ -69,6 +79,15 @@ def on_updated_error_positions(view, **kwargs):
     window = view.window()
     if panel_is_active(window) and bid in buffer_ids_per_window(window):
         fill_panel(window)
+
+
+@events.on('renamed_file')
+def on_renamed_file(new_filename, **kwargs):
+    # update all panels that contain this file
+    for window in sublime.windows():
+        if new_filename in filenames_per_window(window):
+            if panel_is_active(window):
+                fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -120,7 +139,7 @@ class UpdateState(sublime_plugin.EventListener):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
         if view_gets_linted_on_modified_event(view):
-            toggle_panel_if_errors(view.window(), view.buffer_id())
+            toggle_panel_if_errors(view.window(), util.get_filename(view))
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -152,7 +171,7 @@ def view_gets_linted_on_modified_event(view):
     return any(elect.runnable_linters_for_view(view, 'on_modified'))
 
 
-def toggle_panel_if_errors(window, bid):
+def toggle_panel_if_errors(window, filename):
     """Toggle the panel if the view or window has problems, depending on settings."""
     if window is None:
         return
@@ -161,10 +180,10 @@ def toggle_panel_if_errors(window, bid):
     if show_panel_on_save == 'never':
         return
 
-    errors_by_bid = get_window_errors(window, persist.errors)
+    errors_by_file = get_window_errors(window, persist.file_errors)
     has_relevant_errors = (
-        show_panel_on_save == 'window' and errors_by_bid or
-        bid in errors_by_bid)
+        show_panel_on_save == 'window' and errors_by_file or
+        filename in errors_by_file)
 
     if not panel_is_active(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
@@ -232,7 +251,16 @@ def create_panel(window):
     return window.create_output_panel(PANEL_NAME)
 
 
-def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
+def draw(draw_info):
+    # type: (DrawInfo) -> None
+    content = draw_info.get('content')
+    if content is None:
+        draw_(**draw_info)
+    else:
+        request_draw_on_main_thread(draw_info)
+
+
+def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
     # type: (sublime.View, str, List[LintError], Union[int, List[int]]) -> None
     if content is not None:
         update_panel_content(panel, content)
@@ -251,20 +279,37 @@ def draw(panel, content=None, errors_from_active_view=[], nearby_lines=None):
         scroll_into_view(panel, [nearby_lines], errors_from_active_view)
 
 
-def draw_on_main_thread(*args, **kwargs):
-    sublime.set_timeout(lambda: draw(*args, **kwargs))
+REQUESTED_MAIN_DRAWS = {}  # type: Dict[sublime.ViewId, str]
 
 
-def get_window_errors(window, errors_by_bid):
-    # type: (sublime.Window, ErrorsByBid) -> ErrorsByBid
+def request_draw_on_main_thread(draw_info):
+    # type: (DrawInfo) -> None
+    global REQUESTED_MAIN_DRAWS
+
+    panel_id = draw_info['panel'].id()
+    token = REQUESTED_MAIN_DRAWS[panel_id] = uuid.uuid4().hex
+
+    proposition = lambda: REQUESTED_MAIN_DRAWS[panel_id] == token
+    action = lambda: draw_(**draw_info)
+    sublime.set_timeout_async(lambda: maybe_run_on_main_thread(proposition, action))
+
+
+def maybe_run_on_main_thread(prop, fn):
+    # type: (Callable[[], bool], Callable) -> None
+    if prop():
+        sublime.set_timeout(fn)
+
+
+def get_window_errors(window, errors_by_file):
+    # type: (sublime.Window, ErrorsByFile) -> ErrorsByFile
     return {
-        bid: sorted(
+        filename: sorted(
             errors,
             key=lambda e: (e["line"], e["start"], e["end"], e["linter"])
         )
-        for bid, errors in (
-            (bid, errors_by_bid.get(bid))
-            for bid in buffer_ids_per_window(window)
+        for filename, errors in (
+            (filename, errors_by_file.get(filename))
+            for filename in filenames_per_window(window)
         )
         if errors
     }
@@ -274,38 +319,36 @@ def buffer_ids_per_window(window):
     return {v.buffer_id() for v in window.views()}
 
 
-def create_path_dict(window, bids):
-    file_names_by_bid = get_filenames(window, bids)
+def filenames_per_window(window):
+    # type: (sublime.Window) -> Set[Filename]
+    """Return filenames of all open files plus their dependencies."""
+    open_filenames = set(util.get_filename(v) for v in window.views())
+    return open_filenames | set(
+        flatten(
+            flatten(persist.affected_filenames_per_filename[filename].values())
+            for filename in open_filenames
+        )
+    )
 
+
+def create_path_dict(filenames):
+    # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
     base_dir = get_common_parent([
         path
-        for path in file_names_by_bid.values()
+        for path in filenames
         if not path.startswith('<untitled')
     ])
 
     rel_paths = {
-        bid: (
-            os.path.relpath(abs_path, base_dir)
-            if base_dir and not abs_path.startswith('<untitled')
-            else abs_path
+        filename: (
+            os.path.relpath(filename, base_dir)
+            if base_dir and not filename.startswith('<untitled')
+            else filename
         )
-        for bid, abs_path in file_names_by_bid.items()
+        for filename in filenames
     }
 
     return rel_paths, base_dir
-
-
-def get_filenames(window, bids):
-    """
-    Return dict of buffer_id: file_name for all views in window.
-
-    Assign a substitute name to untitled buffers: <untitled buffer_id>
-    """
-    return {
-        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
-        for v in window.views()
-        if v.buffer_id() in bids
-    }
 
 
 def get_common_parent(paths):
@@ -346,7 +389,8 @@ def format_error(error, widths):
     return rv
 
 
-def fill_panel(window, then=draw_on_main_thread):
+def fill_panel(window):
+    # type: (sublime.Window) -> None
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
     # If we're here and the user actually closed the window in the meantime,
@@ -354,8 +398,8 @@ def fill_panel(window, then=draw_on_main_thread):
     if not panel:
         return
 
-    errors_by_bid = get_window_errors(window, persist.errors)
-    fpath_by_bid, base_dir = create_path_dict(window, errors_by_bid.keys())
+    errors_by_file = get_window_errors(window, persist.file_errors)
+    fpath_by_file, base_dir = create_path_dict(errors_by_file.keys())
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
@@ -373,7 +417,7 @@ def fill_panel(window, then=draw_on_main_thread):
                         len(error['linter']),
                         len(str(error['code'])),
                     )
-                    for error in chain(*errors_by_bid.values())
+                    for error in flatten(errors_by_file.values())
                 ])
             )
         )
@@ -382,7 +426,7 @@ def fill_panel(window, then=draw_on_main_thread):
 
     to_render = []
     for fpath, errors in sorted(
-        (fpath_by_bid[bid], errors) for bid, errors in errors_by_bid.items()
+        (fpath_by_file[fn], errors) for fn, errors in errors_by_file.items()
     ):
         to_render.append(format_header(fpath))
 
@@ -398,15 +442,17 @@ def fill_panel(window, then=draw_on_main_thread):
     draw_info = {
         'panel': panel,
         'content': content
-    }
+    }  # type: DrawInfo
 
-    if State['active_view'].window() == window:
-        update_panel_selection(draw_info=draw_info, then=then, **State)
+    active_view = State['active_view']
+    if active_view and active_view.window() == window:
+        update_panel_selection(draw_info=draw_info, **State)
     else:
-        then(**draw_info)
+        draw(draw_info)
 
 
-def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwargs):
+def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
+    # type: (sublime.View, int, Optional[DrawInfo], Any) -> None
     """Alter panel highlighting according to the current cursor position."""
     if draw_info is None:
         draw_info = {}
@@ -418,19 +464,20 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
     if cursor == -1:
         return
 
-    bid = active_view.buffer_id()
+    filename = util.get_filename(active_view)
 
     try:
         # Rarely, and if so only on hot-reload, `update_panel_selection` runs
         # before `fill_panel`, thus 'panel_line' has not been set.
-        all_errors = sorted(persist.errors[bid], key=lambda e: e['panel_line'])
+        all_errors = sorted(persist.file_errors[filename],
+                            key=lambda e: e['panel_line'])
     except KeyError:
         all_errors = []
 
-    draw_info.update(
-        panel=panel,
-        errors_from_active_view=all_errors
-    )  # type: Dict[str, Any]
+    draw_info.update({
+        'panel': panel,
+        'errors_from_active_view': all_errors
+    })
 
     row, _ = active_view.rowcol(cursor)
     errors_with_position = (
@@ -467,7 +514,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
             for error in all_errors
             if nearest_error['region'].contains(error['region'])
         ]
-        draw_info.update(nearby_lines=panel_lines)
+        draw_info.update({'nearby_lines': panel_lines})
 
     elif all_errors:
         try:
@@ -482,13 +529,12 @@ def update_panel_selection(active_view, cursor, draw_info=None, then=draw, **kwa
         else:
             panel_line = next_error['panel_line'][0]
 
-        draw_info.update(nearby_lines=panel_line)
+        draw_info.update({'nearby_lines': panel_line})
 
-    then(**draw_info)
+    draw(draw_info)
 
 
 #   Visual side-effects   #
-
 
 def update_panel_content(panel, text):
     if not text:
@@ -710,7 +756,7 @@ def render_visible_viewport(panel, view):
 
     ... indicating the current viewport into that file or error(s) list.
     """
-    errors = persist.errors.get(view.buffer_id(), [])
+    errors = persist.file_errors.get(util.get_filename(view), [])
     if len(errors) > CONFUSION_THRESHOLD:
         viewport = view.visible_region()
         visible_errors = [

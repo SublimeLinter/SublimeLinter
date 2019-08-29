@@ -167,9 +167,16 @@ class VirtualView:
 
     @staticmethod
     def from_file(filename):
+        # type: (str) -> VirtualView
         """Return a VirtualView with the contents of file."""
-        with open(filename, 'r', encoding='utf8') as f:
-            return VirtualView(f.read())
+        return _virtual_view_from_file(filename, os.path.getmtime(filename))
+
+
+@lru_cache(maxsize=128)
+def _virtual_view_from_file(filename, mtime):
+    # type: (str, float) -> VirtualView
+    with open(filename, 'r', encoding='utf8') as f:
+        return VirtualView(f.read())
 
 
 class ViewSettings:
@@ -359,6 +366,8 @@ def get_view_context(view, additional_context=None):
         context['file_name'] = basename
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
+
+    context['canonical_filename'] = util.get_filename(view)
 
     if additional_context:
         context.update(additional_context)
@@ -702,6 +711,7 @@ class Linter(metaclass=LinterMeta):
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
         self.env = {}  # type: Dict[str, str]
+        self.normalize_filename = lru_cache(maxsize=32)(self.normalize_filename)  # type: ignore
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.
@@ -736,7 +746,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_failed', {
-                'bid': self.view.buffer_id(),
+                'filename': util.get_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -745,7 +755,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_unassigned', {
-                'bid': self.view.buffer_id(),
+                'filename': util.get_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -1281,7 +1291,7 @@ class Linter(metaclass=LinterMeta):
                 return None
         else:  # main file
             # use the filename of the current view
-            filename = self.view.file_name() or "<untitled {}>".format(self.view.buffer_id())
+            filename = util.get_filename(self.view)
 
         line = m.line  # type: int
         col = m.col    # type: Optional[int]
@@ -1341,7 +1351,9 @@ class Linter(metaclass=LinterMeta):
 
         if not os.path.isabs(filename):
             cwd = self.get_working_dir() or os.getcwd()
-            filename = os.path.normpath(os.path.join(cwd, filename))
+            filename = os.path.join(cwd, filename)
+
+        filename = os.path.normpath(filename)
 
         # Some linters work on temp files but actually output 'real', user
         # filenames, so we need to check both.

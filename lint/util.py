@@ -1,5 +1,5 @@
 """This module provides general utility methods."""
-
+from contextlib import contextmanager
 from functools import lru_cache, wraps
 import locale
 import logging
@@ -8,6 +8,8 @@ import os
 import re
 import sublime
 import subprocess
+import time
+import threading
 
 
 if False:
@@ -30,6 +32,16 @@ def printf(*args):
     for arg in args:
         print(arg, end=' ')
     print()
+
+
+@contextmanager
+def print_runtime(message):
+    start_time = time.perf_counter()
+    yield
+    end_time = time.perf_counter()
+    duration = round((end_time - start_time) * 1000)
+    thread_name = threading.current_thread().name[0]
+    print('{} took {}ms [{}]'.format(message, duration, thread_name))
 
 
 def show_message(message, window=None):
@@ -68,6 +80,11 @@ def canonical_filename(view):
         os.path.basename(view.file_name()) if view.file_name()
         else '<untitled {}>'.format(view.buffer_id())
     )
+
+
+def get_filename(view):
+    # type: (sublime.View) -> str
+    return view.file_name() or '<untitled {}>'.format(view.buffer_id())
 
 
 def get_syntax(view):

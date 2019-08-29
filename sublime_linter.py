@@ -3,6 +3,7 @@
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from functools import partial
+from itertools import chain
 import logging
 import time
 import threading
@@ -23,7 +24,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Tuple
 
     Bid = sublime.BufferId
     LinterName = str
@@ -38,6 +39,7 @@ if MYPY:
 
 
 logger = logging.getLogger(__name__)
+flatten = chain.from_iterable
 
 
 def plugin_loaded():
@@ -133,6 +135,7 @@ def other_visible_views():
 
 global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
+buffer_filenames = {}  # type: Dict[Bid, FileName]
 buffer_syntaxes = {}  # type: Dict[Bid, str]
 
 
@@ -155,6 +158,11 @@ class BackendController(sublime_plugin.EventListener):
         # good enough.
         if not util.is_lintable(view):
             return
+
+        # check if the view has been renamed
+        renamed_filename = detect_rename(view)
+        if renamed_filename:
+            update_on_filename_change(*renamed_filename)
 
         if has_syntax_changed(view):
             hit(view, 'on_load')
@@ -179,22 +187,57 @@ class BackendController(sublime_plugin.EventListener):
 
         hit(view, 'on_save')
 
-    def on_pre_close(self, view):
+    def on_close(self, view):
+        # type: (sublime.View) -> None
         bid = view.buffer_id()
-        buffers = []
+        filename = util.get_filename(view)
+
+        open_filenames = set()
         for w in sublime.windows():
             for v in w.views():
-                buffers.append(v.buffer_id())
+                if v.buffer_id() == bid:
+                    # abort since another view into the same buffer is open
+                    return
 
-        # Cleanup bid-based stores if this is the last view on the buffer
-        if buffers.count(bid) <= 1:
-            persist.errors.pop(bid, None)
-            persist.assigned_linters.pop(bid, None)
+                open_filenames.add(util.get_filename(v))
 
-            guard_check_linters_for_view.pop(bid, None)
-            affected_filenames_per_bid.pop(bid, None)
-            buffer_syntaxes.pop(bid, None)
-            queue.cleanup(bid)
+        # We want to discard this file and its dependencies but never a
+        # file that is currently open or still referenced by another
+        dependencies_per_file = {
+            filename_: set(flatten(deps_per_linter.values()))
+            for filename_, deps_per_linter in persist.affected_filenames_per_filename.items()
+        }
+        direct_deps = dependencies_per_file.pop(filename, set())
+        other_deps = set(flatten(dependencies_per_file.values()))
+
+        to_discard = ({filename} | direct_deps) - open_filenames - other_deps
+        for fn in to_discard:
+            persist.affected_filenames_per_filename.pop(fn, None)
+            persist.file_errors.pop(fn, None)
+
+        persist.assigned_linters.pop(bid, None)
+        guard_check_linters_for_view.pop(bid, None)
+        buffer_filenames.pop(bid, None)
+        buffer_syntaxes.pop(bid, None)
+        queue.cleanup(bid)
+
+
+def detect_rename(view):
+    # type: (sublime.View) -> Optional[Tuple[FileName, FileName]]
+    bid = view.buffer_id()
+    current_filename = util.get_filename(view)
+
+    try:
+        old_filename = buffer_filenames[bid]
+    except KeyError:
+        return None
+    else:
+        if old_filename != current_filename:
+            return (old_filename, current_filename)
+
+        return None
+    finally:
+        buffer_filenames[bid] = current_filename
 
 
 def has_syntax_changed(view):
@@ -269,6 +312,7 @@ def lint(view, view_has_changed, lock, reason):
 
     window = view.window()
     bid = view.buffer_id()
+    filename = util.get_filename(view)
 
     # Very, very unlikely that `view_has_changed` is already True at this
     # point, but it also implements the kill_switch, so we ask here
@@ -283,7 +327,8 @@ def lint(view, view_has_changed, lock, reason):
     with remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
-        sink = partial(group_by_filename_and_update, window, bid, view_has_changed, reason)
+        sink = partial(
+            group_by_filename_and_update, window, filename, view_has_changed, reason)
         backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
     events.broadcast(events.LINT_END, {'buffer_id': bid})
@@ -302,90 +347,99 @@ def kill_active_popen_calls(bid):
         setattr(proc, 'friendly_terminated', True)
 
 
-affected_filenames_per_bid = defaultdict(
-    lambda: defaultdict(set)
-)  # type: DefaultDict[Bid, DefaultDict[LinterName, Set[FileName]]]
-
-
-def group_by_filename_and_update(window, bid, view_has_changed, reason, linter, errors):
-    # type: (sublime.Window, Bid, ViewChangedFn, Reason, LinterName, List[LintError]) -> None
+def group_by_filename_and_update(
+    window,            # type: sublime.Window
+    main_filename,     # type: FileName
+    view_has_changed,  # type: ViewChangedFn
+    reason,            # type: Reason
+    linter,            # type: LinterName
+    errors             # type: List[LintError]
+):
+    # type: (...) -> None
     """Group lint errors by filename and update them."""
     if view_has_changed():  # abort early
         return
 
-    # group all errors by filenames to update them separately
     grouped = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
     for error in errors:
-        grouped[error.get('filename')].append(error)
+        grouped[error['filename']].append(error)
 
     # The contract for a simple linter is that it reports `[errors]` or an
     # empty list `[]` if the buffer is clean. For linters that report errors
     # for multiple files we collect information about which files are actually
-    # reported by a given `bid` so that we can clean the results. Basically,
-    # we must fake a `[]` response for every filename that is no longer
-    # reported.
+    # reported by a given linted file so that we can clean the results.
+    affected_filenames = persist.affected_filenames_per_filename[main_filename]
+    previous_filenames = affected_filenames[linter]
 
-    current_filenames = set(grouped.keys())  # `set` for the immutable version
-    previous_filenames = affected_filenames_per_bid[bid][linter]
-    clean_files = previous_filenames - current_filenames
+    current_filenames = set(grouped.keys()) - {main_filename}
+    affected_filenames[linter] = current_filenames
 
-    for filename in clean_files:
-        grouped[filename]  # For the side-effect of creating a new empty `list`
-
-    did_update_main_view = False
-    for filename, errors in grouped.items():
-        if not filename:  # backwards compatibility
-            update_buffer_errors(bid, linter, errors, reason)
-        else:
-            # search for an open view for this file to get a bid
-            view = window.find_open_file(filename)
-            if view:
-                this_bid = view.buffer_id()
-
-                # ignore errors of other files if their view is dirty
-                if this_bid != bid and view.is_dirty() and errors:
-                    continue
-
-                update_buffer_errors(this_bid, linter, errors, reason)
-
-                if this_bid == bid:
-                    did_update_main_view = True
-
+    # Basically, we must fake a `[]` response for every filename that is no
+    # longer reported.
     # For the main view we MUST *always* report an outcome. This is not for
     # cleanup but functions as a signal that we're done. Merely for the status
     # bar view.
-    if not did_update_main_view:
-        update_buffer_errors(bid, linter, [], reason)
+    clean_files = previous_filenames - current_filenames
+    for filename in clean_files | {main_filename}:
+        grouped[filename]  # For the side-effect of creating a new empty `list`
 
-    affected_filenames_per_bid[bid][linter] = current_filenames
+    for filename, errors in grouped.items():
+        # Ignore errors of other files if their view is dirty; but still
+        # propagate if there are no errors, t.i. cleanup is allowed even
+        # then.
+        if filename != main_filename and errors:
+            view = window.find_open_file(filename)
+            if view and view.is_dirty():
+                continue
+
+        update_file_errors(filename, linter, errors, reason)
 
 
-def update_buffer_errors(bid, linter, errors, reason=None):
-    # type: (Bid, LinterName, List[LintError], Optional[Reason]) -> None
+def update_file_errors(filename, linter, errors, reason=None):
+    # type: (FileName, LinterName, List[LintError], Optional[Reason]) -> None
     """Persist lint error changes and broadcast."""
-    update_errors_store(bid, linter, errors)
+    update_errors_store(filename, linter, errors)
     events.broadcast(events.LINT_RESULT, {
-        'buffer_id': bid,
+        'filename': filename,
         'linter_name': linter,
         'errors': errors,
         'reason': reason
     })
 
 
-def update_errors_store(bid, linter_name, errors):
-    # type: (Bid, LinterName, List[LintError]) -> None
-    persist.errors[bid] = [
+def update_errors_store(filename, linter_name, errors):
+    # type: (FileName, LinterName, List[LintError]) -> None
+    persist.file_errors[filename] = [
         error
-        for error in persist.errors[bid]
+        for error in persist.file_errors[filename]
         if error['linter'] != linter_name
     ] + errors
 
 
+def update_on_filename_change(old_filename, new_filename):
+    # type: (FileName, FileName) -> None
+    # update the error store
+    if old_filename in persist.file_errors:
+        errors = persist.file_errors.pop(old_filename)
+        persist.file_errors[new_filename] = errors
+
+    # update the affected filenames
+    if old_filename in persist.affected_filenames_per_filename:
+        filenames = persist.affected_filenames_per_filename.pop(old_filename)
+        persist.affected_filenames_per_filename[new_filename] = filenames
+
+    # notify the views
+    events.broadcast('renamed_file', {
+        'new_filename': new_filename,
+        'old_filename': old_filename
+    })
+
+
 def force_redraw():
-    for bid, errors in persist.errors.items():
+    for filename, errors in persist.file_errors.items():
         for linter_name, linter_errors in group_by_linter(errors).items():
             events.broadcast(events.LINT_RESULT, {
-                'buffer_id': bid,
+                'filename': filename,
                 'linter_name': linter_name,
                 'errors': linter_errors
             })
@@ -402,27 +456,30 @@ def group_by_linter(errors):
 
 def _assign_linters_to_view(view, next_linters):
     # type: (sublime.View, Set[LinterName]) -> None
-    bid = view.buffer_id()
     window = view.window()
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
     # pass a valid `window` around bc we do not want to update `assigned_linters`
-    # for detached views as well bc `on_pre_close` already has been called
+    # for detached views as well bc `on_close` already has been called
     # at this time.
     if not window:
         return
 
+    bid = view.buffer_id()
+    filename = util.get_filename(view)
     current_linters = persist.assigned_linters.get(bid, set())
 
     persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
-        'bid': bid,
+        'filename': filename,
         'linter_names': list(next_linters)
     })
 
+    affected_files = persist.affected_filenames_per_filename[filename]
     for linter in (current_linters - next_linters):
-        update_buffer_errors(bid, linter, [])
+        affected_files.pop(linter, None)
+        update_file_errors(filename, linter, [])
 
 
 def make_view_has_changed_fn(view):

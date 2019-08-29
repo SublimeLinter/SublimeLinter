@@ -1,8 +1,7 @@
 import sublime
 import sublime_plugin
 
-from .lint import persist
-from .lint import events
+from .lint import persist, events, util
 
 
 STATUS_COUNTER_KEY = "sublime_linter_status_counter"
@@ -29,9 +28,9 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_RESULT)
-def on_lint_result(buffer_id, **kwargs):
+def on_lint_result(filename, **kwargs):
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
+    if active_view and util.get_filename(active_view) == filename:
         draw(**State)
 
 
@@ -82,16 +81,17 @@ def messages_under_cursor(view, current_pos):
                 message=error["msg"],
                 code=error["code"]
             )
-            for error in get_errors_under_cursor(view.buffer_id(), current_pos)
+            for error in get_errors_under_cursor(view, current_pos)
         )
         return "; ".join(msgs)
     else:
         return ""
 
 
-def get_errors_under_cursor(bid, cursor):
+def get_errors_under_cursor(view, cursor):
+    filename = util.get_filename(view)
     return (
-        error for error in persist.errors.get(bid, [])
+        error for error in persist.file_errors.get(filename, [])
         if error['region'].contains(cursor)
     )
 

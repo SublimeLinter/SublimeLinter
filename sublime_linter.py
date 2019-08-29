@@ -494,27 +494,28 @@ def group_by_linter(errors):
 
 def _assign_linters_to_view(view, next_linters):
     # type: (sublime.View, Set[LinterName]) -> None
-    bid = view.buffer_id()
     window = view.window()
     # It is possible that the user closes the view during debounce time,
     # in that case `window` will get None and we will just abort. We check
     # here bc above code is slow enough to make the difference. We don't
     # pass a valid `window` around bc we do not want to update `assigned_linters`
-    # for detached views as well bc `on_pre_close` already has been called
+    # for detached views as well bc `on_close` already has been called
     # at this time.
     if not window:
         return
 
+    bid = view.buffer_id()
+    filename = util.get_filename(view)
     current_linters = persist.assigned_linters.get(bid, set())
 
     persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
-        'filename': util.get_filename(view),
+        'filename': filename,
         'linter_names': list(next_linters)
     })
 
     for linter in (current_linters - next_linters):
-        update_file_errors(util.get_filename(view), linter, [])
+        update_file_errors(filename, linter, [])
 
 
 def make_view_has_changed_fn(view):

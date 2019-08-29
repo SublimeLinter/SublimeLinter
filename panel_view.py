@@ -1,9 +1,11 @@
+from collections import defaultdict
 from functools import lru_cache, partial
 from itertools import chain
 import os
 import sublime
 import sublime_plugin
 import textwrap
+import uuid
 
 from .lint import elect, events, persist, util
 flatten = chain.from_iterable
@@ -12,25 +14,31 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Collection, Dict, Iterable, List, Optional, Set, Tuple,
-        Union
+        Any, Callable, Collection, Dict, Iterable, List, Optional, Set,
+        Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
-    Filename = str
+    T = TypeVar('T')
+    U = TypeVar('U')
+    FileName = persist.FileName
+    LinterName = persist.LinterName
+    Reason = Optional[str]
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
+        'active_filename': Optional[str],
         'cursor': int,
         'panel_opened_automatically': Set[sublime.WindowId]
     })
-    ErrorsByFile = Dict[Filename, List[LintError]]
+    ErrorsByFile = Dict[FileName, List[LintError]]
     DrawInfo = TypedDict('DrawInfo', {
         'panel': sublime.View,
         'content': str,
         'errors_from_active_view': List[LintError],
         'nearby_lines': Union[int, List[int]]
     }, total=False)
+    Action = Callable[[], None]
 
 
 PANEL_NAME = "SublimeLinter"
@@ -38,6 +46,7 @@ OUTPUT_PANEL = "output." + PANEL_NAME
 
 State = {
     'active_view': None,
+    'active_filename': None,
     'cursor': -1,
     'panel_opened_automatically': set()
 }  # type: State_
@@ -45,8 +54,10 @@ State = {
 
 def plugin_loaded():
     active_window = sublime.active_window()
+    active_view = active_window.active_view()
     State.update({
-        'active_view': active_window.active_view()
+        'active_view': active_view,
+        'active_filename': util.get_filename(active_view) if active_view else None,
     })
     ensure_panel(active_window)
 
@@ -60,20 +71,82 @@ def plugin_unloaded():
         window.destroy_output_panel(PANEL_NAME)
 
 
+LINT_RESULT_CACHE = defaultdict(list)  # type: Dict[str, List[Tuple[FileName, Reason]]]
+REQUEST_LINT_RESULT = {}  # type: Dict[str, str]
+
+
+def unzip(zipped):
+    # type: (Iterable[Tuple[T, U]]) -> Tuple[Tuple[T, ...], Tuple[U, ...]]
+    return tuple(zip(*zipped))  # type: ignore
+
+
 @events.on('lint_result_changed')
-def on_lint_result(filename, reason=None, **kwargs):
-    maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
+def on_lint_result(filename, linter_name, reason=None, **kwargs):
+    # type: (FileName, LinterName, Reason, Any) -> None
+    LINT_RESULT_CACHE[linter_name].append((filename, reason))
+
+    strategy = (
+        run_immediately
+        if State['active_filename'] == filename
+        else run_on_next_tick
+    )
+    strategy(
+        REQUEST_LINT_RESULT,
+        linter_name,
+        lambda: execute_on_lint_result_request(linter_name)
+    )
+
+
+def run_immediately(token_cache, key, action):
+    # type: (Dict[T, str], T, Action) -> None
+    """Invalidate `key` and run `action` immediately."""
+    token_cache[key] = uuid.uuid4().hex
+    action()
+
+
+def run_on_next_tick(token_cache, key, action):
+    # type: (Dict[T, str], T, Action) -> None
+    """Enqueue `action` to be run on next worker tick.
+
+    Subsequent calls with the same `key` in the same tick, t.i.
+    before the worker could have emptied the queue, will replace
+    the `action`.  (T.i. for n calls to action only 1 will run,
+    the other will be erased.)
+    """
+    token = token_cache[key] = uuid.uuid4().hex
+    proposition = lambda: token_cache[key] == token
+    sublime.set_timeout_async(lambda: maybe_run(proposition, action))
+
+
+def maybe_run(prop, action):
+    # type: (Callable[[], bool], Action) -> None
+    if prop():
+        action()
+
+
+def execute_on_lint_result_request(linter_name):
+    # type: (LinterName) -> None
+    calls = LINT_RESULT_CACHE.pop(linter_name)
+    filenames, reasons = unzip(calls)
+    _on_lint_result(
+        set(filenames),
+        not {'on_save', 'on_user_request'}.isdisjoint(reasons)
+    )
+
+
+def _on_lint_result(filenames, maybe_toggle_panel_automatically):
+    # type: (Set[FileName], bool) -> None
     for window in sublime.windows():
         panel_open = panel_is_active(window)
         if (
             (panel_open or maybe_toggle_panel_automatically)
-            and filename in filenames_per_window(window)
+            and filenames & filenames_per_window(window)
         ):
             if panel_open:
                 fill_panel(window)
 
             if maybe_toggle_panel_automatically:
-                toggle_panel_if_errors(window, filename)
+                toggle_panel_if_errors(window, filenames)
 
 
 @events.on('updated_error_positions')
@@ -102,6 +175,7 @@ class UpdateState(sublime_plugin.EventListener):
 
         State.update({
             'active_view': active_view,
+            'active_filename': util.get_filename(active_view),
             'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
@@ -141,7 +215,7 @@ class UpdateState(sublime_plugin.EventListener):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
         if view_gets_linted_on_modified_event(view):
-            toggle_panel_if_errors(view.window(), util.get_filename(view))
+            toggle_panel_if_errors(view.window(), {util.get_filename(view)})
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -173,7 +247,8 @@ def view_gets_linted_on_modified_event(view):
     return any(elect.runnable_linters_for_view(view, 'on_modified'))
 
 
-def toggle_panel_if_errors(window, filename):
+def toggle_panel_if_errors(window, filenames):
+    # type: (Optional[sublime.Window], Set[FileName]) -> None
     """Toggle the panel if the view or window has problems, depending on settings."""
     if window is None:
         return
@@ -184,8 +259,9 @@ def toggle_panel_if_errors(window, filename):
 
     errors_by_file = get_window_errors(window, persist.file_errors)
     has_relevant_errors = (
-        show_panel_on_save == 'window' and errors_by_file or
-        filename in errors_by_file)
+        show_panel_on_save == 'window' and errors_by_file
+        or filenames & errors_by_file.keys()
+    )
 
     if not panel_is_active(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
@@ -298,7 +374,7 @@ def buffer_ids_per_window(window):
 
 
 def filenames_per_window(window):
-    # type: (sublime.Window) -> Set[Filename]
+    # type: (sublime.Window) -> Set[FileName]
     """Return filenames of all open files plus their dependencies."""
     open_filenames = set(util.get_filename(v) for v in window.views())
     return open_filenames | set(
@@ -311,7 +387,7 @@ def filenames_per_window(window):
 
 @lru_cache(maxsize=16)
 def create_path_dict(filenames):
-    # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
+    # type: (Collection[FileName]) -> Tuple[Dict[FileName, str], str]
     base_dir = get_common_parent([
         path
         for path in filenames

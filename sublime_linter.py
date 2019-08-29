@@ -212,8 +212,8 @@ class BackendController(sublime_plugin.EventListener):
 
         to_discard = ({filename} | direct_deps) - open_filenames - other_deps
         for fn in to_discard:
-            persist.file_errors.pop(fn, None)
             persist.affected_filenames_per_filename.pop(fn, None)
+            persist.file_errors.pop(fn, None)
 
         persist.assigned_linters.pop(bid, None)
         guard_check_linters_for_view.pop(bid, None)
@@ -280,8 +280,11 @@ class sublime_linter_clear_errors(sublime_plugin.WindowCommand):
             errors_to_clear = {filename: persist.file_errors[filename]}
 
         for filename, errors in errors_to_clear.items():
+            affected_files = persist.affected_filenames_per_filename[filename]
             linters = set(error['linter'] for error in errors)
+
             for linter_name in linters:
+                affected_files.pop(linter_name, None)
                 update_file_errors(filename, linter_name, [])
 
 
@@ -509,7 +512,9 @@ def _assign_linters_to_view(view, next_linters):
         'linter_names': list(next_linters)
     })
 
+    affected_files = persist.affected_filenames_per_filename[filename]
     for linter in (current_linters - next_linters):
+        affected_files.pop(linter, None)
         update_file_errors(filename, linter, [])
 
 

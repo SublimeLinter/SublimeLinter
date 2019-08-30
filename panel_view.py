@@ -77,11 +77,10 @@ def on_lint_result(filename, reason=None, **kwargs):
 
 
 @events.on('updated_error_positions')
-def on_updated_error_positions(view, **kwargs):
-    bid = view.buffer_id()
-    window = view.window()
-    if panel_is_active(window) and bid in buffer_ids_per_window(window):
-        fill_panel(window)
+def on_updated_error_positions(filename, **kwargs):
+    for window in sublime.windows():
+        if panel_is_active(window) and filename in filenames_per_window(window):
+            fill_panel(window)
 
 
 @events.on('renamed_file')

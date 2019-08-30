@@ -157,7 +157,8 @@ class ViewListCleanupController(sublime_plugin.EventListener):
 class UpdateErrorRegions(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
-        update_error_regions(view)
+        if util.is_lintable(view):
+            update_error_regions(view)
 
 
 def update_error_regions(view):
@@ -172,23 +173,32 @@ def update_error_regions(view):
         if '.Highlights.' in key
     }
 
+    changed = False
     for error in errors:
         uid = error['uid']
         region = uid_region_map.get(uid, None)
-        if region is None:
+        if region is None or region == error['region']:
             continue
 
         line, start = view.rowcol(region.begin())
         endLine, end = view.rowcol(region.end())
-        error.update({
-            'region': region,
-            'line': line,
-            'start': start,
-            'endLine': endLine,
-            'end': end
-        })
+        if (
+            line != error['line']
+            or start != error['start']
+            or (endLine != error['endLine'] if 'endLine' in error else False)
+            or end != error['end']
+        ):
+            error.update({
+                'region': region,
+                'line': line,
+                'start': start,
+                'endLine': endLine,
+                'end': end
+            })
+            changed = True
 
-    events.broadcast('updated_error_positions', {'view': view})
+    if changed:
+        events.broadcast('updated_error_positions', {'filename': filename})
 
 
 def head(iterable):

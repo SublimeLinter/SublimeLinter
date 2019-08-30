@@ -4,18 +4,35 @@ import sublime_plugin
 from .lint import persist, events, util
 
 
+if False:
+    from typing import Iterable, Optional
+    from mypy_extensions import TypedDict
+
+    FileName = str
+    LinterName = str
+    LintError = persist.LintError
+    State_ = TypedDict('State_', {
+        'active_view': Optional[sublime.View],
+        'active_filename': Optional[FileName],
+        'current_pos': int
+    })
+
+
 STATUS_COUNTER_KEY = "sublime_linter_status_counter"
 STATUS_MSG_KEY = "sublime_linter_status_messages"
 
 State = {
     'active_view': None,
+    'active_filename': None,
     'current_pos': -1
-}
+}  # type: State_
 
 
 def plugin_loaded():
+    active_view = sublime.active_window().active_view()
     State.update({
-        'active_view': sublime.active_window().active_view()
+        'active_view': active_view,
+        'active_filename': util.get_filename(active_view) if active_view else None,
     })
 
 
@@ -29,8 +46,7 @@ def plugin_unloaded():
 
 @events.on(events.LINT_RESULT)
 def on_lint_result(filename, **kwargs):
-    active_view = State['active_view']
-    if active_view and util.get_filename(active_view) == filename:
+    if State['active_filename'] == filename:
         draw(**State)
 
 
@@ -39,6 +55,7 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         State.update({
             'active_view': active_view,
+            'active_filename': util.get_filename(active_view),
             'current_pos': get_current_pos(active_view)
         })
         draw(**State)
@@ -48,7 +65,6 @@ class UpdateState(sublime_plugin.EventListener):
     # Activating a view via mouse click fires this also, twice per view.
     def on_selection_modified_async(self, view):
         active_view = State['active_view']
-        # Do not race between `plugin_loaded` and this event handler
         if active_view is None:
             return
 
@@ -63,15 +79,16 @@ class UpdateState(sublime_plugin.EventListener):
             draw(**State)
 
 
-def draw(active_view, current_pos, **kwargs):
-    message = messages_under_cursor(active_view, current_pos)
-    if not message:
-        active_view.erase_status(STATUS_MSG_KEY)
-    elif message != active_view.get_status(STATUS_MSG_KEY):
+def draw(active_view, active_filename, current_pos, **kwargs):
+    message = messages_under_cursor(active_filename, current_pos)
+    if message:
         active_view.set_status(STATUS_MSG_KEY, message)
+    else:
+        active_view.erase_status(STATUS_MSG_KEY)
 
 
-def messages_under_cursor(view, current_pos):
+def messages_under_cursor(filename, current_pos):
+    # type: (FileName, int) -> str
     message_template = persist.settings.get('statusbar.messages_template')
     if message_template != "":
         msgs = (
@@ -81,15 +98,15 @@ def messages_under_cursor(view, current_pos):
                 message=error["msg"],
                 code=error["code"]
             )
-            for error in get_errors_under_cursor(view, current_pos)
+            for error in get_errors_under_cursor(filename, current_pos)
         )
         return "; ".join(msgs)
     else:
         return ""
 
 
-def get_errors_under_cursor(view, cursor):
-    filename = util.get_filename(view)
+def get_errors_under_cursor(filename, cursor):
+    # type: (FileName, int) -> Iterable[LintError]
     return (
         error for error in persist.file_errors.get(filename, [])
         if error['region'].contains(cursor)
@@ -97,6 +114,7 @@ def get_errors_under_cursor(view, cursor):
 
 
 def get_current_pos(view):
+    # type: (sublime.View) -> int
     try:
         return view.sel()[0].begin()
     except (AttributeError, IndexError):

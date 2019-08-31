@@ -81,10 +81,12 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter_module.logger).warning(...)
 
     @p.expand([
-        (os.path.join('/p', 'node_modules', '.bin'),),
-        (os.path.join('/p/a', 'node_modules', '.bin'),),
+        ('/p',),
+        ('/p/a',),
     ])
-    def test_locally_installed(self, PRESENT_BIN_PATH):
+    def test_locally_installed(self, ROOT_DIR):
+        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, 'node_modules', '.bin')
+
         when(self.view).file_name().thenReturn('/p/a/f.js')
         linter = make_fake_linter(self.view)
 
@@ -92,7 +94,9 @@ class TestNodeLinters(DeferrableTestCase):
         when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
 
         cmd = linter.get_cmd()
+        working_dir = linter.get_working_dir()
         self.assertEqual(cmd, ['fake.exe'])
+        self.assertEqual(working_dir, ROOT_DIR)
 
     @p.expand([
         ('/p',),
@@ -126,8 +130,10 @@ class TestNodeLinters(DeferrableTestCase):
     @p.expand([
         ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency'),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True),
     ])
-    def test_uninstalled_local_dependency(self, ROOT_DIR, CONTENT, DEPENDENCY_TYPE):
+    def test_uninstalled_local_dependency(self, ROOT_DIR, CONTENT, DEPENDENCY_TYPE, IS_YARN_PROJECT=False):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
 
         when(self.view).file_name().thenReturn('/p/a/f.js')
@@ -136,13 +142,19 @@ class TestNodeLinters(DeferrableTestCase):
         when(linter).notify_failure().thenReturn(None)
         when(node_linter.logger).warning(
             "Skipping 'mylinter' for now which is listed as a {} in {} but "
-            "not installed.  Forgot to 'npm install'?"
-            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE)
+            "not installed.  Forgot to '{} install'?"
+            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, 'yarn' if IS_YARN_PROJECT else 'npm')
         ).thenReturn(None)
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
+
+        if IS_YARN_PROJECT:
+            which = shutil.which
+            when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
+            when(shutil).which(...).thenAnswer(which)
+            when(shutil).which('yarn').thenReturn('/path/to/yarn')
 
         try:
             linter.get_cmd()
@@ -173,7 +185,9 @@ class TestNodeLinters(DeferrableTestCase):
         when(linter).which('node').thenReturn(NODE_BIN)
 
         cmd = linter.get_cmd()
+        working_dir = linter.get_working_dir()
         self.assertEqual(cmd, [NODE_BIN, SCRIPT_FILE])
+        self.assertEqual(working_dir, ROOT_DIR)
 
     @p.expand([
         ('/p', {'bin': {'mylinter': 'fake.js'}}),
@@ -254,6 +268,102 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
         cmd = linter.get_cmd()
         self.assertEqual(cmd, ['fake.exe'])
+
+    @p.expand([
+        ('/p', {'dependencies': {'mylinter': '0.2'}}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}),
+    ])
+    def test_installed_yarn_pnp_project(self, ROOT_DIR, CONTENT):
+        PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
+        YARN_BIN = '/path/to/yarn'
+
+        when(self.view).file_name().thenReturn('/p/a/f.js')
+        linter = make_fake_linter(self.view)
+
+        exists = os.path.exists
+        which = shutil.which
+        when(os.path).exists(...).thenAnswer(exists)
+        when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(True)
+        when(shutil).which(...).thenAnswer(which)
+        when(shutil).which('yarn').thenReturn(YARN_BIN)
+
+        cmd = linter.get_cmd()
+        working_dir = linter.get_working_dir()
+        self.assertEqual(cmd, [YARN_BIN, 'run', '--silent', 'mylinter'])
+        self.assertEqual(working_dir, ROOT_DIR)
+
+    @p.expand([
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, True),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True),
+    ])
+    def test_yarn_pnp_project_warn_no_yarn(self, ROOT_DIR, CONTENT, PNP_JS_EXISTS=False):
+        PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
+
+        when(self.view).file_name().thenReturn('/p/a/f.js')
+        linter = make_fake_linter(self.view)
+
+        when(linter).notify_failure().thenReturn(None)
+        when(node_linter.logger).warning(
+            "This seems like a Yarn PnP project. However, finding "
+            "a Yarn executable failed. Make sure to install Yarn first."
+        ).thenReturn(None)
+        exists = os.path.exists
+        which = shutil.which
+        when(os.path).exists(...).thenAnswer(exists)
+        when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
+        when(shutil).which(...).thenAnswer(which)
+        when(shutil).which('yarn').thenReturn(None)
+
+        try:
+            linter.get_cmd()
+        except linter_module.PermanentError:
+            pass
+
+        verify(node_linter.logger).warning(...)
+        verify(linter).notify_failure()
+
+    @p.expand([
+        ('/p', {'dependencies': {'mylinter': '0.2'}}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}),
+    ])
+    def test_yarn_pnp_project_warn_no_linter(self, ROOT_DIR, CONTENT):
+        PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
+        YARN_BIN = '/path/to/yarn'
+
+        when(self.view).file_name().thenReturn('/p/a/f.js')
+        linter = make_fake_linter(self.view)
+
+        when(linter).notify_failure().thenReturn(None)
+        when(node_linter.logger).warning(
+            "We did execute 'yarn run --silent mylinter' but "
+            "'mylinter' cannot be found.  Forgot to 'yarn install'?"
+        ).thenReturn(None)
+        exists = os.path.exists
+        which = shutil.which
+        when(os.path).exists(...).thenAnswer(exists)
+        when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(True)
+        when(shutil).which(...).thenAnswer(which)
+        when(shutil).which('yarn').thenReturn(YARN_BIN)
+        when(linter)._communicate(...).thenReturn('error Command "mylinter" not found')
+
+        try:
+            linter.lint('foo', lambda: False)
+        except linter_module.PermanentError:
+            pass
+
+        verify(node_linter.logger).warning(...)
+        verify(linter).notify_failure()
 
     def test_disable_if_not_dependency(self):
         linter = make_fake_linter(self.view)

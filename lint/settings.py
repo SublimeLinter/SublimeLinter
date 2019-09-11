@@ -1,7 +1,7 @@
 import logging
 
 import sublime
-from . import util
+from . import events, util
 from jsonschema import validate, FormatChecker, ValidationError
 
 
@@ -12,7 +12,9 @@ class Settings:
     """This class provides global access to and management of plugin settings."""
 
     def __init__(self):
-        self._storage = {}
+        self._previous_state = {}
+        self._current_state = {}
+        self.__settings = None
 
     def load(self):
         """Load the plugin settings."""
@@ -21,7 +23,10 @@ class Settings:
 
     @property
     def settings(self):
-        return sublime.load_settings("SublimeLinter.sublime-settings")
+        s = self.__settings
+        if not s:
+            s = self.__settings = sublime.load_settings("SublimeLinter.sublime-settings")
+        return s
 
     def has(self, name):
         """Return whether the given setting exists."""
@@ -29,28 +34,28 @@ class Settings:
 
     def get(self, name, default=None):
         """Return a plugin setting, defaulting to default if not found."""
-        return self.settings.get(name, default)
+        try:
+            return self._current_state[name]
+        except KeyError:
+            self._current_state[name] = current_value = self.settings.get(name, default)
+            return current_value
 
     def has_changed(self, name):
         current_value = self.get(name)
         try:
-            old_value = self._storage[name]
+            old_value = self._previous_state[name]
         except KeyError:
             return False
         else:
             return (old_value != current_value)
-        finally:
-            self._storage[name] = current_value
 
     def observe(self):
         """Observe changes."""
-        settings = sublime.load_settings("SublimeLinter.sublime-settings")
-        settings.clear_on_change('sublimelinter-persist-settings')
-        settings.add_on_change('sublimelinter-persist-settings', self.on_update)
+        self.settings.clear_on_change('sublimelinter-persist-settings')
+        self.settings.add_on_change('sublimelinter-persist-settings', self.on_update)
 
     def unobserve(self):
-        settings = sublime.load_settings("SublimeLinter.sublime-settings")
-        settings.clear_on_change('sublimelinter-persist-settings')
+        self.settings.clear_on_change('sublimelinter-persist-settings')
 
     def on_update(self):
         """
@@ -60,10 +65,15 @@ class Settings:
         Depending on what changes, views will either be redrawn or relinted.
 
         """
+        self._previous_state = self._current_state.copy()
+        self._current_state.clear()
+
         if not validate_global_settings():
             return
 
+        events.broadcast('settings_changed', {'settings': self})
         from . import style
+
         gutter_theme_changed = self.has_changed('gutter_theme')
         if gutter_theme_changed:
             style.read_gutter_theme()

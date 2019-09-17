@@ -1,0 +1,32 @@
+name: mypy
+
+on:
+  push:
+    paths:
+    - '*.py'
+    - 'mypy.ini'
+    - '/lint/*'
+    - '!/tests/*'
+  pull_request:
+    paths:
+    - '*.py'
+    - 'mypy.ini'
+    - '/lint/*'
+    - '!/tests/*'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Update pip and install mypy
+      run: |
+        python -m pip install --upgrade pip
+        pip install mypy
+    - name: Lint with mypy
+      run: |
+        mypy ../SublimeLinter

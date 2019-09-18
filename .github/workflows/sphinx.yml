@@ -1,0 +1,48 @@
+name: sphinx
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+    - 'docs/*'
+    - 'docs/*/*'
+  pull_request:
+    paths:
+    - 'docs/*'
+    - 'docs/*/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Update pip and install sphinx
+      run: |
+        python -m pip install --upgrade pip
+        pip install Sphinx sphinx_rtd_theme
+        echo '##[add-matcher]'$PWD/.github/python.json
+    - name: build docs
+      run: |
+        sphinx-build -j auto -W --keep-going docs docs-out
+
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Update pip and install sphinx
+      run: |
+        python -m pip install --upgrade pip
+        pip install Sphinx sphinx_rtd_theme
+        echo '##[add-matcher]'$PWD/.github/python.json
+    - name: check links
+      run: |
+        sphinx-build -j auto -b linkcheck -W --keep-going docs docs-out

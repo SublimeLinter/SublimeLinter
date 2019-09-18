@@ -9,7 +9,7 @@ on:
     - '/docs/*'
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -23,7 +23,20 @@ jobs:
         pip install Sphinx sphinx_rtd_theme
     - name: build docs
       run: |
-        sphinx-build -j auto docs docs-out
+        sphinx-build -j auto -W --keep-going docs docs-out
+
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Update pip and install sphinx
+      run: |
+        python -m pip install --upgrade pip
+        pip install Sphinx sphinx_rtd_theme
     - name: check links
       run: |
-        sphinx-build -j auto -b linkcheck docs docs-out
+        sphinx-build -j auto -b linkcheck -W --keep-going docs docs-out

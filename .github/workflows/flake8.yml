@@ -1,0 +1,48 @@
+name: flake8
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+    - 'setup.cfg'
+    - '*.py'
+    - 'lint/*.py'
+    - 'lint/*/*.py'
+    - 'lint/*/*/*.py'
+    - 'lint/*/*/*/*.py'
+    - 'tests/*.py'
+    - 'tests/*/*.py'
+    - 'tests/*/*/*.py'
+    - 'tests/*/*/*/*.py'
+
+  pull_request:
+    paths:
+    - 'setup.cfg'
+    - '*.py'
+    - 'lint/*.py'
+    - 'lint/*/*.py'
+    - 'lint/*/*/*.py'
+    - 'lint/*/*/*/*.py'
+    - 'tests/*.py'
+    - 'tests/*/*.py'
+    - 'tests/*/*/*.py'
+    - 'tests/*/*/*/*.py'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Update pip and install flake8
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 flake8-docstrings
+        echo '##[add-matcher]'$PWD/.github/python.json
+    - name: Lint with flake8
+      run: |
+        flake8 .

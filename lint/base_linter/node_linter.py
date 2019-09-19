@@ -192,22 +192,22 @@ class NodeLinter(linter.Linter):
         return None
 
     def run(self, cmd, code):
-        # type: (Union[List[str], None], str) -> Union[util.popen_output, str]
+        # type: (Optional[List[str]], str) -> Union[util.popen_output, str]
         result = super().run(cmd, code)
 
-        try:
+        if cmd and cmd[1:3] == ['run', '--silent'] and len(cmd) >= 4:
             npm_name = cmd[3]
-            if ('error Command "' + npm_name + '" not found') in str(result):
+            if 'error Command "{}" not found'.format(npm_name) in (
+                result.stderr or ''
+                if isinstance(result, util.popen_output)
+                else result
+            ):
                 logger.warning(
                     "We did execute 'yarn run --silent {0}' but "
                     "'{0}' cannot be found.  Forgot to 'yarn install'?"
-                    .format(
-                        npm_name
-                    )
+                    .format(npm_name)
                 )
                 self.notify_failure()
                 raise linter.PermanentError()
-        except IndexError:
-            pass
 
         return result

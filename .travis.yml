@@ -18,13 +18,10 @@ before_install:
     - curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/travis.sh
 
 install:
-    - pip install flake8 flake8-docstrings "pydocstyle<4.0.0" Sphinx sphinx_rtd_theme codecov
+    - pip install codecov
     - sh travis.sh bootstrap
     - sh travis.sh install_package_control
 
 script:
-    - flake8
-    - sphinx-build -j auto docs docs-out
-    - sphinx-build -j auto -b linkcheck docs docs-out
     - sh travis.sh run_tests --coverage
     - codecov

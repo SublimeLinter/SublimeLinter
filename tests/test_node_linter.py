@@ -95,11 +95,11 @@ class TestNodeLinters(DeferrableTestCase):
         when(self.view).file_name().thenReturn('/p/a/b/f.js')
         linter = make_fake_linter(self.view)
 
-        when(shutil).which(...).thenReturn(None)
-        when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(shutil).which(...).thenReturn(None)
+        when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         cmd = linter.get_cmd()
@@ -289,14 +289,13 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         exists = os.path.exists
-        which = shutil.which
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
         when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
         when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
-        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
-        when(shutil).which(...).thenAnswer(which)
+        when(shutil).which(...).thenReturn(None)
         when(shutil).which('yarn').thenReturn(YARN_BIN)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         cmd = linter.get_cmd()
         working_dir = linter.get_working_dir()
@@ -321,14 +320,12 @@ class TestNodeLinters(DeferrableTestCase):
             "a Yarn executable failed. Make sure to install Yarn first."
         ).thenReturn(None)
         exists = os.path.exists
-        which = shutil.which
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
         when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
         when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
-        when(shutil).which(...).thenAnswer(which)
-        when(shutil).which('yarn').thenReturn(None)
+        when(shutil).which(...).thenReturn(None)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         try:
             linter.get_cmd()
@@ -355,14 +352,13 @@ class TestNodeLinters(DeferrableTestCase):
             "'mylinter' cannot be found.  Forgot to 'yarn install'?"
         ).thenReturn(None)
         exists = os.path.exists
-        which = shutil.which
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
         when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
         when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(True)
-        when(shutil).which(...).thenAnswer(which)
+        when(shutil).which(...).thenReturn(None)
         when(shutil).which('yarn').thenReturn(YARN_BIN)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
         when(linter)._communicate(...).thenReturn('error Command "mylinter" not found')
 
         try:

@@ -168,8 +168,8 @@ class NodeLinter(linter.Linter):
                             )
                             self.notify_failure()
                             raise linter.PermanentError()
-                        elif pnp_js_exists:
-                            return [yarn_binary, 'run', '--silent', npm_name]
+
+                        return [yarn_binary, 'run', '--silent', npm_name]
 
                     next_path = os.path.dirname(path)
 

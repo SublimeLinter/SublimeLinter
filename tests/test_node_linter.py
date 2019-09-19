@@ -267,10 +267,12 @@ class TestNodeLinters(DeferrableTestCase):
         self.assertEqual(cmd, ['fake.exe'])
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}}),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}, False),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}, False),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, True),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True),
     ])
-    def test_installed_yarn_pnp_project(self, ROOT_DIR, CONTENT):
+    def test_installed_yarn_pnp_project(self, ROOT_DIR, CONTENT, PNP_JS_EXISTS):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
         YARN_BIN = '/path/to/yarn'
 
@@ -281,9 +283,9 @@ class TestNodeLinters(DeferrableTestCase):
         which = shutil.which
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
         when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(True)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
         when(shutil).which(...).thenAnswer(which)
         when(shutil).which('yarn').thenReturn(YARN_BIN)
 

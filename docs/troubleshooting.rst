@@ -58,12 +58,13 @@ it by patching the "env" for that linter in your settings like so:
 
 .. code-block:: json
 
-    "linters": {
-      "eslint": {
-          "env": {"PATH":"/usr/local/bin/"}
-      }
+    {
+        "linters": {
+          "eslint": {
+              "env": {"PATH":"/usr/local/bin/"}
+          }
+        }
     }
-
 
 Finding a linter executable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,10 +98,12 @@ To add the path ``~/.rbenv/shims`` you would change the ``"paths"`` setting like
 
 .. code-block:: json
 
-    "paths": {
-        "linux": [],
-        "osx": [
-            "~/.rbenv/shims"
-        ],
-        "windows": []
+    {
+        "paths": {
+            "linux": [],
+            "osx": [
+                "~/.rbenv/shims"
+            ],
+            "windows": []
+        }
     }

@@ -154,30 +154,28 @@ class NodeLinter(linter.Linter):
 
                     # Perhaps this is a Yarn PnP project?
                     yarn_lock_exists = os.path.exists(os.path.join(path, 'yarn.lock'))
-                    package_lock_exists = os.path.exists(os.path.join(path, 'package-lock.json'))
-                    pnp_js_exists = os.path.exists(os.path.join(path, '.pnp.js'))
-                    pnp_in_manifest = bool(manifest.get('installConfig', {}).get('pnp'))
-                    is_pnp_project = pnp_js_exists or pnp_in_manifest
-
-                    if yarn_lock_exists and is_pnp_project:
+                    if yarn_lock_exists and (
+                        os.path.exists(os.path.join(path, '.pnp.js'))
+                        or bool(manifest.get('installConfig', {}).get('pnp'))
+                    ):
                         yarn_binary = shutil.which('yarn')
-                        if not yarn_binary:
-                            logger.warning(
-                                "This seems like a Yarn PnP project. However, finding "
-                                "a Yarn executable failed. Make sure to install Yarn first."
-                            )
-                            self.notify_failure()
-                            raise linter.PermanentError()
+                        if yarn_binary:
+                            return [yarn_binary, 'run', '--silent', npm_name]
 
-                        return [yarn_binary, 'run', '--silent', npm_name]
+                        logger.warning(
+                            "This seems like a Yarn PnP project. However, finding "
+                            "a Yarn executable failed. Make sure to install Yarn first."
+                        )
+                        self.notify_failure()
+                        raise linter.PermanentError()
 
                     next_path = os.path.dirname(path)
-
                     for path in paths_upwards(next_path):
                         executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
                         if executable:
                             return executable
 
+                    package_lock_exists = os.path.exists(os.path.join(path, 'package-lock.json'))
                     logger.warning(
                         "Skipping '{}' for now which is listed as a {} "
                         "in {} but not installed.  Forgot to '{} install'?"

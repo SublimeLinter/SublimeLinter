@@ -171,7 +171,9 @@ class NodeLinter(linter.Linter):
 
                     next_path = os.path.dirname(path)
                     for path in paths_upwards(next_path):
-                        executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
+                        executable = shutil.which(
+                            npm_name, path=os.path.join(path, 'node_modules', '.bin')
+                        )
                         if executable:
                             return executable
 

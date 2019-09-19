@@ -333,7 +333,7 @@ class TestNodeLinters(DeferrableTestCase):
         ('/p', {'dependencies': {'mylinter': '0.2'}}),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}),
     ])
-    def test_yarn_pnp_project_warn_no_linter(self, ROOT_DIR, CONTENT):
+    def test_yarn_pnp_project_warn_not_completely_installed(self, ROOT_DIR, CONTENT):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
         YARN_BIN = '/path/to/yarn'
 

@@ -128,12 +128,14 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter).notify_failure()
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False),
         ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True),
     ])
-    def test_uninstalled_local_dependency(self, ROOT_DIR, CONTENT, DEPENDENCY_TYPE, IS_YARN_PROJECT=False):
+    def test_uninstalled_local_dependency(
+        self, ROOT_DIR, CONTENT, DEPENDENCY_TYPE, IS_YARN_PROJECT
+    ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
 
         when(self.view).file_name().thenReturn('/p/a/f.js')
@@ -148,13 +150,8 @@ class TestNodeLinters(DeferrableTestCase):
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(IS_YARN_PROJECT)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
-
-        if IS_YARN_PROJECT:
-            which = shutil.which
-            when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
-            when(shutil).which(...).thenAnswer(which)
-            when(shutil).which('yarn').thenReturn('/path/to/yarn')
 
         try:
             linter.get_cmd()

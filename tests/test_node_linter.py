@@ -1,14 +1,16 @@
+from functools import partial
 import os
 import shutil
 
 from unittesting import DeferrableTestCase, AWAIT_WORKER
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
+    contains,
+    mock,
+    patch,
+    unstub,
     verify,
     when,
-    unstub,
-    mock,
-    contains
 )
 
 import sublime
@@ -81,6 +83,29 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter_module.logger).warning(...)
 
     @p.expand([
+        ('/p',),
+        ('/p/a',),
+        ('/p/a/b',),
+    ])
+    def test_locally_installed(self, ROOT_DIR):
+        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, 'node_modules', '.bin')
+
+        when(self.view).file_name().thenReturn('/p/a/b/f.js')
+        linter = make_fake_linter(self.view)
+
+        when(shutil).which('mylinter', ...).thenReturn(None)
+        when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
+        patch(
+            node_linter, 'paths_upwards_until_home',
+            partial(node_linter.paths_upwards_until_home, home='/p')
+        )
+
+        cmd = linter.get_cmd()
+        working_dir = linter.get_working_dir()
+        self.assertEqual(cmd, ['fake.exe'])
+        self.assertEqual(working_dir, ROOT_DIR)
+
+    @p.expand([
         ('/p', '/p', {'dependencies': {'mylinter': '0.2'}}),
         ('/p/a', '/p/a', {'devDependencies': {'mylinter': '0.2'}}),
         ('/p/a', '/p', {'devDependencies': {'mylinter': '0.2'}}),
@@ -88,7 +113,7 @@ class TestNodeLinters(DeferrableTestCase):
         ('/p/a/b', '/p/a', {'devDependencies': {'mylinter': '0.2'}}),
         ('/p/a/b', '/p', {'devDependencies': {'mylinter': '0.2'}}),
     ])
-    def test_locally_installed(self, ROOT_DIR, INSTALL_DIR, CONTENT):
+    def test_locally_installed_with_package_json(self, ROOT_DIR, INSTALL_DIR, CONTENT):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
         PRESENT_BIN_PATH = os.path.join(INSTALL_DIR, 'node_modules', '.bin')
 
@@ -101,6 +126,10 @@ class TestNodeLinters(DeferrableTestCase):
         when(shutil).which(...).thenReturn(None)
         when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
+        patch(
+            node_linter, 'paths_upwards_until_home',
+            partial(node_linter.paths_upwards_until_home, home='/p')
+        )
 
         cmd = linter.get_cmd()
         working_dir = linter.get_working_dir()

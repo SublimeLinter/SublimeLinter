@@ -1,7 +1,7 @@
 """This module exports the NodeLinter subclass of Linter."""
 
 from functools import lru_cache
-from itertools import takewhile
+from itertools import chain, takewhile
 import json
 import logging
 import os
@@ -34,9 +34,9 @@ def paths_upwards(path):
         path = next_path
 
 
-def paths_upwards_until_home(path):
-    # type: (str) -> Iterator[str]
-    return takewhile(lambda p: p != HOME, paths_upwards(path))
+def paths_upwards_until_home(path, home=HOME):
+    # type: (str, str) -> Iterator[str]
+    return chain(takewhile(lambda p: p != home, paths_upwards(path)), [home])
 
 
 def read_json_file(path):
@@ -102,7 +102,8 @@ class NodeLinter(linter.Linter):
 
     def find_local_executable(self, start_dir, npm_name):
         # type: (str, str) -> Union[None, str, List[str]]
-        for path in paths_upwards_until_home(start_dir):
+        paths = paths_upwards_until_home(start_dir)
+        for path in paths:
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
             if executable:
                 self.context['project_root'] = path
@@ -169,8 +170,9 @@ class NodeLinter(linter.Linter):
                         self.notify_failure()
                         raise linter.PermanentError()
 
-                    next_path = os.path.dirname(path)
-                    for path in paths_upwards(next_path):
+                    # Since we've found a valid 'package.json' as our 'project_root'
+                    # exhaust outer loop looking just for installations.
+                    for path in paths:
                         executable = shutil.which(
                             npm_name, path=os.path.join(path, 'node_modules', '.bin')
                         )

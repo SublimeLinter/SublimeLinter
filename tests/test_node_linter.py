@@ -81,17 +81,26 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter_module.logger).warning(...)
 
     @p.expand([
-        ('/p',),
-        ('/p/a',),
+        ('/p', '/p', {'dependencies': {'mylinter': '0.2'}}),
+        ('/p/a', '/p/a', {'devDependencies': {'mylinter': '0.2'}}),
+        ('/p/a', '/p', {'devDependencies': {'mylinter': '0.2'}}),
+        ('/p/a/b', '/p/a/b', {'devDependencies': {'mylinter': '0.2'}}),
+        ('/p/a/b', '/p/a', {'devDependencies': {'mylinter': '0.2'}}),
+        ('/p/a/b', '/p', {'devDependencies': {'mylinter': '0.2'}}),
     ])
-    def test_locally_installed(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, 'node_modules', '.bin')
+    def test_locally_installed(self, ROOT_DIR, INSTALL_DIR, CONTENT):
+        PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
+        PRESENT_BIN_PATH = os.path.join(INSTALL_DIR, 'node_modules', '.bin')
 
-        when(self.view).file_name().thenReturn('/p/a/f.js')
+        when(self.view).file_name().thenReturn('/p/a/b/f.js')
         linter = make_fake_linter(self.view)
 
-        when(shutil).which('mylinter', ...).thenReturn(None)
+        when(shutil).which(...).thenReturn(None)
         when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
+        exists = os.path.exists
+        when(os.path).exists(...).thenAnswer(exists)
+        when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
+        when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         cmd = linter.get_cmd()
         working_dir = linter.get_working_dir()

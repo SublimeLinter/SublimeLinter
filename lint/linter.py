@@ -306,15 +306,7 @@ def get_linter_settings(linter, view, context=None):
 
 def get_raw_linter_settings(linter, view):
     # type: (Type[Linter], sublime.View) -> MutableMapping[str, Any]
-    """Return 'raw' linter settings without variables substituted.
-
-    Settings are merged in the following order:
-
-    default settings (on the class)
-    global user settings
-    project settings
-    view settings
-    """
+    """Return 'raw' linter settings without variables substituted."""
     defaults = linter.defaults or {}
     user_settings = persist.settings.get('linters', {}).get(linter.name, {})
 
@@ -336,7 +328,14 @@ def get_raw_linter_settings(linter, view):
         view, 'SublimeLinter.linters.{}.'.format(linter.name)
     )  # type: Mapping[str, Any]  # type: ignore
 
-    return ChainMap({}, view_settings, project_settings, user_settings, defaults)
+    return ChainMap(
+        {},
+        view_settings,
+        project_settings,
+        user_settings,
+        defaults,
+        {'lint_mode': persist.settings.get('lint_mode')}
+    )
 
 
 def get_view_context(view, additional_context=None):
@@ -1050,8 +1049,7 @@ class Linter(metaclass=LinterMeta):
             )
             return True
 
-        fallback_mode = persist.settings.get('lint_mode', 'background')
-        lint_mode = settings.get('lint_mode', fallback_mode)
+        lint_mode = settings.get('lint_mode')
         if lint_mode not in ACCEPTED_REASONS_PER_MODE:
             logger.warning(
                 "{}: Unknown lint mode '{}'.  "

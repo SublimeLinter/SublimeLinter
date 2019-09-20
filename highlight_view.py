@@ -623,13 +623,6 @@ class ZombieController(sublime_plugin.EventListener):
 
 class TooltipController(sublime_plugin.EventListener):
     def on_hover(self, view, point, hover_zone):
-        """On mouse hover event hook.
-
-        Arguments:
-            view (View): The view which received the event.
-            point (Point): The text position where the mouse hovered
-            hover_zone (int): The context the event was triggered in
-        """
         if hover_zone == sublime.HOVER_GUTTER:
             if persist.settings.get('show_hover_line_report') and any(
                 region.contains(point)

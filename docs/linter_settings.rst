@@ -97,7 +97,7 @@ a case-insensitive regex pattern, and then matched against the error type, code 
 
 Some examples:
 
-.. code-block:: json
+.. code-block:: javascript
 
     {
         // suppress all warnings
@@ -211,6 +211,7 @@ Example: this changes the appearance of shellcheck warnings:
 Example: this changes the appearance of whitespace warnings in flake8:
 
 .. code-block:: json
+
     {
         "linters": {
             "flake8": {

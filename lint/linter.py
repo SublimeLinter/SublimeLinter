@@ -1677,7 +1677,11 @@ def make_nice_log_message(headline, cmd, is_stdin,
 
     filename = view.file_name()
     if filename and cwd:
-        rel_filename = os.path.relpath(filename, cwd)
+        rel_filename = (
+            os.path.relpath(filename, cwd)
+            if os.path.commonprefix([filename, cwd])
+            else filename
+        )
     elif not filename:
         rel_filename = '<buffer {}>'.format(view.buffer_id())
 

@@ -1,13 +1,13 @@
 """This module exports the NodeLinter subclass of Linter."""
 
 from functools import lru_cache
-from itertools import takewhile
+from itertools import chain, takewhile
 import json
 import logging
 import os
 import shutil
 
-from .. import linter
+from .. import linter, util
 
 
 if False:
@@ -34,9 +34,9 @@ def paths_upwards(path):
         path = next_path
 
 
-def paths_upwards_until_home(path):
-    # type: (str) -> Iterator[str]
-    return takewhile(lambda p: p != HOME, paths_upwards(path))
+def paths_upwards_until_home(path, home=HOME):
+    # type: (str, str) -> Iterator[str]
+    return chain(takewhile(lambda p: p != home, paths_upwards(path)), [home])
 
 
 def read_json_file(path):
@@ -102,12 +102,13 @@ class NodeLinter(linter.Linter):
 
     def find_local_executable(self, start_dir, npm_name):
         # type: (str, str) -> Union[None, str, List[str]]
-        for path in paths_upwards(start_dir):
+        paths = paths_upwards_until_home(start_dir)
+        for path in paths:
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
             if executable:
+                self.context['project_root'] = path
                 return executable
 
-        for path in paths_upwards_until_home(start_dir):
             manifest_file = os.path.join(path, 'package.json')
             if os.path.exists(manifest_file):
                 try:
@@ -137,6 +138,7 @@ class NodeLinter(linter.Linter):
 
                     node_binary = self.which('node')
                     if node_binary:
+                        self.context['project_root'] = path
                         return [node_binary, script]
 
                     logger.warning(
@@ -146,21 +148,70 @@ class NodeLinter(linter.Linter):
                     self.notify_failure()
                     raise linter.PermanentError()
 
-                # A 'package.json' not yet installed?
-                if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
-                    is_dep = bool(manifest.get('dependencies', {}).get(npm_name))
-                    is_dev_dep = bool(manifest.get('devDependencies', {}).get(npm_name))
-                    if is_dep or is_dev_dep:
+                is_dep = bool(manifest.get('dependencies', {}).get(npm_name))
+                is_dev_dep = bool(manifest.get('devDependencies', {}).get(npm_name))
+                if is_dep or is_dev_dep:
+                    self.context['project_root'] = path
+
+                    # Perhaps this is a Yarn PnP project?
+                    yarn_lock_exists = os.path.exists(os.path.join(path, 'yarn.lock'))
+                    if yarn_lock_exists and (
+                        os.path.exists(os.path.join(path, '.pnp.js'))
+                        or bool(manifest.get('installConfig', {}).get('pnp'))
+                    ):
+                        yarn_binary = shutil.which('yarn')
+                        if yarn_binary:
+                            return [yarn_binary, 'run', '--silent', npm_name]
+
                         logger.warning(
-                            "Skipping '{}' for now which is listed as a {} "
-                            "in {} but not installed.  Forgot to 'npm install'?"
-                            .format(
-                                npm_name,
-                                'dependency' if is_dep else 'devDependency',
-                                manifest_file
-                            )
+                            "This seems like a Yarn PnP project. However, finding "
+                            "a Yarn executable failed. Make sure to install Yarn first."
                         )
                         self.notify_failure()
                         raise linter.PermanentError()
 
+                    # Since we've found a valid 'package.json' as our 'project_root'
+                    # exhaust outer loop looking just for installations.
+                    for path in paths:
+                        executable = shutil.which(
+                            npm_name, path=os.path.join(path, 'node_modules', '.bin')
+                        )
+                        if executable:
+                            return executable
+
+                    package_lock_exists = os.path.exists(os.path.join(path, 'package-lock.json'))
+                    logger.warning(
+                        "Skipping '{}' for now which is listed as a {} "
+                        "in {} but not installed.  Forgot to '{} install'?"
+                        .format(
+                            npm_name,
+                            'dependency' if is_dep else 'devDependency',
+                            manifest_file,
+                            'yarn' if yarn_lock_exists and not package_lock_exists else 'npm'
+                        )
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
+
         return None
+
+    def run(self, cmd, code):
+        # type: (Optional[List[str]], str) -> Union[util.popen_output, str]
+        result = super().run(cmd, code)
+
+        if cmd and cmd[1:3] == ['run', '--silent'] and len(cmd) >= 4:
+            npm_name = cmd[3]
+            if 'error Command "{}" not found'.format(npm_name) in (
+                result.stderr or ''
+                if isinstance(result, util.popen_output)
+                else result
+            ):
+                logger.warning(
+                    "We did execute 'yarn run --silent {0}' but "
+                    "'{0}' cannot be found.  Forgot to 'yarn install'?"
+                    .format(npm_name)
+                )
+                self.notify_failure()
+                raise linter.PermanentError()
+
+        return result

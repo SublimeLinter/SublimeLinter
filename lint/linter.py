@@ -976,7 +976,7 @@ class Linter(metaclass=LinterMeta):
                 )
                 return None
 
-        return self.context.get('folder') or self.context.get('file_path')
+        return self.context.get('project_root') or self.context.get('folder') or self.context.get('file_path')
 
     def get_environment(self, settings=None):
         # type: (...) -> ChainMap

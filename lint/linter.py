@@ -449,7 +449,7 @@ class LinterMeta(type):
             'comment_re', 'shebang_match',
             'npm_name', 'composer_name',
             'executable', 'executable_path',
-            'tab_width'
+            'tab_width', 'config_file'
         ):
             if key in attrs:
                 logger.warning(

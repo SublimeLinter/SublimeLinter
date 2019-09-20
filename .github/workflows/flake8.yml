@@ -1,6 +1,11 @@
 name: flake8
 
 on:
+  schedule:
+    # flake8 regulary has breaking changes, so we re-check
+    # regulary as well.
+    - cron:  '0 9 * * 1'
+
   push:
     branches:
       - master

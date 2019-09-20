@@ -386,6 +386,20 @@ class TestDeprecations(_BaseTestCase):
             "Just use an ordinary binary name instead. "
         )
 
+    def test_args_star_marker_warns(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '*')
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.get_cmd()
+        verify(linter_module.logger).warning(
+            "fakelinter: Usage of '*' as a special marker in `cmd` "
+            "has been deprecated, use '${args}' instead."
+        )
+
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
     @p.expand([

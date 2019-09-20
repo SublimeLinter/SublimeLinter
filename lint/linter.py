@@ -878,7 +878,12 @@ class Linter(metaclass=LinterMeta):
         if '${args}' in cmd:
             i = cmd.index('${args}')
             cmd[i:i + 1] = args
-        elif '*' in cmd:  # legacy SL3 crypto-identifier
+        elif '*' in cmd:
+            deprecation_warning(
+                "{}: Usage of '*' as a special marker in `cmd` has been "
+                "deprecated, use '${{args}}' instead."
+                .format(self.name)
+            )
             i = cmd.index('*')
             cmd[i:i + 1] = args
         else:

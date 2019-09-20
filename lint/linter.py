@@ -324,6 +324,16 @@ def get_raw_linter_settings(linter, view):
     window = view.window()
     if window:
         data = window.project_data() or {}
+        if 'SublimeLinter' in data:
+            project_file_name = window.project_file_name()
+            deprecation_warning(
+                "Project settings for SublimeLinter have a new form and follow "
+                "Sublime's standard now. You can read more about it here: "
+                "http://www.sublimelinter.com/en/stable/settings.html#project-settings \n"
+                "If you just open '{}' now and save the file, a popup will "
+                "show the necessary changes."
+                .format(project_file_name)
+            )
         project_settings = (
             data.get('SublimeLinter', {})
                 .get('linters', {})

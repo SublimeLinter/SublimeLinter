@@ -400,6 +400,29 @@ class TestDeprecations(_BaseTestCase):
             "has been deprecated, use '${args}' instead."
         )
 
+    def test_non_standard_project_settings_warn(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', )
+            defaults = {'selector': None}
+        PROJECT_FILE_NAME = '/h/a/b/foo.sublime-project'
+
+        window = mock(spec=sublime.Window)
+        when(self.view).window().thenReturn(window)
+        when(window).project_data().thenReturn({"SublimeLinter": {}})
+        when(window).project_file_name().thenReturn(PROJECT_FILE_NAME)
+        when(linter_module.logger).warning(...)
+
+        linter_module.get_linter_settings(FakeLinter, self.view)
+
+        verify(linter_module.logger).warning(
+            "Project settings for SublimeLinter have a new form and follow Sublime's "
+            "standard now. You can read more about it here: "
+            "http://www.sublimelinter.com/en/stable/settings.html#project-settings \n"
+            "If you just open '{}' now and save the file, a popup will "
+            "show the necessary changes."
+            .format(PROJECT_FILE_NAME)
+        )
+
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
     @p.expand([

@@ -1526,15 +1526,41 @@ class Linter(metaclass=LinterMeta):
         original_cmd = cmd
         cmd = substitute_variables(context, cmd)
         if '@' in cmd:
-            logger.info(
-                'The `@` symbol in cmd has been deprecated. Use $file, '
-                '$temp_file or $file_on_disk instead.')
+            if self.tempfile_suffix == '-':
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{file_on_disk}}' instead."
+                    .format(self.name)
+                )
+            elif self.tempfile_suffix:
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{temp_file}}' instead."
+                    .format(self.name)
+                )
+            else:
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{file}}' instead."
+                    .format(self.name)
+                )
+
             cmd[cmd.index('@')] = at_value
 
         if cmd == original_cmd and auto_append:
-            logger.info(
-                'Automatically appending the filename to cmd has been '
-                'deprecated. Use $file, $temp_file or $file_on_disk instead.')
+            if self.tempfile_suffix == '-':
+                deprecation_warning(
+                    "{}: Implicit appending a filename to `cmd` "
+                    "has been deprecated, add '${{file_on_disk}}' explicitly."
+                    .format(self.name)
+                )
+            elif self.tempfile_suffix:
+                deprecation_warning(
+                    "{}: Implicit appending a filename to `cmd` "
+                    "has been deprecated, add '${{temp_file}}' explicitly."
+                    .format(self.name)
+                )
+
             cmd.append(at_value)
 
         return cmd

@@ -448,12 +448,13 @@ class LinterMeta(type):
             'inline_settings', 'inline_overrides',
             'comment_re', 'shebang_match',
             'npm_name', 'composer_name',
-            'executable', 'executable_path'
+            'executable', 'executable_path',
+            'tab_width'
         ):
             if key in attrs:
                 logger.warning(
                     "{}: Defining 'cls.{}' has no effect. Please cleanup and "
-                    "remove these settings.".format(name, key))
+                    "remove this setting.".format(name, key))
 
         for key in ('build_cmd', 'insert_args'):
             if key in attrs:
@@ -465,7 +466,7 @@ class LinterMeta(type):
             if key in attrs:
                 logger.warning(
                     "{}: Implementing 'cls.{}' has no effect anymore. You "
-                    "can safely remove these methods.".format(name, key))
+                    "can safely remove this method.".format(name, key))
 
         if (
             'should_lint' in attrs
@@ -674,9 +675,6 @@ class Linter(metaclass=LinterMeta):
     # there is an error within the linter), you can ignore that stream by setting
     # this attribute to the other stream.
     error_stream = util.STREAM_BOTH
-
-    # Tab width
-    tab_width = 1
 
     # If a linter reports a column position, SublimeLinter highlights the nearest
     # word at that point. You can customize the regex used to highlight words
@@ -1322,8 +1320,6 @@ class Linter(metaclass=LinterMeta):
             )
 
         if col is not None:
-            col = self.maybe_fix_tab_width(line, col, vv)
-
             # Pin the column to the start/end line offsets
             start, end = vv.full_line(line)
             col = max(min(col, (end - start) - 1), 0)
@@ -1382,22 +1378,6 @@ class Linter(metaclass=LinterMeta):
     def is_stdin_filename(filename):
         # type: (str) -> bool
         return filename in ["stdin", "<stdin>", "-"]
-
-    def maybe_fix_tab_width(self, line, col, vv):
-        # type: (int, int, VirtualView) -> int
-        # Adjust column numbers to match the linter's tabs if necessary
-        if self.tab_width > 1:
-            code_line = vv.select_line(line)
-            diff = 0
-
-            for i in range(len(code_line)):
-                if code_line[i] == '\t':
-                    diff += (self.tab_width - 1)
-
-                if col - diff <= i:
-                    col = i
-                    break
-        return col
 
     def reposition_match(self, line, col, m, vv):
         # type: (int, Optional[int], LintMatch, VirtualView) -> Tuple[int, int, int]

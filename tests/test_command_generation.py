@@ -214,6 +214,24 @@ class TestViewContext(_BaseTestCase):
         self.assertEqual(RESULT, context.get('folder'))
 
 
+class TestLintModeSetting(_BaseTestCase):
+    def test_use_provided_mode(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None, 'lint_mode': 'manual'}
+
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
+        self.assertEqual(settings.get('lint_mode'), 'manual')
+
+    def test_use_fallback(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        settings = linter_module.get_linter_settings(FakeLinter, self.view)
+        self.assertEqual(settings.get('lint_mode'), 'background')
+
+
 class TestWorkingDirSetting(_BaseTestCase):
     # XXX: We shouldn't have to mock anything here but use the settings context
 

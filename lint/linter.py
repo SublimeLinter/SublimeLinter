@@ -316,6 +316,16 @@ def get_raw_linter_settings(linter, view):
     window = view.window()
     if window:
         data = window.project_data() or {}
+        if 'SublimeLinter' in data:
+            project_file_name = window.project_file_name()
+            deprecation_warning(
+                "Project settings for SublimeLinter have a new form and follow "
+                "Sublime's standard now. You can read more about it here: "
+                "http://www.sublimelinter.com/en/stable/settings.html#project-settings \n"
+                "If you just open '{}' now and save the file, a popup will "
+                "show the necessary changes."
+                .format(project_file_name)
+            )
         project_settings = (
             data.get('SublimeLinter', {})
                 .get('linters', {})
@@ -437,12 +447,13 @@ class LinterMeta(type):
             'inline_settings', 'inline_overrides',
             'comment_re', 'shebang_match',
             'npm_name', 'composer_name',
-            'executable', 'executable_path'
+            'executable', 'executable_path',
+            'tab_width', 'config_file'
         ):
             if key in attrs:
                 logger.warning(
                     "{}: Defining 'cls.{}' has no effect. Please cleanup and "
-                    "remove these settings.".format(name, key))
+                    "remove this setting.".format(name, key))
 
         for key in ('build_cmd', 'insert_args'):
             if key in attrs:
@@ -454,7 +465,7 @@ class LinterMeta(type):
             if key in attrs:
                 logger.warning(
                     "{}: Implementing 'cls.{}' has no effect anymore. You "
-                    "can safely remove these methods.".format(name, key))
+                    "can safely remove this method.".format(name, key))
 
         if (
             'should_lint' in attrs
@@ -663,9 +674,6 @@ class Linter(metaclass=LinterMeta):
     # there is an error within the linter), you can ignore that stream by setting
     # this attribute to the other stream.
     error_stream = util.STREAM_BOTH
-
-    # Tab width
-    tab_width = 1
 
     # If a linter reports a column position, SublimeLinter highlights the nearest
     # word at that point. You can customize the regex used to highlight words
@@ -877,7 +885,12 @@ class Linter(metaclass=LinterMeta):
         if '${args}' in cmd:
             i = cmd.index('${args}')
             cmd[i:i + 1] = args
-        elif '*' in cmd:  # legacy SL3 crypto-identifier
+        elif '*' in cmd:
+            deprecation_warning(
+                "{}: Usage of '*' as a special marker in `cmd` has been "
+                "deprecated, use '${{args}}' instead."
+                .format(self.name)
+            )
             i = cmd.index('*')
             cmd[i:i + 1] = args
         else:
@@ -1305,8 +1318,6 @@ class Linter(metaclass=LinterMeta):
             )
 
         if col is not None:
-            col = self.maybe_fix_tab_width(line, col, vv)
-
             # Pin the column to the start/end line offsets
             start, end = vv.full_line(line)
             col = max(min(col, (end - start) - 1), 0)
@@ -1365,22 +1376,6 @@ class Linter(metaclass=LinterMeta):
     def is_stdin_filename(filename):
         # type: (str) -> bool
         return filename in ["stdin", "<stdin>", "-"]
-
-    def maybe_fix_tab_width(self, line, col, vv):
-        # type: (int, int, VirtualView) -> int
-        # Adjust column numbers to match the linter's tabs if necessary
-        if self.tab_width > 1:
-            code_line = vv.select_line(line)
-            diff = 0
-
-            for i in range(len(code_line)):
-                if code_line[i] == '\t':
-                    diff += (self.tab_width - 1)
-
-                if col - diff <= i:
-                    col = i
-                    break
-        return col
 
     def reposition_match(self, line, col, m, vv):
         # type: (int, Optional[int], LintMatch, VirtualView) -> Tuple[int, int, int]
@@ -1509,15 +1504,41 @@ class Linter(metaclass=LinterMeta):
         original_cmd = cmd
         cmd = substitute_variables(context, cmd)
         if '@' in cmd:
-            logger.info(
-                'The `@` symbol in cmd has been deprecated. Use $file, '
-                '$temp_file or $file_on_disk instead.')
+            if self.tempfile_suffix == '-':
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{file_on_disk}}' instead."
+                    .format(self.name)
+                )
+            elif self.tempfile_suffix:
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{temp_file}}' instead."
+                    .format(self.name)
+                )
+            else:
+                deprecation_warning(
+                    "{}: Usage of '@' as a special marker in `cmd` "
+                    "has been deprecated, use '${{file}}' instead."
+                    .format(self.name)
+                )
+
             cmd[cmd.index('@')] = at_value
 
         if cmd == original_cmd and auto_append:
-            logger.info(
-                'Automatically appending the filename to cmd has been '
-                'deprecated. Use $file, $temp_file or $file_on_disk instead.')
+            if self.tempfile_suffix == '-':
+                deprecation_warning(
+                    "{}: Implicit appending a filename to `cmd` "
+                    "has been deprecated, add '${{file_on_disk}}' explicitly."
+                    .format(self.name)
+                )
+            elif self.tempfile_suffix:
+                deprecation_warning(
+                    "{}: Implicit appending a filename to `cmd` "
+                    "has been deprecated, add '${{temp_file}}' explicitly."
+                    .format(self.name)
+                )
+
             cmd.append(at_value)
 
         return cmd

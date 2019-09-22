@@ -404,6 +404,132 @@ class TestDeprecations(_BaseTestCase):
             "Just use an ordinary binary name instead. "
         )
 
+    def test_args_star_marker_warns(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '*')
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+
+        when(linter_module.logger).warning(...)
+        linter.get_cmd()
+        verify(linter_module.logger).warning(
+            "fakelinter: Usage of '*' as a special marker in `cmd` "
+            "has been deprecated, use '${args}' instead."
+        )
+
+    def test_non_standard_project_settings_warn(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', )
+            defaults = {'selector': None}
+        PROJECT_FILE_NAME = '/h/a/b/foo.sublime-project'
+
+        window = mock(spec=sublime.Window)
+        when(self.view).window().thenReturn(window)
+        when(window).project_data().thenReturn({"SublimeLinter": {}})
+        when(window).project_file_name().thenReturn(PROJECT_FILE_NAME)
+        when(linter_module.logger).warning(...)
+
+        linter_module.get_linter_settings(FakeLinter, self.view)
+
+        verify(linter_module.logger).warning(
+            "Project settings for SublimeLinter have a new form and follow Sublime's "
+            "standard now. You can read more about it here: "
+            "http://www.sublimelinter.com/en/stable/settings.html#project-settings \n"
+            "If you just open '{}' now and save the file, a popup will "
+            "show the necessary changes."
+            .format(PROJECT_FILE_NAME)
+        )
+
+    def test_old_file_marker_in_cmd_warns_stdin_linter(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '@')
+            defaults = {'selector': None}
+
+        linter = FakeLinter(self.view, {})
+        when(linter_module.logger).warning(...)
+        when(linter)._communicate(...).thenReturn('')
+        when(util).which(...).thenReturn('fake.exe')
+
+        linter.lint('foo', lambda: False)
+
+        verify(linter_module.logger).warning(
+            "fakelinter: Usage of '@' as a special marker in `cmd` "
+            "has been deprecated, use '${file}' instead."
+        )
+
+    def test_old_file_marker_in_cmd_warns_file_linter(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '@')
+            defaults = {'selector': None}
+            tempfile_suffix = '-'
+
+        linter = FakeLinter(self.view, {})
+        when(linter_module.logger).warning(...)
+        when(linter)._communicate(...).thenReturn('')
+        when(util).which(...).thenReturn('fake.exe')
+
+        linter.lint('foo', lambda: False)
+
+        verify(linter_module.logger).warning(
+            "fakelinter: Usage of '@' as a special marker in `cmd` "
+            "has been deprecated, use '${file_on_disk}' instead."
+        )
+
+    def test_old_file_marker_in_cmd_warns_tempfile_linter(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', '@')
+            defaults = {'selector': None}
+            tempfile_suffix = 'py'
+
+        linter = FakeLinter(self.view, {})
+        when(linter_module.logger).warning(...)
+        when(linter)._communicate(...).thenReturn('')
+        when(util).which(...).thenReturn('fake.exe')
+
+        linter.lint('foo', lambda: False)
+
+        verify(linter_module.logger).warning(
+            "fakelinter: Usage of '@' as a special marker in `cmd` "
+            "has been deprecated, use '${temp_file}' instead."
+        )
+
+    def test_implicit_file_marker_warns_file_linter(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', )
+            defaults = {'selector': None}
+            tempfile_suffix = '-'
+
+        linter = FakeLinter(self.view, {})
+        when(linter_module.logger).warning(...)
+        when(linter)._communicate(...).thenReturn('')
+        when(util).which(...).thenReturn('fake.exe')
+
+        linter.lint('foo', lambda: False)
+
+        verify(linter_module.logger).warning(
+            "fakelinter: Implicit appending a filename to `cmd` "
+            "has been deprecated, add '${file_on_disk}' explicitly."
+        )
+
+    def test_implicit_file_marker_warns_tempfile_linter(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1', )
+            defaults = {'selector': None}
+            tempfile_suffix = 'py'
+
+        linter = FakeLinter(self.view, {})
+        when(linter_module.logger).warning(...)
+        when(linter)._communicate(...).thenReturn('')
+        when(util).which(...).thenReturn('fake.exe')
+
+        linter.lint('foo', lambda: False)
+
+        verify(linter_module.logger).warning(
+            "fakelinter: Implicit appending a filename to `cmd` "
+            "has been deprecated, add '${temp_file}' explicitly."
+        )
+
 
 class TestContextSensitiveExecutablePathContract(_BaseTestCase):
     @p.expand([

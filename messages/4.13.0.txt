@@ -1,0 +1,29 @@
+SublimeLinter 4.13
+==================
+
+- @mheinzler continued his work on multi-file-linters: linters that
+  follow imports or report errors from multiple files in one go. 
+
+  Plugin authors interested in this feature should capture and report 
+  `filename`, either automatically using a named group in their regex,
+  or manually when yielding a `LintMatch`.
+
+- @HusamIbrahim rewrote the executable lookup algorithm for `NodeLinter`. 
+  We now support eslint v6, the new yarn pnp mode, lerna.
+
+  * You need yarn v1.8 or even yarn berry for pnp mode.
+    Thanks to @arcanis who is the tech lead of yarn for
+    answering our questions and quickly merging a PR. 
+
+- The setting 'kill_old_processes' now defaults to `True`. The setting 
+  controls whether SublimeLinter actively kills processes whose results
+  are already outdated, e.g. because the view changed in the meantime. 
+
+  This should save CPU time and battery. We've been testing this for a
+  while and there doesn't seem to be a negative impact, so it's time to
+  flip the switch.
+
+
+For more info: 
+  https://github.com/SublimeLinter/SublimeLinter/milestone/11
+  https://github.com/SublimeLinter/SublimeLinter/compare/4.12.0...4.13.0

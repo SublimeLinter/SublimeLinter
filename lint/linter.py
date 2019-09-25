@@ -718,7 +718,6 @@ class Linter(metaclass=LinterMeta):
         # side-effects for concurrent/async linting. We initialize it here
         # bc some ruby linters rely on that behavior.
         self.env = {}  # type: Dict[str, str]
-        self.normalize_filename = lru_cache(maxsize=32)(self.normalize_filename)  # type: ignore
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.
@@ -1349,6 +1348,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return self.default_type
 
+    @lru_cache(maxsize=32)
     def normalize_filename(self, filename):
         # type: (Optional[str]) -> Optional[str]
         """Return an absolute filename if it is not the main file."""

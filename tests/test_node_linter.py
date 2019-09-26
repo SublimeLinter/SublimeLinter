@@ -1,4 +1,3 @@
-from functools import partial
 import os
 import shutil
 
@@ -7,7 +6,6 @@ from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
     contains,
     mock,
-    patch,
     unstub,
     verify,
     when,
@@ -64,6 +62,11 @@ class TestNodeLinters(DeferrableTestCase):
         view.set_scratch(True)
         view.close()
 
+    def patch_home(self, home):
+        previous_state = node_linter.HOME
+        node_linter.HOME = home
+        self.addCleanup(lambda: setattr(node_linter, 'HOME', previous_state))
+
     def test_globally_installed(self):
         linter = make_fake_linter(self.view)
 
@@ -95,15 +98,27 @@ class TestNodeLinters(DeferrableTestCase):
 
         when(shutil).which('mylinter', ...).thenReturn(None)
         when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
-        patch(
-            node_linter, 'paths_upwards_until_home',
-            partial(node_linter.paths_upwards_until_home, home='/p')
-        )
 
         cmd = linter.get_cmd()
         working_dir = linter.get_working_dir()
         self.assertEqual(cmd, ['fake.exe'])
         self.assertEqual(working_dir, ROOT_DIR)
+
+    @p.expand([
+        ('do not go above home', '/a/home', '/a', '/a/home/a/b/f.js'),
+        ('do not fallback to home', '/a/home', '/a/home', '/p/a/b/f.js'),
+    ])
+    def test_home_dir_behavior(self, _doc, HOME_DIR, INSTALL_DIR, FILENAME):
+        PRESENT_BIN_PATH = os.path.join(INSTALL_DIR, 'node_modules', '.bin')
+        when(shutil).which(...).thenReturn(None)
+        when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
+        self.patch_home(HOME_DIR)
+
+        when(self.view).file_name().thenReturn(FILENAME)
+        linter = make_fake_linter(self.view)
+
+        cmd = linter.get_cmd()
+        self.assertIsNone(cmd)
 
     @p.expand([
         ('/p', '/p', {'dependencies': {'mylinter': '0.2'}}),
@@ -126,10 +141,6 @@ class TestNodeLinters(DeferrableTestCase):
         when(shutil).which(...).thenReturn(None)
         when(shutil).which('mylinter', path=PRESENT_BIN_PATH).thenReturn('fake.exe')
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
-        patch(
-            node_linter, 'paths_upwards_until_home',
-            partial(node_linter.paths_upwards_until_home, home='/p')
-        )
 
         cmd = linter.get_cmd()
         working_dir = linter.get_working_dir()

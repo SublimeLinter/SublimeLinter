@@ -166,15 +166,27 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter).notify_failure()
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False),
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False, False, 'npm'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False, True, 'npm'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False, False, 'npm'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False, True, 'npm'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True, False, 'yarn'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True, True, 'npm'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True, False, 'yarn'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True, True, 'npm'),
     ])
     def test_uninstalled_local_dependency(
-        self, ROOT_DIR, CONTENT, DEPENDENCY_TYPE, IS_YARN_PROJECT
+        self,
+        ROOT_DIR,
+        CONTENT,
+        DEPENDENCY_TYPE,
+        HAS_YARN_LOCK,
+        HAS_PACKAGE_LOCK,
+        EXPECTED_PACKAGE_MANAGER,
     ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
+        PACKAGE_LOCK_FILE = os.path.join(ROOT_DIR, 'package-lock.json')
+        YARN_LOCK_FILE = os.path.join(ROOT_DIR, 'yarn.lock')
 
         when(self.view).file_name().thenReturn('/p/a/f.js')
         linter = make_fake_linter(self.view)
@@ -183,12 +195,15 @@ class TestNodeLinters(DeferrableTestCase):
         when(node_linter.logger).warning(
             "Skipping 'mylinter' for now which is listed as a {} in {} but "
             "not installed.  Forgot to '{} install'?"
-            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, 'yarn' if IS_YARN_PROJECT else 'npm')
+            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, EXPECTED_PACKAGE_MANAGER)
         ).thenReturn(None)
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(IS_YARN_PROJECT)
+        if HAS_YARN_LOCK:
+            when(os.path).exists(YARN_LOCK_FILE).thenReturn(True)
+        if HAS_PACKAGE_LOCK:
+            when(os.path).exists(PACKAGE_LOCK_FILE).thenReturn(True)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         try:

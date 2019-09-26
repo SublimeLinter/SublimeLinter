@@ -78,6 +78,10 @@ class NodeLinter(linter.Linter):
         npm_name = cmd[0]
         start_dir = self.get_start_dir()
         if start_dir:
+            logger.info(
+                "Searching executable for '{}' starting at '{}'."
+                .format(npm_name, start_dir)
+            )
             local_cmd = self.find_local_executable(start_dir, npm_name)
             if local_cmd:
                 return True, local_cmd

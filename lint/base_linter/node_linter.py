@@ -172,9 +172,9 @@ class NodeLinter(linter.Linter):
 
                     # Since we've found a valid 'package.json' as our 'project_root'
                     # exhaust outer loop looking just for installations.
-                    for path in paths:
+                    for path_ in paths:
                         executable = shutil.which(
-                            npm_name, path=os.path.join(path, 'node_modules', '.bin')
+                            npm_name, path=os.path.join(path_, 'node_modules', '.bin')
                         )
                         if executable:
                             return executable

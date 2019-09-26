@@ -34,9 +34,9 @@ def paths_upwards(path):
         path = next_path
 
 
-def paths_upwards_until_home(path, home=HOME):
-    # type: (str, str) -> Iterator[str]
-    return chain(takewhile(lambda p: p != home, paths_upwards(path)), [home])
+def paths_upwards_until_home(path):
+    # type: (str) -> Iterator[str]
+    return chain(takewhile(lambda p: p != HOME, paths_upwards(path)), [HOME])
 
 
 def read_json_file(path):
@@ -102,7 +102,11 @@ class NodeLinter(linter.Linter):
 
     def find_local_executable(self, start_dir, npm_name):
         # type: (str, str) -> Union[None, str, List[str]]
-        paths = paths_upwards_until_home(start_dir)
+        paths = (
+            paths_upwards_until_home(start_dir)
+            if os.path.commonprefix([start_dir, HOME]) == HOME
+            else paths_upwards(start_dir)
+        )
         for path in paths:
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
             if executable:

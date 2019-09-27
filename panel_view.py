@@ -232,7 +232,7 @@ def get_panel(window):
 def create_panel(window):
     panel = window.create_output_panel(PANEL_NAME)
 
-    panel.settings().set("result_file_regex", r"^(.*):$")
+    panel.settings().set("result_file_regex", r"^([^:]+):$")
     # row:col   type   linter: code   message
     # where code is optional
     # r"^ +(\d+)(?::(\d+))? +\w+ +\w+:(?: \w+)? +(.*)$"

@@ -232,7 +232,7 @@ def get_panel(window):
 def create_panel(window):
     panel = window.create_output_panel(PANEL_NAME)
 
-    panel.settings().set("result_file_regex", r"^([^:]+):$")
+    panel.settings().set("result_file_regex", r"^((?::\\|[^:])+):$")
     panel.settings().set("result_line_regex", r"^ +(\d+):(\d+) ")
 
     syntax_path = "Packages/SublimeLinter/panel/panel.sublime-syntax"

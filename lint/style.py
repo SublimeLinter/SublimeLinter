@@ -4,7 +4,7 @@ import logging
 import os
 
 import sublime
-from . import persist, util
+from . import events, persist, util
 
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,13 @@ logger = logging.getLogger(__name__)
 COLORIZE = True
 WHITE_SCOPE = 'region.whitish'  # hopefully a white color
 DEFAULT_STYLES = None  # holds the styles we ship as the default settings
+
+
+@events.on('settings_changed')
+def on_settings_changed(settings, **kwargs):
+    clear_caches()
+    if settings.has_changed('gutter_theme'):
+        read_gutter_theme()
 
 
 def read_gutter_theme():

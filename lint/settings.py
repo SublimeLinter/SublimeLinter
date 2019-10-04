@@ -72,12 +72,6 @@ class Settings:
             return
 
         events.broadcast('settings_changed', {'settings': self})
-        from . import style
-
-        gutter_theme_changed = self.has_changed('gutter_theme')
-        if gutter_theme_changed:
-            style.read_gutter_theme()
-        style.clear_caches()
 
         if (
             self.has_changed('linters') or
@@ -87,7 +81,7 @@ class Settings:
                 'sublime_linter_config_changed', {'hint': 'relint'})
 
         elif (
-            gutter_theme_changed or
+            self.has_changed('gutter_theme') or
             self.has_changed('highlights.demote_while_editing') or
             self.has_changed('show_marks_in_minimap') or
             self.has_changed('styles')

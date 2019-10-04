@@ -15,6 +15,7 @@ class Settings:
         self._previous_state = {}
         self._current_state = {}
         self.__settings = None
+        self._change_count = 0
 
     def load(self):
         """Load the plugin settings."""
@@ -49,6 +50,9 @@ class Settings:
         else:
             return (old_value != current_value)
 
+    def change_count(self):
+        return self._change_count
+
     def observe(self):
         """Observe changes."""
         self.settings.clear_on_change('sublimelinter-persist-settings')
@@ -67,6 +71,7 @@ class Settings:
         """
         self._previous_state = self._current_state.copy()
         self._current_state.clear()
+        self._change_count += 1
         events.broadcast('settings_changed', {'settings': self})
 
         validate_global_settings()

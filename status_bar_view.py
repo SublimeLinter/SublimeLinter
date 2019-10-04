@@ -44,7 +44,7 @@ def plugin_unloaded():
             view.erase_status(STATUS_MSG_KEY)
 
 
-@events.on(events.LINT_RESULT)
+@events.on('lint_result_changed')
 def on_lint_result(filename, **kwargs):
     if State['active_filename'] == filename:
         draw(**State)

@@ -60,7 +60,7 @@ def plugin_unloaded():
         window.destroy_output_panel(PANEL_NAME)
 
 
-@events.on(events.LINT_RESULT)
+@events.on('lint_result_changed')
 def on_lint_result(filename, reason=None, **kwargs):
     maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
     for window in sublime.windows():

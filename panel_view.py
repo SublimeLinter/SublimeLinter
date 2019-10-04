@@ -1,4 +1,4 @@
-from functools import partial
+from functools import lru_cache, partial
 from itertools import chain
 import os
 import sublime
@@ -310,6 +310,7 @@ def filenames_per_window(window):
     )
 
 
+@lru_cache(maxsize=16)
 def create_path_dict(filenames):
     # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
     base_dir = get_common_parent([
@@ -341,7 +342,20 @@ def format_header(f_path):
 
 
 def format_error(error, widths):
-    # type: (LintError, Dict[str, int]) -> List[str]
+    # type: (LintError, Tuple[Tuple[str, int], ...]) -> List[str]
+    error_as_tuple = tuple(
+        (k, v)
+        for k, v in error.items()
+        if k != 'region'  # region is not hashable
+    )
+    return _format_error(error_as_tuple, widths)
+
+
+@lru_cache(maxsize=512)
+def _format_error(error_as_tuple, widths_as_tuple):
+    # type: (Tuple[Tuple[str, object], ...], Tuple[Tuple[str, int], ...]) -> List[str]
+    error = dict(error_as_tuple)  # type: LintError  # type: ignore
+    widths = dict(widths_as_tuple)  # type: Dict[str, int]
     code_width = widths['code']
     code_tmpl = ":{{code:<{}}}".format(code_width)
     tmpl = (
@@ -378,12 +392,12 @@ def fill_panel(window):
         return
 
     errors_by_file = get_window_errors(window, persist.file_errors)
-    fpath_by_file, base_dir = create_path_dict(errors_by_file.keys())
+    fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
 
-    widths = dict(
+    widths = tuple(
         zip(
             ('line', 'col', 'error_type', 'linter_name', 'code'),
             map(
@@ -400,8 +414,8 @@ def fill_panel(window):
                 ])
             )
         )
-    )  # type: Dict[str, int]
-    widths['viewport'] = int(panel.viewport_extent()[0] // panel.em_width() - 1)
+    )  # type: Tuple[Tuple[str, int], ...]
+    widths += (('viewport', int(panel.viewport_extent()[0] // panel.em_width()) - 1), )
 
     to_render = []
     for fpath, errors in sorted(

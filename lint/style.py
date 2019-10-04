@@ -14,6 +14,11 @@ WHITE_SCOPE = 'region.whitish'  # hopefully a white color
 DEFAULT_STYLES = None  # holds the styles we ship as the default settings
 
 
+@events.on('plugin_loaded')
+def on_plugin_loaded():
+    read_gutter_theme()
+
+
 @events.on('settings_changed')
 def on_settings_changed(settings, **kwargs):
     clear_caches()

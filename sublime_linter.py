@@ -17,7 +17,7 @@ from .lint import elect
 from .lint import events
 from .lint import linter as linter_module
 from .lint import queue
-from .lint import persist, util, style
+from .lint import persist, util
 from .lint import reloader
 from .lint import settings
 
@@ -46,8 +46,11 @@ def plugin_loaded():
     log_handler.install()
 
     try:
-        from package_control import events
-        if events.install('SublimeLinter') or events.post_upgrade('SublimeLinter'):
+        import package_control
+        if (
+            package_control.events.install('SublimeLinter') or
+            package_control.events.post_upgrade('SublimeLinter')
+        ):
             # In case the user has an old version installed without the below
             # `unload`, we 'unload' here.
             persist.kill_switch = True
@@ -64,10 +67,10 @@ def plugin_loaded():
 
     persist.api_ready = True
     persist.kill_switch = False
+    events.broadcast('plugin_loaded')
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
-    style.read_gutter_theme()
 
     # Lint the visible views from the active window on startup
     bc = BackendController()
@@ -79,9 +82,11 @@ def plugin_unloaded():
     log_handler.uninstall()
 
     try:
-        from package_control import events
-
-        if events.pre_upgrade('SublimeLinter') or events.remove('SublimeLinter'):
+        import package_control
+        if (
+            package_control.events.pre_upgrade('SublimeLinter') or
+            package_control.events.remove('SublimeLinter')
+        ):
             logger.info("Enable kill_switch.")
             persist.kill_switch = True
             persist.linter_classes.clear()

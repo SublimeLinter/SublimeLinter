@@ -67,27 +67,9 @@ class Settings:
         """
         self._previous_state = self._current_state.copy()
         self._current_state.clear()
-
-        if not validate_global_settings():
-            return
-
         events.broadcast('settings_changed', {'settings': self})
 
-        if (
-            self.has_changed('linters') or
-            self.has_changed('no_column_highlights_line')
-        ):
-            sublime.run_command(
-                'sublime_linter_config_changed', {'hint': 'relint'})
-
-        elif (
-            self.has_changed('gutter_theme') or
-            self.has_changed('highlights.demote_while_editing') or
-            self.has_changed('show_marks_in_minimap') or
-            self.has_changed('styles')
-        ):
-            sublime.run_command(
-                'sublime_linter_config_changed', {'hint': 'redraw'})
+        validate_global_settings()
 
 
 def get_settings_objects():

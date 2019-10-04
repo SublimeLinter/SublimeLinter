@@ -95,6 +95,28 @@ def plugin_unloaded():
 
     queue.unload()
     persist.settings.unobserve()
+    events.off(on_settings_changed)
+
+
+@events.on('settings_changed')
+def on_settings_changed(settings, **kwargs):
+    if (
+        settings.has_changed('linters') or
+        settings.has_changed('no_column_highlights_line')
+    ):
+        sublime.run_command(
+            'sublime_linter_config_changed', {'hint': 'relint'}
+        )
+
+    elif (
+        settings.has_changed('gutter_theme') or
+        settings.has_changed('highlights.demote_while_editing') or
+        settings.has_changed('show_marks_in_minimap') or
+        settings.has_changed('styles')
+    ):
+        sublime.run_command(
+            'sublime_linter_config_changed', {'hint': 'redraw'}
+        )
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):

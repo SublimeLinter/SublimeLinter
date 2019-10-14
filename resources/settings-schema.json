@@ -144,6 +144,9 @@
         "statusbar.show_active_linters":{
             "type":"boolean"
         },
+        "show_context_menu_command":{
+            "type":"boolean"
+        },
         "styles":{
             "type":"array",
             "items":{

@@ -167,6 +167,9 @@
 
     "statusbar.show_active_linters": true,
 
+    // Show "Lint This View" command in Context Menu
+    "show_context_menu_command": true,
+
     // Global styles for all linters.
     // Note: Styles can also be specified per linter! See above.
     // Only for linter-styles, there is one more setting:

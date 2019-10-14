@@ -263,6 +263,9 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
     def run(self, edit):
         hit(self.view, 'on_user_request')
 
+    def is_visible(self):
+        return persist.settings.get('show_context_menu_command')
+
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
     def run(self, hint=None, wid=None):

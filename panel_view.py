@@ -386,9 +386,15 @@ def fill_panel(window):
     # type: (sublime.Window) -> None
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
-    # If we're here and the user actually closed the window in the meantime,
+    # If we're here and the user actually closed the *window* in the meantime,
     # we cannot create a panel anymore, and just pass.
     if not panel:
+        return
+
+    # If the user closed the *panel* (or switched to another one), the panel
+    # has no extent anymore and we don't need to fill it.
+    vx, _ = panel.viewport_extent()
+    if vx == 0:
         return
 
     errors_by_file = get_window_errors(window, persist.file_errors)
@@ -415,7 +421,7 @@ def fill_panel(window):
             )
         )
     )  # type: Tuple[Tuple[str, int], ...]
-    widths += (('viewport', int(panel.viewport_extent()[0] // panel.em_width()) - 1), )
+    widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
     for fpath, errors in sorted(

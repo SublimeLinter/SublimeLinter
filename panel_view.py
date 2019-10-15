@@ -64,8 +64,12 @@ def plugin_unloaded():
 def on_lint_result(filename, reason=None, **kwargs):
     maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
     for window in sublime.windows():
-        if filename in filenames_per_window(window):
-            if panel_is_active(window):
+        panel_open = panel_is_active(window)
+        if (
+            (panel_open or maybe_toggle_panel_automatically)
+            and filename in filenames_per_window(window)
+        ):
+            if panel_open:
                 fill_panel(window)
 
             if maybe_toggle_panel_automatically:

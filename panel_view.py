@@ -4,7 +4,6 @@ import os
 import sublime
 import sublime_plugin
 import textwrap
-import uuid
 
 from .lint import elect, events, persist, util
 flatten = chain.from_iterable
@@ -13,7 +12,7 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Collection, Dict, Iterable, List, Optional, Set, Tuple,
+        Any, Collection, Dict, Iterable, List, Optional, Set, Tuple,
         Union
     )
     from mypy_extensions import TypedDict
@@ -254,7 +253,7 @@ def draw(draw_info):
     if content is None:
         draw_(**draw_info)
     else:
-        request_draw_on_main_thread(draw_info)
+        sublime.set_timeout(lambda: draw_(**draw_info))
 
 
 def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
@@ -274,27 +273,6 @@ def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
         scroll_into_view(panel, [nearby_lines], errors_from_active_view)
-
-
-REQUESTED_MAIN_DRAWS = {}  # type: Dict[sublime.ViewId, str]
-
-
-def request_draw_on_main_thread(draw_info):
-    # type: (DrawInfo) -> None
-    global REQUESTED_MAIN_DRAWS
-
-    panel_id = draw_info['panel'].id()
-    token = REQUESTED_MAIN_DRAWS[panel_id] = uuid.uuid4().hex
-
-    proposition = lambda: REQUESTED_MAIN_DRAWS[panel_id] == token
-    action = lambda: draw_(**draw_info)
-    sublime.set_timeout_async(lambda: maybe_run_on_main_thread(proposition, action))
-
-
-def maybe_run_on_main_thread(prop, fn):
-    # type: (Callable[[], bool], Callable) -> None
-    if prop():
-        sublime.set_timeout(fn)
 
 
 def get_window_errors(window, errors_by_file):

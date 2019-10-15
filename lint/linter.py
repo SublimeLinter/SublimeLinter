@@ -158,6 +158,9 @@ class VirtualView:
     def max_lines(self):
         return len(self._newlines) - 2
 
+    def substr(self, region):
+        return self._code[region.begin():region.end()]
+
     # Actual Sublime API would look like:
     # def full_line(self, region)
     # def full_line(self, point) => Region
@@ -1328,6 +1331,7 @@ class Linter(metaclass=LinterMeta):
         region = sublime.Region(line_start + start, line_start + end)
         if len(region) == 0:
             region.b += 1
+        offending_text = vv.substr(region)
 
         return {
             "filename": filename,
@@ -1338,6 +1342,7 @@ class Linter(metaclass=LinterMeta):
             "error_type": error_type,
             "code": code,
             "msg": m.message.strip(),
+            "offending_text": offending_text
         }
 
     def get_error_type(self, error, warning):

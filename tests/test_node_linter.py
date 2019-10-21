@@ -429,18 +429,18 @@ class TestNodeLinters(DeferrableTestCase):
         linter.settings['disable_if_not_dependency'] = True
 
         when(linter).notify_unassign().thenReturn(None)
-        when(node_linter.logger).info(
-            "Skipping 'fakelinter' since it is not installed locally.\nYou "
-            "can change this behavior by setting 'disable_if_not_dependency' "
-            "to 'false'."
-        ).thenReturn(None)
+        when(node_linter.logger).info(...).thenReturn(None)
 
         try:
             linter.get_cmd()
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).info(...)
+        verify(node_linter.logger).info(
+            "Skipping 'fakelinter' since it is not installed locally.\nYou "
+            "can change this behavior by setting 'disable_if_not_dependency' "
+            "to 'false'."
+        )
         verify(linter).notify_unassign()
 
     def test_disable_if_not_dependency_2(self):

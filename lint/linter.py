@@ -609,6 +609,7 @@ def register_linter(name, cls):
     # start, this is generally not necessary, because SL will trigger various
     # synthetic `on_activated_async` events on load.
     if persist.api_ready:
+        deprecation_warning.cache_clear()
         sublime.run_command('sublime_linter_config_changed')
         logger.info('{} linter reloaded'.format(name))
 

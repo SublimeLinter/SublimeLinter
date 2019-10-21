@@ -74,7 +74,7 @@ def plugin_unloaded():
             undraw(view)
 
 
-@events.on(events.LINT_RESULT)
+@events.on('lint_result_changed')
 def on_lint_result(filename, linter_name, **kwargs):
     views = list(all_views_into_file(filename))
     if not views:
@@ -157,7 +157,8 @@ class ViewListCleanupController(sublime_plugin.EventListener):
 class UpdateErrorRegions(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
-        update_error_regions(view)
+        if util.is_lintable(view):
+            update_error_regions(view)
 
 
 def update_error_regions(view):
@@ -172,23 +173,32 @@ def update_error_regions(view):
         if '.Highlights.' in key
     }
 
+    changed = False
     for error in errors:
         uid = error['uid']
         region = uid_region_map.get(uid, None)
-        if region is None:
+        if region is None or region == error['region']:
             continue
 
         line, start = view.rowcol(region.begin())
         endLine, end = view.rowcol(region.end())
-        error.update({
-            'region': region,
-            'line': line,
-            'start': start,
-            'endLine': endLine,
-            'end': end
-        })
+        if (
+            line != error['line']
+            or start != error['start']
+            or (endLine != error['endLine'] if 'endLine' in error else False)
+            or end != error['end']
+        ):
+            error.update({
+                'region': region,
+                'line': line,
+                'start': start,
+                'endLine': endLine,
+                'end': end
+            })
+            changed = True
 
-    events.broadcast('updated_error_positions', {'view': view})
+    if changed:
+        events.broadcast('updated_error_positions', {'filename': filename})
 
 
 def head(iterable):
@@ -473,8 +483,10 @@ def prepare_gutter_data(view, linter_name, errors):
             continue
 
         scope = style.get_icon_scope(error)
-        pos = get_line_start(view, error['line'])
-        region = view.line(pos)
+        # We draw gutter icons with `flag=sublime.HIDDEN`. The actual width
+        # of the region doesn't matter bc Sublime will draw an icon only
+        # on the beginning line, which is exactly what we want.
+        region = error['region']
 
         # We group towards the optimal sublime API usage:
         #   view.add_regions(uuid(), [region], scope, icon)
@@ -498,8 +510,7 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         mark_style = style.get_value('mark_style', error, 'none')
 
         region = error['region']
-
-        selected_text = view.substr(region)
+        selected_text = error.get('offending_text') or view.substr(region)
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
             mark_style = FALLBACK_MARK_STYLE
@@ -530,10 +541,6 @@ def prepare_highlights_data(view, linter_name, errors, demote_predicate):
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
-
-
-def get_line_start(view, line):
-    return view.text_point(line, 0)
 
 
 def undraw(view):
@@ -624,12 +631,14 @@ class ZombieController(sublime_plugin.EventListener):
 class TooltipController(sublime_plugin.EventListener):
     def on_hover(self, view, point, hover_zone):
         if hover_zone == sublime.HOVER_GUTTER:
-            if persist.settings.get('show_hover_line_report') and any(
-                region.contains(point)
-                for key in get_regions_keys(view) if '.Gutter.' in key
-                for region in view.get_regions(key)
-            ):
-                open_tooltip(view, point, line_report=True)
+            if persist.settings.get('show_hover_line_report'):
+                line_region = view.line(point)
+                if any(
+                    region.intersects(line_region)
+                    for key in get_regions_keys(view) if '.Gutter.' in key
+                    for region in view.get_regions(key)
+                ):
+                    open_tooltip(view, point, line_report=True)
 
         elif hover_zone == sublime.HOVER_TEXT:
             if (

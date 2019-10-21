@@ -1,10 +1,9 @@
-from functools import partial
+from functools import lru_cache, partial
 from itertools import chain
 import os
 import sublime
 import sublime_plugin
 import textwrap
-import uuid
 
 from .lint import elect, events, persist, util
 flatten = chain.from_iterable
@@ -13,7 +12,7 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Collection, Dict, Iterable, List, Optional, Set, Tuple,
+        Any, Collection, Dict, Iterable, List, Optional, Set, Tuple,
         Union
     )
     from mypy_extensions import TypedDict
@@ -61,12 +60,16 @@ def plugin_unloaded():
         window.destroy_output_panel(PANEL_NAME)
 
 
-@events.on(events.LINT_RESULT)
+@events.on('lint_result_changed')
 def on_lint_result(filename, reason=None, **kwargs):
     maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
     for window in sublime.windows():
-        if filename in filenames_per_window(window):
-            if panel_is_active(window):
+        panel_open = panel_is_active(window)
+        if (
+            (panel_open or maybe_toggle_panel_automatically)
+            and filename in filenames_per_window(window)
+        ):
+            if panel_open:
                 fill_panel(window)
 
             if maybe_toggle_panel_automatically:
@@ -74,11 +77,10 @@ def on_lint_result(filename, reason=None, **kwargs):
 
 
 @events.on('updated_error_positions')
-def on_updated_error_positions(view, **kwargs):
-    bid = view.buffer_id()
-    window = view.window()
-    if panel_is_active(window) and bid in buffer_ids_per_window(window):
-        fill_panel(window)
+def on_updated_error_positions(filename, **kwargs):
+    for window in sublime.windows():
+        if panel_is_active(window) and filename in filenames_per_window(window):
+            fill_panel(window)
 
 
 @events.on('renamed_file')
@@ -254,7 +256,7 @@ def draw(draw_info):
     if content is None:
         draw_(**draw_info)
     else:
-        request_draw_on_main_thread(draw_info)
+        sublime.set_timeout(lambda: draw_(**draw_info))
 
 
 def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
@@ -274,27 +276,6 @@ def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
         scroll_into_view(panel, [nearby_lines], errors_from_active_view)
-
-
-REQUESTED_MAIN_DRAWS = {}  # type: Dict[sublime.ViewId, str]
-
-
-def request_draw_on_main_thread(draw_info):
-    # type: (DrawInfo) -> None
-    global REQUESTED_MAIN_DRAWS
-
-    panel_id = draw_info['panel'].id()
-    token = REQUESTED_MAIN_DRAWS[panel_id] = uuid.uuid4().hex
-
-    proposition = lambda: REQUESTED_MAIN_DRAWS[panel_id] == token
-    action = lambda: draw_(**draw_info)
-    sublime.set_timeout_async(lambda: maybe_run_on_main_thread(proposition, action))
-
-
-def maybe_run_on_main_thread(prop, fn):
-    # type: (Callable[[], bool], Callable) -> None
-    if prop():
-        sublime.set_timeout(fn)
 
 
 def get_window_errors(window, errors_by_file):
@@ -328,6 +309,7 @@ def filenames_per_window(window):
     )
 
 
+@lru_cache(maxsize=16)
 def create_path_dict(filenames):
     # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
     base_dir = get_common_parent([
@@ -359,7 +341,20 @@ def format_header(f_path):
 
 
 def format_error(error, widths):
-    # type: (LintError, Dict[str, int]) -> List[str]
+    # type: (LintError, Tuple[Tuple[str, int], ...]) -> List[str]
+    error_as_tuple = tuple(
+        (k, v)
+        for k, v in error.items()
+        if k != 'region'  # region is not hashable
+    )
+    return _format_error(error_as_tuple, widths)
+
+
+@lru_cache(maxsize=512)
+def _format_error(error_as_tuple, widths_as_tuple):
+    # type: (Tuple[Tuple[str, object], ...], Tuple[Tuple[str, int], ...]) -> List[str]
+    error = dict(error_as_tuple)  # type: LintError  # type: ignore
+    widths = dict(widths_as_tuple)  # type: Dict[str, int]
     code_width = widths['code']
     code_tmpl = ":{{code:<{}}}".format(code_width)
     tmpl = (
@@ -390,18 +385,24 @@ def fill_panel(window):
     # type: (sublime.Window) -> None
     """Create the panel if it doesn't exist, then update its contents."""
     panel = ensure_panel(window)
-    # If we're here and the user actually closed the window in the meantime,
+    # If we're here and the user actually closed the *window* in the meantime,
     # we cannot create a panel anymore, and just pass.
     if not panel:
         return
 
+    # If the user closed the *panel* (or switched to another one), the panel
+    # has no extent anymore and we don't need to fill it.
+    vx, _ = panel.viewport_extent()
+    if vx == 0:
+        return
+
     errors_by_file = get_window_errors(window, persist.file_errors)
-    fpath_by_file, base_dir = create_path_dict(errors_by_file.keys())
+    fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
 
-    widths = dict(
+    widths = tuple(
         zip(
             ('line', 'col', 'error_type', 'linter_name', 'code'),
             map(
@@ -418,8 +419,8 @@ def fill_panel(window):
                 ])
             )
         )
-    )  # type: Dict[str, int]
-    widths['viewport'] = int(panel.viewport_extent()[0] // panel.em_width() - 1)
+    )  # type: Tuple[Tuple[str, int], ...]
+    widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
     for fpath, errors in sorted(
@@ -714,7 +715,7 @@ def mayby_rerender_panel(previous_token):
         return
 
     token = (view.viewport_extent(),)
-    if token != previous_token:
+    if previous_token and token != previous_token:
         window = view.window()
         if not window:
             return

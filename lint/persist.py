@@ -29,7 +29,8 @@ if False:
         'filename': FileName,
         'uid': str,
         'priority': int,
-        'panel_line': Tuple[int, int]
+        'panel_line': Tuple[int, int],
+        'offending_text': str
     }, total=False)
 
 

@@ -172,7 +172,8 @@ class TestRegexBasedParsing(_BaseTestCase):
                     'code': 'ERROR',
                     'msg': 'The message',
                     'linter': 'fakelinter',
-                    'filename': '<untitled {}>'.format(self.view.buffer_id())
+                    'filename': '<untitled {}>'.format(self.view.buffer_id()),
+                    'offending_text': 'This'
                 }
             ],
             result,
@@ -205,7 +206,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['code', 'msg', 'linter', 'filename'], result)
+        drop_keys(['code', 'msg', 'linter', 'filename', 'offending_text'], result)
 
         self.assertResult([{'error_type': ERROR_TYPE}], result)
 
@@ -236,7 +237,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         result = execute_lint_task(linter, INPUT)
         drop_position_keys(result)
-        drop_keys(['error_type', 'msg', 'linter', 'filename'], result)
+        drop_keys(['error_type', 'msg', 'linter', 'filename', 'offending_text'], result)
 
         self.assertResult([{'code': CODE}], result)
 
@@ -1155,5 +1156,7 @@ def drop_keys(keys, array, strict=False):
             item.pop(k) if strict else item.pop(k, None)
 
 
-drop_info_keys = partial(drop_keys, ['error_type', 'code', 'msg', 'linter', 'filename'])
+drop_info_keys = partial(
+    drop_keys, ['error_type', 'code', 'msg', 'linter', 'filename', 'offending_text']
+)
 drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])

@@ -55,6 +55,10 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
+    sublime.set_timeout(lambda: redraw_file_(filename, problems))
+
+
+def redraw_file_(filename, problems):
     for view in views_into_file(filename):
         draw(view, problems)
 

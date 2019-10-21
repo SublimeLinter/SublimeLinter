@@ -17,7 +17,7 @@ from .lint import elect
 from .lint import events
 from .lint import linter as linter_module
 from .lint import queue
-from .lint import persist, util, style
+from .lint import persist, util
 from .lint import reloader
 from .lint import settings
 
@@ -46,8 +46,11 @@ def plugin_loaded():
     log_handler.install()
 
     try:
-        from package_control import events
-        if events.install('SublimeLinter') or events.post_upgrade('SublimeLinter'):
+        import package_control
+        if (
+            package_control.events.install('SublimeLinter') or
+            package_control.events.post_upgrade('SublimeLinter')
+        ):
             # In case the user has an old version installed without the below
             # `unload`, we 'unload' here.
             persist.kill_switch = True
@@ -64,10 +67,10 @@ def plugin_loaded():
 
     persist.api_ready = True
     persist.kill_switch = False
+    events.broadcast('plugin_loaded')
     persist.settings.load()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
-    style.read_gutter_theme()
 
     # Lint the visible views from the active window on startup
     bc = BackendController()
@@ -79,9 +82,11 @@ def plugin_unloaded():
     log_handler.uninstall()
 
     try:
-        from package_control import events
-
-        if events.pre_upgrade('SublimeLinter') or events.remove('SublimeLinter'):
+        import package_control
+        if (
+            package_control.events.pre_upgrade('SublimeLinter') or
+            package_control.events.remove('SublimeLinter')
+        ):
             logger.info("Enable kill_switch.")
             persist.kill_switch = True
             persist.linter_classes.clear()
@@ -90,6 +95,28 @@ def plugin_unloaded():
 
     queue.unload()
     persist.settings.unobserve()
+    events.off(on_settings_changed)
+
+
+@events.on('settings_changed')
+def on_settings_changed(settings, **kwargs):
+    if (
+        settings.has_changed('linters') or
+        settings.has_changed('no_column_highlights_line')
+    ):
+        sublime.run_command(
+            'sublime_linter_config_changed', {'hint': 'relint'}
+        )
+
+    elif (
+        settings.has_changed('gutter_theme') or
+        settings.has_changed('highlights.demote_while_editing') or
+        settings.has_changed('show_marks_in_minimap') or
+        settings.has_changed('styles')
+    ):
+        sublime.run_command(
+            'sublime_linter_config_changed', {'hint': 'redraw'}
+        )
 
 
 class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
@@ -137,6 +164,9 @@ global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
 buffer_filenames = {}  # type: Dict[Bid, FileName]
 buffer_syntaxes = {}  # type: Dict[Bid, str]
+lint_results_cache = defaultdict(
+    lambda: defaultdict(tuple)
+)  # type: DefaultDict[FileName, DefaultDict[LinterName, Tuple[object, ...]]]
 
 
 class BackendController(sublime_plugin.EventListener):
@@ -214,6 +244,7 @@ class BackendController(sublime_plugin.EventListener):
         for fn in to_discard:
             persist.affected_filenames_per_filename.pop(fn, None)
             persist.file_errors.pop(fn, None)
+            lint_results_cache.pop(fn, None)
 
         persist.assigned_linters.pop(bid, None)
         guard_check_linters_for_view.pop(bid, None)
@@ -398,13 +429,21 @@ def group_by_filename_and_update(
 def update_file_errors(filename, linter, errors, reason=None):
     # type: (FileName, LinterName, List[LintError], Optional[Reason]) -> None
     """Persist lint error changes and broadcast."""
-    update_errors_store(filename, linter, errors)
-    events.broadcast(events.LINT_RESULT, {
+    token = tuple(e['uid'] for e in errors) + (persist.settings.change_count(),)
+    modified = lint_results_cache[filename][linter] != token
+    lint_results_cache[filename][linter] = token
+
+    payload = {
         'filename': filename,
         'linter_name': linter,
         'errors': errors,
         'reason': reason
-    })
+    }
+    if modified:
+        update_errors_store(filename, linter, errors)
+        events.broadcast('lint_result_changed', payload)
+
+    events.broadcast(events.LINT_RESULT, payload)
 
 
 def update_errors_store(filename, linter_name, errors):

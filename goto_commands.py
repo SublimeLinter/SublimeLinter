@@ -1,24 +1,28 @@
 import sublime
 import sublime_plugin
+from Default import history_list
 
 from itertools import dropwhile, takewhile
 
 from .lint import persist, util
 
 
-"""
-Implement typical Goto Next Previous Error Commands.
-"""
+MYPY = False
+if MYPY:
+    from typing import Union
+    from typing_extensions import Literal
+
+    Direction = Union[Literal['next'], Literal['previous']]
 
 
-class SublimeLinterGotoError(sublime_plugin.WindowCommand):
-    def run(self, direction='next', count=1, wrap=False):
-        active_view = self.window.active_view()
-        if active_view:
-            goto(active_view, direction, count, wrap)
+class SublimeLinterGotoError(sublime_plugin.TextCommand):
+    def run(self, edit, direction='next', count=1, wrap=False):
+        # type: (sublime.Edit, Direction, int, bool) -> None
+        goto(self.view, direction, count, wrap)
 
 
 def goto(view, direction, count, wrap):
+    # type: (sublime.View, Direction, int, bool) -> None
     filename = util.get_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
@@ -74,8 +78,9 @@ def goto(view, direction, count, wrap):
 
 
 class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
-    # We want to ensure that `on_selection_modified` handlers run and the
-    # 'move-back' (editing history) still works.
+    # We ensure `on_selection_modified` handlers run by using a `TextCommand`.
+    # See: https://github.com/SublimeLinter/SublimeLinter/pull/867
+    # and https://github.com/SublimeTextIssues/Core/issues/485#issuecomment-337480388
     def run(self, edit, point):
         self.view.sel().clear()
         self.view.sel().add(point)
@@ -83,16 +88,12 @@ class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
 
 
 def move_to(view, point):
-    window = view.window()
-    if view == window.active_view():
-        view.run_command('_sublime_linter_move_cursor', {'point': point})
-    else:
-        filename = util.get_filename(view)
-        line, col = view.rowcol(point)
-        target = "{}:{}:{}".format(filename, line + 1, col + 1)
-        window.open_file(target, sublime.ENCODED_POSITION)
+    # type: (sublime.View, int) -> None
+    history_list.get_jump_history_for_view(view).push_selection(view)
+    view.run_command('_sublime_linter_move_cursor', {'point': point})
 
 
 def flash(view, msg):
+    # type: (sublime.View, str) -> None
     window = view.window() or sublime.active_window()
     window.status_message(msg)

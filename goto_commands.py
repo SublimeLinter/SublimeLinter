@@ -15,7 +15,7 @@ if MYPY:
     Direction = Union[Literal['next'], Literal['previous']]
 
 
-class SublimeLinterGotoError(sublime_plugin.TextCommand):
+class sublime_linter_goto_error(sublime_plugin.TextCommand):
     def run(self, edit, direction='next', count=1, wrap=False):
         # type: (sublime.Edit, Direction, int, bool) -> None
         goto(self.view, direction, count, wrap)

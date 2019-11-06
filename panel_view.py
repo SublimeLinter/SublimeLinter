@@ -534,35 +534,24 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
 
 #   Visual side-effects   #
 
+
 def update_panel_content(panel, text):
     if not text:
         text = "No lint results."
-    panel.run_command('_sublime_linter_update_panel_content', {'text': text})
+    panel.run_command('_sublime_linter_replace_panel_content', {'text': text})
 
 
-class _sublime_linter_update_panel_content(sublime_plugin.TextCommand):
+class _sublime_linter_replace_panel_content(sublime_plugin.TextCommand):
     def run(self, edit, text):
-        """Replace a view's text entirely and try to hold the viewport stable."""
         view = self.view
-        x, _ = view.viewport_position()
-
+        _, y = view.viewport_position()
         view.set_read_only(False)
         view.replace(edit, sublime.Region(0, view.size()), text)
         view.set_read_only(True)
-
-        # We cannot measure the `viewport_position` until right after this
-        # command actually finished. So we defer to the next tick/micro-task
-        # using `set_timeout`.
-        sublime.set_timeout(
-            lambda: view.run_command('_sublime_linter_pin_x_axis', {'x': x})
-        )
-
-
-class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
-    def run(self, edit, x):
-        x2, y2 = self.view.viewport_position()
-        if x != x2:
-            self.view.set_viewport_position((x, y2), False)
+        # Avoid https://github.com/SublimeTextIssues/Core/issues/2560
+        # Force setting the viewport synchronous by setting it twice.
+        view.set_viewport_position((0, 0), False)
+        view.set_viewport_position((0, y), False)
 
 
 INNER_MARGIN = 2  # [lines]

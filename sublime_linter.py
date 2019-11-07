@@ -289,7 +289,13 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
     def is_enabled(self):
-        return any(elect.runnable_linters_for_view(self.view, 'on_user_request'))
+        return (
+            util.is_lintable(self.view)
+            and any(elect.runnable_linters_for_view(self.view, 'on_user_request'))
+        )
+
+    def is_visible(self):
+        return util.is_lintable(self.view)
 
     def run(self, edit):
         hit(self.view, 'on_user_request')

@@ -504,20 +504,42 @@ def fill_panel(window):
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
-    active_view = State['active_view']
-    if active_view:
-        assert active_filename
-        sorted_errors = sorted(
-            (fpath_by_file[filename], errors)
-            for filename, errors in errors_by_file.items()
-            if filename != active_filename
-        ) + (
-            [(fpath_by_file[active_filename], errors_by_file.get(active_filename, []))]
+    if active_filename:
+        affected_filenames = set(flatten(
+            persist.affected_filenames_per_filename.get(active_filename, {}).values()
+        ))
+
+        sorted_errors = (
+            # Unrelated errors surprisingly come first. The scroller
+            # will scroll past them, often showing empty space below
+            # the current file to reduce visual noise.
+            sorted(
+                (fpath_by_file[filename], errors_by_file[filename])
+                for filename in (
+                    errors_by_file.keys()
+                    - affected_filenames
+                    - {active_filename}
+                )
+            )
+
+            # For the current active file, always show something.
+            # The scroller will try to show this file at the top of the
+            # view.
+            + [(fpath_by_file[active_filename], errors_by_file.get(active_filename, []))]
+
+            # Affected files can be clean, just omit those
+            + sorted(
+                (fpath_by_file[filename], errors_by_file[filename])
+                for filename in affected_filenames
+                if filename in errors_by_file
+            )
         )
+
     else:
         sorted_errors = sorted(
             (fpath_by_file[filename], errors) for filename, errors in errors_by_file.items()
         )
+
     for fpath, errors in sorted_errors:
         to_render.append(format_header(fpath))
 
@@ -667,8 +689,10 @@ def scroll_into_view(panel, wanted_lines, errors):
     if not errors or not wanted_lines:
         # For clean files, we know that we have exactly two rows: the
         # filename itself, and the "No lint results." message.
-        r, _ = panel.rowcol(panel.size())
-        scroll_to_line(panel, r - 2, animate=False)
+        match = panel.find("  No lint results.", 0, sublime.LITERAL)
+        if match:
+            r, _ = panel.rowcol(match.begin())
+            scroll_to_line(panel, r - 1, animate=False)
         return
 
     # We would like to use just `view.visible_region()` but that doesn't count

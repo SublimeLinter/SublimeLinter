@@ -63,3 +63,13 @@ class TestResultRegexes(DeferrableTestCase):
         verify(sublime_linter.logger).info(
             "No installed linter matches the view."
         )
+
+    def test_log_if_no_linter_installed(self):
+        when(sublime_linter.logger).info(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+
+        verify(sublime_linter.logger).info(
+            "No installed linter matches the view."
+        )

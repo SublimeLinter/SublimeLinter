@@ -334,6 +334,9 @@ def lint(view, view_has_changed, lock, reason):
     This function MUST run on a thread because it blocks!
     """
     linters = list(elect.assignable_linters_for_view(view, reason))
+    if not linters:
+        logger.info("No installed linter matches the view.")
+
     with lock:
         _assign_linters_to_view(view, {linter['name'] for linter in linters})
 

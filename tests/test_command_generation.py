@@ -168,17 +168,13 @@ class TestExecutableSetting(_BaseTestCase):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        settings = {'executable': 'my_linter'}
-        result = ['my_linter']
+        EXECUTABLE = 'my_linter'
+        RESULT = ['resolved']
+        settings = {'executable': EXECUTABLE}
 
         linter = FakeLinter(self.view, settings)
-        # XXX: We probably don't need to test `can_exec`
-        # - Popen will also throw and show the error panel
-        # - User could just set e.g. 'linter.exe', and the OS will use PATH
-        #   to resolve that automatically
-        # - We don't check for arrays, see below
-        with when(util).can_exec('my_linter').thenReturn(True), \
-             expect(linter)._communicate(result, ...):  # noqa: E127
+        when(util).which('my_linter').thenReturn('resolved')
+        with expect(linter)._communicate(RESULT, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
     def test_executable_is_set_to_an_array(self):
@@ -186,12 +182,110 @@ class TestExecutableSetting(_BaseTestCase):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
-        settings = {'executable': ['my_interpreter', 'my_linter']}
-        result = ['my_interpreter', 'my_linter']
+        EXECUTABLE = ['my_interpreter', 'my_linter']
+        RESULT = ['resolved', 'my_linter']
+        settings = {'executable': EXECUTABLE}
 
         linter = FakeLinter(self.view, settings)
-        with expect(linter)._communicate(result, ...):
+        when(util).which('my_interpreter').thenReturn('resolved')
+        with expect(linter)._communicate(RESULT, ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
+
+    def test_unhappy_given_short_name(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        EXECUTABLE = 'my_linter'
+        settings = {'executable': EXECUTABLE}
+
+        linter = FakeLinter(self.view, settings)
+        when(linter).notify_failure().thenReturn(None)
+        when(util).which(...).thenReturn(None)
+        when(linter_module.logger).error(...)
+
+        try:
+            linter.lint(INPUT, VIEW_UNCHANGED)
+        except linter_module.PermanentError:
+            pass
+
+        verify(linter_module.logger).error(
+            "You set 'executable' to 'my_linter'.  "
+            "However, 'which my_linter' returned nothing."
+        )
+        verify(linter).notify_failure()
+
+    def test_unhappy_given_abs_path(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        EXECUTABLE = '/usr/bin/my_linter'
+        settings = {'executable': EXECUTABLE}
+
+        linter = FakeLinter(self.view, settings)
+        when(linter).notify_failure().thenReturn(None)
+        when(util).which(...).thenReturn(None)
+        when(linter_module.logger).error(...)
+
+        try:
+            linter.lint(INPUT, VIEW_UNCHANGED)
+        except linter_module.PermanentError:
+            pass
+
+        verify(linter_module.logger).error(
+            "You set 'executable' to '/usr/bin/my_linter'.  However, "
+            "'/usr/bin/my_linter' does not exist or is not executable. "
+        )
+        verify(linter).notify_failure()
+
+    def test_unhappy_given_short_name_in_array(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        EXECUTABLE = ['my_interpreter', 'my_linter']
+        settings = {'executable': EXECUTABLE}
+
+        linter = FakeLinter(self.view, settings)
+        when(linter).notify_failure().thenReturn(None)
+        when(util).which(...).thenReturn(None)
+        when(linter_module.logger).error(...)
+
+        try:
+            linter.lint(INPUT, VIEW_UNCHANGED)
+        except linter_module.PermanentError:
+            pass
+
+        verify(linter_module.logger).error(
+            "You set 'executable' to ['my_interpreter', 'my_linter'].  "
+            "However, 'which my_interpreter' returned nothing."
+        )
+        verify(linter).notify_failure()
+
+    def test_unhappy_given_abs_path_in_array(self):
+        class FakeLinter(Linter):
+            cmd = ('fake_linter_1',)
+            defaults = {'selector': None}
+
+        EXECUTABLE = ['/usr/bin/my_interpreter', 'my_linter']
+        settings = {'executable': EXECUTABLE}
+
+        linter = FakeLinter(self.view, settings)
+        when(linter).notify_failure().thenReturn(None)
+        when(util).which(...).thenReturn(None)
+        when(linter_module.logger).error(...)
+
+        try:
+            linter.lint(INPUT, VIEW_UNCHANGED)
+        except linter_module.PermanentError:
+            pass
+
+        verify(linter_module.logger).error(
+            "You set 'executable' to ['/usr/bin/my_interpreter', 'my_linter'].  "
+            "However, '/usr/bin/my_interpreter' does not exist or is not executable. "
+        )
+        verify(linter).notify_failure()
 
 
 class TestViewContext(_BaseTestCase):

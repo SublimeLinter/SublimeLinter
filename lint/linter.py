@@ -861,22 +861,36 @@ class Linter(metaclass=LinterMeta):
         Notable: `<path>` can be a list/tuple or str
 
         """
-        executable = self.settings.get('executable', None)
+        executable = self.settings.get('executable', None)  # type: Union[None, str, List[str]]
         if executable:
-            logger.info(
-                "{}: wanted executable is '{}'".format(self.name, executable)
+            wanted_executable, *rest = (
+                [executable] if isinstance(executable, str) else executable
             )
+            if os.path.isabs(wanted_executable):
+                if not util.can_exec(wanted_executable):
+                    logger.error(
+                        "You set 'executable' to {!r}.  "
+                        "However, '{}' does not exist or is not executable. "
+                        .format(executable, wanted_executable)
+                    )
+                    self.notify_failure()
+                    raise PermanentError()
 
-            # If `executable` is an iterable, we can only assume it will work.
-            if isinstance(executable, str) and not util.can_exec(executable):
-                logger.error(
-                    "{} deactivated, cannot locate '{}' "
-                    .format(self.name, executable)
-                )
-                # no fallback, the user specified something, so we err
-                return True, None
+            else:
+                resolved_executable = self.which(wanted_executable)
+                if not resolved_executable:
+                    logger.error(
+                        "You set 'executable' to {!r}.  "
+                        "However, 'which {}' returned nothing."
+                        .format(executable, wanted_executable)
+                    )
+                    self.notify_failure()
+                    raise PermanentError()
 
-            return True, executable
+            logger.info(
+                "{}: wanted executable is {!r}".format(self.name, executable)
+            )
+            return True, [resolved_executable] + rest
 
         return False, None
 

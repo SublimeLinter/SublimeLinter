@@ -881,7 +881,10 @@ class Linter(metaclass=LinterMeta):
                 if not resolved_executable:
                     logger.error(
                         "You set 'executable' to {!r}.  "
-                        "However, 'which {}' returned nothing."
+                        "However, 'which {}' returned nothing.\n"
+                        "Try setting an absolute path to the binary. "
+                        "Also refer our troubleshooting guide: "
+                        "http://www.sublimelinter.com/en/stable/troubleshooting.html"
                         .format(executable, wanted_executable)
                     )
                     self.notify_failure()

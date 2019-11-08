@@ -10,6 +10,7 @@ from SublimeLinter.lint import (
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
+    contains,
     expect,
     mock,
     unstub,
@@ -210,8 +211,11 @@ class TestExecutableSetting(_BaseTestCase):
             pass
 
         verify(linter_module.logger).error(
-            "You set 'executable' to 'my_linter'.  "
-            "However, 'which my_linter' returned nothing."
+            contains(
+                "You set 'executable' to 'my_linter'.  "
+                "However, 'which my_linter' returned nothing.\n"
+                "Try setting an absolute path to the binary."
+            )
         )
         verify(linter).notify_failure()
 
@@ -258,8 +262,11 @@ class TestExecutableSetting(_BaseTestCase):
             pass
 
         verify(linter_module.logger).error(
-            "You set 'executable' to ['my_interpreter', 'my_linter'].  "
-            "However, 'which my_interpreter' returned nothing."
+            contains(
+                "You set 'executable' to ['my_interpreter', 'my_linter'].  "
+                "However, 'which my_interpreter' returned nothing.\n"
+                "Try setting an absolute path to the binary."
+            )
         )
         verify(linter).notify_failure()
 

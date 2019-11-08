@@ -235,48 +235,6 @@ def check_output(cmd, cwd=None):
         return process_popen_output(output)
 
 
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
-    """
-    Return the result of sending code via stdin to an executable.
-
-    The result is a string which comes from stdout, stderr or the
-    combining of the two, depending on the value of output_stream.
-    If env is None, the result of create_environment is used.
-
-    """
-    logger.warning('`util.communicate` has been deprecated.')
-
-    if code is not None:
-        code = code.encode('utf8')
-    if env is None:
-        env = create_environment()
-
-    uses_stdin = code is not None
-
-    try:
-        proc = subprocess.Popen(
-            cmd, env=env, cwd=cwd,
-            stdin=subprocess.PIPE if uses_stdin else None,
-            stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
-            stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
-            startupinfo=create_startupinfo()
-        )
-    except Exception as err:
-        logger.error('  Execution failed\n\n  {}\n  {}{}'.format(
-            str(err),
-            ' '.join(cmd),
-            '\n  {}'.format(cwd) if cwd else ''
-        ))
-
-        return ''
-
-    if logger.isEnabledFor(logging.INFO):
-        logger.info('Running `{}`'.format(' '.join(cmd)))
-
-    out = proc.communicate(code)
-    return popen_output(proc, *out)
-
-
 class popen_output(str):
     """Hybrid of a Popen process and its output.
 

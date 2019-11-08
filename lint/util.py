@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from functools import lru_cache, wraps
 import locale
 import logging
-from numbers import Number
 import os
 import re
 import shutil
@@ -18,7 +17,8 @@ from . import events
 
 MYPY = False
 if MYPY:
-    from typing import Iterator, List, MutableMapping, Optional
+    from typing import Iterator, List, MutableMapping, Optional, TypeVar, Union
+    T = TypeVar('T')
 
 
 logger = logging.getLogger(__name__)
@@ -299,46 +299,9 @@ def get_creationflags():
 # misc utils
 
 
-def convert_type(value, type_value, sep=None, default=None):
-    """
-    Convert value to the type of type_value.
-
-    If the value cannot be converted to the desired type, default is returned.
-    If sep is not None, strings are split by sep (plus surrounding whitespace)
-    to make lists/tuples, and tuples/lists are joined by sep to make strings.
-    """
-    if type_value is None or isinstance(value, type(type_value)):
-        return value
-
-    if isinstance(value, str):
-        if isinstance(type_value, (tuple, list)):
-            if sep is None:
-                return [value]
-            else:
-                if value:
-                    return re.split(r'\s*{}\s*'.format(sep), value)
-                else:
-                    return []
-        elif isinstance(type_value, Number):
-            return float(value)
-        else:
-            return default
-
-    if isinstance(value, Number):
-        if isinstance(type_value, str):
-            return str(value)
-        elif isinstance(type_value, (tuple, list)):
-            return [value]
-        else:
-            return default
-
-    if isinstance(value, (tuple, list)):
-        if isinstance(type_value, str):
-            return sep.join(value)
-        else:
-            return list(value)
-
-    return default
+def ensure_list(value):
+    # type: (Union[T, List[T]]) -> List[T]
+    return value if isinstance(value, list) else [value]
 
 
 def load_json(*segments, from_sl_dir=False):

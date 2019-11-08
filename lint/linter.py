@@ -840,7 +840,7 @@ class Linter(metaclass=LinterMeta):
                 )
                 return None
 
-        cmd[0:1] = util.convert_type(path, [])
+        cmd[0:1] = util.ensure_list(path)
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):
@@ -861,9 +861,7 @@ class Linter(metaclass=LinterMeta):
         """
         executable = self.settings.get('executable', None)  # type: Union[None, str, List[str]]
         if executable:
-            wanted_executable, *rest = (
-                [executable] if isinstance(executable, str) else executable
-            )
+            wanted_executable, *rest = util.ensure_list(executable)
             resolved_executable = self.which(wanted_executable)
             if not resolved_executable:
                 if os.path.isabs(wanted_executable):
@@ -1031,10 +1029,10 @@ class Linter(metaclass=LinterMeta):
         if not cls.matches_selector(view, settings):
             return False
 
-        filename = view.file_name() or '<untitled>'
-        excludes = util.convert_type(settings.get('excludes', []), [])
+        excludes = settings.get('excludes', [])  # type: Union[str, List[str]]
         if excludes:
-            for pattern in excludes:
+            filename = view.file_name() or '<untitled>'
+            for pattern in util.ensure_list(excludes):
                 if pattern.startswith('!'):
                     matched = not fnmatch(filename, pattern[1:])
                 else:

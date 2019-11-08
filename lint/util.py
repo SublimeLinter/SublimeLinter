@@ -13,6 +13,8 @@ import time
 import threading
 
 import sublime
+from . import events
+
 
 MYPY = False
 if MYPY:
@@ -27,6 +29,11 @@ STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
+
+
+@events.on('settings_changed')
+def on_settings_changed(settings, **kwargs):
+    get_augmented_path.cache_clear()
 
 
 def printf(*args):
@@ -166,6 +173,7 @@ def create_environment():
     return ChainMap({'PATH': get_augmented_path()}, os.environ)
 
 
+@lru_cache(maxsize=1)
 def get_augmented_path():
     # type: () -> str
     from . import persist

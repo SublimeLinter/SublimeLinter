@@ -5,12 +5,10 @@ on:
     branches:
       - master
     paths:
-    - 'docs/*'
-    - 'docs/*/*'
+    - 'docs/**'
   pull_request:
     paths:
-    - 'docs/*'
-    - 'docs/*/*'
+    - 'docs/**'
 
 jobs:
   build:

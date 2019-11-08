@@ -12,27 +12,15 @@ on:
     paths:
     - 'setup.cfg'
     - '*.py'
-    - 'lint/*.py'
-    - 'lint/*/*.py'
-    - 'lint/*/*/*.py'
-    - 'lint/*/*/*/*.py'
-    - 'tests/*.py'
-    - 'tests/*/*.py'
-    - 'tests/*/*/*.py'
-    - 'tests/*/*/*/*.py'
+    - 'lint/**.py'
+    - 'tests/**.py'
 
   pull_request:
     paths:
     - 'setup.cfg'
     - '*.py'
-    - 'lint/*.py'
-    - 'lint/*/*.py'
-    - 'lint/*/*/*.py'
-    - 'lint/*/*/*/*.py'
-    - 'tests/*.py'
-    - 'tests/*/*.py'
-    - 'tests/*/*/*.py'
-    - 'tests/*/*/*/*.py'
+    - 'lint/**.py'
+    - 'tests/**.py'
 
 jobs:
   check:

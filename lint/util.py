@@ -16,7 +16,7 @@ import sublime
 
 MYPY = False
 if MYPY:
-    from typing import List, MutableMapping, Optional
+    from typing import Iterator, List, MutableMapping, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -193,21 +193,12 @@ def which(cmd):
 
 
 def find_executables(executable):
+    # type: (str) -> Iterator[str]
     """Yield full paths to given executable."""
-    for base in get_augmented_path().split(os.pathsep):
-        path = os.path.join(os.path.expanduser(base), executable)
-
-        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
-        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
-            for extension in ('.exe', '.cmd', '.bat'):
-                path_ext = path + extension
-
-                if can_exec(path_ext):
-                    yield path_ext
-        elif can_exec(path):
-            yield path
-
-    return None
+    for path in get_augmented_path().split(os.pathsep):
+        resolved = shutil.which(executable, path=path)
+        if resolved:
+            yield resolved
 
 
 # popen utils

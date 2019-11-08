@@ -12,8 +12,9 @@ import time
 import threading
 
 
-if False:
-    from typing import Optional
+MYPY = False
+if MYPY:
+    from typing import List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -159,28 +160,25 @@ def create_environment():
     Platforms paths are added to PATH by getting the "paths" user settings
     for the current platform.
     """
-    from . import persist
-
     env = {}
     env.update(os.environ)
-
-    paths = persist.settings.get('paths', {})
-
-    if sublime.platform() in paths:
-        paths = [
-            os.path.expanduser(path)
-            for path in convert_type(paths[sublime.platform()], [])
-        ]
-    else:
-        paths = []
-
-    if paths:
-        env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
-
-    if logger.isEnabledFor(logging.INFO) and env['PATH']:
-        debug_print_env(env['PATH'])
-
+    env['PATH'] = get_augmented_path()
     return env
+
+
+def get_augmented_path():
+    # type: () -> str
+    from . import persist
+
+    paths = [
+        os.path.expanduser(path)
+        for path in persist.settings.get('paths', {}).get(sublime.platform(), [])
+    ]  # type: List[str]
+
+    augmented_path = os.pathsep.join(paths + [os.environ['PATH']])
+    if logger.isEnabledFor(logging.INFO):
+        debug_print_env(augmented_path)
+    return augmented_path
 
 
 def can_exec(path):

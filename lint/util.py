@@ -195,9 +195,7 @@ def which(cmd):
 
 def find_executables(executable):
     """Yield full paths to given executable."""
-    env = create_environment()
-
-    for base in env.get('PATH', '').split(os.pathsep):
+    for base in get_augmented_path().split(os.pathsep):
         path = os.path.join(os.path.expanduser(base), executable)
 
         # On Windows, if path does not have an extension, try .exe, .cmd, .bat

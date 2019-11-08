@@ -830,12 +830,7 @@ class Linter(metaclass=LinterMeta):
                 # logged already.
                 return None
         else:
-            # If `cmd` is a method, it can try to find an executable on its own.
-            if util.can_exec(which):
-                path = which
-            else:
-                path = self.which(which)
-
+            path = self.which(which)
             if not path:
                 logger.warning(
                     "{} cannot locate '{}'\n"
@@ -869,20 +864,16 @@ class Linter(metaclass=LinterMeta):
             wanted_executable, *rest = (
                 [executable] if isinstance(executable, str) else executable
             )
-            if os.path.isabs(wanted_executable):
-                if not util.can_exec(wanted_executable):
-                    logger.error(
+            resolved_executable = self.which(wanted_executable)
+            if not resolved_executable:
+                if os.path.isabs(wanted_executable):
+                    message = (
                         "You set 'executable' to {!r}.  "
                         "However, '{}' does not exist or is not executable. "
                         .format(executable, wanted_executable)
                     )
-                    self.notify_failure()
-                    raise PermanentError()
-
-            else:
-                resolved_executable = self.which(wanted_executable)
-                if not resolved_executable:
-                    logger.error(
+                else:
+                    message = (
                         "You set 'executable' to {!r}.  "
                         "However, 'which {}' returned nothing.\n"
                         "Try setting an absolute path to the binary. "
@@ -890,8 +881,9 @@ class Linter(metaclass=LinterMeta):
                         "http://www.sublimelinter.com/en/stable/troubleshooting.html"
                         .format(executable, wanted_executable)
                     )
-                    self.notify_failure()
-                    raise PermanentError()
+                logger.error(message)
+                self.notify_failure()
+                raise PermanentError()
 
             logger.info(
                 "{}: wanted executable is {!r}".format(self.name, executable)

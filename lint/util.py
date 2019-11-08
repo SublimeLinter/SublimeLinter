@@ -7,11 +7,12 @@ import logging
 from numbers import Number
 import os
 import re
-import sublime
+import shutil
 import subprocess
 import time
 import threading
 
+import sublime
 
 MYPY = False
 if MYPY:
@@ -186,11 +187,9 @@ def can_exec(path):
 
 
 def which(cmd):
+    # type: (str) -> Optional[str]
     """Return the full path to an executable searching PATH."""
-    for path in find_executables(cmd):
-        return path
-
-    return None
+    return shutil.which(cmd, path=get_augmented_path())
 
 
 def find_executables(executable):

@@ -181,11 +181,6 @@ def get_augmented_path():
     return augmented_path
 
 
-def can_exec(path):
-    """Return whether the given path is a file and is executable."""
-    return os.path.isfile(path) and os.access(path, os.X_OK)
-
-
 def which(cmd):
     # type: (str) -> Optional[str]
     """Return the full path to an executable searching PATH."""

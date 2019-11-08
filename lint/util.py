@@ -192,7 +192,7 @@ def which(cmd):
     return shutil.which(cmd, path=get_augmented_path())
 
 
-def find_executables(executable):
+def where(executable):
     # type: (str) -> Iterator[str]
     """Yield full paths to given executable."""
     for path in get_augmented_path().split(os.pathsep):

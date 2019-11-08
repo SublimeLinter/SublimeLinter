@@ -1,4 +1,5 @@
 """This module provides general utility methods."""
+from collections import ChainMap
 from contextlib import contextmanager
 from functools import lru_cache, wraps
 import locale
@@ -14,7 +15,7 @@ import threading
 
 MYPY = False
 if MYPY:
-    from typing import List, Optional
+    from typing import List, MutableMapping, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -155,15 +156,13 @@ def debug_print_env(path):
 
 
 def create_environment():
+    # type: () -> MutableMapping[str, str]
     """Return a dict with os.environ augmented with a better PATH.
 
     Platforms paths are added to PATH by getting the "paths" user settings
     for the current platform.
     """
-    env = {}
-    env.update(os.environ)
-    env['PATH'] = get_augmented_path()
-    return env
+    return ChainMap({'PATH': get_augmented_path()}, os.environ)
 
 
 def get_augmented_path():

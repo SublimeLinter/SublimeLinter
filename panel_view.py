@@ -1,9 +1,11 @@
+from collections import defaultdict
 from functools import lru_cache, partial
 from itertools import chain
 import os
 import sublime
 import sublime_plugin
 import textwrap
+import uuid
 
 from .lint import elect, events, persist, util
 flatten = chain.from_iterable
@@ -12,32 +14,40 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Collection, Dict, Iterable, List, Optional, Set, Tuple,
-        Union
+        Any, Callable, Collection, Dict, Iterable, List, Optional, Set,
+        Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
-    Filename = str
+    T = TypeVar('T')
+    U = TypeVar('U')
+    FileName = persist.FileName
+    LinterName = persist.LinterName
+    Reason = Optional[str]
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
+        'active_filename': Optional[str],
         'cursor': int,
         'panel_opened_automatically': Set[sublime.WindowId]
     })
-    ErrorsByFile = Dict[Filename, List[LintError]]
+    ErrorsByFile = Dict[FileName, List[LintError]]
     DrawInfo = TypedDict('DrawInfo', {
         'panel': sublime.View,
         'content': str,
         'errors_from_active_view': List[LintError],
         'nearby_lines': Union[int, List[int]]
     }, total=False)
+    Action = Callable[[], None]
 
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
+NO_RESULTS_MESSAGE = "  No lint results."
 
 State = {
     'active_view': None,
+    'active_filename': None,
     'cursor': -1,
     'panel_opened_automatically': set()
 }  # type: State_
@@ -45,8 +55,10 @@ State = {
 
 def plugin_loaded():
     active_window = sublime.active_window()
+    active_view = active_window.active_view()
     State.update({
-        'active_view': active_window.active_view()
+        'active_view': active_view,
+        'active_filename': util.get_filename(active_view) if active_view else None,
     })
     ensure_panel(active_window)
 
@@ -60,20 +72,82 @@ def plugin_unloaded():
         window.destroy_output_panel(PANEL_NAME)
 
 
+LINT_RESULT_CACHE = defaultdict(list)  # type: Dict[str, List[Tuple[FileName, Reason]]]
+REQUEST_LINT_RESULT = {}  # type: Dict[str, str]
+
+
+def unzip(zipped):
+    # type: (Iterable[Tuple[T, U]]) -> Tuple[Tuple[T, ...], Tuple[U, ...]]
+    return tuple(zip(*zipped))  # type: ignore
+
+
 @events.on('lint_result_changed')
-def on_lint_result(filename, reason=None, **kwargs):
-    maybe_toggle_panel_automatically = reason in ('on_save', 'on_user_request')
+def on_lint_result(filename, linter_name, reason=None, **kwargs):
+    # type: (FileName, LinterName, Reason, Any) -> None
+    LINT_RESULT_CACHE[linter_name].append((filename, reason))
+
+    strategy = (
+        run_immediately
+        if State['active_filename'] == filename
+        else run_on_next_tick
+    )
+    strategy(
+        REQUEST_LINT_RESULT,
+        linter_name,
+        lambda: execute_on_lint_result_request(linter_name)
+    )
+
+
+def run_immediately(token_cache, key, action):
+    # type: (Dict[T, str], T, Action) -> None
+    """Invalidate `key` and run `action` immediately."""
+    token_cache[key] = uuid.uuid4().hex
+    action()
+
+
+def run_on_next_tick(token_cache, key, action):
+    # type: (Dict[T, str], T, Action) -> None
+    """Enqueue `action` to be run on next worker tick.
+
+    Subsequent calls with the same `key` in the same tick, t.i.
+    before the worker could have emptied the queue, will replace
+    the `action`.  (T.i. for n calls to action only 1 will run,
+    the other will be erased.)
+    """
+    token = token_cache[key] = uuid.uuid4().hex
+    proposition = lambda: token_cache[key] == token
+    sublime.set_timeout_async(lambda: maybe_run(proposition, action))
+
+
+def maybe_run(prop, action):
+    # type: (Callable[[], bool], Action) -> None
+    if prop():
+        action()
+
+
+def execute_on_lint_result_request(linter_name):
+    # type: (LinterName) -> None
+    calls = LINT_RESULT_CACHE.pop(linter_name)
+    filenames, reasons = unzip(calls)
+    _on_lint_result(
+        set(filenames),
+        not {'on_save', 'on_user_request'}.isdisjoint(reasons)
+    )
+
+
+def _on_lint_result(filenames, maybe_toggle_panel_automatically):
+    # type: (Set[FileName], bool) -> None
     for window in sublime.windows():
         panel_open = panel_is_active(window)
         if (
             (panel_open or maybe_toggle_panel_automatically)
-            and filename in filenames_per_window(window)
+            and filenames & filenames_per_window(window)
         ):
             if panel_open:
                 fill_panel(window)
 
             if maybe_toggle_panel_automatically:
-                toggle_panel_if_errors(window, filename)
+                toggle_panel_if_errors(window, filenames)
 
 
 @events.on('updated_error_positions')
@@ -94,19 +168,21 @@ def on_renamed_file(new_filename, **kwargs):
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
+        if not util.is_lintable(active_view):
+            return
+
         window = active_view.window()
-        # Sometimes a view is activated and then destructed before we get here
-        # and then it doesn't have a window anymore
-        if not window or active_view.settings().get('is_widget'):
+        if not window:
             return
 
         State.update({
             'active_view': active_view,
+            'active_filename': util.get_filename(active_view),
             'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
         if panel_is_active(window):
-            update_panel_selection(**State)
+            fill_panel(window)
             start_viewport_poller()
         else:
             stop_viewport_poller()
@@ -141,7 +217,7 @@ class UpdateState(sublime_plugin.EventListener):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
         if view_gets_linted_on_modified_event(view):
-            toggle_panel_if_errors(view.window(), util.get_filename(view))
+            toggle_panel_if_errors(view.window(), {util.get_filename(view)})
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -173,7 +249,8 @@ def view_gets_linted_on_modified_event(view):
     return any(elect.runnable_linters_for_view(view, 'on_modified'))
 
 
-def toggle_panel_if_errors(window, filename):
+def toggle_panel_if_errors(window, filenames):
+    # type: (Optional[sublime.Window], Set[FileName]) -> None
     """Toggle the panel if the view or window has problems, depending on settings."""
     if window is None:
         return
@@ -184,8 +261,9 @@ def toggle_panel_if_errors(window, filename):
 
     errors_by_file = get_window_errors(window, persist.file_errors)
     has_relevant_errors = (
-        show_panel_on_save == 'window' and errors_by_file or
-        filename in errors_by_file)
+        show_panel_on_save == 'window' and errors_by_file
+        or filenames & errors_by_file.keys()
+    )
 
     if not panel_is_active(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
@@ -298,7 +376,7 @@ def buffer_ids_per_window(window):
 
 
 def filenames_per_window(window):
-    # type: (sublime.Window) -> Set[Filename]
+    # type: (sublime.Window) -> Set[FileName]
     """Return filenames of all open files plus their dependencies."""
     open_filenames = set(util.get_filename(v) for v in window.views())
     return open_filenames | set(
@@ -311,7 +389,7 @@ def filenames_per_window(window):
 
 @lru_cache(maxsize=16)
 def create_path_dict(filenames):
-    # type: (Collection[Filename]) -> Tuple[Dict[Filename, str], str]
+    # type: (Collection[FileName]) -> Tuple[Dict[FileName, str], str]
     base_dir = get_common_parent([
         path
         for path in filenames
@@ -397,6 +475,10 @@ def fill_panel(window):
         return
 
     errors_by_file = get_window_errors(window, persist.file_errors)
+    active_filename = State['active_filename']
+    if active_filename and active_filename not in errors_by_file:
+        errors_by_file[active_filename] = []
+
     fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
     settings = panel.settings()
@@ -423,15 +505,52 @@ def fill_panel(window):
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
-    for fpath, errors in sorted(
-        (fpath_by_file[fn], errors) for fn, errors in errors_by_file.items()
-    ):
+    if active_filename:
+        affected_filenames = set(flatten(
+            persist.affected_filenames_per_filename.get(active_filename, {}).values()
+        ))
+
+        sorted_errors = (
+            # Unrelated errors surprisingly come first. The scroller
+            # will scroll past them, often showing empty space below
+            # the current file to reduce visual noise.
+            sorted(
+                (fpath_by_file[filename], errors_by_file[filename])
+                for filename in (
+                    errors_by_file.keys()
+                    - affected_filenames
+                    - {active_filename}
+                )
+            )
+
+            # For the current active file, always show something.
+            # The scroller will try to show this file at the top of the
+            # view.
+            + [(fpath_by_file[active_filename], errors_by_file.get(active_filename, []))]
+
+            # Affected files can be clean, just omit those
+            + sorted(
+                (fpath_by_file[filename], errors_by_file[filename])
+                for filename in affected_filenames
+                if filename in errors_by_file
+            )
+        )
+
+    else:
+        sorted_errors = sorted(
+            (fpath_by_file[filename], errors) for filename, errors in errors_by_file.items()
+        )
+
+    for fpath, errors in sorted_errors:
         to_render.append(format_header(fpath))
 
-        for error in errors:
-            lines = format_error(error, widths)
-            to_render.extend(lines)
-            error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
+        if errors:
+            for error in errors:
+                lines = format_error(error, widths)
+                to_render.extend(lines)
+                error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
+        else:
+            to_render.append(NO_RESULTS_MESSAGE)
 
         # Insert empty line between files
         to_render.append("")
@@ -534,35 +653,24 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
 
 #   Visual side-effects   #
 
+
 def update_panel_content(panel, text):
     if not text:
-        text = "No lint results."
-    panel.run_command('_sublime_linter_update_panel_content', {'text': text})
+        text = NO_RESULTS_MESSAGE
+    panel.run_command('_sublime_linter_replace_panel_content', {'text': text})
 
 
-class _sublime_linter_update_panel_content(sublime_plugin.TextCommand):
+class _sublime_linter_replace_panel_content(sublime_plugin.TextCommand):
     def run(self, edit, text):
-        """Replace a view's text entirely and try to hold the viewport stable."""
         view = self.view
-        x, _ = view.viewport_position()
-
+        _, y = view.viewport_position()
         view.set_read_only(False)
         view.replace(edit, sublime.Region(0, view.size()), text)
         view.set_read_only(True)
-
-        # We cannot measure the `viewport_position` until right after this
-        # command actually finished. So we defer to the next tick/micro-task
-        # using `set_timeout`.
-        sublime.set_timeout(
-            lambda: view.run_command('_sublime_linter_pin_x_axis', {'x': x})
-        )
-
-
-class _sublime_linter_pin_x_axis(sublime_plugin.TextCommand):
-    def run(self, edit, x):
-        x2, y2 = self.view.viewport_position()
-        if x != x2:
-            self.view.set_viewport_position((x, y2), False)
+        # Avoid https://github.com/SublimeTextIssues/Core/issues/2560
+        # Force setting the viewport synchronous by setting it twice.
+        view.set_viewport_position((0, 0), False)
+        view.set_viewport_position((0, y), False)
 
 
 INNER_MARGIN = 2  # [lines]
@@ -580,6 +688,12 @@ def scroll_into_view(panel, wanted_lines, errors):
     little as possible.
     """
     if not errors or not wanted_lines:
+        # For clean files, we know that we have exactly two rows: the
+        # filename itself, followed by the "No lint results." message.
+        match = panel.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
+        if match:
+            r, _ = panel.rowcol(match.begin())
+            scroll_to_line(panel, r - 1, animate=False)
         return
 
     # We would like to use just `view.visible_region()` but that doesn't count

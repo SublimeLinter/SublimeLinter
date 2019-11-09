@@ -109,7 +109,7 @@ def find_python_version(version):
     # type: (str) -> Optional[str]
     """Return python binaries on PATH matching a specific version."""
     requested_version = extract_major_minor_version(version)
-    for python in util.find_executables('python'):
+    for python in util.where('python'):
         python_version = get_python_version(python)
         if version_fulfills_request(python_version, requested_version):
             return python

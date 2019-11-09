@@ -1,19 +1,24 @@
 """This module provides general utility methods."""
+from collections import ChainMap
 from contextlib import contextmanager
 from functools import lru_cache, wraps
 import locale
 import logging
-from numbers import Number
 import os
 import re
-import sublime
+import shutil
 import subprocess
 import time
 import threading
 
+import sublime
+from . import events
 
-if False:
-    from typing import Optional
+
+MYPY = False
+if MYPY:
+    from typing import Iterator, List, MutableMapping, Optional, TypeVar, Union
+    T = TypeVar('T')
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +29,11 @@ STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
+
+
+@events.on('settings_changed')
+def on_settings_changed(settings, **kwargs):
+    get_augmented_path.cache_clear()
 
 
 def printf(*args):
@@ -154,64 +164,44 @@ def debug_print_env(path):
 
 
 def create_environment():
+    # type: () -> MutableMapping[str, str]
     """Return a dict with os.environ augmented with a better PATH.
 
     Platforms paths are added to PATH by getting the "paths" user settings
     for the current platform.
     """
+    return ChainMap({'PATH': get_augmented_path()}, os.environ)
+
+
+@lru_cache(maxsize=1)
+def get_augmented_path():
+    # type: () -> str
     from . import persist
 
-    env = {}
-    env.update(os.environ)
+    paths = [
+        os.path.expanduser(path)
+        for path in persist.settings.get('paths', {}).get(sublime.platform(), [])
+    ]  # type: List[str]
 
-    paths = persist.settings.get('paths', {})
-
-    if sublime.platform() in paths:
-        paths = [os.path.abspath(os.path.expanduser(path))
-                 for path in convert_type(paths[sublime.platform()], [])]
-    else:
-        paths = []
-
-    if paths:
-        env['PATH'] = os.pathsep.join(paths) + os.pathsep + env['PATH']
-
-    if logger.isEnabledFor(logging.INFO) and env['PATH']:
-        debug_print_env(env['PATH'])
-
-    return env
-
-
-def can_exec(path):
-    """Return whether the given path is a file and is executable."""
-    return os.path.isfile(path) and os.access(path, os.X_OK)
+    augmented_path = os.pathsep.join(paths + [os.environ['PATH']])
+    if logger.isEnabledFor(logging.INFO):
+        debug_print_env(augmented_path)
+    return augmented_path
 
 
 def which(cmd):
+    # type: (str) -> Optional[str]
     """Return the full path to an executable searching PATH."""
-    for path in find_executables(cmd):
-        return path
-
-    return None
+    return shutil.which(cmd, path=get_augmented_path())
 
 
-def find_executables(executable):
+def where(executable):
+    # type: (str) -> Iterator[str]
     """Yield full paths to given executable."""
-    env = create_environment()
-
-    for base in env.get('PATH', '').split(os.pathsep):
-        path = os.path.join(os.path.expanduser(base), executable)
-
-        # On Windows, if path does not have an extension, try .exe, .cmd, .bat
-        if sublime.platform() == 'windows' and not os.path.splitext(path)[1]:
-            for extension in ('.exe', '.cmd', '.bat'):
-                path_ext = path + extension
-
-                if can_exec(path_ext):
-                    yield path_ext
-        elif can_exec(path):
-            yield path
-
-    return None
+    for path in get_augmented_path().split(os.pathsep):
+        resolved = shutil.which(executable, path=path)
+        if resolved:
+            yield resolved
 
 
 # popen utils
@@ -234,48 +224,6 @@ def check_output(cmd, cwd=None):
         raise
     else:
         return process_popen_output(output)
-
-
-def communicate(cmd, code=None, output_stream=STREAM_STDOUT, env=None, cwd=None):
-    """
-    Return the result of sending code via stdin to an executable.
-
-    The result is a string which comes from stdout, stderr or the
-    combining of the two, depending on the value of output_stream.
-    If env is None, the result of create_environment is used.
-
-    """
-    logger.warning('`util.communicate` has been deprecated.')
-
-    if code is not None:
-        code = code.encode('utf8')
-    if env is None:
-        env = create_environment()
-
-    uses_stdin = code is not None
-
-    try:
-        proc = subprocess.Popen(
-            cmd, env=env, cwd=cwd,
-            stdin=subprocess.PIPE if uses_stdin else None,
-            stdout=subprocess.PIPE if output_stream & STREAM_STDOUT else None,
-            stderr=subprocess.PIPE if output_stream & STREAM_STDERR else None,
-            startupinfo=create_startupinfo()
-        )
-    except Exception as err:
-        logger.error('  Execution failed\n\n  {}\n  {}{}'.format(
-            str(err),
-            ' '.join(cmd),
-            '\n  {}'.format(cwd) if cwd else ''
-        ))
-
-        return ''
-
-    if logger.isEnabledFor(logging.INFO):
-        logger.info('Running `{}`'.format(' '.join(cmd)))
-
-    out = proc.communicate(code)
-    return popen_output(proc, *out)
 
 
 class popen_output(str):
@@ -351,46 +299,9 @@ def get_creationflags():
 # misc utils
 
 
-def convert_type(value, type_value, sep=None, default=None):
-    """
-    Convert value to the type of type_value.
-
-    If the value cannot be converted to the desired type, default is returned.
-    If sep is not None, strings are split by sep (plus surrounding whitespace)
-    to make lists/tuples, and tuples/lists are joined by sep to make strings.
-    """
-    if type_value is None or isinstance(value, type(type_value)):
-        return value
-
-    if isinstance(value, str):
-        if isinstance(type_value, (tuple, list)):
-            if sep is None:
-                return [value]
-            else:
-                if value:
-                    return re.split(r'\s*{}\s*'.format(sep), value)
-                else:
-                    return []
-        elif isinstance(type_value, Number):
-            return float(value)
-        else:
-            return default
-
-    if isinstance(value, Number):
-        if isinstance(type_value, str):
-            return str(value)
-        elif isinstance(type_value, (tuple, list)):
-            return [value]
-        else:
-            return default
-
-    if isinstance(value, (tuple, list)):
-        if isinstance(type_value, str):
-            return sep.join(value)
-        else:
-            return list(value)
-
-    return default
+def ensure_list(value):
+    # type: (Union[T, List[T]]) -> List[T]
+    return value if isinstance(value, list) else [value]
 
 
 def load_json(*segments, from_sl_dir=False):

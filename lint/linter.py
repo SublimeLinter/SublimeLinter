@@ -830,19 +830,17 @@ class Linter(metaclass=LinterMeta):
                 # logged already.
                 return None
         else:
-            # If `cmd` is a method, it can try to find an executable on its own.
-            if util.can_exec(which):
-                path = which
-            else:
-                path = self.which(which)
-
+            path = self.which(which)
             if not path:
-                logger.warning('{} cannot locate \'{}\'\n'
-                               'Please refer to the readme of this plugin and our troubleshooting guide: '
-                               'http://www.sublimelinter.com/en/stable/troubleshooting.html'.format(self.name, which))
+                logger.warning(
+                    "{} cannot locate '{}'\n"
+                    "Please refer to the readme of this plugin and our troubleshooting guide: "
+                    "http://www.sublimelinter.com/en/stable/troubleshooting.html"
+                    .format(self.name, which)
+                )
                 return None
 
-        cmd[0:1] = util.convert_type(path, [])
+        cmd[0:1] = util.ensure_list(path)
         return self.insert_args(cmd)
 
     def context_sensitive_executable_path(self, cmd):
@@ -863,23 +861,17 @@ class Linter(metaclass=LinterMeta):
         """
         executable = self.settings.get('executable', None)  # type: Union[None, str, List[str]]
         if executable:
-            wanted_executable, *rest = (
-                [executable] if isinstance(executable, str) else executable
-            )
-            if os.path.isabs(wanted_executable):
-                if not util.can_exec(wanted_executable):
-                    logger.error(
+            wanted_executable, *rest = util.ensure_list(executable)
+            resolved_executable = self.which(wanted_executable)
+            if not resolved_executable:
+                if os.path.isabs(wanted_executable):
+                    message = (
                         "You set 'executable' to {!r}.  "
                         "However, '{}' does not exist or is not executable. "
                         .format(executable, wanted_executable)
                     )
-                    self.notify_failure()
-                    raise PermanentError()
-
-            else:
-                resolved_executable = self.which(wanted_executable)
-                if not resolved_executable:
-                    logger.error(
+                else:
+                    message = (
                         "You set 'executable' to {!r}.  "
                         "However, 'which {}' returned nothing.\n"
                         "Try setting an absolute path to the binary. "
@@ -887,8 +879,9 @@ class Linter(metaclass=LinterMeta):
                         "http://www.sublimelinter.com/en/stable/troubleshooting.html"
                         .format(executable, wanted_executable)
                     )
-                    self.notify_failure()
-                    raise PermanentError()
+                logger.error(message)
+                self.notify_failure()
+                raise PermanentError()
 
             logger.info(
                 "{}: wanted executable is {!r}".format(self.name, executable)
@@ -1036,10 +1029,10 @@ class Linter(metaclass=LinterMeta):
         if not cls.matches_selector(view, settings):
             return False
 
-        filename = view.file_name() or '<untitled>'
-        excludes = util.convert_type(settings.get('excludes', []), [])
+        excludes = settings.get('excludes', [])  # type: Union[str, List[str]]
         if excludes:
-            for pattern in excludes:
+            filename = view.file_name() or '<untitled>'
+            for pattern in util.ensure_list(excludes):
                 if pattern.startswith('!'):
                     matched = not fnmatch(filename, pattern[1:])
                 else:

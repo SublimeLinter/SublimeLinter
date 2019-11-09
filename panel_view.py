@@ -43,6 +43,7 @@ if MYPY:
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
+NO_RESULTS_MESSAGE = "  No lint results."
 
 State = {
     'active_view': None,
@@ -549,7 +550,7 @@ def fill_panel(window):
                 to_render.extend(lines)
                 error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
         else:
-            to_render.append("  No lint results.")
+            to_render.append(NO_RESULTS_MESSAGE)
 
         # Insert empty line between files
         to_render.append("")
@@ -655,7 +656,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
 
 def update_panel_content(panel, text):
     if not text:
-        text = "No lint results."
+        text = NO_RESULTS_MESSAGE
     panel.run_command('_sublime_linter_replace_panel_content', {'text': text})
 
 
@@ -688,8 +689,8 @@ def scroll_into_view(panel, wanted_lines, errors):
     """
     if not errors or not wanted_lines:
         # For clean files, we know that we have exactly two rows: the
-        # filename itself, and the "No lint results." message.
-        match = panel.find("  No lint results.", 0, sublime.LITERAL)
+        # filename itself, followed by the "No lint results." message.
+        match = panel.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
         if match:
             r, _ = panel.rowcol(match.begin())
             scroll_to_line(panel, r - 1, animate=False)

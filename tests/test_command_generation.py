@@ -314,6 +314,38 @@ class TestViewContext(_BaseTestCase):
         context = linter_module.get_view_context(self.view)
         self.assertEqual(RESULT, context.get('folder'))
 
+    def test_ensure_file_properties_come_from_given_view_case_saved_file(self):
+        sublime.run_command("new_window")
+        window = sublime.active_window()
+        self.addCleanup(window.run_command, 'close_window')
+
+        view = window.open_file(__file__, sublime.ENCODED_POSITION)
+
+        context = linter_module.get_view_context(view)
+        self.assertEqual(context.get('file'), __file__)
+
+    def test_ensure_file_properties_come_from_given_view_case_new_file(self):
+        sublime.run_command("new_window")
+        window = sublime.active_window()
+        self.addCleanup(window.run_command, 'close_window')
+
+        view = window.new_file()
+
+        context = linter_module.get_view_context(view)
+        self.assertEqual(context.get('file'), None)
+
+    def test_ensure_file_properties_come_from_given_view_not_the_active(self):
+        sublime.run_command("new_window")
+        window = sublime.active_window()
+        self.addCleanup(window.run_command, 'close_window')
+
+        unsaved_view = window.new_file()
+        focused_view = window.open_file(__file__, sublime.ENCODED_POSITION)
+        window.focus_view(focused_view)
+
+        context = linter_module.get_view_context(unsaved_view)
+        self.assertEqual(context.get('file', None), None)
+
 
 class TestLintModeSetting(_BaseTestCase):
     def test_use_provided_mode(self):
@@ -527,6 +559,7 @@ class TestDeprecations(_BaseTestCase):
 
         window = mock(spec=sublime.Window)
         when(self.view).window().thenReturn(window)
+        when(window).extract_variables().thenReturn({})
         when(window).project_data().thenReturn({"SublimeLinter": {}})
         when(window).project_file_name().thenReturn(PROJECT_FILE_NAME)
         when(linter_module.logger).warning(...)

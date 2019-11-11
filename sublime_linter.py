@@ -164,9 +164,6 @@ global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
 buffer_filenames = {}  # type: Dict[Bid, FileName]
 buffer_syntaxes = {}  # type: Dict[Bid, str]
-lint_results_cache = defaultdict(
-    lambda: defaultdict(tuple)
-)  # type: DefaultDict[FileName, DefaultDict[LinterName, Tuple[object, ...]]]
 
 
 class BackendController(sublime_plugin.EventListener):
@@ -244,7 +241,6 @@ class BackendController(sublime_plugin.EventListener):
         for fn in to_discard:
             persist.affected_filenames_per_filename.pop(fn, None)
             persist.file_errors.pop(fn, None)
-            lint_results_cache.pop(fn, None)
 
         persist.assigned_linters.pop(bid, None)
         guard_check_linters_for_view.pop(bid, None)
@@ -438,21 +434,13 @@ def group_by_filename_and_update(
 def update_file_errors(filename, linter, errors, reason=None):
     # type: (FileName, LinterName, List[LintError], Optional[Reason]) -> None
     """Persist lint error changes and broadcast."""
-    token = tuple(e['uid'] for e in errors) + (persist.settings.change_count(),)
-    modified = lint_results_cache[filename][linter] != token
-    lint_results_cache[filename][linter] = token
-
-    payload = {
+    update_errors_store(filename, linter, errors)
+    events.broadcast(events.LINT_RESULT, {
         'filename': filename,
         'linter_name': linter,
         'errors': errors,
         'reason': reason
-    }
-    if modified:
-        update_errors_store(filename, linter, errors)
-        events.broadcast('lint_result_changed', payload)
-
-    events.broadcast(events.LINT_RESULT, payload)
+    })
 
 
 def update_errors_store(filename, linter_name, errors):

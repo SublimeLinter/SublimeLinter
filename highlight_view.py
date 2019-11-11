@@ -74,7 +74,7 @@ def plugin_unloaded():
             undraw(view)
 
 
-@events.on('lint_result_changed')
+@events.on(events.LINT_RESULT)
 def on_lint_result(filename, linter_name, **kwargs):
     views = list(all_views_into_file(filename))
     if not views:

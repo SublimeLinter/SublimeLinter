@@ -351,6 +351,18 @@ def get_raw_linter_settings(linter, view):
     )
 
 
+def _extract_window_variables(window):
+    # type: (sublime.Window) -> Dict[str, str]
+    # We explicitly want to compute all variables around the current file
+    # on our own.
+    variables = window.extract_variables()
+    for key in (
+        'file', 'file_path', 'file_name', 'file_base_name', 'file_extension'
+    ):
+        variables.pop(key, None)
+    return variables
+
+
 def get_view_context(view, additional_context=None):
     # type: (sublime.View, Optional[Mapping]) -> MutableMapping[str, str]
     # Note that we ship a enhanced version for 'folder' if you have multiple
@@ -358,7 +370,8 @@ def get_view_context(view, additional_context=None):
 
     window = view.window()
     context = ChainMap(
-        {}, window.extract_variables() if window else {}, os.environ)
+        {}, _extract_window_variables(window) if window else {}, os.environ
+    )  # type: MutableMapping[str, str]
 
     project_folder = guess_project_root_of_view(view)
     if project_folder:

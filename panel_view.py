@@ -81,7 +81,7 @@ def unzip(zipped):
     return tuple(zip(*zipped))  # type: ignore
 
 
-@events.on('lint_result_changed')
+@events.on(events.LINT_RESULT)
 def on_lint_result(filename, linter_name, reason=None, **kwargs):
     # type: (FileName, LinterName, Reason, Any) -> None
     LINT_RESULT_CACHE[linter_name].append((filename, reason))

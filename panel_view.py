@@ -474,8 +474,14 @@ def fill_panel(window):
     if vx == 0:
         return
 
+    active_view = State['active_view']
+    if active_view and active_view.window() == window:
+        active_filename = State['active_filename']
+    else:
+        active_view = None
+        active_filename = None
+
     errors_by_file = get_window_errors(window, persist.file_errors)
-    active_filename = State['active_filename']
     if active_filename and active_filename not in errors_by_file:
         errors_by_file[active_filename] = []
 
@@ -561,8 +567,7 @@ def fill_panel(window):
         'content': content
     }  # type: DrawInfo
 
-    active_view = State['active_view']
-    if active_view and active_view.window() == window:
+    if active_view:
         update_panel_selection(draw_info=draw_info, **State)
     else:
         draw(draw_info)

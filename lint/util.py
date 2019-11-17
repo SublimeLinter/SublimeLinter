@@ -219,7 +219,9 @@ def check_output(cmd, cwd=None):
         )
     except Exception as err:
         logger.warning(
-            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
+            "Executing `{}` failed\n  {}\nFailed command output: {}".format(
+                ' '.join(cmd), str(err), str(err.output)
+            )
         )
         raise
     else:

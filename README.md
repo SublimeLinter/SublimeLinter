@@ -2,6 +2,7 @@ SublimeLinter
 =============
 
 [![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter)
+[![SublimeHQ Discord](https://img.shields.io/discord/280102180189634562?label=SublimeHQ%20Discord&logo=discord)](https://discord.gg/D43Pecu)
 
 The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).

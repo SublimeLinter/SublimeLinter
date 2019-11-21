@@ -10,6 +10,39 @@ import sublime_plugin
 
 from .lint import persist, events, style, util, queue
 from .lint.const import PROTECTED_REGIONS_KEY, ERROR, WARNING
+flatten = chain.from_iterable
+
+
+MYPY = False
+if MYPY:
+    from typing import (
+        Callable, DefaultDict, Dict, List, Hashable, Optional, Protocol, Set,
+        Tuple
+    )
+    from mypy_extensions import TypedDict
+    LintError = persist.LintError
+    LinterName = persist.LinterName
+
+    RegionKey = str
+    Flags = int
+    Icon = str
+    Scope = str
+    Squiggles = Dict[RegionKey, Tuple[Scope, Flags, List[sublime.Region]]]
+    GutterIcons = Dict[RegionKey, Tuple[Scope, Icon, List[sublime.Region]]]
+    ProtectedRegions = List[sublime.Region]
+
+    State_ = TypedDict('State_', {
+        'active_view': Optional[sublime.View],
+        'current_sel': Tuple[sublime.Region, ...],
+        'idle_views': Set[sublime.ViewId],
+        'quiet_views': Set[sublime.ViewId],
+        'views': Set[sublime.ViewId]
+    })
+
+    class DemotePredicate(Protocol):
+        def __call__(self, selected_text, **error):
+            # type: (str, object) -> bool
+            ...
 
 
 UNDERLINE_FLAGS = (
@@ -42,11 +75,13 @@ STORAGE_KEY = 'SL.{}.region_keys'
 
 
 def remember_region_keys(view, keys):
+    # type: (sublime.View, Set[str]) -> None
     setting_key = STORAGE_KEY.format(view.id())
     view.settings().set(setting_key, list(keys))
 
 
 def get_regions_keys(view):
+    # type: (sublime.View) -> Set[str]
     setting_key = STORAGE_KEY.format(view.id())
     return set(view.settings().get(setting_key) or [])
 
@@ -57,7 +92,7 @@ State = {
     'idle_views': set(),
     'quiet_views': set(),
     'views': set()
-}
+}  # type: State_
 
 
 def plugin_loaded():
@@ -275,13 +310,13 @@ class IdleViewController(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
         active_view = State['active_view']
-        if view.buffer_id() == active_view.buffer_id():
+        if active_view and view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, False)
 
     @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
         active_view = State['active_view']
-        if view.buffer_id() == active_view.buffer_id():
+        if active_view and view.buffer_id() == active_view.buffer_id():
             set_idle(active_view, True)
 
     def on_selection_modified_async(self, view):
@@ -306,6 +341,7 @@ class IdleViewController(sublime_plugin.EventListener):
 
 
 def get_current_sel(view):
+    # type: (sublime.View) -> Tuple[sublime.Region, ...]
     return tuple(s for s in view.sel())
 
 
@@ -323,6 +359,7 @@ def set_idle(view, idle):
 
 
 def toggle_demoted_regions(view, show):
+    # type: (sublime.View, bool) -> None
     vid = view.id()
     if vid in State['quiet_views']:
         return
@@ -331,12 +368,11 @@ def toggle_demoted_regions(view, show):
     for key in region_keys:
         if DEMOTE_WHILE_BUSY_MARKER in key:
             _namespace, _uid, scope, flags = key.split('|')
-            flags = int(flags)
             if not show:
                 scope = get_demote_scope()
 
             regions = view.get_regions(key)
-            view.add_regions(key, regions, scope=scope, flags=flags)
+            view.add_regions(key, regions, scope=scope, flags=int(flags))
 
 
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
@@ -359,18 +395,18 @@ HIDDEN_SCOPE = ''
 
 
 def toggle_all_regions(view, show):
+    # type: (sublime.View, bool) -> None
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if '.Highlights.' not in key:
             continue
 
         _namespace, _uid, scope, flags = key.split('|')
-        flags = int(flags)
         if not show:
             scope = HIDDEN_SCOPE
 
         regions = view.get_regions(key)
-        view.add_regions(key, regions, scope=scope, flags=flags)
+        view.add_regions(key, regions, scope=scope, flags=int(flags))
 
 
 class InvalidateEditedErrorController(sublime_plugin.EventListener):
@@ -409,9 +445,13 @@ def invalidate_regions_under_cursor(view):
 
 
 def prepare_protected_regions(view, errors):
-    return list(chain.from_iterable(
-        regions for (_, _, regions) in
-        prepare_gutter_data(view, 'PROTECTED_REGIONS', errors).values()))
+    # type: (sublime.View, List[LintError]) -> ProtectedRegions
+    return list(
+        flatten(
+            regions
+            for (_, _, regions) in prepare_gutter_data(view, '_', errors).values()
+        )
+    )
 
 
 def all_views_into_buffer(buffer_id):
@@ -429,6 +469,7 @@ def all_views_into_file(filename):
 
 
 def prepare_data(errors):
+    # type: (List[LintError]) -> Tuple[List[LintError], List[LintError]]
     # We need to update `prioritiy` here (although a user will rarely change
     # this setting that often) for correctness. Generally, on views with
     # multiple linters running, we compare new lint results from the
@@ -449,7 +490,8 @@ def prepare_data(errors):
 
 
 def filter_errors(errors, group_fn):
-    grouped = defaultdict(list)
+    # type: (List[LintError], Callable[[LintError], Hashable]) -> List[LintError]
+    grouped = defaultdict(list)  # type: DefaultDict[Hashable, List[LintError]]
     for error in errors:
         grouped[group_fn(error)].append(error)
 
@@ -465,18 +507,25 @@ def filter_errors(errors, group_fn):
 
 
 def by_position(error):
+    # type: (LintError) -> Hashable
     return (error['line'], error['start'], error['end'])
 
 
 def by_line(error):
+    # type: (LintError) -> Hashable
     return error['line']
 
 
-def prepare_gutter_data(view, linter_name, errors):
+def prepare_gutter_data(
+    view,         # type: sublime.View
+    linter_name,  # type: LinterName
+    errors        # type: List[LintError]
+):
+    # type: (...) -> GutterIcons
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
-    by_id = defaultdict(list)
+    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str], List[sublime.Region]]
     for error in errors:
         icon = style.get_icon(error)
         if icon == 'none':
@@ -503,8 +552,14 @@ def prepare_gutter_data(view, linter_name, errors):
     return by_region_id
 
 
-def prepare_highlights_data(view, linter_name, errors, demote_predicate):
-    by_id = defaultdict(list)
+def prepare_highlights_data(
+    view,             # type: sublime.View
+    linter_name,      # type: LinterName
+    errors,           # type: List[LintError]
+    demote_predicate  # type: DemotePredicate
+):
+    # type: (...) -> Squiggles
+    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool, bool], List[sublime.Region]]
     for error in errors:
         scope = style.get_value('scope', error)
         mark_style = style.get_value('mark_style', error, 'none')
@@ -549,8 +604,16 @@ def undraw(view):
     remember_region_keys(view, set())
 
 
-def draw(view, linter_name, highlight_regions, gutter_regions,
-         protected_regions, idle, quiet):
+def draw(
+    view,               # type: sublime.View
+    linter_name,        # type: LinterName
+    highlight_regions,  # type: Squiggles
+    gutter_regions,     # type: GutterIcons
+    protected_regions,  # type: ProtectedRegions
+    idle,               # type: bool
+    quiet               # type: bool
+):
+    # type: (...) -> None
     """
     Draw code and gutter marks in the given view.
 
@@ -599,25 +662,29 @@ def draw(view, linter_name, highlight_regions, gutter_regions,
 # --------------- ZOMBIE PROTECTION ---------------- #
 #    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
-EVERSTORE = defaultdict(set)
+EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.BufferId, Set[RegionKey]]
 
 
 def add_region_keys_to_everstore(view, keys):
+    # type: (sublime.View, Set[RegionKey]) -> None
     bid = view.buffer_id()
     EVERSTORE[bid] |= keys
 
 
 def restore_from_everstore(view):
+    # type: (sublime.View) -> None
     bid = view.buffer_id()
     remember_region_keys(view, EVERSTORE[bid])
 
 
 class ZombieController(sublime_plugin.EventListener):
     def on_text_command(self, view, cmd, args):
+        # type: (sublime.View, str, Dict) -> None
         if cmd in ['undo', 'redo_or_repeat']:
             restore_from_everstore(view)
 
     def on_pre_close(self, view):
+        # type: (sublime.View) -> None
         bid = view.buffer_id()
         views_into_buffer = list(all_views_into_buffer(bid))
 

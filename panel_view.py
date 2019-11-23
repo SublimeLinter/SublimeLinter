@@ -607,14 +607,16 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
             error,
             (
                 abs(error['line'] - row),
+                error['region'].contains(cursor),
                 min(
                     abs(error['region'].begin() - cursor),
                     abs(error['region'].end() - cursor)
-                )
+                ),
+                error['region'].end() - error['region'].begin()
             )
         )
         for error in all_errors
-    )  # type: Iterable[Tuple[LintError, Tuple[int, int]]]
+    )  # type: Iterable[Tuple[LintError, Tuple[int, int, int, int]]]
 
     SNAP = (3, )  # [lines]
     nearest_error = None
@@ -634,7 +636,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
         panel_lines = [
             error['panel_line'][0]
             for error in all_errors
-            if nearest_error['region'].contains(error['region'])
+            if error['region'].contains(nearest_error['region'])
         ]
         draw_info.update({'nearby_lines': panel_lines})
 

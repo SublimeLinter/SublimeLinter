@@ -245,53 +245,41 @@ def extract_uid_from_key(key):
     return uid
 
 
-def get_demote_predicate():
-    setting = persist.settings.get('highlights.demote_while_editing')
-    if setting == 'none':
-        return demote_nothing
-
-    if setting == 'all':
-        return demote_all
-
-    if setting == 'ws_only':
-        return demote_ws_only
-
-    if setting in ('some_ws', 'ws_regions'):  # 'ws_regions' is deprecated
-        return demote_some_ws
-
-    if setting == 'multilines':
-        return demote_multilines
-
-    if setting == 'warnings':
-        return demote_warnings
-
-
 def get_demote_scope():
     return persist.settings.get('highlights.demote_scope')
 
 
-def demote_nothing(*args, **kwargs):
-    return False
+def get_demote_predicate():
+    # type: () -> DemotePredicate
+    setting = persist.settings.get('highlights.demote_while_editing')
+    return getattr(DemotePredicates, setting, DemotePredicates.none)
 
 
-def demote_all(*args, **kwargs):
-    return True
+class DemotePredicates:
+    @staticmethod
+    def none(*args, **kwargs):
+        return False
 
+    @staticmethod
+    def all(*args, **kwargs):
+        return True
 
-def demote_ws_only(selected_text, **kwargs):
-    return bool(WS_ONLY.search(selected_text))
+    @staticmethod
+    def ws_only(selected_text, **kwargs):
+        return bool(WS_ONLY.search(selected_text))
 
+    @staticmethod
+    def some_ws(selected_text, **kwargs):
+        return bool(SOME_WS.search(selected_text))
+    ws_regions = some_ws
 
-def demote_some_ws(selected_text, **kwargs):
-    return bool(SOME_WS.search(selected_text))
+    @staticmethod
+    def multilines(selected_text, **kwargs):
+        return bool(MULTILINES.search(selected_text))
 
-
-def demote_multilines(selected_text, **kwargs):
-    return bool(MULTILINES.search(selected_text))
-
-
-def demote_warnings(selected_text, error_type, **kwargs):
-    return error_type == WARNING
+    @staticmethod
+    def warnings(selected_text, error_type, **kwargs):
+        return error_type == WARNING
 
 
 class IdleViewController(sublime_plugin.EventListener):

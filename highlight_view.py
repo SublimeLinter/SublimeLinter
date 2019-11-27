@@ -134,6 +134,7 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
 
 def highlight_linter_errors(views, filename, linter_name):
     errors = persist.file_errors[filename]
+    update_error_priorities_inline(errors)
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 
     view = views[0]  # to calculate regions we can take any of the views
@@ -179,6 +180,19 @@ def highlight_linter_errors(views, filename, linter_name):
             idle=(vid in State['idle_views']),
             quiet=(vid in State['quiet_views'])
         )
+
+
+def update_error_priorities_inline(errors):
+    # type: (List[LintError]) -> None
+    # We need to update `prioritiy` here (although a user will rarely change
+    # this setting that often) for correctness. Generally, on views with
+    # multiple linters running, we compare new lint results from the
+    # 'fast' linters with old results from the 'slower' linters. The below
+    # `filter_errors` produces wrong results with outdated priorities.
+    #
+    # ATT: inline, so this change propagates throughout the system
+    for error in errors:
+        error['priority'] = style.get_value('priority', error, 0)
 
 
 class ViewListCleanupController(sublime_plugin.EventListener):
@@ -457,17 +471,6 @@ def all_views_into_file(filename):
 
 
 def prepare_data(errors):
-    # type: (List[LintError]) -> Tuple[List[LintError], List[LintError]]
-    # We need to update `prioritiy` here (although a user will rarely change
-    # this setting that often) for correctness. Generally, on views with
-    # multiple linters running, we compare new lint results from the
-    # 'fast' linters with old results from the 'slower' linters. The below
-    # `filter_errors` produces wrong results with outdated priorities.
-    #
-    # ATT: inline, so this change propagates throughout the system
-    for error in errors:
-        error['priority'] = style.get_value('priority', error, 0)
-
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
     # and we can only 'underline' a word once.

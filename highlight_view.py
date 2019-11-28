@@ -501,20 +501,14 @@ def maybe_update_error_store(view):
 
         line, start = view.rowcol(region.begin())
         endLine, end = view.rowcol(region.end())
-        if (
-            line != error['line']
-            or start != error['start']
-            or (endLine != error['endLine'] if 'endLine' in error else False)
-            or end != error['end']
-        ):
-            error.update({
-                'region': region,
-                'line': line,
-                'start': start,
-                'endLine': endLine,
-                'end': end
-            })
-            changed = True
+        error.update({
+            'region': region,
+            'line': line,
+            'start': start,
+            'endLine': endLine,
+            'end': end
+        })
+        changed = True
 
     if changed:
         events.broadcast('updated_error_positions', {'filename': filename})

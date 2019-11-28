@@ -475,11 +475,12 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
         if active_view and view.buffer_id() == active_view.buffer_id():
             view = active_view
 
-        update_error_regions(view)
+        maybe_update_error_store(view)
         revalidate_regions(view)
 
 
-def update_error_regions(view):
+def maybe_update_error_store(view):
+    # type: (sublime.View) -> None
     filename = util.get_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:

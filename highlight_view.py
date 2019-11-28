@@ -476,7 +476,7 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
             view = active_view
 
         update_error_regions(view)
-        invalidate_regions_under_cursor(view)
+        revalidate_regions(view)
 
 
 def update_error_regions(view):
@@ -519,31 +519,32 @@ def update_error_regions(view):
         events.broadcast('updated_error_positions', {'filename': filename})
 
 
-def invalidate_regions_under_cursor(view):
+def revalidate_regions(view):
+    # type: (sublime.View) -> None
     vid = view.id()
     if vid in State['quiet_views']:
         return
 
-    selections = view.sel()
+    selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if '.Highlights.' in key:
-            if any(
-                region.contains(selection)
-                for region in view.get_regions(key)
-                for selection in selections
-            ):
+            region = head(view.get_regions(key))
+            if region is None:
+                continue
+
+            if any(region.contains(s) for s in selections):
                 view.erase_regions(key)
 
         elif '.Gutter.' in key:
             regions = view.get_regions(key)
-            filtered_regions = [
-                region for region in regions
-                if not region.empty()]
+            filtered_regions = list(filter(None, regions))
             if len(filtered_regions) != len(regions):
                 _ns, scope, icon = key.split('|')
-                view.add_regions(key, filtered_regions, scope=scope, icon=icon,
-                                 flags=sublime.HIDDEN)
+                view.add_regions(
+                    key, filtered_regions, scope=scope, icon=icon,
+                    flags=sublime.HIDDEN
+                )
 
 
 class IdleViewController(sublime_plugin.EventListener):

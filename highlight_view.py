@@ -47,8 +47,7 @@ if MYPY:
 
 UNDERLINE_FLAGS = (
     sublime.DRAW_NO_FILL |
-    sublime.DRAW_NO_OUTLINE |
-    sublime.DRAW_EMPTY_AS_OVERWRITE
+    sublime.DRAW_NO_OUTLINE
 )
 
 MARK_STYLES = {

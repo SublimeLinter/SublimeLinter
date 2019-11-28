@@ -465,11 +465,18 @@ class ViewListCleanupController(sublime_plugin.EventListener):
         State['views'].discard(vid)
 
 
-class UpdateErrorRegions(sublime_plugin.EventListener):
+class RevisitErrorRegions(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
     def on_modified_async(self, view):
-        if util.is_lintable(view):
-            update_error_regions(view)
+        if not util.is_lintable(view):
+            return
+
+        active_view = State['active_view']
+        if active_view and view.buffer_id() == active_view.buffer_id():
+            view = active_view
+
+        update_error_regions(view)
+        invalidate_regions_under_cursor(view)
 
 
 def update_error_regions(view):
@@ -510,14 +517,6 @@ def update_error_regions(view):
 
     if changed:
         events.broadcast('updated_error_positions', {'filename': filename})
-
-
-class InvalidateEditedErrorController(sublime_plugin.EventListener):
-    @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
-        active_view = State['active_view']
-        if view.buffer_id() == active_view.buffer_id():
-            invalidate_regions_under_cursor(active_view)
 
 
 def invalidate_regions_under_cursor(view):

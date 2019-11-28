@@ -71,20 +71,6 @@ MULTILINES = re.compile('\n')
 DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
 HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
-STORAGE_KEY = 'SL.{}.region_keys'
-
-
-def remember_region_keys(view, keys):
-    # type: (sublime.View, Set[str]) -> None
-    setting_key = STORAGE_KEY.format(view.id())
-    view.settings().set(setting_key, list(keys))
-
-
-def get_regions_keys(view):
-    # type: (sublime.View) -> Set[str]
-    setting_key = STORAGE_KEY.format(view.id())
-    return set(view.settings().get(setting_key) or [])
-
 
 State = {
     'active_view': None,
@@ -195,281 +181,6 @@ def update_error_priorities_inline(errors):
         error['priority'] = style.get_value('priority', error, 0)
 
 
-class ViewListCleanupController(sublime_plugin.EventListener):
-    def on_pre_close(self, view):
-        vid = view.id()
-        State['idle_views'].discard(vid)
-        State['quiet_views'].discard(vid)
-        State['views'].discard(vid)
-
-
-class UpdateErrorRegions(sublime_plugin.EventListener):
-    @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
-        if util.is_lintable(view):
-            update_error_regions(view)
-
-
-def update_error_regions(view):
-    filename = util.get_filename(view)
-    errors = persist.file_errors.get(filename)
-    if not errors:
-        return
-
-    uid_region_map = {
-        extract_uid_from_key(key): head(view.get_regions(key))
-        for key in get_regions_keys(view)
-        if '.Highlights.' in key
-    }
-
-    changed = False
-    for error in errors:
-        uid = error['uid']
-        region = uid_region_map.get(uid, None)
-        if region is None or region == error['region']:
-            continue
-
-        line, start = view.rowcol(region.begin())
-        endLine, end = view.rowcol(region.end())
-        if (
-            line != error['line']
-            or start != error['start']
-            or (endLine != error['endLine'] if 'endLine' in error else False)
-            or end != error['end']
-        ):
-            error.update({
-                'region': region,
-                'line': line,
-                'start': start,
-                'endLine': endLine,
-                'end': end
-            })
-            changed = True
-
-    if changed:
-        events.broadcast('updated_error_positions', {'filename': filename})
-
-
-def head(iterable):
-    return next(iter(iterable), None)
-
-
-def extract_uid_from_key(key):
-    _namespace, uid, _scope, _flags = key.split('|')
-    return uid
-
-
-def get_demote_scope():
-    return persist.settings.get('highlights.demote_scope')
-
-
-def get_demote_predicate():
-    # type: () -> DemotePredicate
-    setting = persist.settings.get('highlights.demote_while_editing')
-    return getattr(DemotePredicates, setting, DemotePredicates.none)
-
-
-class DemotePredicates:
-    @staticmethod
-    def none(*args, **kwargs):
-        return False
-
-    @staticmethod
-    def all(*args, **kwargs):
-        return True
-
-    @staticmethod
-    def ws_only(selected_text, **kwargs):
-        return bool(WS_ONLY.search(selected_text))
-
-    @staticmethod
-    def some_ws(selected_text, **kwargs):
-        return bool(SOME_WS.search(selected_text))
-    ws_regions = some_ws
-
-    @staticmethod
-    def multilines(selected_text, **kwargs):
-        return bool(MULTILINES.search(selected_text))
-
-    @staticmethod
-    def warnings(selected_text, error_type, **kwargs):
-        return error_type == WARNING
-
-
-class IdleViewController(sublime_plugin.EventListener):
-    def on_activated_async(self, active_view):
-        previous_view = State['active_view']
-        State.update({
-            'active_view': active_view,
-            'current_sel': get_current_sel(active_view)
-        })
-
-        if previous_view and previous_view.id() != active_view.id():
-            set_idle(previous_view, True)
-
-        set_idle(active_view, True)
-
-    @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
-        active_view = State['active_view']
-        if active_view and view.buffer_id() == active_view.buffer_id():
-            set_idle(active_view, False)
-
-    @util.distinct_until_buffer_changed
-    def on_post_save_async(self, view):
-        active_view = State['active_view']
-        if active_view and view.buffer_id() == active_view.buffer_id():
-            set_idle(active_view, True)
-
-    def on_selection_modified_async(self, view):
-        active_view = State['active_view']
-        # Do not race between `plugin_loaded` and this event handler
-        if active_view is None:
-            return
-
-        if view.buffer_id() != active_view.buffer_id():
-            return
-
-        current_sel = get_current_sel(active_view)
-        if current_sel != State['current_sel']:
-            State.update({'current_sel': current_sel})
-
-            time_to_idle = persist.settings.get('highlights.time_to_idle')
-            queue.debounce(
-                partial(set_idle, active_view, True),
-                delay=time_to_idle,
-                key='highlights.{}'.format(active_view.id())
-            )
-
-
-def get_current_sel(view):
-    # type: (sublime.View) -> Tuple[sublime.Region, ...]
-    return tuple(s for s in view.sel())
-
-
-def set_idle(view, idle):
-    vid = view.id()
-
-    current_idle = vid in State['idle_views']
-    if idle != current_idle:
-        if idle:
-            State['idle_views'].add(vid)
-        else:
-            State['idle_views'].discard(vid)
-
-        toggle_demoted_regions(view, idle)
-
-
-def toggle_demoted_regions(view, show):
-    # type: (sublime.View, bool) -> None
-    vid = view.id()
-    if vid in State['quiet_views']:
-        return
-
-    region_keys = get_regions_keys(view)
-    for key in region_keys:
-        if DEMOTE_WHILE_BUSY_MARKER in key:
-            _namespace, _uid, scope, flags = key.split('|')
-            if not show:
-                scope = get_demote_scope()
-
-            regions = view.get_regions(key)
-            view.add_regions(key, regions, scope=scope, flags=int(flags))
-
-
-class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
-    def run(self):
-        view = self.window.active_view()
-        if not view:
-            return
-
-        vid = view.id()
-        hidden = vid in State['quiet_views']
-        if hidden:
-            State['quiet_views'].discard(vid)
-        else:
-            State['quiet_views'].add(vid)
-
-        toggle_all_regions(view, show=hidden)
-
-
-HIDDEN_SCOPE = ''
-
-
-def toggle_all_regions(view, show):
-    # type: (sublime.View, bool) -> None
-    region_keys = get_regions_keys(view)
-    for key in region_keys:
-        if '.Highlights.' not in key:
-            continue
-
-        _namespace, _uid, scope, flags = key.split('|')
-        if not show:
-            scope = HIDDEN_SCOPE
-
-        regions = view.get_regions(key)
-        view.add_regions(key, regions, scope=scope, flags=int(flags))
-
-
-class InvalidateEditedErrorController(sublime_plugin.EventListener):
-    @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
-        active_view = State['active_view']
-        if view.buffer_id() == active_view.buffer_id():
-            invalidate_regions_under_cursor(active_view)
-
-
-def invalidate_regions_under_cursor(view):
-    vid = view.id()
-    if vid in State['quiet_views']:
-        return
-
-    selections = view.sel()
-    region_keys = get_regions_keys(view)
-    for key in region_keys:
-        if '.Highlights.' in key:
-            if any(
-                region.contains(selection)
-                for region in view.get_regions(key)
-                for selection in selections
-            ):
-                view.erase_regions(key)
-
-        elif '.Gutter.' in key:
-            regions = view.get_regions(key)
-            filtered_regions = [
-                region for region in regions
-                if not region.empty()]
-            if len(filtered_regions) != len(regions):
-                _ns, scope, icon = key.split('|')
-                view.add_regions(key, filtered_regions, scope=scope, icon=icon,
-                                 flags=sublime.HIDDEN)
-
-
-def prepare_protected_regions(view, errors):
-    # type: (sublime.View, List[LintError]) -> ProtectedRegions
-    return list(
-        flatten(
-            regions
-            for (_, _, regions) in prepare_gutter_data(view, '_', errors).values()
-        )
-    )
-
-
-def all_views_into_buffer(buffer_id):
-    for window in sublime.windows():
-        for view in window.views():
-            if view.buffer_id() == buffer_id:
-                yield view
-
-
-def all_views_into_file(filename):
-    for window in sublime.windows():
-        for view in window.views():
-            if util.get_filename(view) == filename:
-                yield view
-
-
 def prepare_data(errors):
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
@@ -505,6 +216,16 @@ def by_position(error):
 def by_line(error):
     # type: (LintError) -> Hashable
     return error['line']
+
+
+def prepare_protected_regions(view, errors):
+    # type: (sublime.View, List[LintError]) -> ProtectedRegions
+    return list(
+        flatten(
+            regions
+            for (_, _, regions) in prepare_gutter_data(view, '_', errors).values()
+        )
+    )
 
 
 def prepare_gutter_data(
@@ -619,6 +340,10 @@ def draw(
 
     new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
 
+    # remove unused regions
+    for key in current_linter_keys - new_linter_keys:
+        view.erase_regions(key)
+
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
     if protected_regions:
@@ -627,10 +352,6 @@ def draw(
             protected_regions
         )
         new_linter_keys.add(PROTECTED_REGIONS_KEY)
-
-    # remove unused regions
-    for key in current_linter_keys - new_linter_keys:
-        view.erase_regions(key)
 
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
@@ -650,10 +371,60 @@ def draw(
     add_region_keys_to_everstore(view, new_linter_keys)
 
 
+def get_demote_scope():
+    return persist.settings.get('highlights.demote_scope')
+
+
+def get_demote_predicate():
+    # type: () -> DemotePredicate
+    setting = persist.settings.get('highlights.demote_while_editing')
+    return getattr(DemotePredicates, setting, DemotePredicates.none)
+
+
+class DemotePredicates:
+    @staticmethod
+    def none(*args, **kwargs):
+        return False
+
+    @staticmethod
+    def all(*args, **kwargs):
+        return True
+
+    @staticmethod
+    def ws_only(selected_text, **kwargs):
+        return bool(WS_ONLY.search(selected_text))
+
+    @staticmethod
+    def some_ws(selected_text, **kwargs):
+        return bool(SOME_WS.search(selected_text))
+    ws_regions = some_ws
+
+    @staticmethod
+    def multilines(selected_text, **kwargs):
+        return bool(MULTILINES.search(selected_text))
+
+    @staticmethod
+    def warnings(selected_text, error_type, **kwargs):
+        return error_type == WARNING
+
+
 # --------------- ZOMBIE PROTECTION ---------------- #
 #    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
 EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.BufferId, Set[RegionKey]]
+STORAGE_KEY = 'SL.{}.region_keys'
+
+
+def get_regions_keys(view):
+    # type: (sublime.View) -> Set[str]
+    setting_key = STORAGE_KEY.format(view.id())
+    return set(view.settings().get(setting_key) or [])
+
+
+def remember_region_keys(view, keys):
+    # type: (sublime.View, Set[str]) -> None
+    setting_key = STORAGE_KEY.format(view.id())
+    view.settings().set(setting_key, list(keys))
 
 
 def add_region_keys_to_everstore(view, keys):
@@ -681,6 +452,240 @@ class ZombieController(sublime_plugin.EventListener):
 
         if len(views_into_buffer) <= 1:
             EVERSTORE.pop(bid, None)
+
+
+# ----------------------------------------------------- #
+
+
+class ViewListCleanupController(sublime_plugin.EventListener):
+    def on_pre_close(self, view):
+        vid = view.id()
+        State['idle_views'].discard(vid)
+        State['quiet_views'].discard(vid)
+        State['views'].discard(vid)
+
+
+class UpdateErrorRegions(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
+    def on_modified_async(self, view):
+        if util.is_lintable(view):
+            update_error_regions(view)
+
+
+def update_error_regions(view):
+    filename = util.get_filename(view)
+    errors = persist.file_errors.get(filename)
+    if not errors:
+        return
+
+    uid_region_map = {
+        extract_uid_from_key(key): head(view.get_regions(key))
+        for key in get_regions_keys(view)
+        if '.Highlights.' in key
+    }
+
+    changed = False
+    for error in errors:
+        uid = error['uid']
+        region = uid_region_map.get(uid, None)
+        if region is None or region == error['region']:
+            continue
+
+        line, start = view.rowcol(region.begin())
+        endLine, end = view.rowcol(region.end())
+        if (
+            line != error['line']
+            or start != error['start']
+            or (endLine != error['endLine'] if 'endLine' in error else False)
+            or end != error['end']
+        ):
+            error.update({
+                'region': region,
+                'line': line,
+                'start': start,
+                'endLine': endLine,
+                'end': end
+            })
+            changed = True
+
+    if changed:
+        events.broadcast('updated_error_positions', {'filename': filename})
+
+
+class InvalidateEditedErrorController(sublime_plugin.EventListener):
+    @util.distinct_until_buffer_changed
+    def on_modified_async(self, view):
+        active_view = State['active_view']
+        if view.buffer_id() == active_view.buffer_id():
+            invalidate_regions_under_cursor(active_view)
+
+
+def invalidate_regions_under_cursor(view):
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
+    selections = view.sel()
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if '.Highlights.' in key:
+            if any(
+                region.contains(selection)
+                for region in view.get_regions(key)
+                for selection in selections
+            ):
+                view.erase_regions(key)
+
+        elif '.Gutter.' in key:
+            regions = view.get_regions(key)
+            filtered_regions = [
+                region for region in regions
+                if not region.empty()]
+            if len(filtered_regions) != len(regions):
+                _ns, scope, icon = key.split('|')
+                view.add_regions(key, filtered_regions, scope=scope, icon=icon,
+                                 flags=sublime.HIDDEN)
+
+
+class IdleViewController(sublime_plugin.EventListener):
+    def on_activated_async(self, active_view):
+        previous_view = State['active_view']
+        State.update({
+            'active_view': active_view,
+            'current_sel': get_current_sel(active_view)
+        })
+
+        if previous_view and previous_view.id() != active_view.id():
+            set_idle(previous_view, True)
+
+        set_idle(active_view, True)
+
+    @util.distinct_until_buffer_changed
+    def on_modified_async(self, view):
+        active_view = State['active_view']
+        if active_view and view.buffer_id() == active_view.buffer_id():
+            set_idle(active_view, False)
+
+    @util.distinct_until_buffer_changed
+    def on_post_save_async(self, view):
+        active_view = State['active_view']
+        if active_view and view.buffer_id() == active_view.buffer_id():
+            set_idle(active_view, True)
+
+    def on_selection_modified_async(self, view):
+        active_view = State['active_view']
+        # Do not race between `plugin_loaded` and this event handler
+        if active_view is None:
+            return
+
+        if view.buffer_id() != active_view.buffer_id():
+            return
+
+        current_sel = get_current_sel(active_view)
+        if current_sel != State['current_sel']:
+            State.update({'current_sel': current_sel})
+
+            time_to_idle = persist.settings.get('highlights.time_to_idle')
+            queue.debounce(
+                partial(set_idle, active_view, True),
+                delay=time_to_idle,
+                key='highlights.{}'.format(active_view.id())
+            )
+
+
+def set_idle(view, idle):
+    vid = view.id()
+
+    current_idle = vid in State['idle_views']
+    if idle != current_idle:
+        if idle:
+            State['idle_views'].add(vid)
+        else:
+            State['idle_views'].discard(vid)
+
+        toggle_demoted_regions(view, idle)
+
+
+def toggle_demoted_regions(view, show):
+    # type: (sublime.View, bool) -> None
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if DEMOTE_WHILE_BUSY_MARKER in key:
+            _namespace, _uid, scope, flags = key.split('|')
+            if not show:
+                scope = get_demote_scope()
+
+            regions = view.get_regions(key)
+            view.add_regions(key, regions, scope=scope, flags=int(flags))
+
+
+class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
+    def run(self):
+        view = self.window.active_view()
+        if not view:
+            return
+
+        vid = view.id()
+        hidden = vid in State['quiet_views']
+        if hidden:
+            State['quiet_views'].discard(vid)
+        else:
+            State['quiet_views'].add(vid)
+
+        toggle_all_regions(view, show=hidden)
+
+
+HIDDEN_SCOPE = ''
+
+
+def toggle_all_regions(view, show):
+    # type: (sublime.View, bool) -> None
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if '.Highlights.' not in key:
+            continue
+
+        _namespace, _uid, scope, flags = key.split('|')
+        if not show:
+            scope = HIDDEN_SCOPE
+
+        regions = view.get_regions(key)
+        view.add_regions(key, regions, scope=scope, flags=int(flags))
+
+
+# --------------- UTIL FUNCTIONS ------------------- #
+
+
+def get_current_sel(view):
+    # type: (sublime.View) -> Tuple[sublime.Region, ...]
+    return tuple(s for s in view.sel())
+
+
+def head(iterable):
+    return next(iter(iterable), None)
+
+
+def extract_uid_from_key(key):
+    _namespace, uid, _scope, _flags = key.split('|')
+    return uid
+
+
+def all_views_into_buffer(buffer_id):
+    for window in sublime.windows():
+        for view in window.views():
+            if view.buffer_id() == buffer_id:
+                yield view
+
+
+def all_views_into_file(filename):
+    for window in sublime.windows():
+        for view in window.views():
+            if util.get_filename(view) == filename:
+                yield view
 
 
 # --------------- TOOLTIP HANDLING ----------------- #

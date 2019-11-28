@@ -416,13 +416,13 @@ STORAGE_KEY = 'SL.{}.region_keys'
 
 
 def get_regions_keys(view):
-    # type: (sublime.View) -> Set[str]
+    # type: (sublime.View) -> Set[RegionKey]
     setting_key = STORAGE_KEY.format(view.id())
     return set(view.settings().get(setting_key) or [])
 
 
 def remember_region_keys(view, keys):
-    # type: (sublime.View, Set[str]) -> None
+    # type: (sublime.View, Set[RegionKey]) -> None
     setting_key = STORAGE_KEY.format(view.id())
     view.settings().set(setting_key, list(keys))
 

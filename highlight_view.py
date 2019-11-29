@@ -466,7 +466,7 @@ class ViewListCleanupController(sublime_plugin.EventListener):
 
 class RevisitErrorRegions(sublime_plugin.EventListener):
     @util.distinct_until_buffer_changed
-    def on_modified_async(self, view):
+    def on_modified(self, view):
         if not util.is_lintable(view):
             return
 
@@ -474,8 +474,10 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
         if active_view and view.buffer_id() == active_view.buffer_id():
             view = active_view
 
-        maybe_update_error_store(view)
         revalidate_regions(view)
+        # (Maybe) update the error store on the worker thread which
+        # forms a queue so we don't need locks.
+        sublime.set_timeout_async(lambda: maybe_update_error_store(view))
 
 
 def maybe_update_error_store(view):
@@ -492,14 +494,25 @@ def maybe_update_error_store(view):
     }
 
     changed = False
+    new_errors = []
     for error in errors:
         uid = error['uid']
         region = uid_region_map.get(uid, None)
         if region is None or region == error['region']:
+            new_errors.append(error)
             continue
 
+        changed = True
         line, start = view.rowcol(region.begin())
+        if region.empty() and start == 0:
+            # Dangle! Sublime has invalidated our region, it has
+            # zero length, and moved to a different line at col 0.
+            # It is useless now so we remove the error by not
+            # copying it.
+            continue
+
         endLine, end = view.rowcol(region.end())
+        error = error.copy()
         error.update({
             'region': region,
             'line': line,
@@ -507,9 +520,10 @@ def maybe_update_error_store(view):
             'endLine': endLine,
             'end': end
         })
-        changed = True
+        new_errors.append(error)
 
     if changed:
+        persist.file_errors[filename] = new_errors
         events.broadcast('updated_error_positions', {'filename': filename})
 
 

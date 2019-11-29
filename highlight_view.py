@@ -4,6 +4,7 @@ from itertools import chain
 from functools import partial
 import re
 import textwrap
+import threading
 
 import sublime
 import sublime_plugin
@@ -16,8 +17,8 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, Iterable, List, Hashable, Optional,
-        Protocol, Set, Tuple, TypeVar
+        Callable, DefaultDict, Dict, FrozenSet, Iterable, List, Hashable,
+        Optional, Protocol, Set, Tuple, TypeVar
     )
     from mypy_extensions import TypedDict
     T = TypeVar('T')
@@ -312,8 +313,7 @@ def prepare_highlights_data(
 
 def undraw(view):
     for key in get_regions_keys(view):
-        view.erase_regions(key)
-    remember_region_keys(view, set())
+        erase_view_region(view, key)
 
 
 def draw(
@@ -334,24 +334,21 @@ def draw(
 
     """
     current_region_keys = get_regions_keys(view)
-    current_linter_keys = {key for key in current_region_keys
-                           if key.startswith('SL.{}.'.format(linter_name))}
-    other_region_keys = current_region_keys - current_linter_keys
-
+    current_linter_keys = {
+        key
+        for key in current_region_keys
+        if key.startswith('SL.{}.'.format(linter_name))
+    }
     new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
 
     # remove unused regions
     for key in current_linter_keys - new_linter_keys:
-        view.erase_regions(key)
+        erase_view_region(view, key)
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
     if protected_regions:
-        view.add_regions(
-            PROTECTED_REGIONS_KEY,
-            protected_regions
-        )
-        new_linter_keys.add(PROTECTED_REGIONS_KEY)
+        draw_view_region(view, PROTECTED_REGIONS_KEY, protected_regions)
 
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
@@ -359,15 +356,11 @@ def draw(
             scope = HIDDEN_SCOPE
         elif not idle and DEMOTE_WHILE_BUSY_MARKER in region_id:
             scope = get_demote_scope()
-        view.add_regions(region_id, regions, scope=scope, flags=flags)
+        draw_view_region(view, region_id, regions, scope=scope, flags=flags)
 
     for region_id, (scope, icon, regions) in gutter_regions.items():
-        view.add_regions(region_id, regions, scope=scope, icon=icon,
+        draw_view_region(view, region_id, regions, scope=scope, icon=icon,
                          flags=sublime.HIDDEN)
-
-    # persisting region keys for later clearance
-    new_region_keys = other_region_keys | new_linter_keys
-    remember_region_keys(view, new_region_keys)
 
 
 def get_demote_scope():
@@ -410,44 +403,45 @@ class DemotePredicates:
 # --------------- ZOMBIE PROTECTION ---------------- #
 #    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
+StorageLock = threading.Lock()
 # Just trying and catching `NameError` reuses the previous value or
 # "version" of this variable when hot-reloading
 try:
     CURRENTSTORE
 except NameError:
-    CURRENTSTORE = {}  # type: Dict[sublime.ViewId, Set[RegionKey]]
+    CURRENTSTORE = defaultdict(set)  # type: Dict[sublime.ViewId, Set[RegionKey]]
 try:
     EVERSTORE
 except NameError:
-    EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.BufferId, Set[RegionKey]]
+    EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.ViewId, Set[RegionKey]]
+
+
+def draw_view_region(view, key, regions, scope='', icon='', flags=0):
+    # type: (sublime.View, RegionKey, List[sublime.Region], str, str, int) -> None
+    with StorageLock:
+        view.add_regions(key, regions, scope, icon, flags)
+        vid = view.id()
+        CURRENTSTORE[vid].add(key)
+        EVERSTORE[vid].add(key)
+
+
+def erase_view_region(view, key):
+    # type: (sublime.View, RegionKey) -> None
+    with StorageLock:
+        view.erase_regions(key)
+        CURRENTSTORE[view.id()].discard(key)
 
 
 def get_regions_keys(view):
-    # type: (sublime.View) -> Set[RegionKey]
-    return CURRENTSTORE.get(view.id(), set())
-
-
-def remember_region_keys(view, keys):
-    # type: (sublime.View, Set[RegionKey]) -> None
-    _remember_region_keys(view, keys)
-    _add_region_keys_to_everstore(view, keys)
-
-
-def _remember_region_keys(view, keys):
-    # type: (sublime.View, Set[RegionKey]) -> None
-    CURRENTSTORE[view.id()] = keys
-
-
-def _add_region_keys_to_everstore(view, keys):
-    # type: (sublime.View, Set[RegionKey]) -> None
-    bid = view.buffer_id()
-    EVERSTORE[bid] |= keys
+    # type: (sublime.View) -> FrozenSet[RegionKey]
+    return frozenset(CURRENTSTORE.get(view.id(), set()))
 
 
 def restore_from_everstore(view):
     # type: (sublime.View) -> None
-    bid = view.buffer_id()
-    _remember_region_keys(view, EVERSTORE[bid])
+    with StorageLock:
+        vid = view.id()
+        CURRENTSTORE[vid] = EVERSTORE[vid].copy()
 
 
 class ZombieController(sublime_plugin.EventListener):
@@ -456,13 +450,9 @@ class ZombieController(sublime_plugin.EventListener):
         if cmd in ['undo', 'redo_or_repeat']:
             restore_from_everstore(view)
 
-    def on_pre_close(self, view):
+    def on_close(self, view):
         # type: (sublime.View) -> None
-        bid = view.buffer_id()
-        views_into_buffer = list(all_views_into_buffer(bid))
-
-        if len(views_into_buffer) <= 1:
-            EVERSTORE.pop(bid, None)
+        sublime.set_timeout_async(lambda: EVERSTORE.pop(view.id(), None))
 
 
 # ----------------------------------------------------- #
@@ -508,7 +498,6 @@ def maybe_update_error_store(view):
 
     changed = False
     new_errors = []
-    discarded_keys = set()
     for error in errors:
         uid = error['uid']
         key = uid_key_map.get(uid, None)
@@ -524,8 +513,7 @@ def maybe_update_error_store(view):
             # zero length, and moved to a different line at col 0.
             # It is useless now so we remove the error by not
             # copying it.
-            view.erase_regions(key)  # type: ignore
-            discarded_keys.add(key)
+            erase_view_region(view, key)  # type: ignore
             continue
 
         endLine, end = view.rowcol(region.end())
@@ -542,9 +530,6 @@ def maybe_update_error_store(view):
     if changed:
         persist.file_errors[filename] = new_errors
         events.broadcast('updated_error_positions', {'filename': filename})
-
-    if discarded_keys:
-        remember_region_keys(view, region_keys - discarded_keys)
 
 
 def revalidate_regions(view):
@@ -565,7 +550,6 @@ def revalidate_regions(view):
                 continue
 
             if any(region.contains(s) for s in selections):
-                view.erase_regions(key)
                 to_hide.append((key, region))
 
         elif '.Gutter.' in key:
@@ -573,33 +557,20 @@ def revalidate_regions(view):
             filtered_regions = list(filter(None, regions))
             if len(filtered_regions) != len(regions):
                 _ns, scope, icon = key.split('|')
-                view.add_regions(
-                    key, filtered_regions, scope=scope, icon=icon,
+                draw_view_region(
+                    view, key, filtered_regions, scope=scope, icon=icon,
                     flags=sublime.HIDDEN
                 )
     if to_hide:
-        sublime.set_timeout_async(lambda: make_regions_hidden(view, to_hide))
-
-
-def make_regions_hidden(view, key_regions):
-    # type: (sublime.View, List[Tuple[RegionKey, sublime.Region]]) -> None
-    region_keys = get_regions_keys(view)
-    new_drawn_keys = set()
-    discarded_keys = set()
-    for key, region in key_regions:
-        namespace, uid, scope, flags = key.split('|')
-        new_key = '|'.join(
-            [namespace + HIDDEN_STYLE_MARKER, uid, scope, flags]
-        )
-        view.add_regions(
-            new_key, [region], scope=HIDDEN_SCOPE, flags=int(flags)
-        )
-        discarded_keys.add(key)
-        new_drawn_keys.add(new_key)
-
-    remember_region_keys(
-        view, region_keys - discarded_keys | new_drawn_keys
-    )
+        for old_key, region in to_hide:
+            namespace, uid, scope, flags = old_key.split('|')
+            new_key = '|'.join(
+                [namespace + HIDDEN_STYLE_MARKER, uid, scope, flags]
+            )
+            erase_view_region(view, old_key)
+            draw_view_region(
+                view, new_key, [region], scope=HIDDEN_SCOPE, flags=int(flags)
+            )
 
 
 class IdleViewController(sublime_plugin.EventListener):
@@ -675,7 +646,7 @@ def toggle_demoted_regions(view, show):
                 scope = get_demote_scope()
 
             regions = view.get_regions(key)
-            view.add_regions(key, regions, scope=scope, flags=int(flags))
+            draw_view_region(view, key, regions, scope=scope, flags=int(flags))
 
 
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
@@ -709,7 +680,7 @@ def toggle_all_regions(view, show):
             scope = HIDDEN_SCOPE
 
         regions = view.get_regions(key)
-        view.add_regions(key, regions, scope=scope, flags=int(flags))
+        draw_view_region(view, key, regions, scope=scope, flags=int(flags))
 
 
 # --------------- UTIL FUNCTIONS ------------------- #

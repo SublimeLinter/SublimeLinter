@@ -368,7 +368,6 @@ def draw(
     # persisting region keys for later clearance
     new_region_keys = other_region_keys | new_linter_keys
     remember_region_keys(view, new_region_keys)
-    add_region_keys_to_everstore(view, new_linter_keys)
 
 
 def get_demote_scope():
@@ -423,11 +422,17 @@ def get_regions_keys(view):
 
 def remember_region_keys(view, keys):
     # type: (sublime.View, Set[RegionKey]) -> None
+    _remember_region_keys(view, keys)
+    _add_region_keys_to_everstore(view, keys)
+
+
+def _remember_region_keys(view, keys):
+    # type: (sublime.View, Set[RegionKey]) -> None
     setting_key = STORAGE_KEY.format(view.id())
     view.settings().set(setting_key, list(keys))
 
 
-def add_region_keys_to_everstore(view, keys):
+def _add_region_keys_to_everstore(view, keys):
     # type: (sublime.View, Set[RegionKey]) -> None
     bid = view.buffer_id()
     EVERSTORE[bid] |= keys
@@ -436,7 +441,7 @@ def add_region_keys_to_everstore(view, keys):
 def restore_from_everstore(view):
     # type: (sublime.View) -> None
     bid = view.buffer_id()
-    remember_region_keys(view, EVERSTORE[bid])
+    _remember_region_keys(view, EVERSTORE[bid])
 
 
 class ZombieController(sublime_plugin.EventListener):
@@ -589,7 +594,6 @@ def make_regions_hidden(view, key_regions):
     remember_region_keys(
         view, region_keys - discarded_keys | new_drawn_keys
     )
-    add_region_keys_to_everstore(view, new_drawn_keys)
 
 
 class IdleViewController(sublime_plugin.EventListener):

@@ -16,10 +16,11 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, List, Hashable, Optional, Protocol, Set,
-        Tuple
+        Callable, DefaultDict, Dict, Iterable, List, Hashable, Optional,
+        Protocol, Set, Tuple, TypeVar
     )
     from mypy_extensions import TypedDict
+    T = TypeVar('T')
     LintError = persist.LintError
     LinterName = persist.LinterName
 
@@ -535,14 +536,18 @@ def revalidate_regions(view):
 
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
+    to_hide = []
     for key in region_keys:
         if '.Highlights.' in key:
+            if HIDDEN_STYLE_MARKER in key:
+                continue
             region = head(view.get_regions(key))
             if region is None:
                 continue
 
             if any(region.contains(s) for s in selections):
                 view.erase_regions(key)
+                to_hide.append((key, region))
 
         elif '.Gutter.' in key:
             regions = view.get_regions(key)
@@ -553,6 +558,30 @@ def revalidate_regions(view):
                     key, filtered_regions, scope=scope, icon=icon,
                     flags=sublime.HIDDEN
                 )
+    if to_hide:
+        sublime.set_timeout_async(lambda: make_regions_hidden(view, to_hide))
+
+
+def make_regions_hidden(view, key_regions):
+    # type: (sublime.View, List[Tuple[RegionKey, sublime.Region]]) -> None
+    region_keys = get_regions_keys(view)
+    new_drawn_keys = set()
+    discarded_keys = set()
+    for key, region in key_regions:
+        namespace, uid, scope, flags = key.split('|')
+        new_key = '|'.join(
+            [namespace + HIDDEN_STYLE_MARKER, uid, scope, flags]
+        )
+        view.add_regions(
+            new_key, [region], scope=HIDDEN_SCOPE, flags=int(flags)
+        )
+        discarded_keys.add(key)
+        new_drawn_keys.add(new_key)
+
+    remember_region_keys(
+        view, region_keys - discarded_keys | new_drawn_keys
+    )
+    add_region_keys_to_everstore(view, new_drawn_keys)
 
 
 class IdleViewController(sublime_plugin.EventListener):
@@ -674,6 +703,7 @@ def get_current_sel(view):
 
 
 def head(iterable):
+    # type: (Iterable[T]) -> Optional[T]
     return next(iter(iterable), None)
 
 

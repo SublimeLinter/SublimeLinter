@@ -410,14 +410,21 @@ class DemotePredicates:
 # --------------- ZOMBIE PROTECTION ---------------- #
 #    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
-EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.BufferId, Set[RegionKey]]
-STORAGE_KEY = 'SL.{}.region_keys'
+# Just trying and catching `NameError` reuses the previous value or
+# "version" of this variable when hot-reloading
+try:
+    CURRENTSTORE
+except NameError:
+    CURRENTSTORE = {}  # type: Dict[sublime.ViewId, Set[RegionKey]]
+try:
+    EVERSTORE
+except NameError:
+    EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.BufferId, Set[RegionKey]]
 
 
 def get_regions_keys(view):
     # type: (sublime.View) -> Set[RegionKey]
-    setting_key = STORAGE_KEY.format(view.id())
-    return set(view.settings().get(setting_key) or [])
+    return CURRENTSTORE.get(view.id(), set())
 
 
 def remember_region_keys(view, keys):
@@ -428,8 +435,7 @@ def remember_region_keys(view, keys):
 
 def _remember_region_keys(view, keys):
     # type: (sublime.View, Set[RegionKey]) -> None
-    setting_key = STORAGE_KEY.format(view.id())
-    view.settings().set(setting_key, list(keys))
+    CURRENTSTORE[view.id()] = keys
 
 
 def _add_region_keys_to_everstore(view, keys):

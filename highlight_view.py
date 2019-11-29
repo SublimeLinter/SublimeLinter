@@ -488,17 +488,20 @@ def maybe_update_error_store(view):
     if not errors:
         return
 
-    uid_region_map = {
-        extract_uid_from_key(key): head(view.get_regions(key))
-        for key in get_regions_keys(view)
+    region_keys = get_regions_keys(view)
+    uid_key_map = {
+        extract_uid_from_key(key): key
+        for key in region_keys
         if '.Highlights.' in key
     }
 
     changed = False
     new_errors = []
+    discarded_keys = set()
     for error in errors:
         uid = error['uid']
-        region = uid_region_map.get(uid, None)
+        key = uid_key_map.get(uid, None)
+        region = head(view.get_regions(key)) if key else None
         if region is None or region == error['region']:
             new_errors.append(error)
             continue
@@ -510,6 +513,8 @@ def maybe_update_error_store(view):
             # zero length, and moved to a different line at col 0.
             # It is useless now so we remove the error by not
             # copying it.
+            view.erase_regions(key)  # type: ignore
+            discarded_keys.add(key)
             continue
 
         endLine, end = view.rowcol(region.end())
@@ -526,6 +531,9 @@ def maybe_update_error_store(view):
     if changed:
         persist.file_errors[filename] = new_errors
         events.broadcast('updated_error_positions', {'filename': filename})
+
+    if discarded_keys:
+        remember_region_keys(view, region_keys - discarded_keys)
 
 
 def revalidate_regions(view):

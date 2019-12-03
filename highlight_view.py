@@ -333,7 +333,7 @@ def draw(
     current_linter_keys = {
         key
         for key in current_region_keys
-        if key.startswith('SL.{}.'.format(linter_name))
+        if key.linter_name == linter_name
     }
     new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
 
@@ -349,7 +349,7 @@ def draw(
     for region_id, (scope, flags, regions) in highlight_regions.items():
         if quiet:
             scope = HIDDEN_SCOPE
-        elif not idle and DEMOTE_WHILE_BUSY_MARKER in region_id:
+        elif not idle and region_id.demotable:
             scope = get_demote_scope()
         draw_view_region(view, region_id, regions, scope=scope, flags=flags)
 
@@ -549,9 +549,9 @@ def maybe_update_error_store(view):
 
     region_keys = get_regions_keys(view)
     uid_key_map = {
-        extract_uid_from_key(key): key
+        key.uid: key
         for key in region_keys
-        if '.Highlights.' in key
+        if isinstance(key, Squiggle)
     }
 
     changed = False
@@ -598,10 +598,10 @@ def revalidate_regions(view):
 
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
-    to_hide = []  # type: List[Tuple[Squiggle, sublime.Region]]
+    to_hide = []
     for key in region_keys:
-        if '.Highlights.' in key:
-            if HIDDEN_STYLE_MARKER in key:
+        if isinstance(key, Squiggle):
+            if key.hidden:
                 continue
             region = head(view.get_regions(key))
             if region is None:
@@ -614,10 +614,9 @@ def revalidate_regions(view):
             regions = view.get_regions(key)
             filtered_regions = list(filter(None, regions))
             if len(filtered_regions) != len(regions):
-                _ns, scope, icon = key.split('|')
                 draw_view_region(
-                    view, key, filtered_regions, scope=scope, icon=icon,
-                    flags=sublime.HIDDEN
+                    view, key, filtered_regions, scope=key.scope, icon=key.icon,
+                    flags=key.flags
                 )
     if to_hide:
         for old_key, region in to_hide:
@@ -694,14 +693,15 @@ def toggle_demoted_regions(view, show):
         return
 
     region_keys = get_regions_keys(view)
+    demote_scope = get_demote_scope()
     for key in region_keys:
-        if DEMOTE_WHILE_BUSY_MARKER in key:
-            _namespace, _uid, scope, flags = key.split('|')
-            if not show:
-                scope = get_demote_scope()
-
+        if isinstance(key, Squiggle) and key.demotable:
             regions = view.get_regions(key)
-            draw_view_region(view, key, regions, scope=scope, flags=int(flags))
+            draw_view_region(
+                view, key, regions,
+                scope=key.scope if show else demote_scope,
+                flags=key.flags
+            )
 
 
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
@@ -727,15 +727,13 @@ def toggle_all_regions(view, show):
     # type: (sublime.View, bool) -> None
     region_keys = get_regions_keys(view)
     for key in region_keys:
-        if '.Highlights.' not in key:
-            continue
-
-        _namespace, _uid, scope, flags = key.split('|')
-        if not show:
-            scope = HIDDEN_SCOPE
-
-        regions = view.get_regions(key)
-        draw_view_region(view, key, regions, scope=scope, flags=int(flags))
+        if isinstance(key, Squiggle):
+            regions = view.get_regions(key)
+            draw_view_region(
+                view, key, regions,
+                scope=key.scope if show else HIDDEN_SCOPE,
+                flags=key.flags
+            )
 
 
 # --------------- UTIL FUNCTIONS ------------------- #
@@ -749,18 +747,6 @@ def get_current_sel(view):
 def head(iterable):
     # type: (Iterable[T]) -> Optional[T]
     return next(iter(iterable), None)
-
-
-def extract_uid_from_key(key):
-    _namespace, uid, _scope, _flags = key.split('|')
-    return uid
-
-
-def all_views_into_buffer(buffer_id):
-    for window in sublime.windows():
-        for view in window.views():
-            if view.buffer_id() == buffer_id:
-                yield view
 
 
 def all_views_into_file(filename):
@@ -780,7 +766,8 @@ class TooltipController(sublime_plugin.EventListener):
                 line_region = view.line(point)
                 if any(
                     region.intersects(line_region)
-                    for key in get_regions_keys(view) if '.Gutter.' in key
+                    for key in get_regions_keys(view)
+                    if isinstance(key, GutterIcon)
                     for region in view.get_regions(key)
                 ):
                     open_tooltip(view, point, line_report=True)
@@ -795,11 +782,11 @@ class TooltipController(sublime_plugin.EventListener):
                     region.contains(point)
                     for key in get_regions_keys(view)
                     if (
-                        '.Highlights.' in key and
-                        HIDDEN_STYLE_MARKER not in key and
+                        isinstance(key, Squiggle)
+                        and not key.hidden
                         # Select visible highlights; when `idle` all regions
                         # are visible, otherwise all *not* demoted regions.
-                        (idle or DEMOTE_WHILE_BUSY_MARKER not in key)
+                        and (idle or not key.demotable)
                     )
                     for region in view.get_regions(key)
                 ):

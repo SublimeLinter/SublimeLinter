@@ -17,21 +17,21 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, FrozenSet, Iterable, List, Hashable,
-        Optional, Protocol, Set, Tuple, TypeVar
+        Callable, DefaultDict, Dict, FrozenSet, Hashable, Iterable, List,
+        Optional, Protocol, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     T = TypeVar('T')
     LintError = persist.LintError
     LinterName = persist.LinterName
 
-    RegionKey = str
     Flags = int
     Icon = str
     Scope = str
-    Squiggles = Dict[RegionKey, Tuple[Scope, Flags, List[sublime.Region]]]
-    GutterIcons = Dict[RegionKey, Tuple[Scope, Icon, List[sublime.Region]]]
+    Squiggles = Dict['Squiggle', Tuple[Scope, Flags, List[sublime.Region]]]
+    GutterIcons = Dict['GutterIcon', Tuple[Scope, Icon, List[sublime.Region]]]
     ProtectedRegions = List[sublime.Region]
+    RegionKey = Union['GutterIcon', 'Squiggle']
 
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
@@ -259,7 +259,7 @@ def prepare_gutter_data(
     # uuid() would be candidate here, that can be reused for efficient updates.
     by_region_id = {}
     for (scope, icon), regions in by_id.items():
-        region_id = 'SL.{}.Gutter.|{}|{}'.format(linter_name, scope, icon)
+        region_id = GutterIcon(linter_name, scope, icon)
         by_region_id[region_id] = (scope, icon, regions)
 
     return by_region_id
@@ -301,11 +301,7 @@ def prepare_highlights_data(
     # efficient updates.
     by_region_id = {}
     for (uid, scope, flags, demote_while_busy, hidden), regions in by_id.items():
-        dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demote_while_busy else ''
-        hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
-        region_id = (
-            'SL.{}.Highlights.{}{}|{}|{}|{}'
-            .format(linter_name, dwb_marker, hidden_marker, uid, scope, flags))
+        region_id = Squiggle(linter_name, uid, scope, flags, hidden, demote_while_busy)
         by_region_id[region_id] = (scope, flags, regions)
 
     return by_region_id
@@ -347,8 +343,7 @@ def draw(
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
-    if protected_regions:
-        draw_view_region(view, PROTECTED_REGIONS_KEY, protected_regions)
+    view.add_regions(PROTECTED_REGIONS_KEY, protected_regions)
 
     # otherwise update (or create) regions
     for region_id, (scope, flags, regions) in highlight_regions.items():
@@ -361,6 +356,59 @@ def draw(
     for region_id, (scope, icon, regions) in gutter_regions.items():
         draw_view_region(view, region_id, regions, scope=scope, icon=icon,
                          flags=sublime.HIDDEN)
+
+
+class GutterIcon(str):
+    namespace = 'SL.Gutter'  # type: str
+    scope = ''  # type: str
+    icon = ''  # type: str
+    flags = sublime.HIDDEN  # type: int
+    linter_name = ''  # type: str
+
+    def __new__(cls, linter_name, scope, icon):
+        # type: (str, str, str) -> GutterIcon
+        key = 'SL.{}.Gutter.|{}|{}'.format(linter_name, scope, icon)
+        self = super().__new__(cls, key)
+        self.linter_name = linter_name
+        self.scope = scope
+        self.icon = icon
+        return self
+
+
+class Squiggle(str):
+    namespace = 'SL.Squiggle'  # type: str
+    scope = ''  # type: str
+    icon = ''  # type: str
+    flags = 0  # type: int
+    linter_name = ''  # type: str
+    uid = ''  # type: str
+    hidden = False  # type: bool
+    demotable = False  # type: bool
+
+    def __new__(cls, linter_name, uid, scope, flags, hidden=False, demotable=False):
+        # type: (str, str, str, int, bool, bool) -> Squiggle
+        dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demotable else ''
+        hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
+        key = (
+            'SL.{}.Highlights.{}{}|{}|{}|{}'
+            .format(linter_name, dwb_marker, hidden_marker, uid, scope, flags)
+        )
+        self = super().__new__(cls, key)
+        self.scope = scope
+        self.flags = flags
+        self.linter_name = linter_name
+        self.uid = uid
+        self.hidden = hidden
+        self.demotable = demotable
+        return self
+
+    def _replace(self, **overrides):
+        # type: (...) -> Squiggle
+        base = {
+            name: overrides.pop(name, getattr(self, name))
+            for name in {'linter_name', 'uid', 'scope', 'flags', 'hidden', 'demotable'}
+        }
+        return Squiggle(**base)
 
 
 def get_demote_scope():
@@ -414,6 +462,16 @@ try:
     EVERSTORE
 except NameError:
     EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.ViewId, Set[RegionKey]]
+else:
+    def _reload_everstore(store):
+        for regions in store.values():
+            for r in regions:
+                if '.Highlights' in r:
+                    r.__class__ = Squiggle
+                elif '.Gutter' in r:
+                    r.__class__ = GutterIcon
+
+    _reload_everstore(EVERSTORE)
 
 
 def draw_view_region(view, key, regions, scope='', icon='', flags=0):
@@ -540,7 +598,7 @@ def revalidate_regions(view):
 
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
-    to_hide = []
+    to_hide = []  # type: List[Tuple[Squiggle, sublime.Region]]
     for key in region_keys:
         if '.Highlights.' in key:
             if HIDDEN_STYLE_MARKER in key:
@@ -563,13 +621,10 @@ def revalidate_regions(view):
                 )
     if to_hide:
         for old_key, region in to_hide:
-            namespace, uid, scope, flags = old_key.split('|')
-            new_key = '|'.join(
-                [namespace + HIDDEN_STYLE_MARKER, uid, scope, flags]
-            )
+            new_key = old_key._replace(hidden=True)
             erase_view_region(view, old_key)
             draw_view_region(
-                view, new_key, [region], scope=HIDDEN_SCOPE, flags=int(flags)
+                view, new_key, [region], scope=HIDDEN_SCOPE, flags=new_key.flags
             )
 
 

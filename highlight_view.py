@@ -28,8 +28,8 @@ if MYPY:
     Flags = int
     Icon = str
     Scope = str
-    Squiggles = Dict['Squiggle', Tuple[Scope, Flags, List[sublime.Region]]]
-    GutterIcons = Dict['GutterIcon', Tuple[Scope, Icon, List[sublime.Region]]]
+    Squiggles = Dict['Squiggle', List[sublime.Region]]
+    GutterIcons = Dict['GutterIcon', List[sublime.Region]]
     ProtectedRegions = List[sublime.Region]
     RegionKey = Union['GutterIcon', 'Squiggle']
 
@@ -219,12 +219,7 @@ def by_line(error):
 
 def prepare_protected_regions(view, errors):
     # type: (sublime.View, List[LintError]) -> ProtectedRegions
-    return list(
-        flatten(
-            regions
-            for (_, _, regions) in prepare_gutter_data(view, '_', errors).values()
-        )
-    )
+    return list(flatten(prepare_gutter_data(view, '_', errors).values()))
 
 
 def prepare_gutter_data(
@@ -258,7 +253,7 @@ def prepare_gutter_data(
     by_region_id = {}
     for (scope, icon), regions in by_id.items():
         region_id = GutterIcon(linter_name, scope, icon)
-        by_region_id[region_id] = (scope, icon, regions)
+        by_region_id[region_id] = regions
 
     return by_region_id
 
@@ -300,7 +295,7 @@ def prepare_highlights_data(
     by_region_id = {}
     for (uid, scope, flags, demote_while_busy, hidden), regions in by_id.items():
         region_id = Squiggle(linter_name, uid, scope, flags, hidden, demote_while_busy)
-        by_region_id[region_id] = (scope, flags, regions)
+        by_region_id[region_id] = regions
 
     return by_region_id
 
@@ -344,7 +339,7 @@ def draw(
     view.add_regions(PROTECTED_REGIONS_KEY, protected_regions)
 
     # otherwise update (or create) regions
-    for squiggle, (_, _, regions) in highlight_regions.items():
+    for squiggle, regions in highlight_regions.items():
         if quiet:
             scope = HIDDEN_SCOPE
         elif not idle and squiggle.demotable:
@@ -353,7 +348,7 @@ def draw(
             scope = squiggle.scope
         draw_view_region(view, squiggle, regions, scope=scope)
 
-    for icon, (_, _, regions) in gutter_regions.items():
+    for icon, regions in gutter_regions.items():
         draw_view_region(view, icon, regions)
 
 

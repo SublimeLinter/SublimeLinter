@@ -344,16 +344,17 @@ def draw(
     view.add_regions(PROTECTED_REGIONS_KEY, protected_regions)
 
     # otherwise update (or create) regions
-    for region_id, (scope, flags, regions) in highlight_regions.items():
+    for squiggle, (_, _, regions) in highlight_regions.items():
         if quiet:
             scope = HIDDEN_SCOPE
-        elif not idle and region_id.demotable:
+        elif not idle and squiggle.demotable:
             scope = get_demote_scope()
-        draw_view_region(view, region_id, regions, scope=scope, flags=flags)
+        else:
+            scope = squiggle.scope
+        draw_view_region(view, squiggle, regions, scope=scope)
 
-    for region_id, (scope, icon, regions) in gutter_regions.items():
-        draw_view_region(view, region_id, regions, scope=scope, icon=icon,
-                         flags=sublime.HIDDEN)
+    for icon, (_, _, regions) in gutter_regions.items():
+        draw_view_region(view, icon, regions)
 
 
 class GutterIcon(str):
@@ -470,10 +471,12 @@ else:
     _reload_everstore(EVERSTORE)
 
 
-def draw_view_region(view, key, regions, scope='', icon='', flags=0):
-    # type: (sublime.View, RegionKey, List[sublime.Region], str, str, int) -> None
+def draw_view_region(view, key, regions, scope=None):
+    # type: (sublime.View, RegionKey, List[sublime.Region], str) -> None
     with StorageLock:
-        view.add_regions(key, regions, scope, icon, flags)
+        if scope is None:
+            scope = key.scope
+        view.add_regions(key, regions, scope, key.icon, key.flags)
         vid = view.id()
         CURRENTSTORE[vid].add(key)
         EVERSTORE[vid].add(key)
@@ -610,17 +613,13 @@ def revalidate_regions(view):
             regions = view.get_regions(key)
             filtered_regions = list(filter(None, regions))
             if len(filtered_regions) != len(regions):
-                draw_view_region(
-                    view, key, filtered_regions, scope=key.scope, icon=key.icon,
-                    flags=key.flags
-                )
+                draw_view_region(view, key, filtered_regions)
+
     if to_hide:
         for old_key, region in to_hide:
             new_key = old_key._replace(hidden=True)
             erase_view_region(view, old_key)
-            draw_view_region(
-                view, new_key, [region], scope=HIDDEN_SCOPE, flags=new_key.flags
-            )
+            draw_view_region(view, new_key, [region], scope=HIDDEN_SCOPE)
 
 
 class IdleViewController(sublime_plugin.EventListener):
@@ -695,8 +694,7 @@ def toggle_demoted_regions(view, show):
             regions = view.get_regions(key)
             draw_view_region(
                 view, key, regions,
-                scope=key.scope if show else demote_scope,
-                flags=key.flags
+                scope=key.scope if show else demote_scope
             )
 
 
@@ -727,8 +725,7 @@ def toggle_all_regions(view, show):
             regions = view.get_regions(key)
             draw_view_region(
                 view, key, regions,
-                scope=key.scope if show else HIDDEN_SCOPE,
-                flags=key.flags
+                scope=key.scope if show else HIDDEN_SCOPE
             )
 
 

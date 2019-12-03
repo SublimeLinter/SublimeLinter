@@ -69,8 +69,6 @@ FALLBACK_MARK_STYLE = 'outline'
 
 WS_ONLY = re.compile(r'^\s+$')
 MULTILINES = re.compile('\n')
-DEMOTE_WHILE_BUSY_MARKER = '%DWB%'
-HIDDEN_STYLE_MARKER = '%HIDDEN%'
 
 
 State = {
@@ -387,11 +385,9 @@ class Squiggle(str):
 
     def __new__(cls, linter_name, uid, scope, flags, hidden=False, demotable=False):
         # type: (str, str, str, int, bool, bool) -> Squiggle
-        dwb_marker = DEMOTE_WHILE_BUSY_MARKER if demotable else ''
-        hidden_marker = HIDDEN_STYLE_MARKER if hidden else ''
         key = (
-            'SL.{}.Highlights.{}{}|{}|{}|{}'
-            .format(linter_name, dwb_marker, hidden_marker, uid, scope, flags)
+            'SL.{}.Highlights.|{}|{}|{}'
+            .format(linter_name, uid, scope, flags)
         )
         self = super().__new__(cls, key)
         self.scope = scope

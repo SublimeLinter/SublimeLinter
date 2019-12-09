@@ -155,7 +155,6 @@ def highlight_linter_errors(views, filename, linter_name):
             State['views'].add(vid)
 
         highlight_regions = prepare_highlights_data(
-            linter_name,
             errors_for_the_highlights,
             demote_predicate=demote_predicate,
             demote_scope=demote_scope,
@@ -262,7 +261,6 @@ def prepare_gutter_data(
 
 
 def prepare_highlights_data(
-    linter_name,       # type: LinterName
     errors,            # type: List[LintError]
     demote_predicate,  # type: DemotePredicate
     demote_scope,      # type: str
@@ -285,6 +283,7 @@ def prepare_highlights_data(
             scope = demote_scope
 
         uid = error['uid']
+        linter_name = error['linter']
         key = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
         by_region_id[key] = [region]
 

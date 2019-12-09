@@ -270,7 +270,7 @@ def prepare_highlights_data(
     idle,              # type: bool
 ):
     # type: (...) -> Squiggles
-    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool, str], List[sublime.Region]]
+    by_region_id = {}
     for error in errors:
         scope = style.get_value('scope', error)
         region = error['region']
@@ -284,19 +284,9 @@ def prepare_highlights_data(
         elif not idle and demote_while_busy:
             scope = demote_scope
 
-        # We group towards the sublime API usage
-        #   view.add_regions(uuid(), regions, scope, flags)
         uid = error['uid']
-        id = (uid, scope, flags, demote_while_busy, alt_scope)
-        by_id[id].append(region)
-
-    # Exchange the `id` with a regular sublime region_id which is a unique
-    # string. Generally, uuid() would suffice, but generate an id here for
-    # efficient updates.
-    by_region_id = {}
-    for (uid, scope, flags, demote_while_busy, alt_scope), regions in by_id.items():
-        region_id = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
-        by_region_id[region_id] = regions
+        key = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
+        by_region_id[key] = [region]
 
     return by_region_id
 

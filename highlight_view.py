@@ -126,7 +126,7 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
 
     view = views[0]  # to calculate regions we can take any of the views
-    protected_regions = prepare_protected_regions(view, errors_for_the_gutter)
+    protected_regions = prepare_protected_regions(errors_for_the_gutter)
 
     # `prepare_data` returns the state of the view as we would like to draw it.
     # But we cannot *redraw* regions as soon as the buffer changed, in fact
@@ -139,7 +139,7 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_gutter = [error for error in errors_for_the_gutter
                              if error['linter'] == linter_name]
 
-    gutter_regions = prepare_gutter_data(view, linter_name, errors_for_the_gutter)
+    gutter_regions = prepare_gutter_data(linter_name, errors_for_the_gutter)
 
     for view in views:
         vid = view.id()
@@ -222,13 +222,12 @@ def by_line(error):
     return error['line']
 
 
-def prepare_protected_regions(view, errors):
-    # type: (sublime.View, List[LintError]) -> ProtectedRegions
-    return list(flatten(prepare_gutter_data(view, '_', errors).values()))
+def prepare_protected_regions(errors):
+    # type: (List[LintError]) -> ProtectedRegions
+    return list(flatten(prepare_gutter_data('_', errors).values()))
 
 
 def prepare_gutter_data(
-    view,         # type: sublime.View
     linter_name,  # type: LinterName
     errors        # type: List[LintError]
 ):

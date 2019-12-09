@@ -18,7 +18,7 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, DefaultDict, Dict, FrozenSet, Hashable, Iterable, List,
-        Optional, Protocol, Set, Tuple, TypeVar, Union
+        Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     T = TypeVar('T')
@@ -41,10 +41,7 @@ if MYPY:
         'views': Set[sublime.ViewId]
     })
 
-    class DemotePredicate(Protocol):
-        def __call__(self, selected_text, **error):
-            # type: (str, object) -> bool
-            ...
+    DemotePredicate = Callable[[LintError], bool]
 
 
 UNDERLINE_FLAGS = (
@@ -272,8 +269,7 @@ def prepare_highlights_data(
     for error in errors:
         scope = style.get_value('scope', error)
         flags = _compute_flags(error)
-        selected_text = error['offending_text']
-        demote_while_busy = demote_predicate(selected_text, **error)
+        demote_while_busy = demote_predicate(error)
 
         alt_scope = scope
         if quiet:
@@ -419,29 +415,35 @@ def get_demote_predicate():
 
 class DemotePredicates:
     @staticmethod
-    def none(*args, **kwargs):
+    def none(error):
+        # type: (LintError) -> bool
         return False
 
     @staticmethod
-    def all(*args, **kwargs):
+    def all(error):
+        # type: (LintError) -> bool
         return True
 
     @staticmethod
-    def ws_only(selected_text, **kwargs):
-        return bool(WS_ONLY.search(selected_text))
+    def ws_only(error):
+        # type: (LintError) -> bool
+        return bool(WS_ONLY.search(error['offending_text']))
 
     @staticmethod
-    def some_ws(selected_text, **kwargs):
-        return bool(SOME_WS.search(selected_text))
+    def some_ws(error):
+        # type: (LintError) -> bool
+        return bool(SOME_WS.search(error['offending_text']))
     ws_regions = some_ws
 
     @staticmethod
-    def multilines(selected_text, **kwargs):
-        return bool(MULTILINES.search(selected_text))
+    def multilines(error):
+        # type: (LintError) -> bool
+        return bool(MULTILINES.search(error['offending_text']))
 
     @staticmethod
-    def warnings(selected_text, error_type, **kwargs):
-        return error_type == WARNING
+    def warnings(error):
+        # type: (LintError) -> bool
+        return error['error_type'] == WARNING
 
 
 # --------------- ZOMBIE PROTECTION ---------------- #

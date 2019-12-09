@@ -155,7 +155,6 @@ def highlight_linter_errors(views, filename, linter_name):
             State['views'].add(vid)
 
         highlight_regions = prepare_highlights_data(
-            view,
             linter_name,
             errors_for_the_highlights,
             demote_predicate=demote_predicate,
@@ -263,7 +262,6 @@ def prepare_gutter_data(
 
 
 def prepare_highlights_data(
-    view,              # type: sublime.View
     linter_name,       # type: LinterName
     errors,            # type: List[LintError]
     demote_predicate,  # type: DemotePredicate
@@ -278,7 +276,7 @@ def prepare_highlights_data(
         mark_style = style.get_value('mark_style', error, 'none')
 
         region = error['region']
-        selected_text = error.get('offending_text') or view.substr(region)
+        selected_text = error['offending_text']
         # Work around Sublime bug, which cannot draw 'underlines' on spaces
         if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
             mark_style = FALLBACK_MARK_STYLE

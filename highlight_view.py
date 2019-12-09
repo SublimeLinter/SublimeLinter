@@ -273,19 +273,10 @@ def prepare_highlights_data(
     by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool, str], List[sublime.Region]]
     for error in errors:
         scope = style.get_value('scope', error)
-        mark_style = style.get_value('mark_style', error, 'none')
-
         region = error['region']
         selected_text = error['offending_text']
-        # Work around Sublime bug, which cannot draw 'underlines' on spaces
-        if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
-            mark_style = FALLBACK_MARK_STYLE
-
-        flags = MARK_STYLES[mark_style]
-        if not persist.settings.get('show_marks_in_minimap'):
-            flags |= sublime.HIDE_ON_MINIMAP
-
         demote_while_busy = demote_predicate(selected_text, **error)
+        flags = _compute_flags(error)
 
         alt_scope = scope
         if quiet:
@@ -308,6 +299,20 @@ def prepare_highlights_data(
         by_region_id[region_id] = regions
 
     return by_region_id
+
+
+def _compute_flags(error):
+    # type: (LintError) -> int
+    mark_style = style.get_value('mark_style', error, 'none')
+    selected_text = error['offending_text']
+    # Work around Sublime bug, which cannot draw 'underlines' on spaces
+    if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
+        mark_style = FALLBACK_MARK_STYLE
+
+    flags = MARK_STYLES[mark_style]
+    if not persist.settings.get('show_marks_in_minimap'):
+        flags |= sublime.HIDE_ON_MINIMAP
+    return flags
 
 
 def undraw(view):

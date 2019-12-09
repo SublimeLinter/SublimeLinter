@@ -265,7 +265,7 @@ def prepare_highlights_data(
     demote_predicate  # type: DemotePredicate
 ):
     # type: (...) -> Squiggles
-    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool, bool], List[sublime.Region]]
+    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool], List[sublime.Region]]
     for error in errors:
         scope = style.get_value('scope', error)
         mark_style = style.get_value('mark_style', error, 'none')
@@ -281,20 +281,19 @@ def prepare_highlights_data(
             flags |= sublime.HIDE_ON_MINIMAP
 
         demote_while_busy = demote_predicate(selected_text, **error)
-        hidden = mark_style == 'none' or not scope
 
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
         uid = error['uid']
-        id = (uid, scope, flags, demote_while_busy, hidden)
+        id = (uid, scope, flags, demote_while_busy)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (uid, scope, flags, demote_while_busy, hidden), regions in by_id.items():
-        region_id = Squiggle(linter_name, uid, scope, flags, hidden, demote_while_busy)
+    for (uid, scope, flags, demote_while_busy), regions in by_id.items():
+        region_id = Squiggle(linter_name, uid, scope, flags, demote_while_busy)
         by_region_id[region_id] = regions
 
     return by_region_id
@@ -372,25 +371,28 @@ class GutterIcon(str):
 class Squiggle(str):
     namespace = 'SL.Squiggle'  # type: str
     scope = ''  # type: str
+    alt_scope = ''  # type: str
     icon = ''  # type: str
     flags = 0  # type: int
     linter_name = ''  # type: str
     uid = ''  # type: str
-    hidden = False  # type: bool
     demotable = False  # type: bool
 
-    def __new__(cls, linter_name, uid, scope, flags, hidden=False, demotable=False):
-        # type: (str, str, str, int, bool, bool) -> Squiggle
+    def __new__(cls, linter_name, uid, scope, flags, demotable=False, alt_scope=None):
+        # type: (str, str, str, int, bool, str) -> Squiggle
         key = (
             'SL.{}.Highlights.|{}|{}|{}'
             .format(linter_name, uid, scope, flags)
         )
         self = super().__new__(cls, key)
         self.scope = scope
+        if alt_scope is None:
+            self.alt_scope = scope
+        else:
+            self.alt_scope = alt_scope
         self.flags = flags
         self.linter_name = linter_name
         self.uid = uid
-        self.hidden = hidden
         self.demotable = demotable
         return self
 
@@ -398,9 +400,15 @@ class Squiggle(str):
         # type: (...) -> Squiggle
         base = {
             name: overrides.pop(name, getattr(self, name))
-            for name in {'linter_name', 'uid', 'scope', 'flags', 'hidden', 'demotable'}
+            for name in {
+                'linter_name', 'uid', 'scope', 'flags', 'demotable', 'alt_scope'
+            }
         }
         return Squiggle(**base)
+
+    def visible(self):
+        # type: () -> bool
+        return bool(self.icon or (self.scope and not self.flags == sublime.HIDDEN))
 
 
 def get_demote_scope():
@@ -592,29 +600,22 @@ def revalidate_regions(view):
 
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
-    to_hide = []
     for key in region_keys:
         if isinstance(key, Squiggle):
-            if key.hidden:
+            if not key.visible():
                 continue
             region = head(view.get_regions(key))
             if region is None:
                 continue
 
             if any(region.contains(s) for s in selections):
-                to_hide.append((key, region))
+                draw_squiggle_invisible(view, key, [region])
 
         elif '.Gutter.' in key:
             regions = view.get_regions(key)
             filtered_regions = list(filter(None, regions))
             if len(filtered_regions) != len(regions):
                 draw_view_region(view, key, filtered_regions)
-
-    if to_hide:
-        for old_key, region in to_hide:
-            new_key = old_key._replace(hidden=True)
-            erase_view_region(view, old_key)
-            draw_view_region(view, new_key, [region], scope=HIDDEN_SCOPE)
 
 
 class IdleViewController(sublime_plugin.EventListener):
@@ -687,10 +688,10 @@ def toggle_demoted_regions(view, show):
     for key in region_keys:
         if isinstance(key, Squiggle) and key.demotable:
             regions = view.get_regions(key)
-            draw_view_region(
-                view, key, regions,
-                scope=key.scope if show else demote_scope
-            )
+            if show:
+                redraw_squiggle(view, key, regions)
+            else:
+                draw_squiggle_with_different_scope(view, key, regions, demote_scope)
 
 
 class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
@@ -718,10 +719,31 @@ def toggle_all_regions(view, show):
     for key in region_keys:
         if isinstance(key, Squiggle):
             regions = view.get_regions(key)
-            draw_view_region(
-                view, key, regions,
-                scope=key.scope if show else HIDDEN_SCOPE
-            )
+            if show:
+                redraw_squiggle(view, key, regions)
+            else:
+                draw_squiggle_invisible(view, key, regions)
+
+
+def draw_squiggle_invisible(view, key, regions):
+    # type: (sublime.View, Squiggle, List[sublime.Region]) -> Squiggle
+    return draw_squiggle_with_different_scope(view, key, regions, HIDDEN_SCOPE)
+
+
+def draw_squiggle_with_different_scope(view, key, regions, scope):
+    # type: (sublime.View, Squiggle, List[sublime.Region], str) -> Squiggle
+    new_key = key._replace(scope=scope, alt_scope=key.scope)
+    erase_view_region(view, key)
+    draw_view_region(view, new_key, regions)
+    return new_key
+
+
+def redraw_squiggle(view, key, regions):
+    # type: (sublime.View, Squiggle, List[sublime.Region]) -> Squiggle
+    new_key = key._replace(scope=key.alt_scope)
+    erase_view_region(view, key)
+    draw_view_region(view, new_key, regions)
+    return new_key
 
 
 # --------------- UTIL FUNCTIONS ------------------- #
@@ -761,21 +783,11 @@ class TooltipController(sublime_plugin.EventListener):
                     open_tooltip(view, point, line_report=True)
 
         elif hover_zone == sublime.HOVER_TEXT:
-            if (
-                persist.settings.get('show_hover_region_report') and
-                view.id() not in State['quiet_views']
-            ):
-                idle = view.id() in State['idle_views']
+            if persist.settings.get('show_hover_region_report'):
                 if any(
                     region.contains(point)
                     for key in get_regions_keys(view)
-                    if (
-                        isinstance(key, Squiggle)
-                        and not key.hidden
-                        # Select visible highlights; when `idle` all regions
-                        # are visible, otherwise all *not* demoted regions.
-                        and (idle or not key.demotable)
-                    )
+                    if isinstance(key, Squiggle) and key.visible()
                     for region in view.get_regions(key)
                 ):
                     open_tooltip(view, point, line_report=False)

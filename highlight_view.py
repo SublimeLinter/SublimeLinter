@@ -271,10 +271,9 @@ def prepare_highlights_data(
     by_region_id = {}
     for error in errors:
         scope = style.get_value('scope', error)
-        region = error['region']
+        flags = _compute_flags(error)
         selected_text = error['offending_text']
         demote_while_busy = demote_predicate(selected_text, **error)
-        flags = _compute_flags(error)
 
         alt_scope = scope
         if quiet:
@@ -285,7 +284,7 @@ def prepare_highlights_data(
         uid = error['uid']
         linter_name = error['linter']
         key = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
-        by_region_id[key] = [region]
+        by_region_id[key] = [error['region']]
 
     return by_region_id
 

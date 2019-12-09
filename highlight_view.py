@@ -118,6 +118,9 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
 
 
 def highlight_linter_errors(views, filename, linter_name):
+    demote_predicate = get_demote_predicate()
+    demote_scope = get_demote_scope()
+
     errors = persist.file_errors[filename]
     update_error_priorities_inline(errors)
     errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
@@ -136,12 +139,7 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_gutter = [error for error in errors_for_the_gutter
                              if error['linter'] == linter_name]
 
-    demote_predicate = get_demote_predicate()
-    highlight_regions = prepare_highlights_data(
-        view, linter_name, errors_for_the_highlights,
-        demote_predicate=demote_predicate)
-    gutter_regions = prepare_gutter_data(
-        view, linter_name, errors_for_the_gutter)
+    gutter_regions = prepare_gutter_data(view, linter_name, errors_for_the_gutter)
 
     for view in views:
         vid = view.id()
@@ -156,14 +154,21 @@ def highlight_linter_errors(views, filename, linter_name):
         if vid not in State['views']:
             State['views'].add(vid)
 
+        highlight_regions = prepare_highlights_data(
+            view,
+            linter_name,
+            errors_for_the_highlights,
+            demote_predicate=demote_predicate,
+            demote_scope=demote_scope,
+            quiet=vid in State['quiet_views'],
+            idle=vid in State['idle_views']
+        )
         draw(
             view,
             linter_name,
             highlight_regions,
             gutter_regions,
             protected_regions,
-            idle=(vid in State['idle_views']),
-            quiet=(vid in State['quiet_views'])
         )
 
 
@@ -259,13 +264,16 @@ def prepare_gutter_data(
 
 
 def prepare_highlights_data(
-    view,             # type: sublime.View
-    linter_name,      # type: LinterName
-    errors,           # type: List[LintError]
-    demote_predicate  # type: DemotePredicate
+    view,              # type: sublime.View
+    linter_name,       # type: LinterName
+    errors,            # type: List[LintError]
+    demote_predicate,  # type: DemotePredicate
+    demote_scope,      # type: str
+    quiet,             # type: bool
+    idle,              # type: bool
 ):
     # type: (...) -> Squiggles
-    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool], List[sublime.Region]]
+    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str, int, bool, str], List[sublime.Region]]
     for error in errors:
         scope = style.get_value('scope', error)
         mark_style = style.get_value('mark_style', error, 'none')
@@ -282,18 +290,24 @@ def prepare_highlights_data(
 
         demote_while_busy = demote_predicate(selected_text, **error)
 
+        alt_scope = scope
+        if quiet:
+            scope = HIDDEN_SCOPE
+        elif not idle and demote_while_busy:
+            scope = demote_scope
+
         # We group towards the sublime API usage
         #   view.add_regions(uuid(), regions, scope, flags)
         uid = error['uid']
-        id = (uid, scope, flags, demote_while_busy)
+        id = (uid, scope, flags, demote_while_busy, alt_scope)
         by_id[id].append(region)
 
     # Exchange the `id` with a regular sublime region_id which is a unique
     # string. Generally, uuid() would suffice, but generate an id here for
     # efficient updates.
     by_region_id = {}
-    for (uid, scope, flags, demote_while_busy), regions in by_id.items():
-        region_id = Squiggle(linter_name, uid, scope, flags, demote_while_busy)
+    for (uid, scope, flags, demote_while_busy, alt_scope), regions in by_id.items():
+        region_id = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
         by_region_id[region_id] = regions
 
     return by_region_id
@@ -310,8 +324,6 @@ def draw(
     highlight_regions,  # type: Squiggles
     gutter_regions,     # type: GutterIcons
     protected_regions,  # type: ProtectedRegions
-    idle,               # type: bool
-    quiet               # type: bool
 ):
     # type: (...) -> None
     """
@@ -339,13 +351,7 @@ def draw(
 
     # otherwise update (or create) regions
     for squiggle, regions in highlight_regions.items():
-        if quiet:
-            scope = HIDDEN_SCOPE
-        elif not idle and squiggle.demotable:
-            scope = get_demote_scope()
-        else:
-            scope = squiggle.scope
-        draw_view_region(view, squiggle, regions, scope=scope)
+        draw_view_region(view, squiggle, regions)
 
     for icon, regions in gutter_regions.items():
         draw_view_region(view, icon, regions)
@@ -474,12 +480,10 @@ else:
     _reload_everstore(EVERSTORE)
 
 
-def draw_view_region(view, key, regions, scope=None):
-    # type: (sublime.View, RegionKey, List[sublime.Region], str) -> None
+def draw_view_region(view, key, regions):
+    # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
     with StorageLock:
-        if scope is None:
-            scope = key.scope
-        view.add_regions(key, regions, scope, key.icon, key.flags)
+        view.add_regions(key, regions, key.scope, key.icon, key.flags)
         vid = view.id()
         CURRENTSTORE[vid].add(key)
         EVERSTORE[vid].add(key)

@@ -93,6 +93,7 @@ def plugin_unloaded():
 
 @events.on(events.LINT_RESULT)
 def on_lint_result(filename, linter_name, **kwargs):
+    # type: (str, LinterName, object) -> None
     views = list(all_views_into_file(filename))
     if not views:
         return
@@ -102,6 +103,7 @@ def on_lint_result(filename, linter_name, **kwargs):
 
 class UpdateOnLoadController(sublime_plugin.EventListener):
     def on_load_async(self, view):
+        # type: (sublime.View) -> None
         # update this new view with any errors it currently has
         filename = util.get_filename(view)
         errors = persist.file_errors.get(filename)
@@ -115,6 +117,7 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
 
 
 def highlight_linter_errors(views, filename, linter_name):
+    # type: (List[sublime.View], str, LinterName) -> None
     demote_predicate = get_demote_predicate()
     demote_scope = get_demote_scope()
 
@@ -181,6 +184,7 @@ def update_error_priorities_inline(errors):
 
 
 def prepare_data(errors):
+    # type: (List[LintError]) -> Tuple[List[LintError], List[LintError]]
     # We need to filter the errors, bc we cannot draw multiple regions
     # on the same position. E.g. we can only draw one gutter icon per line,
     # and we can only 'underline' a word once.
@@ -300,6 +304,7 @@ def _compute_flags(error):
 
 
 def undraw(view):
+    # type: (sublime.View) -> None
     for key in get_regions_keys(view):
         erase_view_region(view, key)
 

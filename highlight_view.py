@@ -607,9 +607,15 @@ def revalidate_regions(view):
             if any(region.contains(s) for s in selections):
                 draw_squiggle_invisible(view, key, [region])
 
-        elif '.Gutter.' in key:
+        elif isinstance(key, GutterIcon):
+            # Remove gutter icon if its region is empty,
+            # e.g. the user deleted the squiggled word.
             regions = view.get_regions(key)
-            filtered_regions = list(filter(None, regions))
+            filtered_regions = [
+                region
+                for region in regions
+                if not region.empty()
+            ]
             if len(filtered_regions) != len(regions):
                 draw_view_region(view, key, filtered_regions)
 

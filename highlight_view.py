@@ -538,8 +538,9 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
             view = active_view
 
         revalidate_regions(view)
-        # (Maybe) update the error store on the worker thread which
-        # forms a queue so we don't need locks.
+        # Run `maybe_update_error_store` on the worker because it
+        # potentially wants to mutate the store. We do this always
+        # on the worker queue to avoid using locks.
         sublime.set_timeout_async(lambda: maybe_update_error_store(view))
 
 

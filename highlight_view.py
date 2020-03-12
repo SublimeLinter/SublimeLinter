@@ -544,6 +544,45 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
         sublime.set_timeout_async(lambda: maybe_update_error_store(view))
 
 
+def revalidate_regions(view):
+    # type: (sublime.View) -> None
+    vid = view.id()
+    if vid in State['quiet_views']:
+        return
+
+    selections = get_current_sel(view)  # frozen sel() for this operation
+    region_keys = get_regions_keys(view)
+    for key in region_keys:
+        if isinstance(key, Squiggle) and key.visible():
+            # Draw squiggles *under* the cursor invisible because
+            # we don't want the visual noise exactly where we edit
+            # our code.
+            # Note that this also immeditaley **hides** empty regions
+            # (dangles) for example if you delete a line with a squiggle
+            # on it. Removing dangles is thus a two step process. We
+            # first, immediately and on the UI thread, hide them, later
+            # in `maybe_update_error_store` we actually erase the region
+            # and remove the error from the store.
+            region = head(view.get_regions(key))
+            if region is None:
+                continue
+
+            if any(region.contains(s) for s in selections):
+                draw_squiggle_invisible(view, key, [region])
+
+        elif isinstance(key, GutterIcon):
+            # Remove gutter icon if its region is empty,
+            # e.g. the user deleted the squiggled word.
+            regions = view.get_regions(key)
+            filtered_regions = [
+                region
+                for region in regions
+                if not region.empty()
+            ]
+            if len(filtered_regions) != len(regions):
+                draw_view_region(view, key, filtered_regions)
+
+
 def maybe_update_error_store(view):
     # type: (sublime.View) -> None
     filename = util.get_filename(view)
@@ -594,45 +633,6 @@ def maybe_update_error_store(view):
     if changed:
         persist.file_errors[filename] = new_errors
         events.broadcast('updated_error_positions', {'filename': filename})
-
-
-def revalidate_regions(view):
-    # type: (sublime.View) -> None
-    vid = view.id()
-    if vid in State['quiet_views']:
-        return
-
-    selections = get_current_sel(view)  # frozen sel() for this operation
-    region_keys = get_regions_keys(view)
-    for key in region_keys:
-        if isinstance(key, Squiggle) and key.visible():
-            # Draw squiggles *under* the cursor invisible because
-            # we don't want the visual noise exactly where we edit
-            # our code.
-            # Note that this also immeditaley **hides** empty regions
-            # (dangles) for example if you delete a line with a squiggle
-            # on it. Removing dangles is thus a two step process. We
-            # first, immediately and on the UI thread, hide them, later
-            # in `maybe_update_error_store` we actually erase the region
-            # and remove the error from the store.
-            region = head(view.get_regions(key))
-            if region is None:
-                continue
-
-            if any(region.contains(s) for s in selections):
-                draw_squiggle_invisible(view, key, [region])
-
-        elif isinstance(key, GutterIcon):
-            # Remove gutter icon if its region is empty,
-            # e.g. the user deleted the squiggled word.
-            regions = view.get_regions(key)
-            filtered_regions = [
-                region
-                for region in regions
-                if not region.empty()
-            ]
-            if len(filtered_regions) != len(regions):
-                draw_view_region(view, key, filtered_regions)
 
 
 class IdleViewController(sublime_plugin.EventListener):

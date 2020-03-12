@@ -604,9 +604,16 @@ def revalidate_regions(view):
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
     for key in region_keys:
-        if isinstance(key, Squiggle):
-            if not key.visible():
-                continue
+        if isinstance(key, Squiggle) and key.visible():
+            # Draw squiggles *under* the cursor invisible because
+            # we don't want the visual noise exactly where we edit
+            # our code.
+            # Note that this also immeditaley **hides** empty regions
+            # (dangles) for example if you delete a line with a squiggle
+            # on it. Removing dangles is thus a two step process. We
+            # first, immediately and on the UI thread, hide them, later
+            # in `maybe_update_error_store` we actually erase the region
+            # and remove the error from the store.
             region = head(view.get_regions(key))
             if region is None:
                 continue

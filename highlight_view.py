@@ -566,17 +566,19 @@ def maybe_update_error_store(view):
         if region is None or region == error['region']:
             new_errors.append(error)
             continue
+        else:
+            changed = True
 
-        changed = True
-        line, start = view.rowcol(region.begin())
-        if region.empty() and start == 0:
-            # Dangle! Sublime has invalidated our region, it has
-            # zero length, and moved to a different line at col 0.
+        if region.empty():
+            # Either the user edited away our region (and the error)
+            # or: Dangle! Sublime has invalidated our region, it has
+            # zero length (and moved to a different line at col 0).
             # It is useless now so we remove the error by not
             # copying it.
             erase_view_region(view, key)  # type: ignore
             continue
 
+        line, start = view.rowcol(region.begin())
         endLine, end = view.rowcol(region.end())
         error = error.copy()
         error.update({

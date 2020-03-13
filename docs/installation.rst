@@ -6,7 +6,7 @@ SublimeLinter and corresponding linter plugins should be installed using `Packag
 First install PackageControl and then see its `usage <https://packagecontrol.io/docs/usage>`_,
 which explains how to install packages to SublimeText.
 
-Plugins are listed on `PackageControl <https://packagecontrol.io/search/SublimeLinter>`_.
+`Plugins <https://packagecontrol.io/search/SublimeLinter>`_ are listed on PackageControl.
 Most plugins depend on command line programs to be installed on your system, be
 sure to read the installation instructions for each linter plugin you install.
 

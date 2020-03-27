@@ -7,7 +7,8 @@ from .lint import events, persist, util
 from .lint.const import WARNING, ERROR
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import DefaultDict, Dict, Set
     from mypy_extensions import TypedDict
 

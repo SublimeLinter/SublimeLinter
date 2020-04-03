@@ -218,8 +218,16 @@ def check_output(cmd, cwd=None):
             startupinfo=create_startupinfo()
         )
     except Exception as err:
+        import textwrap
+        output_ = getattr(err, 'output', '')
+        if output_:
+            output_ = process_popen_output(output_)
+            output_ = textwrap.indent(output_, '  ')
+            output_ = "\n  ...\n{}".format(output_)
         logger.warning(
-            "Executing `{}` failed\n  {}".format(' '.join(cmd), str(err))
+            "Executing `{}` failed\n  {}{}".format(
+                ' '.join(cmd), str(err), output_
+            )
         )
         raise
     else:

@@ -554,6 +554,12 @@ def revalidate_regions(view):
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if isinstance(key, Squiggle) and key.visible():
+            # We can have keys without any region drawn for example
+            # if we loaded the `EVERSTORE`.
+            region = head(view.get_regions(key))
+            if region is None:
+                continue
+
             # Draw squiggles *under* the cursor invisible because
             # we don't want the visual noise exactly where we edit
             # our code.
@@ -563,10 +569,6 @@ def revalidate_regions(view):
             # first, immediately and on the UI thread, hide them, later
             # in `maybe_update_error_store` we actually erase the region
             # and remove the error from the store.
-            region = head(view.get_regions(key))
-            if region is None:
-                continue
-
             if any(region.contains(s) for s in selections):
                 draw_squiggle_invisible(view, key, [region])
 

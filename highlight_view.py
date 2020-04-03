@@ -603,6 +603,8 @@ def maybe_update_error_store(view):
     new_errors = []
     for error in errors:
         uid = error['uid']
+        # XXX: Why keep the error in the store when we don't have
+        # a region key for it in the store?
         key = uid_key_map.get(uid, None)
         region = head(view.get_regions(key)) if key else None
         if region is None or region == error['region']:

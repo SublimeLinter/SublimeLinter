@@ -3,7 +3,6 @@
 from collections import defaultdict
 import threading
 
-from .util import printf
 from .settings import Settings
 
 
@@ -51,16 +50,3 @@ affected_filenames_per_filename = defaultdict(
 
 active_procs = defaultdict(list)  # type: DefaultDict[Bid, List[subprocess.Popen]]
 active_procs_lock = threading.Lock()
-
-
-def debug_mode():
-    # type: () -> bool
-    """Return whether the "debug" setting is True."""
-    return settings.get('debug', False)
-
-
-def debug(*args):
-    # type: (...) -> None
-    """Print args to the console if the "debug" setting is True."""
-    if debug_mode():
-        printf(*args)

@@ -95,7 +95,7 @@ def messages_under_cursor(filename, current_pos):
             message_template.format(
                 linter=error["linter"],
                 type=error["error_type"],
-                message=error["msg"],
+                message=error["msg"].splitlines()[0],
                 code=error["code"]
             )
             for error in get_errors_under_cursor(filename, current_pos)

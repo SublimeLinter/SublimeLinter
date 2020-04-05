@@ -3,7 +3,7 @@ import sublime_plugin
 
 import time
 
-from .lint import events
+from .lint import events, util
 
 
 INITIAL_DELAY = 2
@@ -18,9 +18,11 @@ State = {
 
 
 def plugin_loaded():
-    State.update({
-        'active_view': sublime.active_window().active_view()
-    })
+    active_view = sublime.active_window().active_view()
+    if util.is_lintable(active_view):
+        State.update({
+            'active_view': active_view
+        })
 
 
 def plugin_unloaded():
@@ -50,7 +52,10 @@ def on_finished_linting(buffer_id, **kwargs):
 
 
 class UpdateState(sublime_plugin.EventListener):
-    def on_activated_async(self, active_view):
+    def on_activated(self, active_view):
+        if not util.is_lintable(active_view):
+            return
+
         State.update({
             'active_view': active_view
         })

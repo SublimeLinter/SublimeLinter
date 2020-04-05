@@ -916,8 +916,8 @@ def join_msgs(errors, show_count, width):
             <div>{messages}</div>
         '''
 
-    tmpl_with_code = "{code} - {msg}"
-    tmpl_sans_code = "{msg}"
+    tmpl_with_code = "{code} - {msg_line}"
+    tmpl_sans_code = "{msg_line}"
 
     all_msgs = ""
     for error_type in (WARNING, ERROR):
@@ -930,14 +930,20 @@ def join_msgs(errors, show_count, width):
 
         filled_templates = []
         for error in errors_by_type:
-            tmpl = tmpl_with_code if error.get('code') else tmpl_sans_code
             prefix_len = len(error['linter']) + 2
-            lines = textwrap.wrap(
-                tmpl.format(**error),
-                width=width,
-                initial_indent=" " * prefix_len,
-                subsequent_indent=" " * prefix_len
-            )
+            lines = list(flatten(
+                textwrap.wrap(
+                    (
+                        tmpl_with_code
+                        if n == 0 and error.get('code')
+                        else tmpl_sans_code
+                    ).format(msg_line=line, **error),
+                    width=width,
+                    initial_indent=" " * prefix_len,
+                    subsequent_indent=" " * prefix_len
+                )
+                for n, line in enumerate(error['msg'].splitlines())
+            ))
             lines[0] = "{linter}: ".format(**error) + lines[0].lstrip()
 
             filled_templates.extend([

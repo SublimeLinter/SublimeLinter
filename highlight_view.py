@@ -928,14 +928,24 @@ def join_msgs(errors, show_count, width):
     tmpl_with_code = "{code} - {msg_line}"
     tmpl_sans_code = "{msg_line}"
 
+    grouped_by_type = defaultdict(list)
+    for error in errors:
+        grouped_by_type[error["error_type"]].append(error)
+
+    def sort_by_type(error_type):
+        if error_type == WARNING:
+            return "0"
+        elif error_type == ERROR:
+            return "1"
+        else:
+            return error_type
+
     all_msgs = ""
-    for error_type in (WARNING, ERROR):
+    for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
-            (e for e in errors if e["error_type"] == error_type),
-            key=lambda e: (e["start"], e["end"])
+            grouped_by_type[error_type],
+            key=lambda e: (e["linter"], e["start"], e["end"])
         )
-        if not errors_by_type:
-            continue
 
         filled_templates = []
         for error in errors_by_type:

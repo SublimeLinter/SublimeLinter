@@ -903,9 +903,14 @@ def open_tooltip(view, point, line_report=False):
 
 def join_msgs_raw(errors):
     # Take an `errors` iterable and reduce it to a string without HTML tags.
-    sorted_errors = sorted(errors, key=lambda r: (r["linter"], r["error_type"]))
-    return "\n\n".join("{}: {}\n{}{}".format(
-        e["linter"], e["error_type"], e["code"] + " - " if e["code"] else "", e["msg"]) for e in sorted_errors
+    sorted_errors = sorted(errors, key=lambda e: (e["linter"], e["error_type"]))
+    return "\n\n".join(
+        "{}: {}\n{}{}".format(
+            error["linter"],
+            error["error_type"],
+            error["code"] + " - " if error["code"] else "",
+            error["msg"]
+        ) for error in sorted_errors
     )
 
 

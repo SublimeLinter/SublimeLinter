@@ -932,7 +932,7 @@ def join_msgs(errors, show_count, width):
     for error_type in (WARNING, ERROR):
         errors_by_type = sorted(
             (e for e in errors if e["error_type"] == error_type),
-            key=lambda x: (x["start"], x["end"])
+            key=lambda e: (e["start"], e["end"])
         )
         if not errors_by_type:
             continue

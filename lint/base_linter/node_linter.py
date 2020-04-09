@@ -39,6 +39,8 @@ def paths_upwards_until_home(path):
     return chain(takewhile(lambda p: p != HOME, paths_upwards(path)), [HOME])
 
 
+# `read_json_file` is maybe used by plugins. Check `eslint` and
+# `xo` for example.
 def read_json_file(path):
     # type: (str) -> Dict[str, Any]
     return _read_json_file(path, os.path.getmtime(path))

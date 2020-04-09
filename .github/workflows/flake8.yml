@@ -11,16 +11,14 @@ on:
       - master
     paths:
     - 'setup.cfg'
-    - '*.py'
-    - 'lint/**.py'
-    - 'tests/**.py'
+    - '**.py'
+    - '!docs/**'
 
   pull_request:
     paths:
     - 'setup.cfg'
-    - '*.py'
-    - 'lint/**.py'
-    - 'tests/**.py'
+    - '**.py'
+    - '!docs/**'
 
 jobs:
   check:

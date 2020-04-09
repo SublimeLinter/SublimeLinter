@@ -466,6 +466,10 @@ try:
 except NameError:
     EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.ViewId, Set[RegionKey]]
 else:
+    # Assign the newly loaded classes to the old regions.
+    # On each reload the `id` of our classes change and any
+    # `isinstance(x, Y)` would fail.
+    # Holy moly, *in-place* mutation.
     def _reload_everstore(store):
         for regions in store.values():
             for r in regions:
@@ -474,7 +478,12 @@ else:
                 elif '.Gutter' in r:
                     r.__class__ = GutterIcon
 
-    _reload_everstore(EVERSTORE)
+    try:
+        _reload_everstore(EVERSTORE)
+    except TypeError:
+        # On initial migration the `EVERSTORE` only holds native strings.
+        # These are not compatible, so we initialize to a fresh state.
+        EVERSTORE = defaultdict(set)
 
 
 def draw_view_region(view, key, regions):

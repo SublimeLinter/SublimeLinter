@@ -509,6 +509,7 @@ def _assign_linters_to_view(view, next_linters):
     persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'filename': filename,
+        'buffer_id': bid,
         'linter_names': list(next_linters)
     })
 

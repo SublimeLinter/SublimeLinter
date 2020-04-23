@@ -903,9 +903,14 @@ def open_tooltip(view, point, line_report=False):
 
 def join_msgs_raw(errors):
     # Take an `errors` iterable and reduce it to a string without HTML tags.
-    sorted_errors = sorted(errors, key=lambda r: (r["linter"], r["error_type"]))
-    return "\n\n".join("{}: {}\n{}{}".format(
-        e["linter"], e["error_type"], e["code"] + " - " if e["code"] else "", e["msg"]) for e in sorted_errors
+    sorted_errors = sorted(errors, key=lambda e: (e["linter"], e["error_type"]))
+    return "\n\n".join(
+        "{}: {}\n{}{}".format(
+            error["linter"],
+            error["error_type"],
+            error["code"] + " - " if error["code"] else "",
+            error["msg"]
+        ) for error in sorted_errors
     )
 
 
@@ -920,28 +925,44 @@ def join_msgs(errors, show_count, width):
             <div>{messages}</div>
         '''
 
-    tmpl_with_code = "{code} - {msg}"
-    tmpl_sans_code = "{msg}"
+    tmpl_with_code = "{code} - {msg_line}"
+    tmpl_sans_code = "{msg_line}"
+
+    grouped_by_type = defaultdict(list)
+    for error in errors:
+        grouped_by_type[error["error_type"]].append(error)
+
+    def sort_by_type(error_type):
+        if error_type == WARNING:
+            return "0"
+        elif error_type == ERROR:
+            return "1"
+        else:
+            return error_type
 
     all_msgs = ""
-    for error_type in (WARNING, ERROR):
+    for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
-            (e for e in errors if e["error_type"] == error_type),
-            key=lambda x: (x["start"], x["end"])
+            grouped_by_type[error_type],
+            key=lambda e: (e["linter"], e["start"], e["end"])
         )
-        if not errors_by_type:
-            continue
 
         filled_templates = []
         for error in errors_by_type:
-            tmpl = tmpl_with_code if error.get('code') else tmpl_sans_code
             prefix_len = len(error['linter']) + 2
-            lines = textwrap.wrap(
-                tmpl.format(**error),
-                width=width,
-                initial_indent=" " * prefix_len,
-                subsequent_indent=" " * prefix_len
-            )
+            lines = list(flatten(
+                textwrap.wrap(
+                    (
+                        tmpl_with_code
+                        if n == 0 and error.get('code')
+                        else tmpl_sans_code
+                    ).format(msg_line=line, **error),
+                    width=width,
+                    initial_indent=" " * prefix_len,
+                    subsequent_indent=" " * prefix_len
+                )
+                for n, line in enumerate(error['msg'].splitlines())
+            ))
             lines[0] = "{linter}: ".format(**error) + lines[0].lstrip()
 
             filled_templates.extend([

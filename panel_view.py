@@ -449,12 +449,15 @@ def _format_error(error_as_tuple, widths_as_tuple):
         else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
     )
     info = tmpl.format(LINE=line, START=start, CODE=code, **error)
-    rv = textwrap.wrap(
-        error['msg'],
-        width=widths['viewport'],
-        initial_indent=" " * len(info),
-        subsequent_indent=" " * len(info)
-    )
+    rv = list(flatten(
+        textwrap.wrap(
+            msg_line,
+            width=widths['viewport'],
+            initial_indent=" " * len(info),
+            subsequent_indent=" " * len(info)
+        )
+        for msg_line in error['msg'].splitlines()
+    ))
     rv[0] = info + rv[0].lstrip()
     return rv
 

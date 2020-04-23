@@ -6,7 +6,8 @@ import threading
 from .settings import Settings
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import DefaultDict, Dict, List, Set, Tuple, Type
     from mypy_extensions import TypedDict
     import sublime

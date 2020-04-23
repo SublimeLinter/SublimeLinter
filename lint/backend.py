@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from itertools import chain, count
 from functools import partial
 import hashlib
-import json
 import logging
 import multiprocessing
 import os
@@ -174,12 +173,20 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
-def error_json_serializer(o):
-    """Return a JSON serializable representation of error properties."""
-    if isinstance(o, sublime.Region):
-        return (o.a, o.b)
+PROPERTIES_FOR_UID = (
+    'filename', 'linter', 'line', 'start', 'end', 'error_type', 'code', 'msg',
+)
 
-    return o
+
+def make_error_uid(error):
+    # type: (LintError) -> str
+    return hashlib.sha256(
+        ''.join(
+            str(error[k])  # type: ignore
+            for k in PROPERTIES_FOR_UID
+        )
+        .encode('utf-8')
+    ).hexdigest()
 
 
 def finalize_errors(linter, errors, offsets):
@@ -216,19 +223,16 @@ def finalize_errors(linter, errors, offsets):
                 region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
 
         error.update({
+            'linter': linter_name,
+            'region': region,
             'line': line,
             'start': start,
             'end': end,
-            'linter': linter_name,
-            'region': region
         })
 
-        uid = hashlib.sha256(
-            json.dumps(error, sort_keys=True, default=error_json_serializer).encode('utf-8')).hexdigest()
-
         error.update({
-            'uid': uid,
-            'priority': style.get_value('priority', error, 0)
+            'uid': make_error_uid(error),
+            'priority': style.get_value('priority', error, 0),
         })
 
 

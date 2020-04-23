@@ -104,12 +104,14 @@ def get_default_styles():
 
 
 def get_icon(error):
+    # type: (persist.LintError) -> str
     linter, code, error_type = error['linter'], error['code'], error['error_type']
     return get_icon_(linter, code, error_type)
 
 
 @lru_cache(maxsize=16)
 def get_icon_(linter, code, error_type):
+    # type: (persist.LinterName, str, str) -> str
     icon = get_value_('icon', linter, code, error_type, 'none')
 
     if icon in ('circle', 'dot', 'bookmark', 'none'):  # Sublime Text has some default icons
@@ -129,6 +131,7 @@ def get_icon_(linter, code, error_type):
 
 
 def get_icon_scope(error):
+    # type: (persist.LintError) -> str
     if COLORIZE:
         return get_value('scope', error)
     else:

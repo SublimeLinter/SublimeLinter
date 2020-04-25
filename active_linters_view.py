@@ -18,8 +18,10 @@ if MYPY:
         'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
-        'sweeps': DefaultDict[sublime.BufferId, int],
-        'expanded_ok': DefaultDict[sublime.BufferId, float],
+        'activated_views': Set[sublime.ViewId],
+        'linters_per_file_memo': DefaultDict[FileName, Set[LinterName]],
+        'running': DefaultDict[sublime.BufferId, int],
+        'expanded_ok': Dict[sublime.BufferId, float],
     })
 
 
@@ -29,13 +31,16 @@ State = {
     'assigned_linters_per_file': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
-    'sweeps': defaultdict(int),
-    'expanded_ok': defaultdict(float),
+    'activated_views': set(),
+    'linters_per_file_memo': defaultdict(set),
+    'running': defaultdict(int),
+    'expanded_ok': dict(),
 }  # type: State_
 
 
 def plugin_unloaded():
     events.off(redraw_file)
+    events.off(on_begin_linting)
     events.off(on_finished_linting)
 
     for window in sublime.windows():
@@ -43,16 +48,22 @@ def plugin_unloaded():
             view.erase_status(STATUS_ACTIVE_KEY)
 
 
+@events.on(events.LINT_START)
+def on_begin_linting(buffer_id):
+    # type: (sublime.BufferId) -> None
+    State['running'][buffer_id] += 1
+
+
 @events.on(events.LINT_END)
 def on_finished_linting(buffer_id, **kwargs):
-    # Run on the main thread to avoid locks; all other
-    # functions mutating "sweeps" or "expanded_ok" already
-    # run on the ui thread.
-    def task():
-        State['sweeps'][buffer_id] += 1
-        if State['sweeps'][buffer_id] == 1:
-            show_expanded_ok(buffer_id)
-    sublime.set_timeout(task)
+    if State['running'][buffer_id] <= 1:
+        State['running'].pop(buffer_id)
+    else:
+        State['running'][buffer_id] -= 1
+
+    if buffer_id in State['expanded_ok']:
+        # Prolong "expanded" state
+        show_expanded_ok(buffer_id)
 
 
 @events.on(events.LINT_RESULT)
@@ -88,6 +99,12 @@ def redraw_file(filename, linter_name, errors, **kwargs):
 def redraw_file_(filename, problems):
     for view in views_into_file(filename):
         draw(view, problems)
+
+
+def redraw_buffer_(buffer_id):
+    for view in views_with_buffer_id(buffer_id):
+        filename = util.get_filename(view)
+        draw(view, State['problems_per_file'][filename])
 
 
 def views_into_file(filename):
@@ -129,12 +146,16 @@ def show_expanded_ok(bid):
 
 def unset_expanded_ok(bid, token):
     # type: (sublime.BufferId, float) -> None
-    if State['expanded_ok'][bid] == token:
-        State['expanded_ok'].pop(bid, None)
-        view = next(views_with_buffer_id(bid), None)
-        if view:
-            filename = util.get_filename(view)
-            redraw_file_(filename, State['problems_per_file'][filename])
+    if State['expanded_ok'].get(bid) != token:
+        return
+
+    # keep expanded if linters are running to
+    # minimize redraws
+    if State['running'].get(bid, 0) > 0:
+        return
+
+    State['expanded_ok'].pop(bid, None)
+    redraw_buffer_(bid)
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
@@ -143,7 +164,6 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['failed_linters_per_file'][filename] = set()
         if State['assigned_linters_per_file'][filename] != set(linter_names):
             State['assigned_linters_per_file'][filename] = set(linter_names)
-            State['sweeps'][buffer_id] = 0
             show_expanded_ok(buffer_id)
             # Redraw to get immediate visual response
             redraw_file_(filename, State['problems_per_file'][filename])
@@ -161,26 +181,37 @@ class sublime_linter_failed(sublime_plugin.WindowCommand):
 
 
 class UpdateState(sublime_plugin.EventListener):
+    def on_activated(self, view):
+        if not util.is_lintable(view):
+            return
+
+        vid = view.id()
+        if vid in State['activated_views']:
+            return
+
+        State['activated_views'].add(vid)
+
+        show_expanded_ok(view.buffer_id())
+        filename = util.get_filename(view)
+        draw(view, State['problems_per_file'][filename])
+
     def on_close(self, view):
         # type: (sublime.View) -> None
-        State['sweeps'].pop(view.buffer_id(), None)
+        State['activated_views'].discard(view.id())
 
 
 def draw(view, problems):
-    def by_severity(item):
-        linter_name, summary = item
-        if summary == '':
-            return (0, linter_name)
-        elif summary[0] == '?':
-            return (2, linter_name)
-        return (1, linter_name)
-
     if persist.settings.get('statusbar.show_active_linters'):
         bid = view.buffer_id()
+        current = set(problems.keys())
+        previous = State['linters_per_file_memo'][bid]
+        State['linters_per_file_memo'][bid] = current
+        if current != previous:
+            show_expanded_ok(bid)
+
         if (
             problems.keys()
-            and not State['expanded_ok'][bid]
-            and State['sweeps'][bid] >= 1
+            and bid not in State['expanded_ok']
             and all(part == '' for part in problems.values())
         ):
             message = 'ok'
@@ -194,3 +225,12 @@ def draw(view, problems):
         view.set_status(STATUS_ACTIVE_KEY, message)
     else:
         view.erase_status(STATUS_ACTIVE_KEY)
+
+
+def by_severity(item):
+    linter_name, summary = item
+    if summary == '':
+        return (0, linter_name)
+    elif summary[0] == '?':
+        return (2, linter_name)
+    return (1, linter_name)

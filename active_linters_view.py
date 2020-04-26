@@ -1,5 +1,6 @@
 from collections import defaultdict
-import time
+from functools import partial
+import threading
 
 import sublime
 import sublime_plugin
@@ -22,7 +23,7 @@ if MYPY:
         'activated_views': Set[sublime.ViewId],
         'linters_per_file_memo': DefaultDict[FileName, Set[LinterName]],
         'running': DefaultDict[sublime.BufferId, int],
-        'expanded_ok': Dict[sublime.BufferId, float],
+        'expanded_ok': Set[sublime.BufferId],
     })
 
 
@@ -36,7 +37,7 @@ State = {
     'activated_views': set(),
     'linters_per_file_memo': defaultdict(set),
     'running': defaultdict(int),
-    'expanded_ok': dict(),
+    'expanded_ok': set(),
 }  # type: State_
 
 
@@ -70,22 +71,17 @@ def on_finished_linting(buffer_id, **kwargs):
 
 def show_expanded_ok(bid):
     # type: (sublime.BufferId) -> None
-    token = time.time()
-    State['expanded_ok'][bid] = token
-    sublime.set_timeout(lambda: _unset_expanded_ok(bid, token), 3000)
+    State['expanded_ok'].add(bid)
+    sublime.set_timeout(throttled_on_args(_unset_expanded_ok, bid), 3000)
 
 
-def _unset_expanded_ok(bid, token):
-    # type: (sublime.BufferId, float) -> None
-    if State['expanded_ok'].get(bid) != token:
-        return
-
-    # keep expanded if linters are running to
-    # minimize redraws
+def _unset_expanded_ok(bid):
+    # type: (sublime.BufferId) -> None
+    # Keep expanded if linters are running to minimize redraws
     if State['running'].get(bid, 0) > 0:
         return
 
-    State['expanded_ok'].pop(bid, None)
+    State['expanded_ok'].discard(bid)
     redraw_buffer_(bid)
 
 
@@ -237,3 +233,22 @@ def by_severity(item):
     elif summary[0] == '?':
         return (2, linter_name)
     return (1, linter_name)
+
+
+THROTTLER_TOKENS = {}
+THROTTLER_LOCK = threading.Lock()
+
+
+def throttled_on_args(fn, *args, **kwargs):
+    key = (fn,) + args
+    action = partial(fn, *args, **kwargs)
+    with THROTTLER_LOCK:
+        THROTTLER_TOKENS[key] = action
+
+    def program():
+        with THROTTLER_LOCK:
+            ok = THROTTLER_TOKENS[key] == action
+        if ok:
+            action()
+
+    return program

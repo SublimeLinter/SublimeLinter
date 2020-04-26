@@ -16,6 +16,7 @@ if MYPY:
     LinterName = str
     State_ = TypedDict('State_', {
         'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
+        'assigned_linters_memo': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
         'activated_views': Set[sublime.ViewId],
@@ -29,6 +30,7 @@ STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 
 State = {
     'assigned_linters_per_file': defaultdict(set),
+    'assigned_linters_memo': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
     'activated_views': set(),
@@ -90,9 +92,12 @@ def _unset_expanded_ok(bid, token):
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
     def run(self, filename, buffer_id, linter_names):
         # type: (FileName, sublime.BufferId, List[LinterName]) -> None
+        State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
-        if State['assigned_linters_per_file'][filename] != set(linter_names):
-            State['assigned_linters_per_file'][filename] = set(linter_names)
+
+        previous = State['assigned_linters_memo'][filename]
+        current = State['assigned_linters_memo'][filename] = set(linter_names)
+        if current != previous:
             show_expanded_ok(buffer_id)
             # Redraw to get immediate visual response
             redraw_file_(filename, State['problems_per_file'][filename])
@@ -202,9 +207,8 @@ def all_views():
 def draw(view, problems):
     if persist.settings.get('statusbar.show_active_linters'):
         bid = view.buffer_id()
-        current = set(problems.keys())
         previous = State['linters_per_file_memo'][bid]
-        State['linters_per_file_memo'][bid] = current
+        current = State['linters_per_file_memo'][bid] = set(problems.keys())
         if current != previous:
             show_expanded_ok(bid)
 

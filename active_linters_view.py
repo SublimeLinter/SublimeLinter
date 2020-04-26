@@ -66,85 +66,14 @@ def on_finished_linting(buffer_id, **kwargs):
         show_expanded_ok(buffer_id)
 
 
-@events.on(events.LINT_RESULT)
-def redraw_file(filename, linter_name, errors, **kwargs):
-    # type: (FileName, LinterName, List[persist.LintError], object) -> None
-    problems = State['problems_per_file'][filename]
-    if linter_name in State['failed_linters_per_file'][filename]:
-        problems[linter_name] = '?'
-    elif linter_name in State['assigned_linters_per_file'][filename] or errors:
-        if linter_name not in State['assigned_linters_per_file'][filename]:
-            State['assigned_linters_per_file'][filename].add(linter_name)
-
-        counts = count_problems(errors)
-        if sum(counts.values()) == 0:
-            problems[linter_name] = ''
-        else:
-            sorted_keys = (
-                tuple(sorted(counts.keys() - {'w', 'e'}))
-                + ('w', 'e')
-            )
-            parts = ' '.join(
-                "{}:{}".format(error_type, counts[error_type])
-                for error_type in sorted_keys
-                if error_type in counts and counts[error_type] > 0
-            )
-            problems[linter_name] = '({})'.format(parts)
-    else:
-        problems.pop(linter_name, None)
-
-    sublime.set_timeout(lambda: redraw_file_(filename, problems))
-
-
-def redraw_file_(filename, problems):
-    for view in views_into_file(filename):
-        draw(view, problems)
-
-
-def redraw_buffer_(buffer_id):
-    for view in views_with_buffer_id(buffer_id):
-        filename = util.get_filename(view)
-        draw(view, State['problems_per_file'][filename])
-
-
-def views_into_file(filename):
-    # type: (FileName) -> Iterator[sublime.View]
-    return (
-        view
-        for window in sublime.windows()
-        for view in window.views()
-        if util.get_filename(view) == filename
-    )
-
-
-def views_with_buffer_id(bid):
-    # type: (sublime.BufferId) -> Iterator[sublime.View]
-    return (
-        view
-        for window in sublime.windows()
-        for view in window.views()
-        if view.buffer_id() == bid
-    )
-
-
-def count_problems(errors):
-    # type: (List[persist.LintError]) -> Dict[str, int]
-    counters = defaultdict(int)  # type: DefaultDict[str, int]
-    for error in errors:
-        error_type = error['error_type']
-        counters[error_type[0]] += 1
-
-    return counters
-
-
 def show_expanded_ok(bid):
     # type: (sublime.BufferId) -> None
     token = time.time()
     State['expanded_ok'][bid] = token
-    sublime.set_timeout(lambda: unset_expanded_ok(bid, token), 3000)
+    sublime.set_timeout(lambda: _unset_expanded_ok(bid, token), 3000)
 
 
-def unset_expanded_ok(bid, token):
+def _unset_expanded_ok(bid, token):
     # type: (sublime.BufferId, float) -> None
     if State['expanded_ok'].get(bid) != token:
         return
@@ -198,6 +127,76 @@ class UpdateState(sublime_plugin.EventListener):
     def on_close(self, view):
         # type: (sublime.View) -> None
         State['activated_views'].discard(view.id())
+
+
+@events.on(events.LINT_RESULT)
+def redraw_file(filename, linter_name, errors, **kwargs):
+    # type: (FileName, LinterName, List[persist.LintError], object) -> None
+    problems = State['problems_per_file'][filename]
+    if linter_name in State['failed_linters_per_file'][filename]:
+        problems[linter_name] = '?'
+    elif linter_name in State['assigned_linters_per_file'][filename] or errors:
+        if linter_name not in State['assigned_linters_per_file'][filename]:
+            State['assigned_linters_per_file'][filename].add(linter_name)
+
+        counts = count_problems(errors)
+        if sum(counts.values()) == 0:
+            problems[linter_name] = ''
+        else:
+            sorted_keys = (
+                tuple(sorted(counts.keys() - {'w', 'e'}))
+                + ('w', 'e')
+            )
+            parts = ' '.join(
+                "{}:{}".format(error_type, counts[error_type])
+                for error_type in sorted_keys
+                if error_type in counts and counts[error_type] > 0
+            )
+            problems[linter_name] = '({})'.format(parts)
+    else:
+        problems.pop(linter_name, None)
+
+    sublime.set_timeout(lambda: redraw_file_(filename, problems))
+
+
+def count_problems(errors):
+    # type: (List[persist.LintError]) -> Dict[str, int]
+    counters = defaultdict(int)  # type: DefaultDict[str, int]
+    for error in errors:
+        error_type = error['error_type']
+        counters[error_type[0]] += 1
+
+    return counters
+
+
+def redraw_file_(filename, problems):
+    for view in views_into_file(filename):
+        draw(view, problems)
+
+
+def redraw_buffer_(buffer_id):
+    for view in views_with_buffer_id(buffer_id):
+        filename = util.get_filename(view)
+        draw(view, State['problems_per_file'][filename])
+
+
+def views_into_file(filename):
+    # type: (FileName) -> Iterator[sublime.View]
+    return (view for view in all_views() if util.get_filename(view) == filename)
+
+
+def views_with_buffer_id(bid):
+    # type: (sublime.BufferId) -> Iterator[sublime.View]
+    return (view for view in all_views() if view.buffer_id() == bid)
+
+
+def all_views():
+    # type: () -> Iterator[sublime.View]
+    return (
+        view
+        for window in sublime.windows()
+        for view in window.views()
+    )
 
 
 def draw(view, problems):

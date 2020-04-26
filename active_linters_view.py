@@ -10,14 +10,13 @@ from .lint import events, persist, util
 
 MYPY = False
 if MYPY:
-    from typing import DefaultDict, Dict, Iterator, List, Set
+    from typing import DefaultDict, Dict, Hashable, Iterator, List, Set
     from mypy_extensions import TypedDict
 
     FileName = str
     LinterName = str
     State_ = TypedDict('State_', {
         'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
-        'assigned_linters_memo': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
         'linters_per_file_memo': DefaultDict[FileName, Set[LinterName]],
@@ -30,7 +29,6 @@ STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 
 State = {
     'assigned_linters_per_file': defaultdict(set),
-    'assigned_linters_memo': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
     'linters_per_file_memo': defaultdict(set),
@@ -77,6 +75,12 @@ def on_first_activate(view):
     draw(view, State['problems_per_file'][filename])
 
 
+def on_assigned_linters_changed(filename, bid):
+    # type: (FileName, sublime.BufferId) -> None
+    show_expanded_ok(bid)
+    redraw_file_(filename, State['problems_per_file'][filename])
+
+
 def show_expanded_ok(bid):
     # type: (sublime.BufferId) -> None
     State['expanded_ok'].add(bid)
@@ -99,12 +103,8 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
-        previous = State['assigned_linters_memo'][filename]
-        current = State['assigned_linters_memo'][filename] = set(linter_names)
-        if current != previous:
-            show_expanded_ok(buffer_id)
-            # Redraw to get immediate visual response
-            redraw_file_(filename, State['problems_per_file'][filename])
+        if not distinct_pair(filename, linter_names):
+            on_assigned_linters_changed(filename, buffer_id)
 
 
 class sublime_linter_unassigned(sublime_plugin.WindowCommand):
@@ -258,3 +258,13 @@ class OnFirstActivate(sublime_plugin.EventListener):
     def on_close(self, view):
         # type: (sublime.View) -> None
         ACTIVATED_VIEWS.discard(view.id())
+
+
+PAIRS = {}  # type: Dict[Hashable, object]
+
+
+def distinct_pair(key, val):
+    # type: (Hashable, object) -> bool
+    previous = PAIRS.get(key)
+    current = PAIRS[key] = val
+    return current == previous

@@ -20,7 +20,6 @@ if MYPY:
         'assigned_linters_memo': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
-        'activated_views': Set[sublime.ViewId],
         'linters_per_file_memo': DefaultDict[FileName, Set[LinterName]],
         'running': DefaultDict[sublime.BufferId, int],
         'expanded_ok': Set[sublime.BufferId],
@@ -34,7 +33,6 @@ State = {
     'assigned_linters_memo': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
-    'activated_views': set(),
     'linters_per_file_memo': defaultdict(set),
     'running': defaultdict(int),
     'expanded_ok': set(),
@@ -67,6 +65,16 @@ def on_finished_linting(buffer_id, **kwargs):
     if buffer_id in State['expanded_ok']:
         # Prolong "expanded" state
         show_expanded_ok(buffer_id)
+
+
+def on_first_activate(view):
+    # type: (sublime.View) -> None
+    if not util.is_lintable(view):
+        return
+
+    show_expanded_ok(view.buffer_id())
+    filename = util.get_filename(view)
+    draw(view, State['problems_per_file'][filename])
 
 
 def show_expanded_ok(bid):
@@ -108,26 +116,6 @@ class sublime_linter_unassigned(sublime_plugin.WindowCommand):
 class sublime_linter_failed(sublime_plugin.WindowCommand):
     def run(self, filename, linter_name):
         State['failed_linters_per_file'][filename].add(linter_name)
-
-
-class UpdateState(sublime_plugin.EventListener):
-    def on_activated(self, view):
-        if not util.is_lintable(view):
-            return
-
-        vid = view.id()
-        if vid in State['activated_views']:
-            return
-
-        State['activated_views'].add(vid)
-
-        show_expanded_ok(view.buffer_id())
-        filename = util.get_filename(view)
-        draw(view, State['problems_per_file'][filename])
-
-    def on_close(self, view):
-        # type: (sublime.View) -> None
-        State['activated_views'].discard(view.id())
 
 
 @events.on(events.LINT_RESULT)
@@ -252,3 +240,21 @@ def throttled_on_args(fn, *args, **kwargs):
             action()
 
     return program
+
+
+ACTIVATED_VIEWS = set()
+
+
+class OnFirstActivate(sublime_plugin.EventListener):
+    def on_activated(self, view):
+        # type: (sublime.View) -> None
+        vid = view.id()
+        if vid in ACTIVATED_VIEWS:
+            return
+
+        ACTIVATED_VIEWS.add(vid)
+        on_first_activate(view)
+
+    def on_close(self, view):
+        # type: (sublime.View) -> None
+        ACTIVATED_VIEWS.discard(view.id())

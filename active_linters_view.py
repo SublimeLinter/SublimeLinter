@@ -71,13 +71,13 @@ def on_first_activate(view):
 
     filename = util.get_filename(view)
     show_expanded_ok(filename)
-    draw(view, State['problems_per_file'][filename])
+    draw(view, State['problems_per_file'][filename], expanded_ok=True)
 
 
 def on_assigned_linters_changed(filename):
     # type: (FileName) -> None
     show_expanded_ok(filename)
-    redraw_file_(filename, State['problems_per_file'][filename])
+    redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=True)
 
 
 def show_expanded_ok(filename):
@@ -93,7 +93,7 @@ def _unset_expanded_ok(filename):
         return
 
     State['expanded_ok'].discard(filename)
-    redraw_file_(filename, State['problems_per_file'][filename])
+    redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=False)
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
@@ -146,7 +146,15 @@ def redraw_file(filename, linter_name, errors, **kwargs):
 
     if actual_linters_changed(filename, set(problems.keys())):
         show_expanded_ok(filename)
-    sublime.set_timeout(lambda: redraw_file_(filename, problems))
+
+    sublime.set_timeout(
+        lambda: redraw_file_(
+            filename,
+            problems,
+            # eval on the UI thread!
+            expanded_ok=filename in State['expanded_ok']
+        )
+    )
 
 
 def count_problems(errors):
@@ -159,10 +167,10 @@ def count_problems(errors):
     return counters
 
 
-def redraw_file_(filename, problems):
-    # type: (FileName, Dict[LinterName, str]) -> None
+def redraw_file_(filename, problems, expanded_ok):
+    # type: (FileName, Dict[LinterName, str], bool) -> None
     for view in views_into_file(filename):
-        draw(view, problems)
+        draw(view, problems, expanded_ok)
 
 
 def views_into_file(filename):
@@ -175,14 +183,12 @@ def views_into_file(filename):
     )
 
 
-def draw(view, problems):
-    # type: (sublime.View, Dict[LinterName, str]) -> None
+def draw(view, problems, expanded_ok):
+    # type: (sublime.View, Dict[LinterName, str], bool) -> None
     if persist.settings.get('statusbar.show_active_linters'):
-        filename = util.get_filename(view)
-
         if (
-            problems.keys()
-            and filename not in State['expanded_ok']
+            not expanded_ok
+            and problems.keys()
             and all(part == '' for part in problems.values())
         ):
             message = 'ok'

@@ -24,7 +24,7 @@ from .lint import settings
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Tuple
+    from typing import Callable, DefaultDict, Dict, Iterator, List, Optional, Set, Tuple
 
     Bid = sublime.BufferId
     LinterName = str
@@ -358,16 +358,12 @@ def lint(view, view_has_changed, lock, reason):
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    events.broadcast(events.LINT_START, {'buffer_id': bid})
-
-    with remember_runtime(
+    with broadcast_lint_runtime(bid), remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(
             group_by_filename_and_update, window, filename, view_has_changed, reason)
         backend.lint_view(runnable_linters, view, view_has_changed, sink)
-
-    events.broadcast(events.LINT_END, {'buffer_id': bid})
 
 
 def kill_active_popen_calls(bid):
@@ -567,6 +563,7 @@ def get_delay():
 
 @contextmanager
 def remember_runtime(log_msg):
+    # type: (str) -> Iterator[None]
     start_time = time.time()
 
     yield
@@ -577,3 +574,13 @@ def remember_runtime(log_msg):
 
     with global_lock:
         elapsed_runtimes.append(runtime)
+
+
+@contextmanager
+def broadcast_lint_runtime(bid):
+    # type: (sublime.BufferId) -> Iterator[None]
+    events.broadcast(events.LINT_START, {'buffer_id': bid})
+    try:
+        yield
+    finally:
+        events.broadcast(events.LINT_END, {'buffer_id': bid})

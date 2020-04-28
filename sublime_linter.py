@@ -358,7 +358,7 @@ def lint(view, view_has_changed, lock, reason):
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    with broadcast_lint_runtime(bid), remember_runtime(
+    with broadcast_lint_runtime(filename), remember_runtime(
         "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
     ):
         sink = partial(
@@ -505,7 +505,6 @@ def _assign_linters_to_view(view, next_linters):
     persist.assigned_linters[bid] = next_linters
     window.run_command('sublime_linter_assigned', {
         'filename': filename,
-        'buffer_id': bid,
         'linter_names': list(next_linters)
     })
 
@@ -577,10 +576,10 @@ def remember_runtime(log_msg):
 
 
 @contextmanager
-def broadcast_lint_runtime(bid):
-    # type: (sublime.BufferId) -> Iterator[None]
-    events.broadcast(events.LINT_START, {'buffer_id': bid})
+def broadcast_lint_runtime(filename):
+    # type: (FileName) -> Iterator[None]
+    events.broadcast(events.LINT_START, {'filename': filename})
     try:
         yield
     finally:
-        events.broadcast(events.LINT_END, {'buffer_id': bid})
+        events.broadcast(events.LINT_END, {'filename': filename})

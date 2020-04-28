@@ -19,8 +19,8 @@ if MYPY:
         'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
-        'running': DefaultDict[sublime.BufferId, int],
-        'expanded_ok': Set[sublime.BufferId],
+        'running': DefaultDict[FileName, int],
+        'expanded_ok': Set[FileName],
     })
 
 
@@ -46,21 +46,22 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_START)
-def on_begin_linting(buffer_id):
-    # type: (sublime.BufferId) -> None
-    State['running'][buffer_id] += 1
+def on_begin_linting(filename):
+    # type: (FileName) -> None
+    State['running'][filename] += 1
 
 
 @events.on(events.LINT_END)
-def on_finished_linting(buffer_id, **kwargs):
-    if State['running'][buffer_id] <= 1:
-        State['running'].pop(buffer_id)
+def on_finished_linting(filename):
+    # type: (FileName) -> None
+    if State['running'][filename] <= 1:
+        State['running'].pop(filename)
     else:
-        State['running'][buffer_id] -= 1
+        State['running'][filename] -= 1
 
-    if buffer_id in State['expanded_ok']:
+    if filename in State['expanded_ok']:
         # Prolong "expanded" state
-        show_expanded_ok(buffer_id)
+        show_expanded_ok(filename)
 
 
 def on_first_activate(view):
@@ -68,41 +69,41 @@ def on_first_activate(view):
     if not util.is_lintable(view):
         return
 
-    show_expanded_ok(view.buffer_id())
     filename = util.get_filename(view)
+    show_expanded_ok(filename)
     draw(view, State['problems_per_file'][filename])
 
 
-def on_assigned_linters_changed(filename, bid):
-    # type: (FileName, sublime.BufferId) -> None
-    show_expanded_ok(bid)
+def on_assigned_linters_changed(filename):
+    # type: (FileName) -> None
+    show_expanded_ok(filename)
     redraw_file_(filename, State['problems_per_file'][filename])
 
 
-def show_expanded_ok(bid):
-    # type: (sublime.BufferId) -> None
-    State['expanded_ok'].add(bid)
-    sublime.set_timeout(throttled_on_args(_unset_expanded_ok, bid), 3000)
+def show_expanded_ok(filename):
+    # type: (FileName) -> None
+    State['expanded_ok'].add(filename)
+    sublime.set_timeout(throttled_on_args(_unset_expanded_ok, filename), 3000)
 
 
-def _unset_expanded_ok(bid):
-    # type: (sublime.BufferId) -> None
+def _unset_expanded_ok(filename):
+    # type: (FileName) -> None
     # Keep expanded if linters are running to minimize redraws
-    if State['running'].get(bid, 0) > 0:
+    if State['running'].get(filename, 0) > 0:
         return
 
-    State['expanded_ok'].discard(bid)
-    redraw_buffer_(bid)
+    State['expanded_ok'].discard(filename)
+    redraw_file_(filename, State['problems_per_file'][filename])
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
-    def run(self, filename, buffer_id, linter_names):
-        # type: (FileName, sublime.BufferId, List[LinterName]) -> None
+    def run(self, filename, linter_names):
+        # type: (FileName, List[LinterName]) -> None
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
         if assigned_linters_changed(filename, linter_names):
-            on_assigned_linters_changed(filename, buffer_id)
+            on_assigned_linters_changed(filename)
 
 
 class sublime_linter_unassigned(sublime_plugin.WindowCommand):
@@ -143,6 +144,8 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
+    if actual_linters_changed(filename, set(problems.keys())):
+        show_expanded_ok(filename)
     sublime.set_timeout(lambda: redraw_file_(filename, problems))
 
 
@@ -157,44 +160,29 @@ def count_problems(errors):
 
 
 def redraw_file_(filename, problems):
+    # type: (FileName, Dict[LinterName, str]) -> None
     for view in views_into_file(filename):
         draw(view, problems)
 
 
-def redraw_buffer_(buffer_id):
-    for view in views_with_buffer_id(buffer_id):
-        filename = util.get_filename(view)
-        draw(view, State['problems_per_file'][filename])
-
-
 def views_into_file(filename):
     # type: (FileName) -> Iterator[sublime.View]
-    return (view for view in all_views() if util.get_filename(view) == filename)
-
-
-def views_with_buffer_id(bid):
-    # type: (sublime.BufferId) -> Iterator[sublime.View]
-    return (view for view in all_views() if view.buffer_id() == bid)
-
-
-def all_views():
-    # type: () -> Iterator[sublime.View]
     return (
         view
         for window in sublime.windows()
         for view in window.views()
+        if util.get_filename(view) == filename
     )
 
 
 def draw(view, problems):
+    # type: (sublime.View, Dict[LinterName, str]) -> None
     if persist.settings.get('statusbar.show_active_linters'):
-        bid = view.buffer_id()
-        if actual_linters_changed(bid, set(problems.keys())):
-            show_expanded_ok(bid)
+        filename = util.get_filename(view)
 
         if (
             problems.keys()
-            and bid not in State['expanded_ok']
+            and filename not in State['expanded_ok']
             and all(part == '' for part in problems.values())
         ):
             message = 'ok'
@@ -262,13 +250,13 @@ if MYPY:
     U = TypeVar('U')
 
 
-ACTUAL_REPORTING_LINTERS = {}  # type: Dict[sublime.BufferId, Container[LinterName]]
+ACTUAL_REPORTING_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 
 
-def actual_linters_changed(bid, linter_names):
-    # type: (sublime.BufferId, Container[LinterName])  -> bool
-    return not distinct_mapping(ACTUAL_REPORTING_LINTERS, bid, linter_names)
+def actual_linters_changed(filename, linter_names):
+    # type: (FileName, Container[LinterName])  -> bool
+    return not distinct_mapping(ACTUAL_REPORTING_LINTERS, filename, linter_names)
 
 
 def assigned_linters_changed(filename, linter_names):

@@ -11,11 +11,11 @@ if MYPY:
     from typing import Dict, Optional
     from mypy_extensions import TypedDict
 
-    Filename = str
+    FileName = str
     LinterName = str
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
-        'running': Dict[sublime.BufferId, float],
+        'running': Dict[FileName, float],
     })
 
 
@@ -47,26 +47,26 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_START)
-def on_begin_linting(buffer_id):
-    # type: (sublime.BufferId) -> None
-    State['running'][buffer_id] = time.time()
+def on_begin_linting(filename):
+    # type: (FileName) -> None
+    State['running'][filename] = time.time()
 
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
+    if active_view and util.get_filename(active_view) == filename:
         sublime.set_timeout_async(
-            lambda: draw(active_view),  # type: ignore  # mypy bug
+            lambda: draw(active_view, filename),  # type: ignore  # mypy bug
             INITIAL_DELAY * 1000
         )
 
 
 @events.on(events.LINT_END)
-def on_finished_linting(buffer_id, **kwargs):
-    # type: (sublime.BufferId, object) -> None
-    State['running'].pop(buffer_id, None)
+def on_finished_linting(filename):
+    # type: (FileName) -> None
+    State['running'].pop(filename, None)
 
     active_view = State['active_view']
-    if active_view and active_view.buffer_id() == buffer_id:
-        draw(active_view)
+    if active_view and util.get_filename(active_view) == filename:
+        draw(active_view, filename)
 
 
 class UpdateState(sublime_plugin.EventListener):
@@ -79,7 +79,7 @@ class UpdateState(sublime_plugin.EventListener):
             'active_view': active_view
         })
 
-        draw(active_view)
+        draw(active_view, util.get_filename(active_view))
 
 
 indicators = [
@@ -91,15 +91,14 @@ indicators = [
 ]
 
 
-def draw(view):
-    # type: (sublime.View) -> None
-    buffer_id = view.buffer_id()
-    start_time = State['running'].get(buffer_id, None)
+def draw(view, filename):
+    # type: (sublime.View, FileName) -> None
+    start_time = State['running'].get(filename, None)
     now = time.time()
     if start_time and (INITIAL_DELAY <= (now - start_time) < TIMEOUT):
         num = len(indicators)
         text = indicators[int((now - start_time) * 1000 / CYCLE_TIME) % num]
         view.set_status(STATUS_BUSY_KEY, text)
-        sublime.set_timeout_async(lambda: draw(view), CYCLE_TIME)
+        sublime.set_timeout_async(lambda: draw(view, filename), CYCLE_TIME)
     else:
         view.erase_status(STATUS_BUSY_KEY)

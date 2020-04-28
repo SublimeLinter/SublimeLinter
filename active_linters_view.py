@@ -10,7 +10,7 @@ from .lint import events, persist, util
 
 MYPY = False
 if MYPY:
-    from typing import DefaultDict, Dict, Hashable, Iterator, List, Set
+    from typing import DefaultDict, Dict, Iterator, List, Set
     from mypy_extensions import TypedDict
 
     FileName = str
@@ -19,7 +19,6 @@ if MYPY:
         'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
         'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
-        'linters_per_file_memo': DefaultDict[FileName, Set[LinterName]],
         'running': DefaultDict[sublime.BufferId, int],
         'expanded_ok': Set[sublime.BufferId],
     })
@@ -31,7 +30,6 @@ State = {
     'assigned_linters_per_file': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
-    'linters_per_file_memo': defaultdict(set),
     'running': defaultdict(int),
     'expanded_ok': set(),
 }  # type: State_
@@ -103,7 +101,7 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
-        if not distinct_pair(filename, linter_names):
+        if assigned_linters_changed(filename, linter_names):
             on_assigned_linters_changed(filename, buffer_id)
 
 
@@ -191,9 +189,7 @@ def all_views():
 def draw(view, problems):
     if persist.settings.get('statusbar.show_active_linters'):
         bid = view.buffer_id()
-        previous = State['linters_per_file_memo'][bid]
-        current = State['linters_per_file_memo'][bid] = set(problems.keys())
-        if current != previous:
+        if actual_linters_changed(bid, set(problems.keys())):
             show_expanded_ok(bid)
 
         if (
@@ -260,11 +256,28 @@ class OnFirstActivate(sublime_plugin.EventListener):
         ACTIVATED_VIEWS.discard(view.id())
 
 
-PAIRS = {}  # type: Dict[Hashable, object]
+if MYPY:
+    from typing import Container, TypeVar
+    T = TypeVar('T')
+    U = TypeVar('U')
 
 
-def distinct_pair(key, val):
-    # type: (Hashable, object) -> bool
-    previous = PAIRS.get(key)
-    current = PAIRS[key] = val
+ACTUAL_REPORTING_LINTERS = {}  # type: Dict[sublime.BufferId, Container[LinterName]]
+ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
+
+
+def actual_linters_changed(bid, linter_names):
+    # type: (sublime.BufferId, Container[LinterName])  -> bool
+    return not distinct_mapping(ACTUAL_REPORTING_LINTERS, bid, linter_names)
+
+
+def assigned_linters_changed(filename, linter_names):
+    # type: (FileName, Container[LinterName])  -> bool
+    return not distinct_mapping(ASSIGNED_LINTERS, filename, linter_names)
+
+
+def distinct_mapping(store, key, val):
+    # type: (Dict[T, U], T, U) -> bool
+    previous = store.get(key)
+    current = store[key] = val
     return current == previous

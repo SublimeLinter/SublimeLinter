@@ -59,10 +59,6 @@ def on_finished_linting(filename):
     else:
         State['running'][filename] -= 1
 
-    if filename in State['expanded_ok']:
-        # Prolong "expanded" state
-        show_expanded_ok(filename)
-
 
 def on_first_activate(view):
     # type: (sublime.View) -> None
@@ -70,30 +66,43 @@ def on_first_activate(view):
         return
 
     filename = util.get_filename(view)
-    show_expanded_ok(filename)
+    set_expanded_ok(filename)
     draw(view, State['problems_per_file'][filename], expanded_ok=True)
 
 
 def on_assigned_linters_changed(filename):
     # type: (FileName) -> None
-    show_expanded_ok(filename)
+    set_expanded_ok(filename)
     redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=True)
 
 
-def show_expanded_ok(filename):
+def set_expanded_ok(filename):
     # type: (FileName) -> None
     State['expanded_ok'].add(filename)
-    sublime.set_timeout(throttled_on_args(_unset_expanded_ok, filename), 3000)
 
 
-def _unset_expanded_ok(filename):
-    # type: (FileName) -> None
+def enqueue_unset_expanded_ok(view, timeout=3000):
+    # type: (sublime.View, int) -> None
+    sublime.set_timeout(
+        throttled_on_args(_unset_expanded_ok, view.id()),
+        timeout
+    )
+
+
+def _unset_expanded_ok(vid):
+    # type: (sublime.ViewId) -> None
+    view = sublime.View(vid)
+    if not view.is_valid():
+        return
+
+    filename = util.get_filename(view)
     # Keep expanded if linters are running to minimize redraws
     if State['running'].get(filename, 0) > 0:
+        enqueue_unset_expanded_ok(view)
         return
 
     State['expanded_ok'].discard(filename)
-    redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=False)
+    draw(view, State['problems_per_file'][filename], expanded_ok=False)
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
@@ -145,7 +154,7 @@ def redraw_file(filename, linter_name, errors, **kwargs):
         problems.pop(linter_name, None)
 
     if actual_linters_changed(filename, set(problems.keys())):
-        show_expanded_ok(filename)
+        set_expanded_ok(filename)
 
     sublime.set_timeout(
         lambda: redraw_file_(
@@ -200,6 +209,7 @@ def draw(view, problems, expanded_ok):
             for linter_name, summary in sorted(problems.items(), key=by_severity)
         )
         view.set_status(STATUS_ACTIVE_KEY, message)
+        enqueue_unset_expanded_ok(view)
     else:
         view.erase_status(STATUS_ACTIVE_KEY)
 

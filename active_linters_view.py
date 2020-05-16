@@ -39,6 +39,7 @@ def plugin_unloaded():
     events.off(redraw_file)
     events.off(on_begin_linting)
     events.off(on_finished_linting)
+    events.off(on_actual_linters_changed)
 
     for window in sublime.windows():
         for view in window.views():
@@ -153,8 +154,7 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
-    if actual_linters_changed(filename, set(problems.keys())):
-        set_expanded_ok(filename)
+    remember_actual_linters(filename, set(problems.keys()))
 
     sublime.set_timeout(
         lambda: redraw_file_(
@@ -164,6 +164,11 @@ def redraw_file(filename, linter_name, errors, **kwargs):
             expanded_ok=filename in State['expanded_ok']
         )
     )
+
+
+@events.on('actual_linters_changed')
+def on_actual_linters_changed(filename, linter_names):
+    set_expanded_ok(filename)
 
 
 def count_problems(errors):
@@ -266,13 +271,18 @@ if MYPY:
     U = TypeVar('U')
 
 
-ACTUAL_REPORTING_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 
 
-def actual_linters_changed(filename, linter_names):
-    # type: (FileName, Container[LinterName])  -> bool
-    return not distinct_mapping(ACTUAL_REPORTING_LINTERS, filename, linter_names)
+def remember_actual_linters(filename, linter_names):
+    # type: (FileName, Set[LinterName])  -> None
+    previous = persist.actual_linters.get(filename)
+    current = persist.actual_linters[filename] = linter_names
+    if current != previous:
+        events.broadcast('actual_linters_changed', {
+            'filename': filename,
+            'linter_names': linter_names
+        })
 
 
 def assigned_linters_changed(filename, linter_names):

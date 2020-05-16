@@ -64,7 +64,7 @@ class RubyLinter(linter.Linter):
             ruby = util.which('jruby')
 
         if not rbenv and not ruby:
-            msg = '{} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby'.format(self.name, cmd[0])
+            msg = "{} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby".format(self.name)
             logger.warning(msg)
             return True, None
 

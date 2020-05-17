@@ -14,9 +14,9 @@ contexts:
         - ensure-file-meta-scope
         - expect-filename
 
-    - match: '  No lint results.(?: Running (?:(.+?)(?:, )?)\.)?'
+    - match: '  No lint results.*$'
       captures:
-        1: string
+        0: comment
 
     - match: '^\s+(?=[0-9: ]+error)'
       push:

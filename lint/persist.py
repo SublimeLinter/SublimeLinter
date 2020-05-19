@@ -42,6 +42,7 @@ settings = Settings()
 file_errors = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
 linter_classes = {}  # type: Dict[str, Type[Linter]]
 assigned_linters = {}  # type: Dict[Bid, Set[LinterName]]
+actual_linters = {}  # type: Dict[FileName, Set[LinterName]]
 
 # A mapping between actually linted files and other filenames that they
 # reported errors for

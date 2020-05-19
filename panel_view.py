@@ -524,7 +524,7 @@ def fill_panel(window):
             # will scroll past them, often showing empty space below
             # the current file to reduce visual noise.
             sorted(
-                (fpath_by_file[filename], errors_by_file[filename])
+                (fpath_by_file[filename], filename, errors_by_file[filename])
                 for filename in (
                     errors_by_file.keys()
                     - affected_filenames
@@ -535,11 +535,15 @@ def fill_panel(window):
             # For the current active file, always show something.
             # The scroller will try to show this file at the top of the
             # view.
-            + [(fpath_by_file[active_filename], errors_by_file.get(active_filename, []))]
+            + [(
+                fpath_by_file[active_filename],
+                active_filename,
+                errors_by_file.get(active_filename, [])
+            )]
 
             # Affected files can be clean, just omit those
             + sorted(
-                (fpath_by_file[filename], errors_by_file[filename])
+                (fpath_by_file[filename], filename, errors_by_file[filename])
                 for filename in affected_filenames
                 if filename in errors_by_file
             )
@@ -547,10 +551,11 @@ def fill_panel(window):
 
     else:
         sorted_errors = sorted(
-            (fpath_by_file[filename], errors) for filename, errors in errors_by_file.items()
+            (fpath_by_file[filename], filename, errors)
+            for filename, errors in errors_by_file.items()
         )
 
-    for fpath, errors in sorted_errors:
+    for fpath, filename, errors in sorted_errors:
         to_render.append(format_header(fpath))
 
         if errors:
@@ -559,7 +564,16 @@ def fill_panel(window):
                 to_render.extend(lines)
                 error["panel_line"] = (len(to_render) - len(lines), len(to_render) - 1)
         else:
-            to_render.append(NO_RESULTS_MESSAGE)
+            actual_linter_names = ', '.join(sorted(
+                persist.actual_linters.get(filename, set())
+            ))
+            if actual_linter_names:
+                to_render.append(
+                    NO_RESULTS_MESSAGE
+                    + " Running {}.".format(actual_linter_names)
+                )
+            else:
+                to_render.append(NO_RESULTS_MESSAGE)
 
         # Insert empty line between files
         to_render.append("")

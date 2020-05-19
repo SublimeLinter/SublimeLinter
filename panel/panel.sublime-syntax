@@ -14,6 +14,10 @@ contexts:
         - ensure-file-meta-scope
         - expect-filename
 
+    - match: '  No lint results.*$'
+      captures:
+        0: comment
+
     - match: '^\s+(?=[0-9: ]+error)'
       push:
         - ensure-error-meta-scope

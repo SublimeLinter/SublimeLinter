@@ -210,9 +210,10 @@
             // - "none"
             // - "fill", "outline",
             // - "solid_underline", "squiggly_underline", "stippled_underline"
-            // The underline styles are replaced with outlines when there is
-            // whitespace in the problem region, because underlines aren't drawn
-            // on whitespace (ST issue #137).
+            // In ST < 4074 the underline styles are replaced with outlines when
+            // there is whitespace in the problem region (ST issue #137).
+            // In newer versions underlines are replaced with outlines when
+            // there are newlines in the problem region for readability.
             "mark_style": "outline",
 
             "scope": "region.redish markup.error.sublime_linter"

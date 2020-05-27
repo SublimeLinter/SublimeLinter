@@ -67,6 +67,9 @@ FALLBACK_MARK_STYLE = 'outline'
 WS_ONLY = re.compile(r'^\s+$')
 MULTILINES = re.compile('\n')
 
+# Sublime > 4074 supports underline styles on white space
+# https://github.com/sublimehq/sublime_text/issues/137
+SUBLIME_SUPPORTS_WS_SQUIGGLES = int(sublime.version()) > 4074
 
 State = {
     'active_view': None,
@@ -293,8 +296,13 @@ def _compute_flags(error):
     # type: (LintError) -> int
     mark_style = style.get_value('mark_style', error, 'none')
     selected_text = error['offending_text']
-    # Work around Sublime bug, which cannot draw 'underlines' on spaces
-    if mark_style in UNDERLINE_STYLES and SOME_WS.search(selected_text):
+    if SUBLIME_SUPPORTS_WS_SQUIGGLES:
+        # Work around Sublime bug, which cannot draw 'underlines' on spaces
+        regex = SOME_WS
+    else:
+        # In newer Sublime versions, we still prefer outlines over multi-line errors
+        regex = MULTILINES
+    if mark_style in UNDERLINE_STYLES and regex.search(selected_text):
         mark_style = FALLBACK_MARK_STYLE
 
     flags = MARK_STYLES[mark_style]

@@ -865,8 +865,8 @@ TOOLTIP_TEMPLATE = '''
 '''
 
 
-def get_errors_where(view, fn):
-    filename = util.get_filename(view)
+def get_errors_where(filename, fn):
+    # type: (str, Callable[[sublime.Region], bool]) -> List[LintError]
     return [
         error for error in persist.file_errors[filename]
         if fn(error['region'])
@@ -874,19 +874,21 @@ def get_errors_where(view, fn):
 
 
 def open_tooltip(view, point, line_report=False):
+    # type: (sublime.View, int, bool) -> None
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
     if view.is_popup_visible():
         return
 
+    filename = util.get_filename(view)
     if line_report:
         line = view.full_line(point)
         errors = get_errors_where(
-            view, lambda region: region.intersects(line))
+            filename, lambda region: region.intersects(line))
     else:
         errors = get_errors_where(
-            view, lambda region: region.contains(point))
+            filename, lambda region: region.contains(point))
 
     if not errors:
         return
@@ -894,7 +896,9 @@ def open_tooltip(view, point, line_report=False):
     def on_navigate(href: str) -> None:
         if href == "copy":
             sublime.set_clipboard(join_msgs_raw(errors))
-            view.window().status_message("SublimeLinter: info copied to clipboard")
+            window = view.window()
+            if window:
+                window.status_message("SublimeLinter: info copied to clipboard")
             view.hide_popup()
 
     tooltip_message = join_msgs(errors, show_count=line_report, width=80)

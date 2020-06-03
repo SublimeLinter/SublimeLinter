@@ -851,7 +851,16 @@ TOOLTIP_STYLES = '''
         color: var(--yellowish);
         font-weight: bold;
     }
-    .copy {
+    .footer {
+         margin-top: 0.5em;
+        font-size: .92em;
+        color: color(var(--background) blend(var(--foreground) 50%));
+    }
+    .ignore {
+        text-decoration: none;
+    }
+    .icon {
+        font-family: sans-serif;
         margin-top: 0.5em;
     }
 '''
@@ -860,7 +869,7 @@ TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
         <div>{content}</div>
-        <div class="copy"><a href="copy">Copy</a></div>
+        <div class="footer"><a href="copy">Copy</a><span> | Click <span class='icon'>⌫</span> to ignore an error</div>
     </body>
 '''
 
@@ -893,15 +902,20 @@ def open_tooltip(view, point, line_report=False):
     if not errors:
         return
 
+    tooltip_message, quick_actions = join_msgs(errors, show_count=line_report, width=80, pt=point)
+
     def on_navigate(href: str) -> None:
         if href == "copy":
             sublime.set_clipboard(join_msgs_raw(errors))
             window = view.window()
             if window:
                 window.status_message("SublimeLinter: info copied to clipboard")
-            view.hide_popup()
+        else:
+            fixer = quick_actions[href]
+            fixer(view)
 
-    tooltip_message = join_msgs(errors, show_count=line_report, width=80)
+        view.hide_popup()
+
     view.show_popup(
         TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
@@ -924,7 +938,7 @@ def join_msgs_raw(errors):
     )
 
 
-def join_msgs(errors, show_count, width):
+def join_msgs(errors, show_count, width, pt):
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -951,6 +965,7 @@ def join_msgs(errors, show_count, width):
             return error_type
 
     all_msgs = ""
+    quick_actions = {}  # type: Dict[str, Callable]
     for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
             grouped_by_type[error_type],
@@ -959,26 +974,47 @@ def join_msgs(errors, show_count, width):
 
         filled_templates = []
         for error in errors_by_type:
-            prefix_len = len(error['linter']) + 2
+            first_line_prefix = "{linter}: ".format(**error)
+            hanging_indent = len(first_line_prefix)
+            first_line_indent = hanging_indent
+            if error.get("code"):
+                action = next(actions_for_error(error, pt), None)
+                if action:
+                    id = uuid.uuid4().hex
+                    quick_actions[id] = action.fn
+                    # first_line_prefix += '<a class="ignore" href="{action_id}">{code}&nbsp;<span class="icon">⌫</span></a> - '.format(action_id=id, **error)
+                    first_line_prefix += (
+                        '{code}&nbsp;'
+                        # '<a class="ignore icon" href="{action_id}">⌫</a> - '
+                        '<a class="ignore icon" href="{action_id}">⌫</a>&nbsp;'
+                        .format(action_id=id, **error)
+                    )
+                    first_line_indent += len(error["code"]) + 3
+                    # first_line_indent += len(error["code"]) + 5
+                    # first_line_prefix += '{code}&nbsp;<a class="ignore" href="{action_id}">(ignore)</a> - '.format(action_id=id, **error)
+                    # first_line_indent += len(error["code"]) + 12
+                else:
+                    first_line_prefix += "{code} - ".format(**error)
+                    first_line_indent += len(error["code"]) + 3
+
             lines = list(flatten(
                 textwrap.wrap(
-                    (
-                        tmpl_with_code
-                        if n == 0 and error.get('code')
-                        else tmpl_sans_code
-                    ).format(msg_line=line, **error),
+                    msg_line,
                     width=width,
-                    initial_indent=" " * prefix_len,
-                    subsequent_indent=" " * prefix_len
+                    initial_indent=(
+                        " " * first_line_indent
+                        if n == 0
+                        else " " * hanging_indent
+                    ),
+                    subsequent_indent=" " * hanging_indent
                 )
-                for n, line in enumerate(error['msg'].splitlines())
+                for n, msg_line in enumerate(error['msg'].splitlines())
             ))
-            lines[0] = "{linter}: ".format(**error) + lines[0].lstrip()
+            lines[0] = lines[0].lstrip()
+            lines = list(map(escape_text, lines))
+            lines[0] = first_line_prefix + lines[0]
 
-            filled_templates.extend([
-                html.escape(line, quote=False).replace(' ', '&nbsp;')
-                for line in lines
-            ])
+            filled_templates += lines
 
         heading = error_type
         count = len(errors_by_type)
@@ -991,4 +1027,382 @@ def join_msgs(errors, show_count, width):
             heading=heading,
             messages='<br />'.join(filled_templates)
         )
-    return all_msgs
+    return all_msgs, quick_actions
+
+
+def escape_text(text):
+    # type: (str) -> str
+    return html.escape(text, quote=False).replace(' ', '&nbsp;')
+
+
+from contextlib import contextmanager
+if MYPY:
+    from typing import Iterator, NamedTuple
+    Action = NamedTuple("Action", [("description", str), ("fn", Callable)])
+    TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
+else:
+    from collections import namedtuple
+    Action = namedtuple("Action", "description fn")
+    TextRange = namedtuple("TextRange", "text range")
+
+
+class sl_fix_by_ignoring(sublime_plugin.TextCommand):
+    def run(self, edit):
+        view = self.view
+        window = view.window()
+        assert window
+        sel = [s for s in view.sel()]
+        if len(sel) > 1:
+            window.status_message("Only one cursor please.")
+            return
+
+        if not sel[0].empty():
+            window.status_message("Only cursors no selections please.")
+
+        cursor = sel[0].a
+        actions = available_actions_on_line(view, cursor)
+        if not actions:
+            window.status_message("No errors here.")
+
+        def on_done(idx):
+            if idx < 0:
+                return
+
+            action = actions[idx]
+            action.fn(view)
+
+        window.show_quick_panel(
+            [action.description for action in actions],
+            on_done
+        )
+
+
+def available_actions_on_line(view, pt):
+    # type: (sublime.View, int) -> List[Action]
+    filename = util.get_filename(view)
+    line = view.full_line(pt)
+    errors = get_errors_where(filename, lambda region: region.intersects(line))
+    return [
+        action
+        for error in errors
+        for action in actions_for_error(error, pt)
+    ]
+
+
+def actions_for_error(error, pt):
+    # type: (LintError, int) -> Iterator[Action]
+    linter_name = error['linter']
+    code = error["code"]
+    if not code:
+        return
+    if linter_name == "eslint":
+        yield Action(
+            "// disable-next-line {}".format(code),
+            partial(fix_eslint_next_line, code, pt)
+        )
+    elif linter_name == "flake8":
+        yield Action(
+            "# noqa: {}".format(code),
+            partial(fix_flake8_eol, code, pt)
+        )
+    elif linter_name == "mypy":
+        yield Action(
+            "# type: ignore[{}]".format(code),
+            partial(fix_mypy_eol, code, pt)
+        )
+
+
+def fix_eslint_next_line(rulename, pt, view):
+    # type: (str, int, sublime.View) -> None
+    line = read_line(view, pt)
+    previous_line = read_previous_line(view, line)
+    text_range = (
+        (
+            maybe_replace_ignore_rule(
+                r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
+                ", ",
+                rulename,
+                previous_line
+            )
+            if previous_line
+            else None
+        )
+        or insert_preceding_line(
+            "// eslint-disable-next-line {}".format(rulename),
+            line
+        )
+    )
+    replace_view_content(view, text_range.text, text_range.range)
+
+
+def fix_flake8_eol(rulename, pt, view):
+    # type: (str, int, sublime.View) -> None
+    line = read_line(view, pt)
+    text_range = (
+        maybe_replace_ignore_rule(
+            r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
+            ", ",
+            rulename,
+            line
+        )
+        or add_at_eol(
+            "  # noqa: {}".format(rulename),
+            line
+        )
+    )
+    replace_view_content(view, text_range.text, text_range.range)
+
+
+def fix_mypy_eol(rulename, pt, view):
+    # type: (str, int, sublime.View) -> None
+    line = read_line(view, pt)
+    text_range = (
+        maybe_replace_ignore_rule(
+            r"  # type: ignore\[(?P<codes>.*)\]",
+            ", ",
+            rulename,
+            line
+        )
+        or maybe_add_before_string(
+            "  # ",
+            "  # type: ignore[{}]".format(rulename),
+            line
+        )
+        or add_at_eol(
+            "  # type: ignore[{}]".format(rulename),
+            line
+        )
+    )
+    replace_view_content(view, text_range.text, text_range.range)
+
+
+def read_line(view, pt):
+    # type: (sublime.View, int) -> TextRange
+    line_region = view.line(pt)
+    line_content = view.substr(line_region)
+    return TextRange(line_content, line_region)
+
+
+def read_previous_line(view, line):
+    # type: (sublime.View, TextRange) -> Optional[TextRange]
+    if line.range.a == 0:
+        return None
+    line_region = view.line(line.range.a - 1)
+    line_content = view.substr(line_region)
+    return TextRange(line_content, line_region)
+
+
+def maybe_replace_ignore_rule(search_pattern, joiner, rulename, line):
+    # type: (str, str, str, TextRange) -> Optional[TextRange]
+    match = re.search(search_pattern, line.text)
+    if match:
+        present_rules = match.group("codes")
+        next_rules = [rule.strip() for rule in present_rules.split(joiner.strip())]
+        if rulename not in next_rules:
+            next_rules.append(rulename)
+        a, b = match.span("codes")
+        return TextRange(
+            joiner.join(next_rules),
+            sublime.Region(line.range.a + a, line.range.a + b)
+        )
+    return None
+
+
+def add_at_eol(text, line):
+    # type: (str, TextRange) -> TextRange
+    line_length = len(line.text.rstrip())
+    return TextRange(
+        text,
+        sublime.Region(line.range.a + line_length, line.range.b)
+    )
+
+
+def add_at_bol(text, line):
+    # type: (str, TextRange) -> TextRange
+    return TextRange(
+        text,
+        sublime.Region(line.range.a)
+    )
+
+
+def insert_preceding_line(text, line):
+    # type: (str, TextRange) -> TextRange
+    return add_at_bol(indentation(line) + text + "\n", line)
+
+
+def indentation_level(line):
+    # type: (TextRange) -> int
+    return len(line.text) - len(line.text.lstrip())
+
+
+def indentation(line):
+    # type: (TextRange) -> str
+    level = indentation_level(line)
+    return line.text[:level]
+
+
+def maybe_add_before_string(needle, text, line):
+    # type: (str, str, TextRange) -> Optional[TextRange]
+    try:
+        start = line.text.index(needle)
+    except ValueError:
+        return None
+    else:
+        return TextRange(
+            text,
+            sublime.Region(line.range.a + start)
+        )
+
+
+# UTILS - generic replace_view_content implemenation
+
+
+if MYPY:
+    from typing import Any, ContextManager
+    Callback = Tuple[Callable, Tuple[Any, ...], Dict[str, Any]]
+    ReturnValue = Any
+    WrapperFn = Callable[[sublime.View], ContextManager[None]]
+
+
+from contextlib import ExitStack
+from functools import lru_cache, wraps
+import inspect
+import uuid
+lock = threading.Lock()
+COMMANDS = {}  # type: Dict[str, Callback]
+RESULTS = {}  # type: Dict[str, ReturnValue]
+
+
+def run_as_text_command(fn, view, *args, **kwargs):
+    # type: (Callable[..., T], sublime.View, Any, Any) -> Optional[T]
+    token = uuid.uuid4().hex
+    with lock:
+        COMMANDS[token] = (fn, (view, ) + args, kwargs)
+    view.run_command('sl_generic_text_cmd', {'token': token})
+    with lock:
+        # If the view has been closed, Sublime will not run
+        # text commands on it anymore (but also not throw).
+        # For now, we stay close, don't raise and just return
+        # `None`.
+        rv = RESULTS.pop(token, None)
+    return rv
+
+
+def text_command(fn):
+    # type: (Callable[..., T]) -> Callable[..., T]
+    @wraps(fn)
+    def decorated(view, *args, **kwargs):
+        # type: (sublime.View, Any, Any) -> Optional[T]
+        return run_as_text_command(fn, view, *args, **kwargs)
+    return decorated
+
+
+@lru_cache()
+def wants_edit_object(fn):
+    sig = inspect.signature(fn)
+    return 'edit' in sig.parameters
+
+
+class sl_generic_text_cmd(sublime_plugin.TextCommand):
+    def run_(self, edit_token, cmd_args):
+        cmd_args = self.filter_args(cmd_args)
+        token = cmd_args['token']
+        with lock:
+            # Any user can "redo" text commands, but we don't want that.
+            try:
+                fn, args, kwargs = COMMANDS.pop(token)
+            except KeyError:
+                return
+
+        edit = self.view.begin_edit(edit_token, self.name(), cmd_args)
+        try:
+            if wants_edit_object(fn):
+                return self.run(token, fn, args[0], edit, *args[1:], **kwargs)
+            else:
+                return self.run(token, fn, *args, **kwargs)
+        finally:
+            self.view.end_edit(edit)
+
+    def run(self, token, fn, *args, **kwargs):
+        rv = fn(*args, **kwargs)
+        with lock:
+            RESULTS[token] = rv
+
+
+# `replace_view_content` is a wrapper for `_replace_region` to get some
+# typing support from mypy.
+def replace_view_content(view, text, region=None, wrappers=[]):
+    # type: (sublime.View, str, sublime.Region, List[WrapperFn]) -> None
+    """Replace the content of the view
+
+    If no region is given the whole content will get replaced. Otherwise
+    only the selected region.
+    """
+    _replace_region(view, text, region, wrappers)
+
+
+@text_command
+def _replace_region(view, edit, text, region=None, wrappers=[]):
+    # type: (sublime.View, sublime.Edit, str, sublime.Region, List[WrapperFn]) -> None
+    if region is None:
+        # If you "replace" (or expand) directly at the cursor,
+        # the cursor expands into a selection.
+        # This is a common case for an empty view so we take
+        # care of it out of box.
+        region = sublime.Region(0, max(1, view.size()))
+
+    wrappers = wrappers[:] + [stable_viewport]
+    if any(
+        region.contains(s) or region.intersects(s)
+        for s in view.sel()
+    ):
+        wrappers += [restore_cursors]
+
+    with ExitStack() as stack:
+        for wrapper in wrappers:
+            stack.enter_context(wrapper(view))
+        stack.enter_context(writable_view(view))
+        view.replace(edit, region, text)
+
+
+@contextmanager
+def writable_view(view):
+    # type: (sublime.View) -> Iterator[None]
+    is_read_only = view.is_read_only()
+    view.set_read_only(False)
+    try:
+        yield
+    finally:
+        view.set_read_only(is_read_only)
+
+
+@contextmanager
+def restore_cursors(view):
+    # type: (sublime.View) -> Iterator[None]
+    save_cursors = [
+        (view.rowcol(s.begin()), view.rowcol(s.end()))
+        for s in view.sel()
+    ] or [((0, 0), (0, 0))]
+
+    try:
+        yield
+    finally:
+        view.sel().clear()
+        for (begin, end) in save_cursors:
+            view.sel().add(
+                sublime.Region(view.text_point(*begin), view.text_point(*end))
+            )
+
+
+@contextmanager
+def stable_viewport(view):
+    # type: (sublime.View) -> Iterator[None]
+    # Ref: https://github.com/SublimeTextIssues/Core/issues/2560
+    # See https://github.com/jonlabelle/SublimeJsPrettier/pull/171/files
+    # for workaround.
+    vx, vy = view.viewport_position()
+    try:
+        yield
+    finally:
+        view.set_viewport_position((0, 0))  # intentional!
+        view.set_viewport_position((vx, vy))

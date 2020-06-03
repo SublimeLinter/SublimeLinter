@@ -25,6 +25,10 @@
 
     },
     {
+        "caption": "SublimeLinter: Fix By Ignoring",
+        "command": "sl_fix_by_ignoring"
+    },
+    {
         "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",
         "command": "sublime_linter_reload"
 

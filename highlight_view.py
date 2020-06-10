@@ -870,9 +870,10 @@ TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
         <div>{content}</div>
-        <div class="footer"><a href="copy">Copy</a><span> | Click <span class='icon'>⌫</span> to ignore an error</div>
+        <div class="footer"><a href="copy">Copy</a><span>{help_text}</div>
     </body>
 '''
+QUICK_FIX_HELP = " | Click <span class='icon'>⌫</span> to ignore an error"
 
 
 def get_errors_where(filename, fn):
@@ -917,8 +918,11 @@ def open_tooltip(view, point, line_report=False):
 
         view.hide_popup()
 
+    help_text = QUICK_FIX_HELP if quick_actions else ""
     view.show_popup(
-        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
+        TOOLTIP_TEMPLATE.format(
+            stylesheet=TOOLTIP_STYLES, content=tooltip_message, help_text=help_text
+        ),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
         max_width=1000,

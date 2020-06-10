@@ -5,7 +5,7 @@ from SublimeLinter.tests.mockito import unstub
 from SublimeLinter.tests.parameterized import parameterized as p
 
 
-from SublimeLinter.highlight_view import (
+from SublimeLinter.lint.quick_fix import (
     fix_eslint_next_line,
     fix_flake8_eol,
     fix_mypy_eol

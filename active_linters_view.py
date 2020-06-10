@@ -240,7 +240,8 @@ def throttled_on_args(fn, *args, **kwargs):
 
     def program():
         with THROTTLER_LOCK:
-            ok = THROTTLER_TOKENS[key] == action
+            # Use `get` bc during hot-reload `THROTTLER_TOKENS` gets emptied
+            ok = THROTTLER_TOKENS.get(key) == action
         if ok:
             action()
 

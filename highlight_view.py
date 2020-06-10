@@ -950,9 +950,6 @@ def join_msgs(errors, show_count, width, pt):
             <div>{messages}</div>
         '''
 
-    tmpl_with_code = "{code} - {msg_line}"
-    tmpl_sans_code = "{msg_line}"
-
     grouped_by_type = defaultdict(list)
     for error in errors:
         grouped_by_type[error["error_type"]].append(error)
@@ -983,17 +980,12 @@ def join_msgs(errors, show_count, width, pt):
                 if action:
                     id = uuid.uuid4().hex
                     quick_actions[id] = action.fn
-                    # first_line_prefix += '<a class="ignore" href="{action_id}">{code}&nbsp;<span class="icon">⌫</span></a> - '.format(action_id=id, **error)
                     first_line_prefix += (
                         '{code}&nbsp;'
-                        # '<a class="ignore icon" href="{action_id}">⌫</a> - '
                         '<a class="ignore icon" href="{action_id}">⌫</a>&nbsp;'
                         .format(action_id=id, **error)
                     )
                     first_line_indent += len(error["code"]) + 3
-                    # first_line_indent += len(error["code"]) + 5
-                    # first_line_prefix += '{code}&nbsp;<a class="ignore" href="{action_id}">(ignore)</a> - '.format(action_id=id, **error)
-                    # first_line_indent += len(error["code"]) + 12
                 else:
                     first_line_prefix += "{code} - ".format(**error)
                     first_line_indent += len(error["code"]) + 3

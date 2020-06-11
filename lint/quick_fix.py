@@ -83,17 +83,17 @@ def actions_for_error(error):
     if linter_name == "eslint":
         yield Action(
             "// disable-next-line {}".format(code),
-            partial(fix_eslint_next_line, error)
+            partial(fix_eslint_error, error)
         )
     elif linter_name == "flake8":
         yield Action(
             "# noqa: {}".format(code),
-            partial(fix_flake8_eol, error)
+            partial(fix_flake8_error, error)
         )
     elif linter_name == "mypy":
         yield Action(
             "# type: ignore[{}]".format(code),
-            partial(fix_mypy_eol, error)
+            partial(fix_mypy_error, error)
         )
 
 
@@ -107,7 +107,7 @@ def apply_edit(edit, view):
     replace_view_content(view, *edit)
 
 
-def fix_eslint_next_line(error, view):
+def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()
     code = error["code"]
@@ -131,7 +131,7 @@ def fix_eslint_next_line(error, view):
     )
 
 
-def fix_flake8_eol(error, view):
+def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()
     code = error["code"]
@@ -150,7 +150,7 @@ def fix_flake8_eol(error, view):
     )
 
 
-def fix_mypy_eol(error, view):
+def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()
     code = error["code"]

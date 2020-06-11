@@ -7,9 +7,9 @@ from SublimeLinter.tests.parameterized import parameterized as p
 
 from SublimeLinter.lint.quick_fix import (
     apply_edit,
-    fix_eslint_next_line,
-    fix_flake8_eol,
-    fix_mypy_eol
+    fix_eslint_error,
+    fix_flake8_error,
+    fix_mypy_error
 )
 
 
@@ -94,7 +94,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view = self.create_view(self.window)
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="E203", region=sublime.Region(4))
-        edit = fix_flake8_eol(error, view)
+        edit = fix_flake8_error(error, view)
         apply_edit(edit, view)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
@@ -140,7 +140,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view = self.create_view(self.window)
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="no-idea", region=sublime.Region(4))
-        edit = fix_mypy_eol(error, view)
+        edit = fix_mypy_error(error, view)
         apply_edit(edit, view)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
@@ -187,7 +187,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         BEFORE, POS = "".join(BEFORE.split("|")), BEFORE.index("|")
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="semi", region=sublime.Region(POS))
-        edit = fix_eslint_next_line(error, view)
+        edit = fix_eslint_error(error, view)
         apply_edit(edit, view)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

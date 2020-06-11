@@ -110,6 +110,10 @@ def apply_edit(edit, view):
     replace_view_content(view, edit.text, edit.range)
 
 
+if MYPY:
+    Provider = Callable[[LintError], Iterator[QuickAction]]
+
+
 PROVIDERS = defaultdict(
     dict
 )  # type: DefaultDict[str, Dict[str, Callable[[LintError], Iterator[QuickAction]]]]
@@ -118,22 +122,31 @@ DEFAULT_DESCRIPTION = "Disable [{code}] for this line"
 
 def actions_provider(linter_name):
     def register(fn):
-        ns_name = "{}.{}".format(fn.__module__, fn.__name__)
+        # type: (Provider) -> Provider
+        ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = fn
-        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)
+        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
 
     return register
 
 
 def quick_action_for_error(linter_name, description=DEFAULT_DESCRIPTION):
+    # type: (str, str) -> Callable[[Fixer], Fixer]
     def register(fn):
-        ns_name = "{}.{}".format(fn.__module__, fn.__name__)
+        # type: (Fixer) -> Fixer
+        ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = partial(std_provider, description, fn)
-        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)
+        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
 
     return register
+
+
+def namespacy_name(fn):
+    # type: (Callable) -> str
+    # TBC: No methods supported, only simple functions!
+    return "{}.{}".format(fn.__module__, fn.__name__)
 
 
 def std_provider(description, fixer, error):

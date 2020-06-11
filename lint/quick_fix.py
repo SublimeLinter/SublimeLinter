@@ -144,10 +144,9 @@ def std_provider(description, fixer, error):
 @quick_action_for_error("eslint")
 def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
-    pt = error['region'].begin()
-    code = error["code"]
-    line = read_line(view, pt)
+    line = line_error_is_on(view, error)
     previous_line = read_previous_line(view, line)
+    code = error["code"]
     return (
         (
             extend_existing_comment(
@@ -178,9 +177,8 @@ def flake8_actions(error):
 # @quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
-    pt = error['region'].begin()
+    line = line_error_is_on(view, error)
     code = error["code"]
-    line = read_line(view, pt)
     return (
         extend_existing_comment(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
@@ -198,9 +196,8 @@ def fix_flake8_error(error, view):
 @quick_action_for_error("mypy")
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
-    pt = error['region'].begin()
+    line = line_error_is_on(view, error)
     code = error["code"]
-    line = read_line(view, pt)
     return (
         extend_existing_comment(
             r"  # type: ignore\[(?P<codes>.*)\]",
@@ -220,8 +217,9 @@ def fix_mypy_error(error, view):
     )
 
 
-def read_line(view, pt):
-    # type: (sublime.View, int) -> TextRange
+def line_error_is_on(view, error):
+    # type: (sublime.View, LintError) -> TextRange
+    pt = error["region"].begin()
     line_region = view.line(pt)
     line_content = view.substr(line_region)
     return TextRange(line_content, line_region)

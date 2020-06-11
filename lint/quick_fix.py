@@ -80,21 +80,20 @@ def actions_for_error(error):
     code = error["code"]
     if not code:
         return
-    pt = error['region'].begin()
     if linter_name == "eslint":
         yield Action(
             "// disable-next-line {}".format(code),
-            partial(fix_eslint_next_line, code, pt)
+            partial(fix_eslint_next_line, error)
         )
     elif linter_name == "flake8":
         yield Action(
             "# noqa: {}".format(code),
-            partial(fix_flake8_eol, code, pt)
+            partial(fix_flake8_eol, error)
         )
     elif linter_name == "mypy":
         yield Action(
             "# type: ignore[{}]".format(code),
-            partial(fix_mypy_eol, code, pt)
+            partial(fix_mypy_eol, error)
         )
 
 
@@ -108,8 +107,10 @@ def apply_edit(edit, view):
     replace_view_content(view, *edit)
 
 
-def fix_eslint_next_line(rulename, pt, view):
-    # type: (str, int, sublime.View) -> TextRange
+def fix_eslint_next_line(error, view):
+    # type: (LintError, sublime.View) -> TextRange
+    pt = error['region'].begin()
+    code = error["code"]
     line = read_line(view, pt)
     previous_line = read_previous_line(view, line)
     return (
@@ -117,53 +118,57 @@ def fix_eslint_next_line(rulename, pt, view):
             maybe_replace_ignore_rule(
                 r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
                 ", ",
-                rulename,
+                code,
                 previous_line
             )
             if previous_line
             else None
         )
         or insert_preceding_line(
-            "// eslint-disable-next-line {}".format(rulename),
+            "// eslint-disable-next-line {}".format(code),
             line
         )
     )
 
 
-def fix_flake8_eol(rulename, pt, view):
-    # type: (str, int, sublime.View) -> TextRange
+def fix_flake8_eol(error, view):
+    # type: (LintError, sublime.View) -> TextRange
+    pt = error['region'].begin()
+    code = error["code"]
     line = read_line(view, pt)
     return (
         maybe_replace_ignore_rule(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
             ", ",
-            rulename,
+            code,
             line
         )
         or add_at_eol(
-            "  # noqa: {}".format(rulename),
+            "  # noqa: {}".format(code),
             line
         )
     )
 
 
-def fix_mypy_eol(rulename, pt, view):
-    # type: (str, int, sublime.View) -> TextRange
+def fix_mypy_eol(error, view):
+    # type: (LintError, sublime.View) -> TextRange
+    pt = error['region'].begin()
+    code = error["code"]
     line = read_line(view, pt)
     return (
         maybe_replace_ignore_rule(
             r"  # type: ignore\[(?P<codes>.*)\]",
             ", ",
-            rulename,
+            code,
             line
         )
         or maybe_add_before_string(
             "  # ",
-            "  # type: ignore[{}]".format(rulename),
+            "  # type: ignore[{}]".format(code),
             line
         )
         or add_at_eol(
-            "  # type: ignore[{}]".format(rulename),
+            "  # type: ignore[{}]".format(code),
             line
         )
     )

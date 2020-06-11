@@ -980,7 +980,7 @@ def join_msgs(errors, show_count, width, pt):
             hanging_indent = len(first_line_prefix)
             first_line_indent = hanging_indent
             if error.get("code"):
-                action = next(quick_fix.actions_for_error(error, pt), None)
+                action = next(quick_fix.actions_for_error(error), None)
                 if action:
                     id = uuid.uuid4().hex
                     quick_actions[id] = action.fn

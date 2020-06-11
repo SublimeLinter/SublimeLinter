@@ -61,7 +61,7 @@ def available_actions_on_line(view, pt):
     return [
         action
         for error in errors
-        for action in actions_for_error(error, pt)
+        for action in actions_for_error(error)
     ]
 
 
@@ -73,12 +73,13 @@ def get_errors_where(filename, fn):
     ]
 
 
-def actions_for_error(error, pt):
-    # type: (LintError, int) -> Iterator[Action]
+def actions_for_error(error):
+    # type: (LintError) -> Iterator[Action]
     linter_name = error['linter']
     code = error["code"]
     if not code:
         return
+    pt = error['region'].begin()
     if linter_name == "eslint":
         yield Action(
             "// disable-next-line {}".format(code),

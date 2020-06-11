@@ -106,7 +106,7 @@ if MYPY:
 
 PROVIDERS = defaultdict(
     dict
-)  # type: DefaultDict[str, Dict[str, Callable[[LintError], Iterator[QuickAction]]]]
+)  # type: DefaultDict[str, Dict[str, Provider]]
 DEFAULT_DESCRIPTION = "Disable [{code}] for this line"
 
 

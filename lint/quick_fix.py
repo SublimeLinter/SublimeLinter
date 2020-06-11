@@ -13,8 +13,9 @@ MYPY = False
 if MYPY:
     from typing import Callable, List, Iterator, NamedTuple, Optional
     LintError = persist.LintError
-    Action = NamedTuple("Action", [("description", str), ("fn", Callable)])
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
+    Fixer = Callable[[sublime.View], TextRange]
+    Action = NamedTuple("Action", [("description", str), ("fn", Fixer)])
 
 else:
     from collections import namedtuple
@@ -45,7 +46,7 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
                 return
 
             action = actions[idx]
-            action.fn(view)
+            apply_fix(action.fn, view)
 
         window.show_quick_panel(
             [action.description for action in actions],
@@ -97,11 +98,21 @@ def actions_for_error(error):
         )
 
 
+def apply_fix(fixer, view):
+    # type: (Fixer, sublime.View) -> None
+    apply_edit(fixer(view), view)
+
+
+def apply_edit(edit, view):
+    # type: (TextRange, sublime.View) -> None
+    replace_view_content(view, *edit)
+
+
 def fix_eslint_next_line(rulename, pt, view):
-    # type: (str, int, sublime.View) -> None
+    # type: (str, int, sublime.View) -> TextRange
     line = read_line(view, pt)
     previous_line = read_previous_line(view, line)
-    text_range = (
+    return (
         (
             maybe_replace_ignore_rule(
                 r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
@@ -117,13 +128,12 @@ def fix_eslint_next_line(rulename, pt, view):
             line
         )
     )
-    replace_view_content(view, text_range.text, text_range.range)
 
 
 def fix_flake8_eol(rulename, pt, view):
-    # type: (str, int, sublime.View) -> None
+    # type: (str, int, sublime.View) -> TextRange
     line = read_line(view, pt)
-    text_range = (
+    return (
         maybe_replace_ignore_rule(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
             ", ",
@@ -135,13 +145,12 @@ def fix_flake8_eol(rulename, pt, view):
             line
         )
     )
-    replace_view_content(view, text_range.text, text_range.range)
 
 
 def fix_mypy_eol(rulename, pt, view):
-    # type: (str, int, sublime.View) -> None
+    # type: (str, int, sublime.View) -> TextRange
     line = read_line(view, pt)
-    text_range = (
+    return (
         maybe_replace_ignore_rule(
             r"  # type: ignore\[(?P<codes>.*)\]",
             ", ",
@@ -158,7 +167,6 @@ def fix_mypy_eol(rulename, pt, view):
             line
         )
     )
-    replace_view_content(view, text_range.text, text_range.range)
 
 
 def read_line(view, pt):

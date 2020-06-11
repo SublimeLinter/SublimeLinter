@@ -914,7 +914,7 @@ def open_tooltip(view, point, line_report=False):
                 window.status_message("SublimeLinter: info copied to clipboard")
         else:
             fixer = quick_actions[href]
-            fixer(view)
+            quick_fix.apply_fix(fixer, view)
 
         view.hide_popup()
 

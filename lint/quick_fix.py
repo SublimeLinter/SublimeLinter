@@ -18,8 +18,8 @@ if MYPY:
     )
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
-    Fixer = Callable[[LintError, sublime.View], TextRange]
-    Fix = Callable[[sublime.View], TextRange]
+    Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
+    Fix = Callable[[sublime.View], Iterator[TextRange]]
     QuickAction = NamedTuple("QuickAction", [("description", str), ("fn", Fix)])
 
 else:
@@ -96,13 +96,14 @@ def best_action_for_error(error):
 
 def apply_fix(fix, view):
     # type: (Fix, sublime.View) -> None
-    edit = fix(view)
-    apply_edit(edit, view)
+    edits = fix(view)
+    apply_edit(edits, view)
 
 
-def apply_edit(edit, view):
-    # type: (TextRange, sublime.View) -> None
-    replace_view_content(view, edit.text, edit.range)
+def apply_edit(edits, view):
+    # type: (Iterator[TextRange], sublime.View) -> None
+    for edit in reversed(sorted(edits, key=lambda edit: edit.range.a)):
+        replace_view_content(view, edit.text, edit.range)
 
 
 if MYPY:
@@ -167,11 +168,11 @@ def flake8_actions(errors):
 
 @quick_action_for_error("eslint")
 def fix_eslint_error(error, view):
-    # type: (LintError, sublime.View) -> TextRange
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     previous_line = read_previous_line(view, line)
     code = error["code"]
-    return (
+    yield (
         (
             extend_existing_comment(
                 r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
@@ -191,10 +192,10 @@ def fix_eslint_error(error, view):
 
 # @quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
 def fix_flake8_error(error, view):
-    # type: (LintError, sublime.View) -> TextRange
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     code = error["code"]
-    return (
+    yield (
         extend_existing_comment(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
             ", ",
@@ -210,10 +211,10 @@ def fix_flake8_error(error, view):
 
 @quick_action_for_error("mypy")
 def fix_mypy_error(error, view):
-    # type: (LintError, sublime.View) -> TextRange
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     code = error["code"]
-    return (
+    yield (
         extend_existing_comment(
             r"  # type: ignore\[(?P<codes>.*)\]",
             ", ",

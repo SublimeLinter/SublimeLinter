@@ -19,13 +19,11 @@ if MYPY:
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], TextRange]
     Fix = Callable[[sublime.View], TextRange]
-    QuickAction = NamedTuple("QuickAction", [("description", str), ("fn", Fixer)])
-    Action = NamedTuple("Action", [("description", str), ("fn", Fix)])
+    QuickAction = NamedTuple("QuickAction", [("description", str), ("fn", Fix)])
 
 else:
     from collections import namedtuple
     QuickAction = namedtuple("QuickAction", "description fn")
-    Action = namedtuple("Action", "description fn")
     TextRange = namedtuple("TextRange", "text range")
 
 
@@ -62,7 +60,7 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
 
 
 def available_actions_on_line(view, pt):
-    # type: (sublime.View, int) -> List[Action]
+    # type: (sublime.View, int) -> List[QuickAction]
     filename = util.get_filename(view)
     line = view.full_line(pt)
     errors = get_errors_where(filename, lambda region: region.intersects(line))
@@ -82,14 +80,6 @@ def get_errors_where(filename, fn):
 
 
 def actions_for_error(error):
-    # type: (LintError) -> Iterator[Action]
-    return (
-        Action(action.description, partial(action.fn, error))
-        for action in _actions_for_error(error)
-    )
-
-
-def _actions_for_error(error):
     # type: (LintError) -> Iterator[QuickAction]
     linter_name = error['linter']
     return (
@@ -121,6 +111,7 @@ DEFAULT_DESCRIPTION = "Disable [{code}] for this line"
 
 
 def actions_provider(linter_name):
+    # type: (str) -> Callable[[Provider], Provider]
     def register(fn):
         # type: (Provider) -> Provider
         ns_name = namespacy_name(fn)
@@ -151,7 +142,7 @@ def namespacy_name(fn):
 
 def std_provider(description, fixer, error):
     # type: (str, Fixer, LintError) -> Iterator[QuickAction]
-    yield QuickAction(description.format(**error), fixer)
+    yield QuickAction(description.format(**error), partial(fixer, error))
 
 
 @quick_action_for_error("eslint")
@@ -183,7 +174,7 @@ def flake8_actions(error):
     # type: (LintError) -> Iterator[QuickAction]
     yield QuickAction(
         'Disable [{code}] "{msg}" for this line'.format(**error),
-        fix_flake8_error
+        partial(fix_flake8_error, error)
     )
 
 

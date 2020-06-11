@@ -14,11 +14,14 @@ if MYPY:
     from typing import Callable, List, Iterator, NamedTuple, Optional
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
-    Fixer = Callable[[sublime.View], TextRange]
-    Action = NamedTuple("Action", [("description", str), ("fn", Fixer)])
+    Fixer = Callable[[LintError, sublime.View], TextRange]
+    Fix = Callable[[sublime.View], TextRange]
+    QuickAction = NamedTuple("QuickAction", [("description", str), ("fn", Fixer)])
+    Action = NamedTuple("Action", [("description", str), ("fn", Fix)])
 
 else:
     from collections import namedtuple
+    QuickAction = namedtuple("QuickAction", "description fn")
     Action = namedtuple("Action", "description fn")
     TextRange = namedtuple("TextRange", "text range")
 
@@ -42,6 +45,7 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             window.status_message("No errors here.")
 
         def on_done(idx):
+            # type: (int) -> None
             if idx < 0:
                 return
 
@@ -76,30 +80,38 @@ def get_errors_where(filename, fn):
 
 def actions_for_error(error):
     # type: (LintError) -> Iterator[Action]
+    return (
+        Action(action.description, partial(action.fn, error))
+        for action in _actions_for_error(error)
+    )
+
+
+def _actions_for_error(error):
+    # type: (LintError) -> Iterator[QuickAction]
     linter_name = error['linter']
     code = error["code"]
     if not code:
         return
     if linter_name == "eslint":
-        yield Action(
+        yield QuickAction(
             "// disable-next-line {}".format(code),
-            partial(fix_eslint_error, error)
+            fix_eslint_error
         )
     elif linter_name == "flake8":
-        yield Action(
+        yield QuickAction(
             "# noqa: {}".format(code),
-            partial(fix_flake8_error, error)
+            fix_flake8_error
         )
     elif linter_name == "mypy":
-        yield Action(
+        yield QuickAction(
             "# type: ignore[{}]".format(code),
-            partial(fix_mypy_error, error)
+            fix_mypy_error
         )
 
 
-def apply_fix(fixer, view):
-    # type: (Fixer, sublime.View) -> None
-    apply_edit(fixer(view), view)
+def apply_fix(fix, view):
+    # type: (Fix, sublime.View) -> None
+    apply_edit(fix(view), view)
 
 
 def apply_edit(edit, view):

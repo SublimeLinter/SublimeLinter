@@ -1,3 +1,4 @@
+from collections import defaultdict
 from functools import partial
 import re
 
@@ -11,7 +12,9 @@ from .generic_text_command import replace_view_content
 
 MYPY = False
 if MYPY:
-    from typing import Callable, List, Iterator, NamedTuple, Optional
+    from typing import (
+        Callable, DefaultDict, Dict, List, Iterator, NamedTuple, Optional
+    )
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], TextRange]
@@ -89,24 +92,11 @@ def actions_for_error(error):
 def _actions_for_error(error):
     # type: (LintError) -> Iterator[QuickAction]
     linter_name = error['linter']
-    code = error["code"]
-    if not code:
-        return
-    if linter_name == "eslint":
-        yield QuickAction(
-            "// disable-next-line {}".format(code),
-            fix_eslint_error
-        )
-    elif linter_name == "flake8":
-        yield QuickAction(
-            "# noqa: {}".format(code),
-            fix_flake8_error
-        )
-    elif linter_name == "mypy":
-        yield QuickAction(
-            "# type: ignore[{}]".format(code),
-            fix_mypy_error
-        )
+    return (
+        action
+        for provider in PROVIDERS[linter_name].values()
+        for action in provider(error)
+    )
 
 
 def apply_fix(fix, view):
@@ -119,6 +109,38 @@ def apply_edit(edit, view):
     replace_view_content(view, *edit)
 
 
+PROVIDERS = defaultdict(
+    dict
+)  # type: DefaultDict[str, Dict[str, Callable[[LintError], Iterator[QuickAction]]]]
+DEFAULT_DESCRIPTION = "Disable [{code}] for this line"
+
+
+def actions_provider(linter_name):
+    def register(fn):
+        ns_name = "{}.{}".format(fn.__module__, fn.__name__)
+        PROVIDERS[linter_name][ns_name] = fn
+        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)
+        return fn
+
+    return register
+
+
+def quick_action_for_error(linter_name, description=DEFAULT_DESCRIPTION):
+    def register(fn):
+        ns_name = "{}.{}".format(fn.__module__, fn.__name__)
+        PROVIDERS[linter_name][ns_name] = partial(std_provider, description, fn)
+        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)
+        return fn
+
+    return register
+
+
+def std_provider(description, fixer, error):
+    # type: (str, Fixer, LintError) -> Iterator[QuickAction]
+    yield QuickAction(description.format(**error), fixer)
+
+
+@quick_action_for_error("eslint")
 def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()
@@ -143,6 +165,16 @@ def fix_eslint_error(error, view):
     )
 
 
+@actions_provider("flake8")
+def flake8_actions(error):
+    # type: (LintError) -> Iterator[QuickAction]
+    yield QuickAction(
+        'Disable [{code}] "{msg}" for this line'.format(**error),
+        fix_flake8_error
+    )
+
+
+# @quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()
@@ -162,6 +194,7 @@ def fix_flake8_error(error, view):
     )
 
 
+@quick_action_for_error("mypy")
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> TextRange
     pt = error['region'].begin()

@@ -115,7 +115,7 @@ def fix_eslint_next_line(error, view):
     previous_line = read_previous_line(view, line)
     return (
         (
-            maybe_replace_ignore_rule(
+            extend_existing_comment(
                 r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
                 ", ",
                 code,
@@ -137,7 +137,7 @@ def fix_flake8_eol(error, view):
     code = error["code"]
     line = read_line(view, pt)
     return (
-        maybe_replace_ignore_rule(
+        extend_existing_comment(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
             ", ",
             code,
@@ -156,7 +156,7 @@ def fix_mypy_eol(error, view):
     code = error["code"]
     line = read_line(view, pt)
     return (
-        maybe_replace_ignore_rule(
+        extend_existing_comment(
             r"  # type: ignore\[(?P<codes>.*)\]",
             ", ",
             code,
@@ -190,7 +190,7 @@ def read_previous_line(view, line):
     return TextRange(line_content, line_region)
 
 
-def maybe_replace_ignore_rule(search_pattern, joiner, rulename, line):
+def extend_existing_comment(search_pattern, joiner, rulename, line):
     # type: (str, str, str, TextRange) -> Optional[TextRange]
     match = re.search(search_pattern, line.text)
     if match:

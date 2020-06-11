@@ -944,6 +944,7 @@ def join_msgs_raw(errors):
 
 
 def join_msgs(errors, show_count, width, pt):
+    # type: (List[LintError], bool, int, int) -> Tuple[str, Dict[str, quick_fix.Fix]]
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -967,7 +968,7 @@ def join_msgs(errors, show_count, width, pt):
             return error_type
 
     all_msgs = ""
-    quick_actions = {}  # type: Dict[str, Callable]
+    quick_actions = {}  # type: Dict[str, quick_fix.Fix]
     for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
             grouped_by_type[error_type],
@@ -980,7 +981,7 @@ def join_msgs(errors, show_count, width, pt):
             hanging_indent = len(first_line_prefix)
             first_line_indent = hanging_indent
             if error.get("code"):
-                action = next(quick_fix.actions_for_error(error), None)
+                action = quick_fix.best_action_for_error(error)
                 if action:
                     id = uuid.uuid4().hex
                     quick_actions[id] = action.fn

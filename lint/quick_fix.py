@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import partial
+from itertools import chain
 import re
 
 import sublime
@@ -8,7 +9,7 @@ import sublime_plugin
 from . import persist
 from . import util
 from .generic_text_command import replace_view_content
-
+flatten = chain.from_iterable
 
 MYPY = False
 if MYPY:
@@ -64,11 +65,7 @@ def available_actions_on_line(view, pt):
     filename = util.get_filename(view)
     line = view.full_line(pt)
     errors = get_errors_where(filename, lambda region: region.intersects(line))
-    return [
-        action
-        for error in errors
-        for action in actions_for_error(error)
-    ]
+    return list(actions_for_errors(errors))
 
 
 def get_errors_where(filename, fn):
@@ -79,14 +76,22 @@ def get_errors_where(filename, fn):
     ]
 
 
-def actions_for_error(error):
-    # type: (LintError) -> Iterator[QuickAction]
-    linter_name = error['linter']
-    return (
-        action
+def actions_for_errors(errors):
+    # type: (List[LintError]) -> Iterator[QuickAction]
+    grouped = defaultdict(list)
+    for error in errors:
+        grouped[error['linter']].append(error)
+
+    return flatten(
+        provider(errors_by_linter)
+        for linter_name, errors_by_linter in sorted(grouped.items())
         for provider in PROVIDERS[linter_name].values()
-        for action in provider(error)
     )
+
+
+def best_action_for_error(error):
+    # type: (LintError) -> Optional[QuickAction]
+    return next(actions_for_errors([error]), None)
 
 
 def apply_fix(fix, view):
@@ -101,7 +106,7 @@ def apply_edit(edit, view):
 
 
 if MYPY:
-    Provider = Callable[[LintError], Iterator[QuickAction]]
+    Provider = Callable[[List[LintError]], Iterator[QuickAction]]
 
 
 PROVIDERS = defaultdict(
@@ -140,9 +145,24 @@ def namespacy_name(fn):
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def std_provider(description, fixer, error):
-    # type: (str, Fixer, LintError) -> Iterator[QuickAction]
-    yield QuickAction(description.format(**error), partial(fixer, error))
+def std_provider(description, fixer, errors):
+    # type: (str, Fixer, List[LintError]) -> Iterator[QuickAction]
+    return (
+        QuickAction(description.format(**error), partial(fixer, error))
+        for error in errors
+    )
+
+
+@actions_provider("flake8")
+def flake8_actions(errors):
+    # type: (List[LintError]) -> Iterator[QuickAction]
+    return (
+        QuickAction(
+            'Disable [{code}] "{msg}" for this line'.format(**error),
+            partial(fix_flake8_error, error)
+        )
+        for error in errors
+    )
 
 
 @quick_action_for_error("eslint")
@@ -166,15 +186,6 @@ def fix_eslint_error(error, view):
             "// eslint-disable-next-line {}".format(code),
             line
         )
-    )
-
-
-@actions_provider("flake8")
-def flake8_actions(error):
-    # type: (LintError) -> Iterator[QuickAction]
-    yield QuickAction(
-        'Disable [{code}] "{msg}" for this line'.format(**error),
-        partial(fix_flake8_error, error)
     )
 
 

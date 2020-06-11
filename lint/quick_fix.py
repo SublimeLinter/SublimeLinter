@@ -101,12 +101,13 @@ def _actions_for_error(error):
 
 def apply_fix(fix, view):
     # type: (Fix, sublime.View) -> None
-    apply_edit(fix(view), view)
+    edit = fix(view)
+    apply_edit(edit, view)
 
 
 def apply_edit(edit, view):
     # type: (TextRange, sublime.View) -> None
-    replace_view_content(view, *edit)
+    replace_view_content(view, edit.text, edit.range)
 
 
 PROVIDERS = defaultdict(

@@ -14,8 +14,10 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, List, Iterator, NamedTuple, Optional
+        Callable, DefaultDict, Dict, Hashable, Iterable, Iterator, List,
+        NamedTuple, Optional, TypeVar
     )
+    T = TypeVar("T")
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
@@ -33,16 +35,14 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
         view = self.view
         window = view.window()
         assert window
-        sel = [s for s in view.sel()]
-        if len(sel) > 1:
+        frozen_sel = [s for s in view.sel()]
+        if len(frozen_sel) > 1:
             window.status_message("Only one cursor please.")
             return
 
-        if not sel[0].empty():
-            window.status_message("Only cursors no selections please.")
-
-        cursor = sel[0].a
-        actions = available_actions_on_line(view, cursor)
+        sel = frozen_sel[0]
+        sel = view.full_line(sel.a) if sel.empty() else sel
+        actions = available_actions_in_region(view, sel)
         if not actions:
             window.status_message("No errors here.")
 
@@ -60,11 +60,10 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
         )
 
 
-def available_actions_on_line(view, pt):
-    # type: (sublime.View, int) -> List[QuickAction]
+def available_actions_in_region(view, selection):
+    # type: (sublime.View, sublime.Region) -> List[QuickAction]
     filename = util.get_filename(view)
-    line = view.full_line(pt)
-    errors = get_errors_where(filename, lambda region: region.intersects(line))
+    errors = get_errors_where(filename, lambda region: region.intersects(selection))
     return list(actions_for_errors(errors))
 
 
@@ -148,13 +147,44 @@ def namespacy_name(fn):
 
 def std_provider(description, fixer, errors):
     # type: (str, Fixer, List[LintError]) -> Iterator[QuickAction]
-    return (
-        QuickAction(description.format(**error), partial(fixer, error))
-        for error in errors
+    grouped_by_line = defaultdict(list)
+    for error in errors:
+        grouped_by_line[error["line"]].append(error)
+
+    grouped_by_description = defaultdict(list)
+    for line, errors in grouped_by_line.items():
+        for action in unique(
+            (
+                QuickAction(description.format(**error), partial(fixer, error))
+                for error in errors
+            ),
+            lambda action: action.description
+        ):
+            grouped_by_description[action.description].append(action)
+
+    for description, actions in sorted(grouped_by_description.items()):
+        yield combine_actions(actions)
+
+
+def combine_actions(actions):
+    # type: (List[QuickAction]) -> QuickAction
+    return QuickAction(
+        actions[0].description,
+        lambda view: flatten(map(lambda action: action.fn(view), actions))
     )
 
 
-@actions_provider("flake8")
+def unique(iterable, key):
+    # type: (Iterable[T], Callable[[T], Hashable]) -> Iterator[T]
+    seen = set()
+    for item in iterable:
+        k = key(item)
+        if k not in seen:
+            seen.add(k)
+            yield item
+
+
+# @actions_provider("flake8")
 def flake8_actions(errors):
     # type: (List[LintError]) -> Iterator[QuickAction]
     return (
@@ -190,7 +220,7 @@ def fix_eslint_error(error, view):
     )
 
 
-# @quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
+@quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)

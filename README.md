@@ -10,7 +10,7 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 
 ## Install
-you start to install "Sublime Linter" from here
+you start to install "Sublime Linter" from here.
 1. you click [this](http://sublimelinter.com/) and flow to `sublimelinter.com`. It is public documentation of "Sublime Linter"
 2. There is item of "USER DOCUMENTATION" -> "Installation" in `sublimelinter.com`.
 3. you will proceed installaiotn from [there](http://www.sublimelinter.com/en/stable/installation.html).

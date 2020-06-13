@@ -34,16 +34,17 @@ else:
 
 
 class sl_fix_by_ignoring(sublime_plugin.TextCommand):
+    def is_enabled(self):
+        # type: () -> bool
+        return len(self.view.sel()) == 1
+
     def run(self, edit):
+        # type: (sublime.Edit) -> None
         view = self.view
         window = view.window()
         assert window
-        frozen_sel = [s for s in view.sel()]
-        if len(frozen_sel) > 1:
-            window.status_message("Only one cursor please.")
-            return
 
-        sel = frozen_sel[0]
+        sel = view.sel()[0]
         filename = util.get_filename(view)
         if sel.empty():
             char_selection = sublime.Region(sel.a, sel.a + 1)

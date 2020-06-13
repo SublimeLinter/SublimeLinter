@@ -9,8 +9,68 @@ from SublimeLinter.lint.quick_fix import (
     apply_edit,
     fix_eslint_error,
     fix_flake8_error,
-    fix_mypy_error
+    fix_mypy_error,
+    std_provider,
+    DEFAULT_DESCRIPTION,
+    DEFAULT_SIMPLE_DESCRIPTION
 )
+
+
+class TestActionReducer(DeferrableTestCase):
+    @p.expand([
+        (
+            "filter error without code",
+            [
+                dict(linter="flake", code="", msg="foo unused", line=1),
+            ],
+            []
+        ),
+        (
+            "single error",
+            [
+                dict(linter="flake", code="201", msg="foo unused", line=1),
+            ],
+            [
+                'flake: Disable [201]   foo unused'
+            ]
+        ),
+        (
+            "two distinct errors",
+            [
+                dict(linter="flake", code="201", msg="foo unused", line=1),
+                dict(linter="flake", code="202", msg="zoo unused", line=1),
+            ],
+            [
+                'flake: Disable [201]   foo unused',
+                'flake: Disable [202]   zoo unused'
+            ]
+        ),
+        (
+            "two similar errors, same line",
+            [
+                dict(linter="flake", code="201", msg="foo unused", line=1),
+                dict(linter="flake", code="201", msg="zoo unused", line=1),
+            ],
+            [
+                'flake: Disable [201]   e.g.: foo unused',
+            ]
+        ),
+        (
+            "two similar errors, different line",
+            [
+                dict(linter="flake", code="201", msg="foo unused", line=1),
+                dict(linter="flake", code="201", msg="zoo unused", line=2),
+            ],
+            [
+                'flake: Disable [201]   e.g.: foo unused',
+            ]
+        ),
+    ])
+    def test_action_descriptions(self, _, ERRORS, RESULT):
+        fixer = lambda: None
+
+        actions = std_provider(DEFAULT_DESCRIPTION, DEFAULT_SIMPLE_DESCRIPTION, fixer, ERRORS)
+        self.assertEquals(RESULT, [action.description for action in actions])
 
 
 class TestIgnoreFixers(DeferrableTestCase):
@@ -95,7 +155,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="E203", region=sublime.Region(4))
         edit = fix_flake8_error(error, view)
-        apply_edit(edit, view)
+        apply_edit(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -141,7 +201,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="no-idea", region=sublime.Region(4))
         edit = fix_mypy_error(error, view)
-        apply_edit(edit, view)
+        apply_edit(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -188,6 +248,6 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="semi", region=sublime.Region(POS))
         edit = fix_eslint_error(error, view)
-        apply_edit(edit, view)
+        apply_edit(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

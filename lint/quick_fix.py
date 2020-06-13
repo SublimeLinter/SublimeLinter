@@ -8,7 +8,7 @@ import sublime_plugin
 
 from . import persist
 from . import util
-from .generic_text_command import replace_view_content
+from .generic_text_command import replace_view_content, text_command
 flatten = chain.from_iterable
 
 MYPY = False
@@ -18,15 +18,18 @@ if MYPY:
         NamedTuple, Optional, TypeVar
     )
     T = TypeVar("T")
+    S = TypeVar("S")
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
     Fix = Callable[[sublime.View], Iterator[TextRange]]
-    QuickAction = NamedTuple("QuickAction", [("description", str), ("fn", Fix)])
+    QuickAction = NamedTuple("QuickAction", [
+        ("description", str), ("fn", Fix), ("simplified_description", str)
+    ])
 
 else:
     from collections import namedtuple
-    QuickAction = namedtuple("QuickAction", "description fn")
+    QuickAction = namedtuple("QuickAction", "description fn simplified_description")
     TextRange = namedtuple("TextRange", "text range")
 
 
@@ -58,6 +61,10 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             [action.description for action in actions],
             on_done
         )
+        # view.show_popup_menu(
+        #     [action.description for action in actions],
+        #     on_done
+        # )
 
 
 def available_actions_in_region(view, selection):
@@ -96,11 +103,12 @@ def best_action_for_error(error):
 def apply_fix(fix, view):
     # type: (Fix, sublime.View) -> None
     edits = fix(view)
-    apply_edit(edits, view)
+    apply_edit(view, edits)
 
 
-def apply_edit(edits, view):
-    # type: (Iterator[TextRange], sublime.View) -> None
+@text_command
+def apply_edit(view, edits):
+    # type: (sublime.View, Iterator[TextRange]) -> None
     for edit in reversed(sorted(edits, key=lambda edit: edit.range.a)):
         replace_view_content(view, edit.text, edit.range)
 
@@ -112,7 +120,19 @@ if MYPY:
 PROVIDERS = defaultdict(
     dict
 )  # type: DefaultDict[str, Dict[str, Provider]]
-DEFAULT_DESCRIPTION = "Disable [{code}] for this line"
+DEFAULT_DESCRIPTION = 'Disable [{code}] - {msg}'
+DEFAULT_DESCRIPTION = 'Disable [{code}]  - {msg}'
+DEFAULT_DESCRIPTION = '{linter}: Disable [{code}]   {msg}'
+# DEFAULT_DESCRIPTION = 'Disable {linter} [{code}]  - {msg}'
+# DEFAULT_DESCRIPTION = 'Disable {linter} {code}  - {msg}'
+# DEFAULT_DESCRIPTION = 'Disable {linter} {code}   {msg}'
+# DEFAULT_DESCRIPTION = 'Disable [{code}]   {msg}'
+# DEFAULT_DESCRIPTION = 'Disable {linter}: {code}  - {msg}'
+# DEFAULT_DESCRIPTION = 'Disable [{code}]  "{msg}"'
+
+DEFAULT_SIMPLE_DESCRIPTION = 'Disable [{code}]'
+# DEFAULT_SIMPLE_DESCRIPTION = 'Disable {linter}: {code}'
+DEFAULT_SIMPLE_DESCRIPTION = '{linter}: Disable [{code}]'
 
 
 def actions_provider(linter_name):
@@ -127,12 +147,18 @@ def actions_provider(linter_name):
     return register
 
 
-def quick_action_for_error(linter_name, description=DEFAULT_DESCRIPTION):
-    # type: (str, str) -> Callable[[Fixer], Fixer]
+def quick_action_for_error(
+    linter_name,
+    description=DEFAULT_DESCRIPTION,
+    simplified_description=DEFAULT_SIMPLE_DESCRIPTION
+):
+    # type: (str, str, str) -> Callable[[Fixer], Fixer]
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
-        PROVIDERS[linter_name][ns_name] = partial(std_provider, description, fn)
+        PROVIDERS[linter_name][ns_name] = partial(
+            std_provider, description, simplified_description, fn
+        )
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
 
@@ -145,33 +171,67 @@ def namespacy_name(fn):
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def std_provider(description, fixer, errors):
-    # type: (str, Fixer, List[LintError]) -> Iterator[QuickAction]
-    grouped_by_line = defaultdict(list)
-    for error in errors:
-        grouped_by_line[error["line"]].append(error)
+def std_provider(description, simplified_description, fixer, errors):
+    # type: (str, str, Fixer, List[LintError]) -> Iterator[QuickAction]
+    make_action = lambda error: QuickAction(
+        description.format(**error),
+        partial(fixer, error),
+        simplified_description.format(**error)
+    )
 
-    grouped_by_description = defaultdict(list)
-    for line, errors in grouped_by_line.items():
-        for action in unique(
-            (
-                QuickAction(description.format(**error), partial(fixer, error))
-                for error in errors
-            ),
-            lambda action: action.description
-        ):
-            grouped_by_description[action.description].append(action)
+    grouped_by_line = group_by(lambda e: e["line"], filter(lambda e: e["code"], errors))
+    all_actions = flatten(
+        filter_similar_actions(map(make_action, errors))
+        for errors in grouped_by_line.values()
+    )
+    grouped_by_description = group_by(lambda a: a.simplified_description, all_actions)
+    for _, actions in sorted(
+        grouped_by_description.items(),
+        key=lambda item: (-len(item[1]), item[0])
+    ):
+        yield (combine_actions(actions) if len(actions) > 1 else actions[0])
 
-    for description, actions in sorted(grouped_by_description.items()):
-        yield combine_actions(actions)
+
+def filter_similar_actions(actions):
+    # type: (Iterable[QuickAction]) -> Iterable[QuickAction]
+    grouped = group_by(lambda a: a.simplified_description, actions)
+    for actions in grouped.values():
+        head = actions[0]
+        if len(actions) == 1:
+            yield head
+        else:
+            yield QuickAction(
+                head.description.replace("  ", "   e.g.:"),
+                head.fn,
+                head.simplified_description
+            )
+
+
+def group_by(key, iterable):
+    # type: (Callable[[T], S], Iterable[T]) -> DefaultDict[S, List[T]]
+    grouped = defaultdict(list)
+    for item in iterable:
+        grouped[key(item)].append(item)
+    return grouped
 
 
 def combine_actions(actions):
     # type: (List[QuickAction]) -> QuickAction
     return QuickAction(
-        actions[0].description,
-        lambda view: flatten(map(lambda action: action.fn(view), actions))
+        best_description_for_multiple_actions(actions),
+        lambda view: flatten(map(lambda action: action.fn(view), actions)),
+        actions[0].simplified_description
     )
+
+
+def best_description_for_multiple_actions(actions):
+    # type: (List[QuickAction]) -> str
+    head = actions[0]
+    if any(action.description != head.description for action in actions[1:]):
+        return head.description.replace("   e.g.:", "  ").replace("  ", "   e.g.:")
+        return head.simplified_description
+    else:
+        return head.description
 
 
 def unique(iterable, key):
@@ -189,8 +249,9 @@ def flake8_actions(errors):
     # type: (List[LintError]) -> Iterator[QuickAction]
     return (
         QuickAction(
-            'Disable [{code}] "{msg}" for this line'.format(**error),
-            partial(fix_flake8_error, error)
+            'Disable {linter}:{code} "{msg}"'.format(**error),
+            partial(fix_flake8_error, error),
+            DEFAULT_DESCRIPTION.format(**error)
         )
         for error in errors
     )
@@ -220,7 +281,7 @@ def fix_eslint_error(error, view):
     )
 
 
-@quick_action_for_error("flake8", 'Disable [{code}] "{msg}" for this line')
+@quick_action_for_error("flake8")
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)

@@ -8,6 +8,9 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 <img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
 
+## Installation 
+
+Install SublimeLinter and linters via [Package Control](http://www.sublimelinter.com/en/stable/installation.html). 
 
 ## Settings
 

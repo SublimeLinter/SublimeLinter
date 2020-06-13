@@ -10,6 +10,7 @@ from SublimeLinter.lint.quick_fix import (
     fix_eslint_error,
     fix_flake8_error,
     fix_mypy_error,
+    fix_stylelint_error,
     std_provider,
     DEFAULT_DESCRIPTION,
     DEFAULT_SIMPLE_DESCRIPTION
@@ -248,6 +249,28 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="semi", region=sublime.Region(POS))
         edit = fix_eslint_error(error, view)
+        apply_edit(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
+            "clean line",
+            "#id| {",
+            "#id { /* stylelint-disable-line selector-no-id */"
+        ),
+        (
+            "extend given comment",
+            "#id| { /* stylelint-disable-line some-rule */",
+            "#id { /* stylelint-disable-line some-rule, selector-no-id */",
+        ),
+    ])
+    def test_stylelint(self, _description, BEFORE, AFTER):
+        view = self.create_view(self.window)
+        BEFORE, POS = "".join(BEFORE.split("|")), BEFORE.index("|")
+        view.run_command("insert", {"characters": BEFORE})
+        error = dict(code="selector-no-id", region=sublime.Region(POS))
+        edit = fix_stylelint_error(error, view)
         apply_edit(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

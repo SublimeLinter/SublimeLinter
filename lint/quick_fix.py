@@ -292,6 +292,24 @@ def fix_eslint_error(error, view):
     )
 
 
+@quick_action_for_error("stylelint")
+def fix_stylelint_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    code = error["code"]
+    yield (
+        extend_existing_comment(
+            r"\/\* stylelint-disable-line (?P<codes>[\w\-\/]+(?:,\s?[\w\-\/]+)*).*\*\/",
+            ", ",
+            code,
+            line
+        ) or add_at_eol(
+            " /* stylelint-disable-line {} */".format(code),
+            line
+        )
+    )
+
+
 @quick_action_for_error("flake8")
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]

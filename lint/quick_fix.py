@@ -44,10 +44,15 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             return
 
         sel = frozen_sel[0]
-        sel = view.full_line(sel.a) if sel.empty() else sel
-        actions = available_actions_in_region(view, sel)
-        if not actions:
-            window.status_message("No errors here.")
+        filename = util.get_filename(view)
+        if sel.empty():
+            char_selection = sublime.Region(sel.a, sel.a + 1)
+            errors = get_errors_where(filename, lambda region: region.intersects(char_selection))
+            if not errors:
+                sel = view.full_line(sel.a)
+                errors = get_errors_where(filename, lambda region: region.intersects(sel))
+        else:
+            errors = get_errors_where(filename, lambda region: region.intersects(sel))
 
         def on_done(idx):
             # type: (int) -> None
@@ -57,14 +62,19 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             action = actions[idx]
             apply_fix(action.fn, view)
 
-        window.show_quick_panel(
-            [action.description for action in actions],
-            on_done
-        )
-        # view.show_popup_menu(
-        #     [action.description for action in actions],
-        #     on_done
-        # )
+        actions = list(actions_for_errors(errors))
+        if not actions:
+            window.show_quick_panel(
+                ["No actions available."],
+                lambda x: None
+            )
+        elif len(actions) == 1:
+            on_done(0)
+        else:
+            window.show_quick_panel(
+                [action.description for action in actions],
+                on_done
+            )
 
 
 def available_actions_in_region(view, selection):

@@ -9,6 +9,13 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 <img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
 
 
+## Install
+you start to install "Sublime Linter" from here
+1. you click [this](http://sublimelinter.com/) and flow to sublime.com. It is public documentation of "Sublime Linter"
+2. item of "USER DOCUMENTATION" -> "Installation" exist.
+3. you will proceed installaiotn from [there](http://www.sublimelinter.com/en/stable/installation.html).
+
+
 ## Settings
 
 Settings are mostly documented in the [default settings](https://github.com/SublimeLinter/SublimeLinter/blob/master/SublimeLinter.sublime-settings). When you open the SublimeLinter settings you'll see them on the left.

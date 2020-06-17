@@ -65,7 +65,7 @@ SOME_WS = re.compile(r'\s')
 FALLBACK_MARK_STYLE = 'outline'
 
 WS_ONLY = re.compile(r'^\s+$')
-MULTILINES = re.compile('\n')
+MULTILINES = re.compile('\n(?=.)')
 
 # Sublime >= 4074 supports underline styles on white space
 # https://github.com/sublimehq/sublime_text/issues/137

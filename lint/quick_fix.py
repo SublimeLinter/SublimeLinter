@@ -190,32 +190,50 @@ def std_provider(description, simplified_description, fixer, errors):
         simplified_description.format(**error)
     )
 
-    grouped_by_line = group_by(lambda e: e["line"], filter(lambda e: e["code"], errors))
-    all_actions = flatten(
-        filter_similar_actions(map(make_action, errors))
-        for errors in grouped_by_line.values()
+    grouped_by_code = group_by(
+        lambda e: e["code"],
+        (e for e in errors if e["code"])
     )
-    grouped_by_description = group_by(lambda a: a.simplified_description, all_actions)
-    for _, actions in sorted(
-        grouped_by_description.items(),
-        key=lambda item: (-len(item[1]), item[0])
-    ):
-        yield (combine_actions(actions) if len(actions) > 1 else actions[0])
+    for code, errors_with_same_code in grouped_by_code.items():
+        grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
 
+        actions_per_line = []
+        for line, errors_on_same_line_with_same_code in grouped_by_line.items():
+            as_actions = list(map(make_action, errors_on_same_line_with_same_code))
+            actions_per_line.append(as_actions)
 
-def filter_similar_actions(actions):
-    # type: (Iterable[QuickAction]) -> Iterable[QuickAction]
-    grouped = group_by(lambda a: a.simplified_description, actions)
-    for actions in grouped.values():
-        head = actions[0]
-        if len(actions) == 1:
-            yield head
+        if len(actions_per_line) > 1:
+            yield merge_actions(actions_per_line)
         else:
-            yield QuickAction(
-                head.description.replace("  ", "   e.g.:"),
-                head.fn,
-                head.simplified_description
-            )
+            actions = actions_per_line[0]
+            head = actions[0]
+            if len(actions) == 1:
+                yield head
+            else:
+                yield QuickAction(
+                    best_description_for_multiple_actions_(actions),
+                    head.fn,
+                    head.simplified_description
+                )
+
+
+def best_description_for_multiple_actions_(actions):
+    # type: (List[QuickAction]) -> str
+    head = actions[0]
+    if any(head.description != action.description for action in actions[1:]):
+        return head.description.replace("  ", " ({}x)   e.g.:".format(len(actions)))
+    else:
+        return head.description
+
+
+def merge_actions(actions):
+    # type: (List[List[QuickAction]]) -> QuickAction
+    first_action_per_chunk = next(zip(*actions))
+    return QuickAction(
+        best_description_for_multiple_actions_(list(flatten(actions))),
+        lambda view: flatten(map(lambda action: action.fn(view), first_action_per_chunk)),
+        next(flatten(actions)).simplified_description
+    )
 
 
 def group_by(key, iterable):
@@ -224,25 +242,6 @@ def group_by(key, iterable):
     for item in iterable:
         grouped[key(item)].append(item)
     return grouped
-
-
-def combine_actions(actions):
-    # type: (List[QuickAction]) -> QuickAction
-    return QuickAction(
-        best_description_for_multiple_actions(actions),
-        lambda view: flatten(map(lambda action: action.fn(view), actions)),
-        actions[0].simplified_description
-    )
-
-
-def best_description_for_multiple_actions(actions):
-    # type: (List[QuickAction]) -> str
-    head = actions[0]
-    if any(action.description != head.description for action in actions[1:]):
-        return head.description.replace("   e.g.:", "  ").replace("  ", "   e.g.:")
-        return head.simplified_description
-    else:
-        return head.description
 
 
 def unique(iterable, key):

@@ -14,7 +14,7 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, Hashable, Iterable, Iterator, List,
+        Callable, DefaultDict, Dict, Final, Iterable, Iterator, List,
         NamedTuple, Optional, TypeVar
     )
     T = TypeVar("T")
@@ -23,14 +23,24 @@ if MYPY:
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
     Fix = Callable[[sublime.View], Iterator[TextRange]]
-    QuickAction = NamedTuple("QuickAction", [
-        ("description", str), ("fn", Fix), ("simplified_description", str)
-    ])
 
 else:
     from collections import namedtuple
-    QuickAction = namedtuple("QuickAction", "description fn simplified_description")
     TextRange = namedtuple("TextRange", "text range")
+
+
+class QuickAction:
+    def __init__(self, subject, fn, detail, solves):
+        # type: (str, Fix, Optional[str], List[LintError]) -> None
+        self.subject = subject  # type: Final[str]
+        self.fn = fn  # type: Final[Fix]
+        self.detail = detail  # type: Final[Optional[str]]
+        self.solves = solves  # type: Final[List[LintError]]
+
+    @property
+    def description(self):
+        # type: () -> str
+        return "   ".join(filter(None, (self.subject, self.detail)))
 
 
 class sl_fix_by_ignoring(sublime_plugin.TextCommand):
@@ -131,19 +141,8 @@ if MYPY:
 PROVIDERS = defaultdict(
     dict
 )  # type: DefaultDict[str, Dict[str, Provider]]
-DEFAULT_DESCRIPTION = 'Disable [{code}] - {msg}'
-DEFAULT_DESCRIPTION = 'Disable [{code}]  - {msg}'
-DEFAULT_DESCRIPTION = '{linter}: Disable [{code}]   {msg}'
-# DEFAULT_DESCRIPTION = 'Disable {linter} [{code}]  - {msg}'
-# DEFAULT_DESCRIPTION = 'Disable {linter} {code}  - {msg}'
-# DEFAULT_DESCRIPTION = 'Disable {linter} {code}   {msg}'
-# DEFAULT_DESCRIPTION = 'Disable [{code}]   {msg}'
-# DEFAULT_DESCRIPTION = 'Disable {linter}: {code}  - {msg}'
-# DEFAULT_DESCRIPTION = 'Disable [{code}]  "{msg}"'
-
-DEFAULT_SIMPLE_DESCRIPTION = 'Disable [{code}]'
-# DEFAULT_SIMPLE_DESCRIPTION = 'Disable {linter}: {code}'
-DEFAULT_SIMPLE_DESCRIPTION = '{linter}: Disable [{code}]'
+DEFAULT_SUBJECT = '{linter}: Disable [{code}]'
+DEFAULT_DETAIL = '{msg}'
 
 
 def actions_provider(linter_name):
@@ -160,15 +159,15 @@ def actions_provider(linter_name):
 
 def quick_action_for_error(
     linter_name,
-    description=DEFAULT_DESCRIPTION,
-    simplified_description=DEFAULT_SIMPLE_DESCRIPTION
+    subject=DEFAULT_SUBJECT,
+    detail=DEFAULT_DETAIL
 ):
     # type: (str, str, str) -> Callable[[Fixer], Fixer]
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = partial(
-            std_provider, description, simplified_description, fn
+            std_provider, subject, detail, fn
         )
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
@@ -182,12 +181,13 @@ def namespacy_name(fn):
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def std_provider(description, simplified_description, fixer, errors):
+def std_provider(subject, detail, fixer, errors):
     # type: (str, str, Fixer, List[LintError]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
-        description.format(**error),
+        subject.format(**error),
         partial(fixer, error),
-        simplified_description.format(**error)
+        detail.format(**error),
+        solves=[error]
     )
 
     grouped_by_code = group_by(
@@ -211,28 +211,43 @@ def std_provider(description, simplified_description, fixer, errors):
                 yield head
             else:
                 yield QuickAction(
-                    best_description_for_multiple_actions_(actions),
+                    subject_for_multiple_actions(actions),
                     head.fn,
-                    head.simplified_description
+                    detail_for_multiple_actions(actions),
+                    solves=list(flatten(action.solves for action in actions))
                 )
 
+# import zoo, foo
+# import bar
 
-def best_description_for_multiple_actions_(actions):
-    # type: (List[QuickAction]) -> str
-    head = actions[0]
-    if any(head.description != action.description for action in actions[1:]):
-        return head.description.replace("  ", " ({}x)   e.g.:".format(len(actions)))
+
+def detail_for_multiple_actions(actions):
+    # type: (List[QuickAction]) -> Optional[str]
+    detail = next(filter(None, (a.detail for a in actions)), None)
+    if not detail:
+        return detail
+    distinct = any(detail != action.detail for action in actions)
+
+    solves_count = len(list(flatten(a.solves for a in actions)))
+    if distinct:
+        return "({}x) e.g.: {}".format(solves_count, detail)
     else:
-        return head.description
+        return "({}x) {}".format(solves_count, detail)
+
+
+def subject_for_multiple_actions(actions):
+    # type: (List[QuickAction]) -> str
+    return actions[0].subject
 
 
 def merge_actions(actions):
     # type: (List[List[QuickAction]]) -> QuickAction
     first_action_per_chunk = next(zip(*actions))
     return QuickAction(
-        best_description_for_multiple_actions_(list(flatten(actions))),
+        subject_for_multiple_actions(list(flatten(actions))),
         lambda view: flatten(map(lambda action: action.fn(view), first_action_per_chunk)),
-        next(flatten(actions)).simplified_description
+        detail_for_multiple_actions(list(flatten(actions))),
+        solves=list(flatten(action.solves for action in flatten(actions)))
     )
 
 
@@ -244,27 +259,7 @@ def group_by(key, iterable):
     return grouped
 
 
-def unique(iterable, key):
-    # type: (Iterable[T], Callable[[T], Hashable]) -> Iterator[T]
-    seen = set()
-    for item in iterable:
-        k = key(item)
-        if k not in seen:
-            seen.add(k)
-            yield item
-
-
-# @actions_provider("flake8")
-def flake8_actions(errors):
-    # type: (List[LintError]) -> Iterator[QuickAction]
-    return (
-        QuickAction(
-            'Disable {linter}:{code} "{msg}"'.format(**error),
-            partial(fix_flake8_error, error),
-            DEFAULT_DESCRIPTION.format(**error)
-        )
-        for error in errors
-    )
+# --- FIXERS --- #
 
 
 @quick_action_for_error("eslint")

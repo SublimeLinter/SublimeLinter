@@ -15,7 +15,7 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, DefaultDict, Dict, Final, Iterable, Iterator, List,
-        NamedTuple, Optional, TypeVar
+        NamedTuple, Optional, Set, TypeVar
     )
     T = TypeVar("T")
     S = TypeVar("S")
@@ -160,15 +160,15 @@ def actions_provider(linter_name):
 def quick_action_for_error(
     linter_name,
     subject=DEFAULT_SUBJECT,
-    detail=DEFAULT_DETAIL
+    detail=DEFAULT_DETAIL,
+    except_for=set()
 ):
-    # type: (str, str, str) -> Callable[[Fixer], Fixer]
+    # type: (str, str, str, Set[str]) -> Callable[[Fixer], Fixer]
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
-        PROVIDERS[linter_name][ns_name] = partial(
-            std_provider, subject, detail, fn
-        )
+        provider = partial(std_provider, subject, detail, except_for, fn)
+        PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
 
@@ -181,8 +181,8 @@ def namespacy_name(fn):
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def std_provider(subject, detail, fixer, errors):
-    # type: (str, str, Fixer, List[LintError]) -> Iterator[QuickAction]
+def std_provider(subject, detail, except_for, fixer, errors):
+    # type: (str, str, Set[str], Fixer, List[LintError]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
         subject.format(**error),
         partial(fixer, error),
@@ -192,7 +192,7 @@ def std_provider(subject, detail, fixer, errors):
 
     grouped_by_code = group_by(
         lambda e: e["code"],
-        (e for e in errors if e["code"])
+        (e for e in errors if e["code"] and e["code"] not in except_for)
     )
     for code, errors_with_same_code in grouped_by_code.items():
         grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
@@ -304,7 +304,7 @@ def fix_stylelint_error(error, view):
     )
 
 
-@quick_action_for_error("flake8")
+@quick_action_for_error("flake8", except_for={"E999"})
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -323,7 +323,7 @@ def fix_flake8_error(error, view):
     )
 
 
-@quick_action_for_error("mypy")
+@quick_action_for_error("mypy", except_for={"syntax"})
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)

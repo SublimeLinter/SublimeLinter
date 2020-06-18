@@ -71,3 +71,16 @@ highlight_view.py:
                                               message
 #                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
 
+
+C:\foo\highlight_view.py:
+# <- entity.name.filename.sublime_linter
+#^^^^^^^^^^^^^^^^^^^^^^^ entity.name.filename.sublime_linter
+# <- meta.error_panel.fileline.sublime_linter
+#^^^^^^^^^^^^^^^^^^^^^^^^ meta.error_panel.fileline.sublime_linter
+
+/foo/highlight_view.py:
+# <- entity.name.filename.sublime_linter
+#^^^^^^^^^^^^^^^^^^^^^ entity.name.filename.sublime_linter
+# <- meta.error_panel.fileline.sublime_linter
+#^^^^^^^^^^^^^^^^^^^^^^ meta.error_panel.fileline.sublime_linter
+

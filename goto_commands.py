@@ -16,13 +16,13 @@ if MYPY:
 
 
 class sublime_linter_goto_error(sublime_plugin.TextCommand):
-    def run(self, edit, direction='next', count=1, wrap=False):
-        # type: (sublime.Edit, Direction, int, bool) -> None
-        goto(self.view, direction, count, wrap)
+    def run(self, edit, direction='next', count=1, wrap=False, transient=False):
+        # type: (sublime.Edit, Direction, int, bool, bool) -> None
+        goto(self.view, direction, count, wrap, transient)
 
 
-def goto(view, direction, count, wrap):
-    # type: (sublime.View, Direction, int, bool) -> None
+def goto(view, direction, count, wrap, transient):
+    # type: (sublime.View, Direction, int, bool, bool) -> None
     filename = util.get_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
@@ -74,7 +74,7 @@ def goto(view, direction, count, wrap):
     else:
         point = jump_positions[count - 1]
 
-    move_to(view, point)
+    move_to(view, point, transient)
 
 
 class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
@@ -87,9 +87,10 @@ class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
         self.view.show(point)
 
 
-def move_to(view, point):
-    # type: (sublime.View, int) -> None
-    add_selection_to_jump_history(view)
+def move_to(view, point, transient):
+    # type: (sublime.View, int, bool) -> None
+    if not transient:
+        add_selection_to_jump_history(view)
     view.run_command('_sublime_linter_move_cursor', {'point': point})
 
 

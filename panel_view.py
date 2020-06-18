@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import lru_cache, partial
 from itertools import chain
 import os
@@ -14,8 +14,8 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Collection, Dict, Iterable, List, Optional, Set,
-        Tuple, TypeVar, Union
+        Any, Callable, Collection, Dict, Iterable, List, NamedTuple,
+        Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
@@ -29,7 +29,8 @@ if MYPY:
         'active_view': Optional[sublime.View],
         'active_filename': Optional[str],
         'cursor': int,
-        'panel_opened_automatically': Set[sublime.WindowId]
+        'panel_opened_automatically': Set[sublime.WindowId],
+        'panel_has_focus': bool,
     })
     ErrorsByFile = Dict[FileName, List[LintError]]
     DrawInfo = TypedDict('DrawInfo', {
@@ -40,6 +41,12 @@ if MYPY:
     }, total=False)
     Action = Callable[[], None]
 
+    TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
+    Location = NamedTuple("Location", [("filename", FileName), ("line", int), ("column", int)])
+else:
+    TextRange = namedtuple("TextRange", "text range")
+    Location = namedtuple("Location", "filename line column")
+
 
 PANEL_NAME = "SublimeLinter"
 OUTPUT_PANEL = "output." + PANEL_NAME
@@ -49,7 +56,8 @@ State = {
     'active_view': None,
     'active_filename': None,
     'cursor': -1,
-    'panel_opened_automatically': set()
+    'panel_opened_automatically': set(),
+    'panel_has_focus': False,
 }  # type: State_
 
 
@@ -138,7 +146,7 @@ def execute_on_lint_result_request(linter_name):
 def _on_lint_result(filenames, maybe_toggle_panel_automatically):
     # type: (Set[FileName], bool) -> None
     for window in sublime.windows():
-        panel_open = panel_is_active(window)
+        panel_open = panel_is_visible(window)
         if (
             (panel_open or maybe_toggle_panel_automatically)
             and filenames & filenames_per_window(window)
@@ -153,7 +161,7 @@ def _on_lint_result(filenames, maybe_toggle_panel_automatically):
 @events.on('updated_error_positions')
 def on_updated_error_positions(filename, **kwargs):
     for window in sublime.windows():
-        if panel_is_active(window) and filename in filenames_per_window(window):
+        if panel_is_visible(window) and filename in filenames_per_window(window):
             fill_panel(window)
 
 
@@ -162,11 +170,22 @@ def on_renamed_file(new_filename, **kwargs):
     # update all panels that contain this file
     for window in sublime.windows():
         if new_filename in filenames_per_window(window):
-            if panel_is_active(window):
+            if panel_is_visible(window):
                 fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
+    def on_activated(self, active_view):
+        window = active_view.window()
+        if not window:
+            return
+
+        panel = get_panel(window)
+        panel_has_focus = panel.id() == active_view.id() if panel else False
+        State.update({
+            'panel_has_focus': panel_has_focus
+        })
+
     def on_activated_async(self, active_view):
         if not util.is_lintable(active_view):
             return
@@ -181,7 +200,7 @@ class UpdateState(sublime_plugin.EventListener):
             'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
-        if panel_is_active(window):
+        if panel_is_visible(window):
             fill_panel(window)
             start_viewport_poller()
         else:
@@ -201,14 +220,18 @@ class UpdateState(sublime_plugin.EventListener):
             State.update({
                 'cursor': cursor
             })
-            if panel_is_active(active_view.window()):
-                update_panel_selection(**State)
+            if panel_is_visible(active_view.window()):
+                update_panel_selection(
+                    active_view,
+                    cursor,
+                    State["panel_has_focus"],
+                )
 
     def on_pre_close(self, view):
         window = view.window()
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
-        if window and panel_is_active(window):
+        if window and panel_is_visible(window):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
     @util.distinct_until_buffer_changed
@@ -219,17 +242,41 @@ class UpdateState(sublime_plugin.EventListener):
         if view_gets_linted_on_modified_event(view):
             toggle_panel_if_errors(view.window(), {util.get_filename(view)})
 
+    def on_window_command(self, window, command_name, args):
+        if (
+            command_name == 'hide_panel'
+            and args and args.get("cancel")
+            and State["panel_has_focus"]
+        ):
+            panel = get_panel(window)
+            if panel:
+                restore_view_state(panel)
+                if panel.settings().get("sl_quick_panel_mode"):
+                    return
+                else:
+                    force_focus_active_view(window)
+                    return "noop"
+        elif (
+            command_name == "show_panel"
+            and args.get('panel') == OUTPUT_PANEL
+            and args.get('focus')
+        ):
+            panel = get_panel(window)
+            if panel:
+                is_visible = panel_is_visible(window)
+                panel.settings().set("sl_quick_panel_mode", not is_visible)
+
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
             State['panel_opened_automatically'].discard(window.id())
+            panel = get_panel(window)
+            if panel:
+                panel.settings().set("sl_quick_panel_mode", False)
             stop_viewport_poller()
             return
 
         if command_name == 'show_panel':
-
             if args.get('panel') == OUTPUT_PANEL:
-                fill_panel(window)
-
                 # Apply focus fix to ensure `next_result` is bound to our panel.
                 active_group = window.active_group()
                 active_view = window.active_view()
@@ -237,8 +284,11 @@ class UpdateState(sublime_plugin.EventListener):
                 panel = get_panel(window)
                 window.focus_view(panel)
 
-                window.focus_group(active_group)
-                window.focus_view(active_view)
+                if not args.get('focus', False):
+                    window.focus_group(active_group)
+                    window.focus_view(active_view)
+
+                fill_panel(window)
                 sublime.set_timeout(start_viewport_poller)
             else:
                 stop_viewport_poller()
@@ -265,31 +315,226 @@ def toggle_panel_if_errors(window, filenames):
         or filenames & errors_by_file.keys()
     )
 
-    if not panel_is_active(window) and has_relevant_errors:
+    if not panel_is_visible(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
         State['panel_opened_automatically'].add(window.id())
 
     elif (
-        panel_is_active(window) and
+        panel_is_visible(window) and
         not has_relevant_errors and
         window.id() in State['panel_opened_automatically']
     ):
         window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
-class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self):
-        if panel_is_active(self.window):
+class sublime_linter_panel_toggle(sublime_plugin.WindowCommand):
+    def run(self, focus=False):
+        if (
+            State["panel_has_focus"]
+            or (panel_is_visible(self.window) and not focus)
+        ):
             self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
-            self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+            self.window.run_command("show_panel", {
+                "panel": OUTPUT_PANEL, "focus": focus
+            })
+
+
+class sublime_linter_panel_commit(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        view = self.view
+        window = view.window()
+        assert window
+
+        if len(view.sel()) != 1:
+            print("No cursor, or multiple. Return")
+            if view.settings().get("sl_quick_panel_mode"):
+                window.run_command("sublime_linter_panel_toggle")
+            else:
+                force_focus_active_view(window)
+            return
+
+        loc = read_current_location(view, view.sel()[0])
+        if loc is None:
+            print("Error: No visual error found.")
+            return
+
+        forget_view_state(view)
+        open_location(window, *loc)
+        if view.settings().get("sl_quick_panel_mode"):
+            window.run_command("sublime_linter_panel_toggle")
+        else:
+            force_focus_active_view(window)
+
+
+def force_focus_active_view(window):
+    active_group = window.active_group()
+    active_view = window.active_view()
+    assert active_view
+    window.focus_group(active_group)
+    window.focus_view(active_view)
+
+
+def read_current_location(view, sel):
+    # type: (sublime.View, sublime.Region) -> Optional[Location]
+    cursor = sel.b
+    cursor_at_eol = view.line(cursor).b
+
+    fname = read_selector_just_before_pt(view, "entity.name.filename", cursor_at_eol)
+    if fname is None:
+        return None
+
+    if fname.range.a <= cursor_at_eol <= fname.range.b + 1:
+        cursor_at_eol = view.line(cursor_at_eol + 1).b  # next line
+
+    line_col = read_selector_just_before_pt(view, "meta.line-col", cursor_at_eol)
+    if line_col is None:
+        return None
+
+    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
+    if line_col.range.a < fname.range.a:  # Clean file, user is on NO_RESULTS_MESSAGE
+        return Location(filename, -1, -1)
+
+    li, co = map(int, line_col.text.split(":"))
+    return Location(filename, li, co)
+
+
+def next_location(view, sel):
+    # type: (sublime.View, sublime.Region) -> Optional[Location]
+    cursor = sel.b
+    cursor_at_eol = view.line(cursor).b
+    line_col = read_selector_just_after_pt(view, "meta.line-col", cursor_at_eol)
+    if line_col is None:
+        return None
+
+    fname = read_selector_just_before_pt(view, "entity.name.filename", line_col.range.a)
+    if fname is None:
+        return None
+
+    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
+    li, co = map(int, line_col.text.split(":"))
+    return Location(filename, li, co)
+
+
+def previous_location(view, sel):
+    # type: (sublime.View, sublime.Region) -> Optional[Location]
+    cursor = sel.b
+    cursor_at_bol = view.line(cursor).a
+    line_col = read_selector_just_before_pt(view, "meta.line-col", cursor_at_bol)
+    if line_col is None:
+        return None
+
+    if view.match_selector(cursor_at_bol, "markup.quote.linter-message"):
+        # go up twice
+        line_col = read_selector_just_before_pt(view, "meta.line-col", line_col.range.a)
+        if line_col is None:
+            return None
+
+    fname = read_selector_just_before_pt(view, "entity.name.filename", line_col.range.a)
+    if fname is None:
+        return None
+
+    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
+    li, co = map(int, line_col.text.split(":"))
+    return Location(filename, li, co)
+
+
+def read_selector_just_before_pt(view, selector, pt):
+    # type: (sublime.View, str, int) -> Optional[TextRange]
+    return next(
+        (
+            TextRange(view.substr(r), r)
+            for r in reversed(view.find_by_selector(selector))
+            if r.a < pt
+        ),
+        None
+    )
+
+
+def read_selector_just_after_pt(view, selector, pt):
+    # type: (sublime.View, str, int) -> Optional[TextRange]
+    return next(
+        (
+            TextRange(view.substr(r), r)
+            for r in view.find_by_selector(selector)
+            if r.a > pt
+        ),
+        None
+    )
+
+
+class sublime_linter_panel_next(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        panel = self.view
+        window = panel.window()
+        assert window
+        active_view = window.active_view()
+        assert active_view
+
+        if panel.id() not in VIEW_STATE_CACHE:
+            save_view_state(panel, active_view)
+        active_view.run_command("sublime_linter_goto_error", {
+            "direction": "next",
+            "transient": True
+        })
+
+
+class sublime_linter_panel_previous(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        panel = self.view
+        window = panel.window()
+        assert window
+        active_view = window.active_view()
+        assert active_view
+
+        if panel.id() not in VIEW_STATE_CACHE:
+            save_view_state(panel, active_view)
+        active_view.run_command("sublime_linter_goto_error", {
+            "direction": "previous",
+            "transient": True
+        })
+
+
+VIEW_STATE_CACHE = {}  # type: Dict[sublime.ViewId, Tuple[sublime.ViewId, List[sublime.Region]]]
+
+
+def save_view_state(panel, active_view):
+    VIEW_STATE_CACHE[panel.id()] = (active_view.id(), [s for s in active_view.sel()])
+
+
+def restore_view_state(panel):
+    try:
+        vid, frozen_sel = VIEW_STATE_CACHE.pop(panel.id())
+    except KeyError:
+        return
+
+    view = sublime.View(vid)
+    view.sel().clear()
+    view.sel().add_all(frozen_sel)
+    # view.window().focus_view(view)
+    view.show(frozen_sel[0])
+
+
+def forget_view_state(panel):
+    VIEW_STATE_CACHE.pop(panel.id(), None)
+
+
+def open_location(window, fname, line, column, preview=False):
+    # type: (sublime.Window, str, int, int, bool) -> sublime.View
+    flags = sublime.ENCODED_POSITION | sublime.FORCE_GROUP
+    if preview:
+        flags |= sublime.TRANSIENT
+    return window.open_file("{}:{}:{}".format(fname, line, column), flags=flags)
 
 
 def get_current_pos(view):
     return next((s.begin() for s in view.sel()), -1)
 
 
-def panel_is_active(window):
+def panel_is_visible(window):
     if not window:
         return False
 
@@ -583,22 +828,31 @@ def fill_panel(window):
     }  # type: DrawInfo
 
     if active_view:
-        update_panel_selection(draw_info=draw_info, **State)
+        update_panel_selection(
+            active_view,
+            State["cursor"],
+            State["panel_has_focus"],
+            draw_info=draw_info
+        )
     else:
         draw(draw_info)
 
 
-def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
-    # type: (sublime.View, int, Optional[DrawInfo], Any) -> None
+def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None):
+    # type: (sublime.View, int, bool, Optional[DrawInfo]) -> None
     """Alter panel highlighting according to the current cursor position."""
-    if draw_info is None:
-        draw_info = {}
-
-    panel = get_panel(active_view.window())
-    if not panel:
+    window = active_view.window()
+    if not window:
         return
 
     if cursor == -1:
+        return
+
+    if draw_info is None:
+        draw_info = {}
+
+    panel = get_panel(window)
+    if not panel:
         return
 
     filename = util.get_filename(active_view)
@@ -633,7 +887,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
         for error in all_errors
     )  # type: Iterable[Tuple[LintError, Tuple[int, int, int, int]]]
 
-    SNAP = (3, )  # [lines]
+    SNAP = (0, 0) if panel_has_focus else (3,)
     nearest_error = None
     try:
         nearest_error, _ = min(
@@ -787,7 +1041,8 @@ def mark_lines(panel, lines):
 
 
 CURSOR_MARKER_KEY = 'SL.PanelMarker'
-CURSOR_MARKER_SCOPE = 'region.yellowish.panel_cursor.sublime_linter'
+CURSOR_MARKER_SCOPE = 'region.blueish.panel_cursor.sublime_linter'
+CURSOR_MARKER_SCOPE_FOCUSED = 'region.yellowish.panel_cursor.sublime_linter'
 
 
 def draw_position_marker(panel, line):
@@ -806,7 +1061,12 @@ def draw_position_marker(panel, line):
 
     line_start = panel.text_point(line - 1, 0)
     region = sublime.Region(line_start, line_start)
-    draw_region_dangle(panel, CURSOR_MARKER_KEY, CURSOR_MARKER_SCOPE, [region])
+    scope = (
+        CURSOR_MARKER_SCOPE_FOCUSED
+        if State["panel_has_focus"]
+        else CURSOR_MARKER_SCOPE
+    )
+    draw_region_dangle(panel, CURSOR_MARKER_KEY, scope, [region])
 
 
 CONFUSION_THRESHOLD = 5

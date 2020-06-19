@@ -493,22 +493,20 @@ def fill_panel(window):
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
 
+    widths_per_error = (
+        (
+            len(str(error['line'] + 1)),
+            len(str(error['start'] + 1)),
+            len(error['error_type']),
+            len(error['linter']),
+            len(str(error['code'])),
+        )
+        for error in flatten(errors_by_file.values())
+    )
     widths = tuple(
         zip(
             ('line', 'col', 'error_type', 'linter_name', 'code'),
-            map(
-                max,
-                zip(*[
-                    (
-                        len(str(error['line'] + 1)),
-                        len(str(error['start'] + 1)),
-                        len(error['error_type']),
-                        len(error['linter']),
-                        len(str(error['code'])),
-                    )
-                    for error in flatten(errors_by_file.values())
-                ])
-            )
+            map(max, zip(*widths_per_error))  # type: ignore[arg-type]
         )
     )  # type: Tuple[Tuple[str, int], ...]
     widths += (('viewport', int(vx // panel.em_width()) - 1), )

@@ -91,7 +91,7 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             apply_fix(action.fn, view)
 
         actions = sorted(
-            list(actions_for_errors(errors)),
+            list(actions_for_errors(errors, view)),
             key=lambda action: (-len(action.solves), action.description)
         )
         if not actions:
@@ -119,14 +119,14 @@ def get_errors_where(filename, fn):
     ]
 
 
-def actions_for_errors(errors):
-    # type: (List[LintError]) -> Iterator[QuickAction]
+def actions_for_errors(errors, view=None):
+    # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     grouped = defaultdict(list)
     for error in errors:
         grouped[error['linter']].append(error)
 
     return flatten(
-        provider(errors_by_linter)
+        provider(errors_by_linter, view)
         for linter_name, errors_by_linter in sorted(grouped.items())
         for provider in PROVIDERS[linter_name].values()
     )
@@ -151,8 +151,8 @@ def apply_edit(view, edits):
 
 
 if MYPY:
-    Provider = Callable[[List[LintError]], Iterator[QuickAction]]
-
+    Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
+    F = TypeVar("F", bound=Provider)
 
 PROVIDERS = defaultdict(
     dict
@@ -162,9 +162,9 @@ DEFAULT_DETAIL = '{msg}'
 
 
 def actions_provider(linter_name):
-    # type: (str) -> Callable[[Provider], Provider]
+    # type: (str) -> Callable[[F], F]
     def register(fn):
-        # type: (Provider) -> Provider
+        # type: (F) -> F
         ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = fn
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
@@ -197,8 +197,8 @@ def namespacy_name(fn):
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def std_provider(subject, detail, except_for, fixer, errors):
-    # type: (str, str, Set[str], Fixer, List[LintError]) -> Iterator[QuickAction]
+def std_provider(subject, detail, except_for, fixer, errors, _view):
+    # type: (str, str, Set[str], Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
         subject.format(**error),
         partial(fixer, error),
@@ -287,9 +287,9 @@ def fix_eslint_error(error, view):
     yield (
         (
             extend_existing_comment(
-                r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(\s+-{2,})?",
+                r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
                 ", ",
-                code,
+                {code},
                 previous_line
             )
             if previous_line
@@ -298,6 +298,76 @@ def fix_eslint_error(error, view):
         or insert_preceding_line(
             "// eslint-disable-next-line {}".format(code),
             line
+        )
+    )
+
+
+@actions_provider("eslint")
+def eslint_block_ignorer(errors, view):
+    # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+    if view and selection_across_multiple_lines(view):
+        region = view.sel()[0]
+        len_errors = len(errors)
+        yield QuickAction(
+            "eslint: Block comment {} error{}".format(
+                len_errors,
+                "s" if len_errors != 1 else ""
+            ),
+            partial(eslint_ignore_block, errors, region),
+            "",
+            solves=errors
+        )
+
+
+def selection_across_multiple_lines(view):
+    # type: (sublime.View) -> bool
+    s = view.sel()[0]
+    return view.rowcol(s.a)[0] != view.rowcol(s.b)[0]
+
+
+def eslint_ignore_block(errors, region, view):
+    # type: (List[LintError], sublime.Region, sublime.View) -> Iterator[TextRange]
+    # Assumes region is not empty.
+    codes = {e["code"] for e in errors}
+    starting_line = line_from_point(view, region.begin())
+    line_before_selection = read_previous_line(view, starting_line)
+    # For example the user selects multiple lines, then `region.end()`
+    # (the cursor) is at the zero pos of the next line. "-1" should
+    # be okay here since region cannot be empty at this point.
+    end_line = line_from_point(view, region.end() - 1)
+    line_after_selection = read_next_line(view, end_line)
+
+    joiner = ", "
+    yield (
+        (
+            extend_existing_comment(
+                r"\/\* eslint-disable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
+                joiner,
+                codes,
+                line_before_selection
+            )
+            if line_before_selection
+            else None
+        )
+        or insert_preceding_line(
+            "/* eslint-disable {} */".format(joiner.join(sorted(codes))),
+            starting_line
+        )
+    )
+    yield (
+        (
+            extend_existing_comment(
+                r"\/\* eslint-enable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
+                joiner,
+                codes,
+                line_after_selection
+            )
+            if line_after_selection
+            else None
+        )
+        or insert_subsequent_line(
+            "/* eslint-enable {} */".format(joiner.join(sorted(codes))),
+            end_line
         )
     )
 
@@ -311,7 +381,7 @@ def fix_stylelint_error(error, view):
         extend_existing_comment(
             r"\/\* stylelint-disable-line (?P<codes>[\w\-\/]+(?:,\s?[\w\-\/]+)*).*\*\/",
             ", ",
-            code,
+            {code},
             line
         ) or add_at_eol(
             " /* stylelint-disable-line {} */".format(code),
@@ -329,7 +399,7 @@ def fix_flake8_error(error, view):
         extend_existing_comment(
             r"(?i)# noqa:[\s]?(?P<codes>[A-Z]+[0-9]+((?:,\s?)[A-Z]+[0-9]+)*)",
             ", ",
-            code,
+            {code},
             line
         )
         or add_at_eol(
@@ -348,7 +418,7 @@ def fix_mypy_error(error, view):
         extend_existing_comment(
             r"  # type: ignore\[(?P<codes>.*)\]",
             ", ",
-            code,
+            {code},
             line
         )
         or maybe_add_before_string(
@@ -363,31 +433,42 @@ def fix_mypy_error(error, view):
     )
 
 
-def line_error_is_on(view, error):
-    # type: (sublime.View, LintError) -> TextRange
-    pt = error["region"].begin()
+def line_from_point(view, pt):
+    # type: (sublime.View, int) -> TextRange
     line_region = view.line(pt)
     line_content = view.substr(line_region)
     return TextRange(line_content, line_region)
+
+
+def line_error_is_on(view, error):
+    # type: (sublime.View, LintError) -> TextRange
+    pt = error["region"].begin()
+    return line_from_point(view, pt)
 
 
 def read_previous_line(view, line):
     # type: (sublime.View, TextRange) -> Optional[TextRange]
     if line.range.a == 0:
         return None
-    line_region = view.line(line.range.a - 1)
-    line_content = view.substr(line_region)
-    return TextRange(line_content, line_region)
+    return line_from_point(view, line.range.a - 1)
 
 
-def extend_existing_comment(search_pattern, joiner, rulename, line):
-    # type: (str, str, str, TextRange) -> Optional[TextRange]
+def read_next_line(view, line):
+    # type: (sublime.View, TextRange) -> Optional[TextRange]
+    if line.range.b >= view.size():
+        return None
+    return line_from_point(view, line.range.b + 1)
+
+
+def extend_existing_comment(search_pattern, joiner, rulenames, line):
+    # type: (str, str, Set[str], TextRange) -> Optional[TextRange]
     match = re.search(search_pattern, line.text)
     if match:
-        present_rules = match.group("codes")
-        next_rules = [rule.strip() for rule in present_rules.split(joiner.strip())]
-        if rulename not in next_rules:
-            next_rules.append(rulename)
+        existing_rules = {
+            rule.strip()
+            for rule in match.group("codes").split(joiner.strip())
+        }
+        next_rules = sorted(existing_rules | rulenames)
         a, b = match.span("codes")
         return TextRange(
             joiner.join(next_rules),
@@ -416,6 +497,11 @@ def add_at_bol(text, line):
 def insert_preceding_line(text, line):
     # type: (str, TextRange) -> TextRange
     return add_at_bol(indentation(line) + text + "\n", line)
+
+
+def insert_subsequent_line(text, line):
+    # type: (str, TextRange) -> TextRange
+    return add_at_eol("\n" + indentation(line) + text, line)
 
 
 def indentation_level(line):

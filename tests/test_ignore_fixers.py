@@ -1,3 +1,4 @@
+from textwrap import dedent
 import sublime
 
 from unittesting import DeferrableTestCase
@@ -8,6 +9,7 @@ from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.lint.quick_fix import (
     apply_edit,
     fix_eslint_error,
+    eslint_ignore_block,
     fix_flake8_error,
     fix_mypy_error,
     fix_stylelint_error,
@@ -81,7 +83,7 @@ class TestActionReducer(DeferrableTestCase):
         fixer = lambda: None
         except_for = set()
 
-        actions = std_provider(DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS)
+        actions = std_provider(DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS, None)
         self.assertEquals(RESULT, [action.description for action in actions])
 
 
@@ -119,17 +121,17 @@ class TestIgnoreFixers(DeferrableTestCase):
         (
             "extend one given",
             "view = window.new_file()  # noqa: F402",
-            "view = window.new_file()  # noqa: F402, E203",
+            "view = window.new_file()  # noqa: E203, F402",
         ),
         (
             "extend two given",
             "view = window.new_file()  # noqa: F402, E111",
-            "view = window.new_file()  # noqa: F402, E111, E203",
+            "view = window.new_file()  # noqa: E111, E203, F402",
         ),
         (
             "normalize joiner",
             "view = window.new_file()  # noqa: F402,E111,E203",
-            "view = window.new_file()  # noqa: F402, E111, E203",
+            "view = window.new_file()  # noqa: E111, E203, F402",
         ),
         (
             "handle surrounding whitespace",
@@ -149,17 +151,17 @@ class TestIgnoreFixers(DeferrableTestCase):
         (
             "keep existing comment while extending",
             "view = window.new_file()  # comment  # noqa: F403",
-            "view = window.new_file()  # comment  # noqa: F403, E203",
+            "view = window.new_file()  # comment  # noqa: E203, F403",
         ),
         (
             "keep python comment position while extending",
             "view = window.new_file()  # noqa: F403  # comment",
-            "view = window.new_file()  # noqa: F403, E203  # comment",
+            "view = window.new_file()  # noqa: E203, F403  # comment",
         ),
         (
             "keep informal comment position while extending",
             "view = window.new_file()  # noqa: F403, comment",
-            "view = window.new_file()  # noqa: F403, E203, comment",
+            "view = window.new_file()  # noqa: E203, F403, comment",
         ),
     ])
     def test_flake8(self, _description, BEFORE, AFTER):
@@ -266,6 +268,45 @@ class TestIgnoreFixers(DeferrableTestCase):
 
     @p.expand([
         (
+            "clean block",
+            dedent("""\
+            let document  = node.ownerDocument
+            """.rstrip()),
+            dedent("""\
+            /* eslint-disable semi */
+            let document  = node.ownerDocument
+            /* eslint-enable semi */
+            """.rstrip()),
+            sublime.Region(4, 8)
+        ),
+        (
+            "extend existing",
+            dedent("""\
+            /* eslint-disable emi */
+            let document  = node.ownerDocument
+            /* eslint-enable emi */
+            """.rstrip()),
+            dedent("""\
+            /* eslint-disable emi, semi */
+            let document  = node.ownerDocument
+            /* eslint-enable emi, semi */
+            """.rstrip()),
+            sublime.Region(28, 32)
+        )
+    ])
+    def test_eslint_block(self, _description, BEFORE, AFTER, REGION):
+        view = self.create_view(self.window)
+        view.run_command("insert", {"characters": BEFORE})
+        errors = [
+            dict(code="semi", region=sublime.Region(28)),
+        ]
+        edit = eslint_ignore_block(errors, REGION, view)
+        apply_edit(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
             "clean line",
             "#id| {",
             "#id { /* stylelint-disable-line selector-no-id */"
@@ -273,7 +314,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         (
             "extend given comment",
             "#id| { /* stylelint-disable-line some-rule */",
-            "#id { /* stylelint-disable-line some-rule, selector-no-id */",
+            "#id { /* stylelint-disable-line selector-no-id, some-rule */",
         ),
     ])
     def test_stylelint(self, _description, BEFORE, AFTER):

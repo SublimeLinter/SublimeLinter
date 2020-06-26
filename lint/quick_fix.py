@@ -44,26 +44,43 @@ class QuickAction:
 
 
 class sl_fix_by_ignoring(sublime_plugin.TextCommand):
-    def is_enabled(self):
-        # type: () -> bool
-        return len(self.view.sel()) == 1
+    def is_enabled(self, quiet=False):
+        # type: (bool) -> bool
+        if quiet:
+            return len(self.view.sel()) == 1
+        else:
+            return True
 
-    def run(self, edit):
-        # type: (sublime.Edit) -> None
+    def run(self, edit, quiet=False):
+        # type: (sublime.Edit, bool) -> None
         view = self.view
         window = view.window()
         assert window
+
+        if not quiet:
+            if len(self.view.sel()) != 1:
+                window.status_message("Not implemented for multiple selections")
+                return
 
         sel = view.sel()[0]
         filename = util.get_filename(view)
         if sel.empty():
             char_selection = sublime.Region(sel.a, sel.a + 1)
-            errors = get_errors_where(filename, lambda region: region.intersects(char_selection))
+            errors = get_errors_where(
+                filename,
+                lambda region: region.intersects(char_selection)
+            )
             if not errors:
                 sel = view.full_line(sel.a)
-                errors = get_errors_where(filename, lambda region: region.intersects(sel))
+                errors = get_errors_where(
+                    filename,
+                    lambda region: region.intersects(sel)
+                )
         else:
-            errors = get_errors_where(filename, lambda region: region.intersects(sel))
+            errors = get_errors_where(
+                filename,
+                lambda region: region.intersects(sel)
+            )
 
         def on_done(idx):
             # type: (int) -> None
@@ -75,10 +92,13 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
 
         actions = list(actions_for_errors(errors))
         if not actions:
-            window.show_quick_panel(
-                ["No actions available."],
-                lambda x: None
-            )
+            if quiet:
+                window.show_quick_panel(
+                    ["No actions available."],
+                    lambda x: None
+                )
+            else:
+                window.status_message("No actions available")
         elif len(actions) == 1:
             on_done(0)
         else:

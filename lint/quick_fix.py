@@ -15,7 +15,7 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, DefaultDict, Dict, Final, Iterable, Iterator, List,
-        NamedTuple, Optional, Set, TypeVar
+        NamedTuple, Optional, Set, TypeVar, Union
     )
     T = TypeVar("T")
     S = TypeVar("S")
@@ -233,6 +233,35 @@ def std_provider(subject, detail, except_for, fixer, errors, _view):
                     solves=list(flatten(action.solves for action in actions))
                 )
 
+
+def fix(linter_name, only_for=set()):
+    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
+    if isinstance(only_for, str):
+        only_for = {only_for}
+
+    def register(fn):
+        # type: (Fixer) -> Fixer
+        ns_name = namespacy_name(fn)
+        provider = partial(std_fix_provider, linter_name, only_for, fn)
+        PROVIDERS[linter_name][ns_name] = provider
+        fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
+        return fn
+    return register
+
+
+def std_fix_provider(linter_name, only_for, fixer, errors, _view):
+    return (
+        QuickAction(
+            "{linter}: Fix {code} {msg}".format(**error),
+            partial(fixer, error),
+            "",
+            solves=[error]
+        )
+        for error in errors
+        if error["code"] in only_for or not only_for
+    )
+
+
 # import zoo, foo
 # import bar
 
@@ -390,7 +419,7 @@ def fix_stylelint_error(error, view):
     )
 
 
-@quick_action_for_error("flake8", except_for={"E999"})
+@quick_action_for_error("flake8", except_for={"E261", "E262", "E265", "E302", "E303", "E999"})
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -407,6 +436,46 @@ def fix_flake8_error(error, view):
             line
         )
     )
+
+
+@fix("flake8", {"E241", "E271"})
+def fix_e241(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    yield TextRange(" ", error["region"])
+
+
+@fix("flake8", {"E302"})
+def fix_e302(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)  # too
+    if line.text.strip() == "":
+        yield TextRange("\n\n", error["region"])
+    else:
+        yield TextRange("\n\n", sublime.Region(line.range.b))
+
+
+@fix("flake8", {"E303"})
+def fix_e303(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    if "(2)" in error["msg"]:
+        yield TextRange("", error["region"])
+    else:
+        yield TextRange("\n", error["region"])
+
+
+@fix("flake8", {"E261"})
+def fix_e261(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    if view.substr(error["region"]) == " ":
+        yield TextRange("  ", error["region"])
+    else:
+        yield TextRange("  #", error["region"])
+
+
+@fix("flake8", {"E262", "E265"})
+def fix_e262(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    yield TextRange("# ", error["region"])
 
 
 @quick_action_for_error("mypy", except_for={"syntax"})

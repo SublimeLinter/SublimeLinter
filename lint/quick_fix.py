@@ -111,13 +111,6 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             )
 
 
-def available_actions_in_region(view, selection):
-    # type: (sublime.View, sublime.Region) -> List[QuickAction]
-    filename = util.get_filename(view)
-    errors = get_errors_where(filename, lambda region: region.intersects(selection))
-    return list(actions_for_errors(errors))
-
-
 def get_errors_where(filename, fn):
     # type: (str, Callable[[sublime.Region], bool]) -> List[LintError]
     return [

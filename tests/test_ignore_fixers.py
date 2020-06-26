@@ -12,8 +12,8 @@ from SublimeLinter.lint.quick_fix import (
     fix_mypy_error,
     fix_stylelint_error,
     std_provider,
-    DEFAULT_DESCRIPTION,
-    DEFAULT_SIMPLE_DESCRIPTION
+    DEFAULT_SUBJECT,
+    DEFAULT_DETAIL
 )
 
 
@@ -53,7 +53,17 @@ class TestActionReducer(DeferrableTestCase):
                 dict(linter="flake", code="201", msg="zoo unused", line=1),
             ],
             [
-                'flake: Disable [201]   e.g.: foo unused',
+                'flake: Disable [201]   (2x) e.g.: foo unused',
+            ]
+        ),
+        (
+            "two similar errors, same line, same message",
+            [
+                dict(linter="flake", code="201", msg="too much", line=1),
+                dict(linter="flake", code="201", msg="too much", line=1),
+            ],
+            [
+                'flake: Disable [201]   (2x) too much',
             ]
         ),
         (
@@ -63,14 +73,15 @@ class TestActionReducer(DeferrableTestCase):
                 dict(linter="flake", code="201", msg="zoo unused", line=2),
             ],
             [
-                'flake: Disable [201]   e.g.: foo unused',
+                'flake: Disable [201]   (2x) e.g.: foo unused',
             ]
         ),
     ])
     def test_action_descriptions(self, _, ERRORS, RESULT):
         fixer = lambda: None
+        except_for = set()
 
-        actions = std_provider(DEFAULT_DESCRIPTION, DEFAULT_SIMPLE_DESCRIPTION, fixer, ERRORS)
+        actions = std_provider(DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS)
         self.assertEquals(RESULT, [action.description for action in actions])
 
 

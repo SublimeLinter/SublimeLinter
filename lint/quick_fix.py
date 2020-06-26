@@ -90,7 +90,10 @@ class sl_fix_by_ignoring(sublime_plugin.TextCommand):
             action = actions[idx]
             apply_fix(action.fn, view)
 
-        actions = list(actions_for_errors(errors))
+        actions = sorted(
+            list(actions_for_errors(errors)),
+            key=lambda action: (-len(action.solves), action.description)
+        )
         if not actions:
             if quiet:
                 window.show_quick_panel(

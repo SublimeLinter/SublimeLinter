@@ -43,7 +43,7 @@ class QuickAction:
         return "   ".join(filter(None, (self.subject, self.detail)))
 
 
-class sl_fix_by_ignoring(sublime_plugin.TextCommand):
+class sl_quick_actions(sublime_plugin.TextCommand):
     def is_enabled(self, quiet=False):
         # type: (bool) -> bool
         if quiet:

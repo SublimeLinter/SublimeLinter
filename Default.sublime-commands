@@ -25,9 +25,9 @@
 
     },
     {
-        "caption": "SublimeLinter: Fix By Ignoring",
-        "command": "sl_fix_by_ignoring",
-        // Set "quiet" to "false" for key bindings
+        "caption": "SublimeLinter: Quick Actions",
+        "command": "sl_quick_actions",
+        // Don't set "quiet" for key bindings
         "args": { "quiet": true }
     },
     {

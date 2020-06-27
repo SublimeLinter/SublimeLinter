@@ -96,7 +96,7 @@ def quick_actions_for(linter_name):
     return register
 
 
-def quick_action_for_error(
+def ignore_rules_inline(
     linter_name,
     subject=DEFAULT_SUBJECT,
     detail=DEFAULT_DETAIL,
@@ -226,7 +226,7 @@ def group_by(key, iterable):
 # --- FIXERS --- #
 
 
-@quick_action_for_error("eslint")
+@ignore_rules_inline("eslint")
 def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -305,7 +305,7 @@ def eslint_ignore_block(errors, region, view):
     )
 
 
-@quick_action_for_error("stylelint")
+@ignore_rules_inline("stylelint")
 def fix_stylelint_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -323,7 +323,7 @@ def fix_stylelint_error(error, view):
     )
 
 
-@quick_action_for_error("flake8", except_for={"E261", "E262", "E265", "E302", "E303", "E999"})
+@ignore_rules_inline("flake8", except_for={"E261", "E262", "E265", "E302", "E303", "E999"})
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -382,7 +382,7 @@ def fix_e262(error, view):
     yield TextRange("# ", error["region"])
 
 
-@quick_action_for_error("mypy", except_for={"syntax"})
+@ignore_rules_inline("mypy", except_for={"syntax"})
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)

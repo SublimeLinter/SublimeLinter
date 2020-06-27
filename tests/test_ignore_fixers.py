@@ -13,7 +13,9 @@ from SublimeLinter.lint.quick_fix import (
     fix_flake8_error,
     fix_mypy_error,
     fix_stylelint_error,
-    std_provider,
+    ignore_rules_actions,
+
+
     DEFAULT_SUBJECT,
     DEFAULT_DETAIL
 )
@@ -83,7 +85,9 @@ class TestActionReducer(DeferrableTestCase):
         fixer = lambda: None
         except_for = set()
 
-        actions = std_provider(DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS, None)
+        actions = ignore_rules_actions(
+            DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS, None
+        )
         self.assertEquals(RESULT, [action.description for action in actions])
 
 

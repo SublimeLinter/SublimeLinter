@@ -112,7 +112,7 @@ def ignore_rules_inline(
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
-        provider = partial(std_provider, subject, detail, except_for, fn)
+        provider = partial(ignore_rules_actions, subject, detail, except_for, fn)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
@@ -120,7 +120,7 @@ def ignore_rules_inline(
     return register
 
 
-def std_provider(subject, detail, except_for, fixer, errors, _view):
+def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
     # type: (str, str, Set[str], Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
         subject.format(**error),

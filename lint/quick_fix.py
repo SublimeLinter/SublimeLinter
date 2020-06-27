@@ -311,18 +311,13 @@ def group_by(key, iterable):
 def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
-    previous_line = read_previous_line(view, line)
     code = error["code"]
     yield (
-        (
-            extend_existing_comment(
-                r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
-                ", ",
-                {code},
-                previous_line
-            )
-            if previous_line
-            else None
+        extend_existing_comment(
+            r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
+            ", ",
+            {code},
+            read_previous_line(view, line)
         )
         or insert_preceding_line(
             "// eslint-disable-next-line {}".format(code),
@@ -359,24 +354,18 @@ def eslint_ignore_block(errors, region, view):
     # Assumes region is not empty.
     codes = {e["code"] for e in errors}
     starting_line = line_from_point(view, region.begin())
-    line_before_selection = read_previous_line(view, starting_line)
     # For example the user selects multiple lines, then `region.end()`
     # (the cursor) is at the zero pos of the next line. "-1" should
     # be okay here since region cannot be empty at this point.
     end_line = line_from_point(view, region.end() - 1)
-    line_after_selection = read_next_line(view, end_line)
 
     joiner = ", "
     yield (
-        (
-            extend_existing_comment(
-                r"\/\* eslint-disable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
-                joiner,
-                codes,
-                line_before_selection
-            )
-            if line_before_selection
-            else None
+        extend_existing_comment(
+            r"\/\* eslint-disable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
+            joiner,
+            codes,
+            read_previous_line(view, starting_line)
         )
         or insert_preceding_line(
             "/* eslint-disable {} */".format(joiner.join(sorted(codes))),
@@ -384,15 +373,11 @@ def eslint_ignore_block(errors, region, view):
         )
     )
     yield (
-        (
-            extend_existing_comment(
-                r"\/\* eslint-enable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
-                joiner,
-                codes,
-                line_after_selection
-            )
-            if line_after_selection
-            else None
+        extend_existing_comment(
+            r"\/\* eslint-enable (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,}.*)? \*\/",
+            joiner,
+            codes,
+            read_next_line(view, end_line)
         )
         or insert_subsequent_line(
             "/* eslint-enable {} */".format(joiner.join(sorted(codes))),
@@ -530,7 +515,9 @@ def read_next_line(view, line):
 
 
 def extend_existing_comment(search_pattern, joiner, rulenames, line):
-    # type: (str, str, Set[str], TextRange) -> Optional[TextRange]
+    # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+    if line is None:
+        return None
     match = re.search(search_pattern, line.text)
     if match:
         existing_rules = {

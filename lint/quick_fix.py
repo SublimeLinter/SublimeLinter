@@ -84,6 +84,12 @@ DEFAULT_SUBJECT = '{linter}: Disable [{code}]'
 DEFAULT_DETAIL = '{msg}'
 
 
+def namespacy_name(fn):
+    # type: (Callable) -> str
+    # TBC: No methods supported, only simple functions!
+    return "{}.{}".format(fn.__module__, fn.__name__)
+
+
 def quick_actions_for(linter_name):
     # type: (str) -> Callable[[F], F]
     def register(fn):
@@ -112,12 +118,6 @@ def ignore_rules_inline(
         return fn
 
     return register
-
-
-def namespacy_name(fn):
-    # type: (Callable) -> str
-    # TBC: No methods supported, only simple functions!
-    return "{}.{}".format(fn.__module__, fn.__name__)
 
 
 def std_provider(subject, detail, except_for, fixer, errors, _view):
@@ -157,6 +157,44 @@ def std_provider(subject, detail, except_for, fixer, errors, _view):
                 )
 
 
+def merge_actions(actions):
+    # type: (List[List[QuickAction]]) -> QuickAction
+    first_action_per_chunk = next(zip(*actions))
+    return QuickAction(
+        subject_for_multiple_actions(list(flatten(actions))),
+        lambda view: flatten(map(lambda action: action.fn(view), first_action_per_chunk)),
+        detail_for_multiple_actions(list(flatten(actions))),
+        solves=list(flatten(action.solves for action in flatten(actions)))
+    )
+
+
+def subject_for_multiple_actions(actions):
+    # type: (List[QuickAction]) -> str
+    return actions[0].subject
+
+
+def detail_for_multiple_actions(actions):
+    # type: (List[QuickAction]) -> Optional[str]
+    detail = next(filter(None, (a.detail for a in actions)), None)
+    if not detail:
+        return detail
+    distinct = any(detail != action.detail for action in actions)
+
+    solves_count = len(list(flatten(a.solves for a in actions)))
+    if distinct:
+        return "({}x) e.g.: {}".format(solves_count, detail)
+    else:
+        return "({}x) {}".format(solves_count, detail)
+
+
+def group_by(key, iterable):
+    # type: (Callable[[T], S], Iterable[T]) -> DefaultDict[S, List[T]]
+    grouped = defaultdict(list)
+    for item in iterable:
+        grouped[key(item)].append(item)
+    return grouped
+
+
 def fix(linter_name, only_for=set()):
     # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
     if isinstance(only_for, str):
@@ -183,44 +221,6 @@ def std_fix_provider(linter_name, only_for, fixer, errors, _view):
         for error in errors
         if error["code"] in only_for or not only_for
     )
-
-
-def detail_for_multiple_actions(actions):
-    # type: (List[QuickAction]) -> Optional[str]
-    detail = next(filter(None, (a.detail for a in actions)), None)
-    if not detail:
-        return detail
-    distinct = any(detail != action.detail for action in actions)
-
-    solves_count = len(list(flatten(a.solves for a in actions)))
-    if distinct:
-        return "({}x) e.g.: {}".format(solves_count, detail)
-    else:
-        return "({}x) {}".format(solves_count, detail)
-
-
-def subject_for_multiple_actions(actions):
-    # type: (List[QuickAction]) -> str
-    return actions[0].subject
-
-
-def merge_actions(actions):
-    # type: (List[List[QuickAction]]) -> QuickAction
-    first_action_per_chunk = next(zip(*actions))
-    return QuickAction(
-        subject_for_multiple_actions(list(flatten(actions))),
-        lambda view: flatten(map(lambda action: action.fn(view), first_action_per_chunk)),
-        detail_for_multiple_actions(list(flatten(actions))),
-        solves=list(flatten(action.solves for action in flatten(actions)))
-    )
-
-
-def group_by(key, iterable):
-    # type: (Callable[[T], S], Iterable[T]) -> DefaultDict[S, List[T]]
-    grouped = defaultdict(list)
-    for item in iterable:
-        grouped[key(item)].append(item)
-    return grouped
 
 
 # --- FIXERS --- #

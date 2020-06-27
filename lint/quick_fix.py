@@ -63,11 +63,11 @@ def best_action_for_error(error):
 def apply_fix(fix, view):
     # type: (Fix, sublime.View) -> None
     edits = fix(view)
-    apply_edit(view, edits)
+    apply_edits(view, edits)
 
 
 @text_command
-def apply_edit(view, edits):
+def apply_edits(view, edits):
     # type: (sublime.View, Iterator[TextRange]) -> None
     for edit in reversed(sorted(edits, key=lambda edit: edit.range.a)):
         replace_view_content(view, edit.text, edit.range)

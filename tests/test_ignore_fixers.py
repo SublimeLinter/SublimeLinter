@@ -7,7 +7,7 @@ from SublimeLinter.tests.parameterized import parameterized as p
 
 
 from SublimeLinter.lint.quick_fix import (
-    apply_edit,
+    apply_edits,
     fix_eslint_error,
     eslint_ignore_block,
     fix_flake8_error,
@@ -169,7 +169,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="E203", region=sublime.Region(4))
         edit = fix_flake8_error(error, view)
-        apply_edit(view, edit)
+        apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -215,7 +215,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="no-idea", region=sublime.Region(4))
         edit = fix_mypy_error(error, view)
-        apply_edit(view, edit)
+        apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -262,7 +262,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="semi", region=sublime.Region(POS))
         edit = fix_eslint_error(error, view)
-        apply_edit(view, edit)
+        apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -301,7 +301,7 @@ class TestIgnoreFixers(DeferrableTestCase):
             dict(code="semi", region=sublime.Region(28)),
         ]
         edit = eslint_ignore_block(errors, REGION, view)
-        apply_edit(view, edit)
+        apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
 
@@ -323,6 +323,6 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="selector-no-id", region=sublime.Region(POS))
         edit = fix_stylelint_error(error, view)
-        apply_edit(view, edit)
+        apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

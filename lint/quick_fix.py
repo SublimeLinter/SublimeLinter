@@ -84,7 +84,7 @@ DEFAULT_SUBJECT = '{linter}: Disable [{code}]'
 DEFAULT_DETAIL = '{msg}'
 
 
-def actions_provider(linter_name):
+def quick_actions_for(linter_name):
     # type: (str) -> Callable[[F], F]
     def register(fn):
         # type: (F) -> F
@@ -245,7 +245,7 @@ def fix_eslint_error(error, view):
     )
 
 
-@actions_provider("eslint")
+@quick_actions_for("eslint")
 def eslint_block_ignorer(errors, view):
     # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     if view and selection_across_multiple_lines(view):

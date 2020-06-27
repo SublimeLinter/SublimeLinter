@@ -262,10 +262,6 @@ def std_fix_provider(linter_name, only_for, fixer, errors, _view):
     )
 
 
-# import zoo, foo
-# import bar
-
-
 def detail_for_multiple_actions(actions):
     # type: (List[QuickAction]) -> Optional[str]
     detail = next(filter(None, (a.detail for a in actions)), None)

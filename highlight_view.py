@@ -5,11 +5,12 @@ from functools import partial
 import re
 import textwrap
 import threading
+import uuid
 
 import sublime
 import sublime_plugin
 
-from .lint import persist, events, style, util, queue
+from .lint import persist, events, style, util, queue, quick_fix
 from .lint.const import PROTECTED_REGIONS_KEY, ERROR, WARNING
 flatten = chain.from_iterable
 
@@ -851,7 +852,16 @@ TOOLTIP_STYLES = '''
         color: var(--yellowish);
         font-weight: bold;
     }
-    .copy {
+    .footer {
+         margin-top: 0.5em;
+        font-size: .92em;
+        color: color(var(--background) blend(var(--foreground) 50%));
+    }
+    .ignore {
+        text-decoration: none;
+    }
+    .icon {
+        font-family: sans-serif;
         margin-top: 0.5em;
     }
 '''
@@ -860,13 +870,14 @@ TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
         <div>{content}</div>
-        <div class="copy"><a href="copy">Copy</a></div>
+        <div class="footer"><a href="copy">Copy</a><span>{help_text}</div>
     </body>
 '''
+QUICK_FIX_HELP = " | Click <span class='icon'>⌫</span> to ignore an error"
 
 
-def get_errors_where(view, fn):
-    filename = util.get_filename(view)
+def get_errors_where(filename, fn):
+    # type: (str, Callable[[sublime.Region], bool]) -> List[LintError]
     return [
         error for error in persist.file_errors[filename]
         if fn(error['region'])
@@ -874,32 +885,44 @@ def get_errors_where(view, fn):
 
 
 def open_tooltip(view, point, line_report=False):
+    # type: (sublime.View, int, bool) -> None
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
     if view.is_popup_visible():
         return
 
+    filename = util.get_filename(view)
     if line_report:
         line = view.full_line(point)
         errors = get_errors_where(
-            view, lambda region: region.intersects(line))
+            filename, lambda region: region.intersects(line))
     else:
         errors = get_errors_where(
-            view, lambda region: region.contains(point))
+            filename, lambda region: region.contains(point))
 
     if not errors:
         return
 
+    tooltip_message, quick_actions = join_msgs(errors, show_count=line_report, width=80, pt=point)
+
     def on_navigate(href: str) -> None:
         if href == "copy":
             sublime.set_clipboard(join_msgs_raw(errors))
-            view.window().status_message("SublimeLinter: info copied to clipboard")
-            view.hide_popup()
+            window = view.window()
+            if window:
+                window.status_message("SublimeLinter: info copied to clipboard")
+        else:
+            fixer = quick_actions[href]
+            quick_fix.apply_fix(fixer, view)
 
-    tooltip_message = join_msgs(errors, show_count=line_report, width=80)
+        view.hide_popup()
+
+    help_text = QUICK_FIX_HELP if quick_actions else ""
     view.show_popup(
-        TOOLTIP_TEMPLATE.format(stylesheet=TOOLTIP_STYLES, content=tooltip_message),
+        TOOLTIP_TEMPLATE.format(
+            stylesheet=TOOLTIP_STYLES, content=tooltip_message, help_text=help_text
+        ),
         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
         location=point,
         max_width=1000,
@@ -920,7 +943,8 @@ def join_msgs_raw(errors):
     )
 
 
-def join_msgs(errors, show_count, width):
+def join_msgs(errors, show_count, width, pt):
+    # type: (List[LintError], bool, int, int) -> Tuple[str, Dict[str, quick_fix.Fix]]
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -930,9 +954,6 @@ def join_msgs(errors, show_count, width):
         part = '''
             <div>{messages}</div>
         '''
-
-    tmpl_with_code = "{code} - {msg_line}"
-    tmpl_sans_code = "{msg_line}"
 
     grouped_by_type = defaultdict(list)
     for error in errors:
@@ -947,6 +968,7 @@ def join_msgs(errors, show_count, width):
             return error_type
 
     all_msgs = ""
+    quick_actions = {}  # type: Dict[str, quick_fix.Fix]
     for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
             grouped_by_type[error_type],
@@ -955,26 +977,42 @@ def join_msgs(errors, show_count, width):
 
         filled_templates = []
         for error in errors_by_type:
-            prefix_len = len(error['linter']) + 2
+            first_line_prefix = "{linter}: ".format(**error)
+            hanging_indent = len(first_line_prefix)
+            first_line_indent = hanging_indent
+            if error.get("code"):
+                action = quick_fix.best_action_for_error(error)
+                if action:
+                    id = uuid.uuid4().hex
+                    quick_actions[id] = action.fn
+                    first_line_prefix += (
+                        '{code}&nbsp;'
+                        '<a class="ignore icon" href="{action_id}">⌫</a>&nbsp;'
+                        .format(action_id=id, **error)
+                    )
+                    first_line_indent += len(error["code"]) + 3
+                else:
+                    first_line_prefix += "{code} - ".format(**error)
+                    first_line_indent += len(error["code"]) + 3
+
             lines = list(flatten(
                 textwrap.wrap(
-                    (
-                        tmpl_with_code
-                        if n == 0 and error.get('code')
-                        else tmpl_sans_code
-                    ).format(msg_line=line, **error),
+                    msg_line,
                     width=width,
-                    initial_indent=" " * prefix_len,
-                    subsequent_indent=" " * prefix_len
+                    initial_indent=(
+                        " " * first_line_indent
+                        if n == 0
+                        else " " * hanging_indent
+                    ),
+                    subsequent_indent=" " * hanging_indent
                 )
-                for n, line in enumerate(error['msg'].splitlines())
+                for n, msg_line in enumerate(error['msg'].splitlines())
             ))
-            lines[0] = "{linter}: ".format(**error) + lines[0].lstrip()
+            lines[0] = lines[0].lstrip()
+            lines = list(map(escape_text, lines))
+            lines[0] = first_line_prefix + lines[0]
 
-            filled_templates.extend([
-                html.escape(line, quote=False).replace(' ', '&nbsp;')
-                for line in lines
-            ])
+            filled_templates += lines
 
         heading = error_type
         count = len(errors_by_type)
@@ -987,4 +1025,9 @@ def join_msgs(errors, show_count, width):
             heading=heading,
             messages='<br />'.join(filled_templates)
         )
-    return all_msgs
+    return all_msgs, quick_actions
+
+
+def escape_text(text):
+    # type: (str) -> str
+    return html.escape(text, quote=False).replace(' ', '&nbsp;')

@@ -323,6 +323,24 @@ def fix_stylelint_error(error, view):
     )
 
 
+@ignore_rules_inline("phpcs")
+def fix_phpcs_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    code = error["code"]
+    yield (
+        extend_existing_comment(
+            r"\/\/ phpcs:ignore (?P<codes>[\w\-\/.]+(?:,\s?[\w\-\/.]+)*)",
+            ", ",
+            {code},
+            read_previous_line(view, line)
+        ) or insert_preceding_line(
+            "// phpcs:ignore {}".format(code),
+            line
+        )
+    )
+
+
 @ignore_rules_inline("flake8", except_for={"E261", "E262", "E265", "E302", "E303", "E999"})
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]

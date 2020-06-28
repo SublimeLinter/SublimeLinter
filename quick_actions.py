@@ -13,7 +13,7 @@ if MYPY:
     LintError = persist.LintError
 
 
-class sl_quick_actions(sublime_plugin.TextCommand):
+class SublimeLinterQuickActions(sublime_plugin.TextCommand):
     def is_visible(self, quiet=False):
         # type: (bool) -> bool
         return len(self.view.sel()) == 1

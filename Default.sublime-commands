@@ -26,7 +26,7 @@
     },
     {
         "caption": "SublimeLinter: Quick Action",
-        "command": "sl_quick_actions"
+        "command": "sublime_linter_quick_actions"
     },
     {
         "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",

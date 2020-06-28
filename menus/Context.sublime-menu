@@ -16,7 +16,7 @@
             {
                 "id": "sublimelinter-fix",
                 "caption": "Quick Action",
-                "command": "sl_quick_actions"
+                "command": "sublime_linter_quick_actions"
             }
         ]
     }

@@ -133,7 +133,7 @@ def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
         lambda e: e["code"],
         (e for e in errors if e["code"] and e["code"] not in except_for)
     )
-    for code, errors_with_same_code in grouped_by_code.items():
+    for code, errors_with_same_code in sorted(grouped_by_code.items()):
         grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
 
         actions_per_line = []

@@ -873,7 +873,7 @@ TOOLTIP_TEMPLATE = '''
         <div class="footer"><a href="copy">Copy</a><span>{help_text}</div>
     </body>
 '''
-QUICK_FIX_HELP = " | Click <span class='icon'>⌘</span> to trigger a quick action"
+QUICK_FIX_HELP = " | Click <span class='icon'>⌦</span> to trigger a quick action"
 
 
 def get_errors_where(filename, fn):
@@ -986,8 +986,8 @@ def join_msgs(errors, show_count, width, pt):
                     id = uuid.uuid4().hex
                     quick_actions[id] = action.fn
                     first_line_prefix += (
-                        '<a class="action icon" href="{action_id}">⌘</a>&nbsp;'
-                        '{code}&nbsp;'
+                        '<a class="action icon" href="{action_id}">⌦</a>&nbsp;'
+                        '{code}&nbsp;—&nbsp;'
                         .format(action_id=id, **error)
                     )
                     first_line_indent += len(error["code"]) + 3

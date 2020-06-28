@@ -57,7 +57,7 @@ class TestActionReducer(DeferrableTestCase):
                 dict(linter="flake", code="201", msg="zoo unused", line=1),
             ],
             [
-                'flake: Disable 201 (2x) e.g. — foo unused',
+                'flake: Disable 201 (2x) — e.g. foo unused',
             ]
         ),
         (
@@ -77,7 +77,7 @@ class TestActionReducer(DeferrableTestCase):
                 dict(linter="flake", code="201", msg="zoo unused", line=2),
             ],
             [
-                'flake: Disable 201 (2x) e.g. — foo unused',
+                'flake: Disable 201 (2x) — e.g. foo unused',
             ]
         ),
     ])

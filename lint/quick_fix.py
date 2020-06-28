@@ -39,7 +39,7 @@ class QuickAction:
     @property
     def description(self):
         # type: () -> str
-        return "   ".join(filter(None, (self.subject, self.detail)))
+        return " ".join(filter(None, (self.subject, self.detail)))
 
 
 def actions_for_errors(errors, view=None):

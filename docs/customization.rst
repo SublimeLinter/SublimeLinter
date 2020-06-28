@@ -1,4 +1,4 @@
-Customiztation
+Customization
 ===============
 
 Besides installing plugins and changing settings,

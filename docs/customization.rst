@@ -26,6 +26,7 @@ You don't have to repeat the existing entries, Sublime Text will merge your cont
 This example add an entry for the command ``sublime_linter_panel_toggle``:
 
 .. code-block:: json
+
     [
         {
             "id": "sublimelinter",

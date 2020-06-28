@@ -80,8 +80,8 @@ if MYPY:
 PROVIDERS = defaultdict(
     dict
 )  # type: DefaultDict[str, Dict[str, Provider]]
-DEFAULT_SUBJECT = '{linter}: Disable [{code}]'
-DEFAULT_DETAIL = '{msg}'
+DEFAULT_SUBJECT = '{linter}: Disable {code}'
+DEFAULT_DETAIL = '— {msg}'
 
 
 def namespacy_name(fn):
@@ -182,7 +182,7 @@ def detail_for_multiple_actions(actions):
 
     solves_count = len(list(flatten(a.solves for a in actions)))
     if distinct:
-        return "({}x) e.g.: {}".format(solves_count, detail)
+        return "({}x) e.g. {}".format(solves_count, detail)
     else:
         return "({}x) {}".format(solves_count, detail)
 

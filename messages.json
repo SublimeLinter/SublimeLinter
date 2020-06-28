@@ -1,15 +1,3 @@
 {
-    "install": "messages/install.txt",
-    "4.0.0": "messages/4.0.0.txt",
-    "4.0.1": "messages/4.0.1.txt",
-    "4.0.3": "messages/4.0.3.txt",
-    "4.1.0": "messages/4.1.0.txt",
-    "4.3.0": "messages/4.3.0.txt",
-    "4.4.0": "messages/4.4.0.txt",
-    "4.5.0": "messages/4.5.0.txt",
-    "4.6.0": "messages/4.6.0.txt",
-    "4.9.0": "messages/4.9.0.txt",
-    "4.10.0": "messages/4.10.0.txt",
-    "4.12.0": "messages/4.12.0.txt",
-    "4.13.0": "messages/4.13.0.txt"
+    "install": "messages/install.txt"
 }

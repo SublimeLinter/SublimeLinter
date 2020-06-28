@@ -25,7 +25,7 @@ class SublimeLinterQuickActions(sublime_plugin.TextCommand):
         assert window
 
         if len(self.view.sel()) != 1:
-            window.status_message("Not implemented for multiple selections")
+            window.status_message("Quick actions don't support multiple selections")
             return
 
         sel = view.sel()[0]
@@ -63,11 +63,11 @@ class SublimeLinterQuickActions(sublime_plugin.TextCommand):
         if not actions:
             if quiet:
                 window.show_quick_panel(
-                    ["No actions available."],
+                    ["No quick action available."],
                     lambda x: None
                 )
             else:
-                window.status_message("No actions available")
+                window.status_message("No quick action available")
         elif len(actions) == 1:
             on_done(0)
         else:

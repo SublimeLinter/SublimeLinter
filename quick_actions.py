@@ -14,12 +14,9 @@ if MYPY:
 
 
 class sl_quick_actions(sublime_plugin.TextCommand):
-    def is_enabled(self, quiet=False):
+    def is_visible(self, quiet=False):
         # type: (bool) -> bool
-        if quiet:
-            return len(self.view.sel()) == 1
-        else:
-            return True
+        return len(self.view.sel()) == 1
 
     def run(self, edit, quiet=False):
         # type: (sublime.Edit, bool) -> None
@@ -27,10 +24,9 @@ class sl_quick_actions(sublime_plugin.TextCommand):
         window = view.window()
         assert window
 
-        if not quiet:
-            if len(self.view.sel()) != 1:
-                window.status_message("Not implemented for multiple selections")
-                return
+        if len(self.view.sel()) != 1:
+            window.status_message("Not implemented for multiple selections")
+            return
 
         sel = view.sel()[0]
         filename = util.get_filename(view)

@@ -11,7 +11,7 @@ Removing context menu entries works via ST's standard override protocol.
 
 - In Packages create a directory with the same name as the package you want to override
   (in this case "SublimeLinter", but this also works for AlignTab or ColorConvert to name a few).
-- Using [PackageResourceViewer](https://packagecontrol.io/packages/PackageResourceViewer)
+- Using `PackageResourceViewer <https://packagecontrol.io/packages/PackageResourceViewer>`_
   open the Context.sublime-menu file from that package,
   and save it in the new directory you just created.
 - This file will now replace the one from the installed package.
@@ -19,11 +19,11 @@ Removing context menu entries works via ST's standard override protocol.
 - To remove the context menu, change the ``children`` key to an empty array ``[]``.
 
 To add entries, create a Context.sublime-menu file in the Packages/User directory (aka the "User package").
-Create an entry that mirrors the provided menu from SublimeLinter.
-Make sure the ``id``` that matches. Now create a child entry you want to add.
+Create an entry that mirrors the `provided menu from SublimeLinter <https://github.com/SublimeLinter/SublimeLinter/blob/master/menus/Context.sublime-menu>`_.
+Make sure the ``id`` matches. Now create a child entry you want to add.
 You don't have to repeat the existing entries, Sublime Text will merge your context menu into ours.
 
-This example add an entry for the command ``sublime_linter_panel_toggle``:
+This example adds an entry for the command ``sublime_linter_panel_toggle``:
 
 .. code-block:: json
 

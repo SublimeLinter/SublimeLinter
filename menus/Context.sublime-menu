@@ -1,7 +1,23 @@
 [
     {
         "id": "sublimelinter",
-        "caption": "Lint This View",
-        "command": "sublime_linter_lint"
+        "caption": "Linter",
+        "children": [
+            {
+                "id": "sublimelinter-lint",
+                "caption": "Lint This View",
+                "command": "sublime_linter_lint"
+            },
+            {
+                "id": "sublimelinter-highlights",
+                "caption": "Toggle Highlights",
+                "command": "sublime_linter_toggle_highlights"
+            },
+            {
+                "id": "sublimelinter-fix",
+                "caption": "Quick Action",
+                "command": "sl_quick_actions"
+            }
+        ]
     }
 ]

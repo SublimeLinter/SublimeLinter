@@ -11,8 +11,8 @@ Context Menu
 
 - Install `PackageResourceViewer <https://packagecontrol.io/packages/PackageResourceViewer>`_
   if you don't have it already.
-- Using PackageResourceViewer open the Context.sublime-menu file
-  from the package you want to override ("SublimeLinter" in this case).
+- Use "PackageResourceViewer: Open Resource" to open the Context.sublime-menu
+  file from the package you want to override ("SublimeLinter" in this case).
 - Saving the file will create a Context.sublime-menu file in
   Packages/<package name>/.
 - This file will now replace the one from the installed package.

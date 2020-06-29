@@ -71,7 +71,7 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
                 )
             else:
                 window.status_message("No quick action available")
-        elif len(actions) == 1:
+        elif len(actions) == 1 and not prefer_panel:
             on_done(0)
         else:
             window.show_quick_panel(

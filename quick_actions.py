@@ -13,24 +13,23 @@ if MYPY:
     LintError = persist.LintError
 
 
-class sl_quick_actions(sublime_plugin.TextCommand):
-    def is_enabled(self, quiet=False):
-        # type: (bool) -> bool
-        if quiet:
+class sublime_linter_quick_actions(sublime_plugin.TextCommand):
+    def is_enabled(self, prefer_panel=False, **kwargs):
+        # type: (bool, object) -> bool
+        if prefer_panel:
             return len(self.view.sel()) == 1
         else:
             return True
 
-    def run(self, edit, quiet=False):
-        # type: (sublime.Edit, bool) -> None
+    def run(self, edit, prefer_panel=False, **kwargs):
+        # type: (sublime.Edit, bool, object) -> None
         view = self.view
         window = view.window()
         assert window
 
-        if not quiet:
-            if len(self.view.sel()) != 1:
-                window.status_message("Not implemented for multiple selections")
-                return
+        if len(self.view.sel()) != 1:
+            window.status_message("Quick actions don't support multiple selections")
+            return
 
         sel = view.sel()[0]
         filename = util.get_filename(view)
@@ -65,14 +64,14 @@ class sl_quick_actions(sublime_plugin.TextCommand):
             key=lambda action: (-len(action.solves), action.description)
         )
         if not actions:
-            if quiet:
+            if prefer_panel:
                 window.show_quick_panel(
-                    ["No actions available."],
+                    ["No quick action available."],
                     lambda x: None
                 )
             else:
-                window.status_message("No actions available")
-        elif len(actions) == 1:
+                window.status_message("No quick action available")
+        elif len(actions) == 1 and not prefer_panel:
             on_done(0)
         else:
             window.show_quick_panel(

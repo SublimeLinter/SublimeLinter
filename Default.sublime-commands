@@ -25,10 +25,9 @@
 
     },
     {
-        "caption": "SublimeLinter: Quick Actions",
-        "command": "sl_quick_actions",
-        // Don't set "quiet" for key bindings
-        "args": { "quiet": true }
+        "caption": "SublimeLinter: Quick Action",
+        "command": "sublime_linter_quick_actions",
+        "args": { "prefer_panel": true }
     },
     {
         "caption": "SublimeLinter: Reload SublimeLinter and its Plugins",

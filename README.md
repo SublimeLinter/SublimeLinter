@@ -19,6 +19,11 @@ Settings are mostly documented in the [default settings](https://github.com/Subl
 - Additional information is in our docs at [sublimelinter.com](http://sublimelinter.com/).
 - Read about all the changes between 3 and 4 [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0.txt). 
 
+## Quick Actions (beta)
+
+We're building a new feature called Quick Actions, that will allow you to quickly ignore specific error messages. At first SublimeLinter will ship actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
+
+Wan't to see actions for your favourite linter? Please open an issue so we can investigate it. Eventually, as this feature becomes more stable, we will expose it as an API that plugins can use to add actions for all linters. 
 
 ## Key Bindings
 

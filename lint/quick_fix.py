@@ -39,7 +39,7 @@ class QuickAction:
     @property
     def description(self):
         # type: () -> str
-        return "   ".join(filter(None, (self.subject, self.detail)))
+        return " — ".join(filter(None, (self.subject, self.detail)))
 
 
 def actions_for_errors(errors, view=None):
@@ -80,7 +80,7 @@ if MYPY:
 PROVIDERS = defaultdict(
     dict
 )  # type: DefaultDict[str, Dict[str, Provider]]
-DEFAULT_SUBJECT = '{linter}: Disable [{code}]'
+DEFAULT_SUBJECT = '{linter}: Disable {code}'
 DEFAULT_DETAIL = '{msg}'
 
 
@@ -133,7 +133,7 @@ def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
         lambda e: e["code"],
         (e for e in errors if e["code"] and e["code"] not in except_for)
     )
-    for code, errors_with_same_code in grouped_by_code.items():
+    for code, errors_with_same_code in sorted(grouped_by_code.items()):
         grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
 
         actions_per_line = []
@@ -170,7 +170,8 @@ def merge_actions(actions):
 
 def subject_for_multiple_actions(actions):
     # type: (List[QuickAction]) -> str
-    return actions[0].subject
+    solves_count = len(list(flatten(a.solves for a in actions)))
+    return "{} ({}x)".format(actions[0].subject, solves_count)
 
 
 def detail_for_multiple_actions(actions):
@@ -180,11 +181,10 @@ def detail_for_multiple_actions(actions):
         return detail
     distinct = any(detail != action.detail for action in actions)
 
-    solves_count = len(list(flatten(a.solves for a in actions)))
     if distinct:
-        return "({}x) e.g.: {}".format(solves_count, detail)
+        return "e.g. {}".format(detail)
     else:
-        return "({}x) {}".format(solves_count, detail)
+        return detail
 
 
 def group_by(key, iterable):
@@ -318,6 +318,24 @@ def fix_stylelint_error(error, view):
             line
         ) or add_at_eol(
             " /* stylelint-disable-line {} */".format(code),
+            line
+        )
+    )
+
+
+@ignore_rules_inline("phpcs")
+def fix_phpcs_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    code = error["code"]
+    yield (
+        extend_existing_comment(
+            r"\/\/ phpcs:ignore (?P<codes>[\w\-\/.]+(?:,\s?[\w\-\/.]+)*)",
+            ", ",
+            {code},
+            read_previous_line(view, line)
+        ) or insert_preceding_line(
+            "// phpcs:ignore {}".format(code),
             line
         )
     )

@@ -28,4 +28,8 @@
     //   "command": "sublime_linter_toggle_highlights"
     // },
 
+    // To trigger a quick action
+    // { "keys": ["super+alt+a"],
+    //   "command": "sublime_linter_quick_actions"
+    // },
 ]

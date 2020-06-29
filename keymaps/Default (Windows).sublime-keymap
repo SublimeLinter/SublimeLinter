@@ -27,4 +27,9 @@
     // { "keys": ["ctrl+k", "ctrl+k"],
     //   "command": "sublime_linter_toggle_highlights"
     // },
+
+    // To trigger a quick action
+    // { "keys": ["ctrl+k", "ctrl+f"],
+    //   "command": "sublime_linter_quick_actions"
+    // },
 ]

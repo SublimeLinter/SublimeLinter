@@ -21,17 +21,24 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
         else:
             return True
 
+    def want_event(self):
+        return True
+
     def run(self, edit, prefer_panel=False, **kwargs):
         # type: (sublime.Edit, bool, object) -> None
         view = self.view
         window = view.window()
         assert window
+        sel = view.sel()[0]
 
-        if len(self.view.sel()) != 1:
+        if 'event' in kwargs:
+            vector = (kwargs['event']['x'], kwargs['event']['y'])
+            point = view.window_to_text(vector)
+            sel = sublime.Region(point, point)
+        elif len(self.view.sel()) != 1:
             window.status_message("Quick actions don't support multiple selections")
             return
 
-        sel = view.sel()[0]
         filename = util.get_filename(view)
         if sel.empty():
             char_selection = sublime.Region(sel.a, sel.a + 1)

@@ -14,12 +14,15 @@ if MYPY:
 
 
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):
-    def is_visible(self, quiet=False):
-        # type: (bool) -> bool
-        return len(self.view.sel()) == 1
+    def is_enabled(self, prefer_panel=False, **kwargs):
+        # type: (bool, object) -> bool
+        if prefer_panel:
+            return len(self.view.sel()) == 1
+        else:
+            return True
 
-    def run(self, edit, quiet=False):
-        # type: (sublime.Edit, bool) -> None
+    def run(self, edit, prefer_panel=False, **kwargs):
+        # type: (sublime.Edit, bool, object) -> None
         view = self.view
         window = view.window()
         assert window
@@ -61,7 +64,7 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
             key=lambda action: (-len(action.solves), action.description)
         )
         if not actions:
-            if quiet:
+            if prefer_panel:
                 window.show_quick_panel(
                     ["No quick action available."],
                     lambda x: None

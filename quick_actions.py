@@ -8,30 +8,45 @@ from .lint import util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, List
+    from typing import Callable, List, TypedDict
 
     LintError = persist.LintError
+    Event = TypedDict("Event", {"x": float, "y": float})
 
 
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):
-    def is_enabled(self, prefer_panel=False, **kwargs):
-        # type: (bool, object) -> bool
-        if prefer_panel:
-            return len(self.view.sel()) == 1
+    def is_visible(self, event=None, prefer_panel=False):
+        # type: (Event, bool) -> bool
+        if event:
+            filename = util.get_filename(self.view)
+            return len(persist.file_errors[filename]) > 0
         else:
-            return True
+            return len(self.view.sel()) == 1
 
-    def run(self, edit, prefer_panel=False, **kwargs):
-        # type: (sublime.Edit, bool, object) -> None
+    def want_event(self):
+        return True
+
+    def run(self, edit, event=None, prefer_panel=False):
+        # type: (sublime.Edit, Event, bool) -> None
         view = self.view
         window = view.window()
         assert window
 
-        if len(self.view.sel()) != 1:
-            window.status_message("Quick actions don't support multiple selections")
-            return
+        if event:
+            vector = (event['x'], event['y'])
+            point = view.window_to_text(vector)
+            for selection in view.sel():
+                if selection.contains(point):
+                    sel = selection
+                    break
+            else:
+                sel = sublime.Region(point)
+        else:
+            if len(self.view.sel()) != 1:
+                window.status_message("Quick actions don't support multiple selections")
+                return
+            sel = view.sel()[0]
 
-        sel = view.sel()[0]
         filename = util.get_filename(view)
         if sel.empty():
             char_selection = sublime.Region(sel.a, sel.a + 1)

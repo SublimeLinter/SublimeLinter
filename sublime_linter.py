@@ -16,10 +16,12 @@ from .lint import backend
 from .lint import elect
 from .lint import events
 from .lint import linter as linter_module
+from .lint import persist
 from .lint import queue
-from .lint import persist, util
 from .lint import reloader
 from .lint import settings
+from .lint import util
+from .lint.util import flash
 
 
 MYPY = False
@@ -284,16 +286,35 @@ def has_syntax_changed(view):
 class sublime_linter_lint(sublime_plugin.TextCommand):
     """A command that lints the current view if it has a linter."""
 
-    def is_enabled(self):
+    def want_event(self):
+        return True
+
+    def is_visible(self, event=None, **kwargs):
         return (
             util.is_lintable(self.view)
-            and any(elect.runnable_linters_for_view(self.view, 'on_user_request'))
+            and any(
+                info["settings"].get("lint_mode") != "background"
+                for info in elect.runnable_linters_for_view(self.view, "on_user_request")
+            )
+        ) if event else True
+
+    def run(self, edit, event=None):
+        assignable_linters = list(
+            elect.assignable_linters_for_view(self.view, "on_user_request")
         )
+        if not assignable_linters:
+            flash(self.view, "No linters available for this view")
+            return
 
-    def is_visible(self):
-        return util.is_lintable(self.view)
+        runnable_linters = [
+            info["name"]
+            for info in elect.filter_runnable_linters(assignable_linters)
+        ]
+        if not runnable_linters:
+            flash(self.view, "No runnable linters, probably save first")
+            return
 
-    def run(self, edit):
+        flash(self.view, "Running {}".format(", ".join(runnable_linters)))
         hit(self.view, 'on_user_request')
 
 

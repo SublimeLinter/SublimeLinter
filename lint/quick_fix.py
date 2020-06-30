@@ -341,7 +341,26 @@ def fix_phpcs_error(error, view):
     )
 
 
-@ignore_rules_inline("flake8", except_for={"E261", "E262", "E265", "E302", "E303", "E999"})
+@ignore_rules_inline("flake8", except_for={
+    # some indentation rules are not stylistic in python
+    # the following violations cannot be ignored
+    "E112",  # expected an indented block
+    "E113",  # unexpected indentation
+    "E116",  # unexpected indentation (comment)
+    "E901",  # SyntaxError or IndentationError
+    "E902",  # IOError
+    "E999",  # SyntaxError
+    "F721",  # syntax error in doctest
+    "F722",  # syntax error in forward annotation
+    "F723",  # syntax error in type comment
+
+    # easter egg: provide real fixes for the basic
+    # comment style rules
+    "E261",  # at least two spaces before inline comment
+    "E262",  # inline comment should start with ‘# ‘
+    "E265",  # block comment should start with ‘# ‘
+    "E266",  # too many leading ‘#’ for block comment
+})
 def fix_flake8_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -360,31 +379,6 @@ def fix_flake8_error(error, view):
     )
 
 
-@fix("flake8", {"E241", "E271"})
-def fix_e241(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
-    yield TextRange(" ", error["region"])
-
-
-@fix("flake8", {"E302"})
-def fix_e302(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
-    line = line_error_is_on(view, error)  # too
-    if line.text.strip() == "":
-        yield TextRange("\n\n", error["region"])
-    else:
-        yield TextRange("\n\n", sublime.Region(line.range.b))
-
-
-@fix("flake8", {"E303"})
-def fix_e303(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
-    if "(2)" in error["msg"]:
-        yield TextRange("", error["region"])
-    else:
-        yield TextRange("\n", error["region"])
-
-
 @fix("flake8", {"E261"})
 def fix_e261(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
@@ -398,6 +392,19 @@ def fix_e261(error, view):
 def fix_e262(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     yield TextRange("# ", error["region"])
+
+
+@fix("flake8", {"E266"})
+def fix_e266(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    col = error["start"]
+    tail_text = line.text[col:]
+    count_comment_sign = len(tail_text) - len(tail_text.lstrip("#"))
+    yield TextRange(
+        "#",
+        sublime.Region(line.range.a + col, line.range.a + col + count_comment_sign)
+    )
 
 
 @ignore_rules_inline("mypy", except_for={"syntax"})

@@ -15,8 +15,11 @@ if MYPY:
 
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):
     def is_visible(self, prefer_panel=False, **kwargs):
-        filename = util.get_filename(self.view)
-        return len(persist.file_errors[filename]) > 0
+        if 'event' in kwargs:
+            filename = util.get_filename(self.view)
+            return len(persist.file_errors[filename]) > 0
+        else:
+            return True
 
     def is_enabled(self, prefer_panel=False, **kwargs):
         # type: (bool, object) -> bool

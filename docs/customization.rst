@@ -31,3 +31,15 @@ This example adds an entry for the command ``sublime_linter_panel_toggle``:
             "command": "sublime_linter_panel_toggle"
         }
     ]
+
+
+Key bindings
+------------
+
+SublimeLinter ships with a number of key bindings
+(please refer to the `README <https://github.com/SublimeLinter/SublimeLinter>`_).
+Because there are only so many keys on the keyboard we never add more bindings,
+even though for some commands they would definitely be useful.
+However, the default "keymap" file has several suggestions that you can use.
+Simply go through the Package Settings menu to open the SublimeLinter Key Bindings,
+and copy the commented-out suggestions from the left hand file, to your personal "keymap" on the right.

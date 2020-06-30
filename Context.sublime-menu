@@ -1,24 +1,11 @@
 [
     {
-        "id": "sublimelinter",
-        "caption": "Linter",
-        "children": [
-            {
-                "id": "sublimelinter-lint",
-                "caption": "Lint This View",
-                "command": "sublime_linter_lint"
-            },
-            {
-                "id": "sublimelinter-highlights",
-                "caption": "Toggle Highlights",
-                "command": "sublime_linter_toggle_highlights"
-            },
-            {
-                "id": "sublimelinter-fix",
-                "caption": "Quick Action",
-                "command": "sublime_linter_quick_actions",
-                "args": { "prefer_panel": true }
-            }
-        ]
+        "caption": "Lint This View",
+        "command": "sublime_linter_lint"
+    },
+    {
+        "caption": "Linter Quick Action",
+        "command": "sublime_linter_quick_actions",
+        "args": { "prefer_panel": true }
     }
 ]

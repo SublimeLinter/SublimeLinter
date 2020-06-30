@@ -16,6 +16,8 @@ if MYPY:
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):
     def is_enabled(self, prefer_panel=False, **kwargs):
         # type: (bool, object) -> bool
+        if 'event' in kwargs:
+            return True
         if prefer_panel:
             return len(self.view.sel()) == 1
         else:
@@ -35,6 +37,10 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
             vector = (kwargs['event']['x'], kwargs['event']['y'])
             point = view.window_to_text(vector)
             sel = sublime.Region(point, point)
+            for selection in view.sel():
+                if selection.contains(point):
+                    sel = selection
+                    break
         elif len(self.view.sel()) != 1:
             window.status_message("Quick actions don't support multiple selections")
             return

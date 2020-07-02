@@ -5,6 +5,7 @@ from Default import history_list
 from itertools import dropwhile, takewhile
 
 from .lint import persist, util
+from .lint.util import flash
 
 
 MYPY = False
@@ -91,9 +92,3 @@ def move_to(view, point):
     # type: (sublime.View, int) -> None
     history_list.get_jump_history_for_view(view).push_selection(view)
     view.run_command('_sublime_linter_move_cursor', {'point': point})
-
-
-def flash(view, msg):
-    # type: (sublime.View, str) -> None
-    window = view.window() or sublime.active_window()
-    window.status_message(msg)

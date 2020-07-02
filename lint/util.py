@@ -65,6 +65,12 @@ def clear_message():
     window.run_command("sublime_linter_remove_panel")
 
 
+def flash(view, msg):
+    # type: (sublime.View, str) -> None
+    window = view.window() or sublime.active_window()
+    window.status_message(msg)
+
+
 def distinct_until_buffer_changed(method):
     # Sublime has problems to hold the distinction between buffers and views.
     # It usually emits multiple identical events if you have multiple views

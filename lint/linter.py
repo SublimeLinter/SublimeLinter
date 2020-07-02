@@ -220,6 +220,14 @@ class ViewSettings:
             self.view.id(), self.prefix.rstrip('.'))
 
 
+NOT_EXPANDABLE_SETTINGS = {
+    "lint_mode",
+    "selector",
+    "disable",
+    "filter_errors",
+}
+
+
 class LinterSettings:
     """
     Smallest possible dict-like container for linter settings to lazy
@@ -235,6 +243,9 @@ class LinterSettings:
 
     def __getitem__(self, key):
         # type: (str) -> Any
+        if key in NOT_EXPANDABLE_SETTINGS:
+            return self.raw_settings[key]
+
         try:
             return self._computed_settings[key]
         except KeyError:

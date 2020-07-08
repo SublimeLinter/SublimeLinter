@@ -1,6 +1,6 @@
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from functools import lru_cache, partial
-from itertools import chain
+from itertools import chain, dropwhile
 import os
 import sublime
 import sublime_plugin
@@ -8,13 +8,14 @@ import textwrap
 import uuid
 
 from .lint import elect, events, persist, util
+from .lint.generic_text_command import text_command
 flatten = chain.from_iterable
 
 
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Collection, Dict, Iterable, List, NamedTuple,
+        Any, Callable, Collection, Dict, Iterable, Iterator, List,
         Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
@@ -22,6 +23,7 @@ if MYPY:
 
     T = TypeVar('T')
     U = TypeVar('U')
+    Panel = sublime.View
     FileName = persist.FileName
     LinterName = persist.LinterName
     Reason = Optional[str]
@@ -36,16 +38,10 @@ if MYPY:
     DrawInfo = TypedDict('DrawInfo', {
         'panel': sublime.View,
         'content': str,
-        'errors_from_active_view': List[LintError],
+        'errors_from_active_view': List[Optional[LintError]],
         'nearby_lines': Union[int, List[int]]
     }, total=False)
     Action = Callable[[], None]
-
-    TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
-    Location = NamedTuple("Location", [("filename", FileName), ("line", int), ("column", int)])
-else:
-    TextRange = namedtuple("TextRange", "text range")
-    Location = namedtuple("Location", "filename line column")
 
 
 PANEL_NAME = "SublimeLinter"
@@ -343,26 +339,15 @@ class sublime_linter_panel_toggle(sublime_plugin.WindowCommand):
 class sublime_linter_panel_commit(sublime_plugin.TextCommand):
     def run(self, edit):
         # type: (sublime.Edit) -> None
-        view = self.view
-        window = view.window()
+        panel = self.view
+        window = panel.window()
         assert window
+        active_view = State["active_view"]
+        assert active_view
 
-        if len(view.sel()) != 1:
-            print("No cursor, or multiple. Return")
-            if view.settings().get("sl_quick_panel_mode"):
-                window.run_command("sublime_linter_panel_toggle")
-            else:
-                force_focus_active_view(window)
-            return
-
-        loc = read_current_location(view, view.sel()[0])
-        if loc is None:
-            print("Error: No visual error found.")
-            return
-
-        forget_view_state(view)
-        open_location(window, *loc)
-        if view.settings().get("sl_quick_panel_mode"):
+        forget_view_state(panel)
+        open_location(window, util.get_filename(active_view), *cur_loc(active_view))
+        if panel.settings().get("sl_quick_panel_mode"):
             window.run_command("sublime_linter_panel_toggle")
         else:
             force_focus_active_view(window)
@@ -376,91 +361,16 @@ def force_focus_active_view(window):
     window.focus_view(active_view)
 
 
-def read_current_location(view, sel):
-    # type: (sublime.View, sublime.Region) -> Optional[Location]
-    cursor = sel.b
-    cursor_at_eol = view.line(cursor).b
-
-    fname = read_selector_just_before_pt(view, "entity.name.filename", cursor_at_eol)
-    if fname is None:
-        return None
-
-    if fname.range.a <= cursor_at_eol <= fname.range.b + 1:
-        cursor_at_eol = view.line(cursor_at_eol + 1).b  # next line
-
-    line_col = read_selector_just_before_pt(view, "meta.line-col", cursor_at_eol)
-    if line_col is None:
-        return None
-
-    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
-    if line_col.range.a < fname.range.a:  # Clean file, user is on NO_RESULTS_MESSAGE
-        return Location(filename, -1, -1)
-
-    li, co = map(int, line_col.text.split(":"))
-    return Location(filename, li, co)
-
-
-def next_location(view, sel):
-    # type: (sublime.View, sublime.Region) -> Optional[Location]
-    cursor = sel.b
-    cursor_at_eol = view.line(cursor).b
-    line_col = read_selector_just_after_pt(view, "meta.line-col", cursor_at_eol)
-    if line_col is None:
-        return None
-
-    fname = read_selector_just_before_pt(view, "entity.name.filename", line_col.range.a)
-    if fname is None:
-        return None
-
-    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
-    li, co = map(int, line_col.text.split(":"))
-    return Location(filename, li, co)
-
-
-def previous_location(view, sel):
-    # type: (sublime.View, sublime.Region) -> Optional[Location]
-    cursor = sel.b
-    cursor_at_bol = view.line(cursor).a
-    line_col = read_selector_just_before_pt(view, "meta.line-col", cursor_at_bol)
-    if line_col is None:
-        return None
-
-    if view.match_selector(cursor_at_bol, "markup.quote.linter-message"):
-        # go up twice
-        line_col = read_selector_just_before_pt(view, "meta.line-col", line_col.range.a)
-        if line_col is None:
-            return None
-
-    fname = read_selector_just_before_pt(view, "entity.name.filename", line_col.range.a)
-    if fname is None:
-        return None
-
-    filename = os.path.join(view.settings().get("result_base_dir") or "", fname.text)
-    li, co = map(int, line_col.text.split(":"))
-    return Location(filename, li, co)
-
-
-def read_selector_just_before_pt(view, selector, pt):
-    # type: (sublime.View, str, int) -> Optional[TextRange]
-    return next(
-        (
-            TextRange(view.substr(r), r)
-            for r in reversed(view.find_by_selector(selector))
-            if r.a < pt
-        ),
-        None
+def list_all_visible_filenames(panel):
+    # type: (Panel) -> Iterator[FileName]
+    base_dir = panel.settings().get("result_base_dir") or ""
+    shortened_names = (
+        panel.substr(r)
+        for r in panel.find_by_selector("entity.name.filename")
     )
-
-
-def read_selector_just_after_pt(view, selector, pt):
-    # type: (sublime.View, str, int) -> Optional[TextRange]
-    return next(
-        (
-            TextRange(view.substr(r), r)
-            for r in view.find_by_selector(selector)
-            if r.a > pt
-        ),
-        None
+    return (
+        short_name if short_name.startswith("<untitled") else os.path.join(base_dir, short_name)
+        for short_name in shortened_names
     )
 
 
@@ -473,12 +383,42 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
         active_view = window.active_view()
         assert active_view
 
+        filename = util.get_filename(active_view)
+
+        # Two complications here: `find_all_results` returns cygwin like
+        # paths on Windows, so we need to "normalize" all paths we get from
+        # other sources.
+        # Generally, if the current active view is clean ("ok") it is not in
+        # `find_all_results` but it can still have dependencies we want to jump
+        # to.
+        active_filename_plus_dependencies = {
+            normalize_filename(fn)
+            for fn in dropwhile(
+                lambda fn: fn != filename,
+                list_all_visible_filenames(panel)
+            )
+        }
+        cur_filename = normalize_filename(filename)
+        cur_line, cur_col = cur_loc(active_view)
+        for loc in filter(
+            lambda r: r[0] in active_filename_plus_dependencies,
+            panel.find_all_results()
+        ):
+            if (loc[0] != cur_filename, loc[1], loc[2]) > (0, cur_line, cur_col):
+                break
+        else:
+            util.flash(active_view, "No problems below.")
+            return
+
         if panel.id() not in VIEW_STATE_CACHE:
             save_view_state(panel, active_view)
-        active_view.run_command("sublime_linter_goto_error", {
-            "direction": "next",
-            "transient": True
-        })
+        active_view = open_location(window, *loc, preview=True)
+        if loc[0] != cur_filename:
+            State.update({
+                'active_view': active_view,
+                'active_filename': util.get_filename(active_view),
+                'cursor': -1 if active_view.is_loading() else get_current_pos(active_view)
+            })
 
 
 class sublime_linter_panel_previous(sublime_plugin.TextCommand):
@@ -490,12 +430,56 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
         active_view = window.active_view()
         assert active_view
 
+        filename = util.get_filename(active_view)
+        top_filename = filename
+        if panel.id() in VIEW_STATE_CACHE:
+            top_filename = util.get_filename(sublime.View(VIEW_STATE_CACHE[panel.id()][0]))
+
+        top_to_active_filenames = {
+            normalize_filename(fn)
+            for fn in dropwhile(
+                lambda fn: fn != filename,
+                reversed(list(dropwhile(
+                    lambda fn: fn != top_filename,
+                    list_all_visible_filenames(panel)
+                )))
+            )
+        }
+        cur_filename = normalize_filename(filename)
+        cur_line, cur_col = cur_loc(active_view)
+        for loc in filter(
+            lambda r: r[0] in top_to_active_filenames,
+            reversed(panel.find_all_results())
+        ):
+            if (loc[0] == cur_filename, loc[1], loc[2]) < (1, cur_line, cur_col):
+                break
+        else:
+            util.flash(active_view, "No problems above.")
+            return
+
         if panel.id() not in VIEW_STATE_CACHE:
             save_view_state(panel, active_view)
-        active_view.run_command("sublime_linter_goto_error", {
-            "direction": "previous",
-            "transient": True
-        })
+        active_view = open_location(window, *loc, preview=True)
+        if loc[0] != cur_filename:
+            State.update({
+                'active_view': active_view,
+                'active_filename': util.get_filename(active_view),
+                'cursor': -1 if active_view.is_loading() else get_current_pos(active_view)
+            })
+
+
+def normalize_filename(filename):
+    # type: (str) -> str
+    if filename.startswith("<untitled"):
+        return filename
+    else:
+        return "/" + filename.replace(":\\", "/").replace("\\", "/").lstrip("/")
+
+
+def cur_loc(view):
+    # type: (sublime.View) -> Tuple[int, int]
+    row, col = view.rowcol(view.sel()[0].b)
+    return row + 1, col + 1
 
 
 VIEW_STATE_CACHE = {}  # type: Dict[sublime.ViewId, Tuple[sublime.ViewId, List[sublime.Region]]]
@@ -514,8 +498,10 @@ def restore_view_state(panel):
     view = sublime.View(vid)
     view.sel().clear()
     view.sel().add_all(frozen_sel)
-    # view.window().focus_view(view)
+    window = view.window()
     view.show(frozen_sel[0])
+    if window:
+        window.focus_view(view)
 
 
 def forget_view_state(panel):
@@ -583,7 +569,7 @@ def draw(draw_info):
 
 
 def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
-    # type: (sublime.View, str, List[LintError], Union[int, List[int]]) -> None
+    # type: (sublime.View, str, List[Optional[LintError]], Union[int, List[int]]) -> None
     if content is not None:
         update_panel_content(panel, content)
 
@@ -722,12 +708,18 @@ def fill_panel(window):
     if vx == 0:
         return
 
-    active_view = State['active_view']
-    if active_view and active_view.window() == window:
-        active_filename = State['active_filename']
+    # Hack 1: Try to put the view the quick panel started with at the top!
+    if panel.id() not in VIEW_STATE_CACHE:
+        active_view = State['active_view']
+        if active_view and active_view.window() == window:
+            active_filename = State['active_filename']
+        else:
+            active_view = None
+            active_filename = None
     else:
-        active_view = None
-        active_filename = None
+        vid = VIEW_STATE_CACHE[panel.id()][0]
+        active_view = sublime.View(vid)
+        active_filename = util.get_filename(active_view)
 
     errors_by_file = get_window_errors(window, persist.file_errors)
     if active_filename and active_filename not in errors_by_file:
@@ -827,6 +819,7 @@ def fill_panel(window):
         'content': content
     }  # type: DrawInfo
 
+    active_view = State['active_view']
     if active_view:
         update_panel_selection(
             active_view,
@@ -856,7 +849,6 @@ def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None)
         return
 
     filename = util.get_filename(active_view)
-
     try:
         # Rarely, and if so only on hot-reload, `update_panel_selection` runs
         # before `fill_panel`, thus 'panel_line' has not been set.
@@ -865,9 +857,21 @@ def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None)
     except KeyError:
         all_errors = []
 
+    error_boundaries = (
+        [all_errors[0], all_errors[-1]]
+        if all_errors else [None, None]
+    )  # type: List[Optional[LintError]]
+    if panel.id() in VIEW_STATE_CACHE:
+        vid = VIEW_STATE_CACHE[panel.id()][0]
+        if vid != active_view.id():
+            top_view_errors = sorted(
+                persist.file_errors[util.get_filename(sublime.View(vid))],
+                key=lambda e: e["panel_line"]
+            )
+            error_boundaries[0] = top_view_errors[0] if top_view_errors else None
     draw_info.update({
         'panel': panel,
-        'errors_from_active_view': all_errors
+        'errors_from_active_view': error_boundaries
     })
 
     row, _ = active_view.rowcol(cursor)
@@ -953,8 +957,17 @@ INNER_MARGIN = 2  # [lines]
 JUMP_COEFFICIENT = 3
 
 
+def filename_line_for_clean_files(view):
+    # type: (sublime.View) -> Optional[int]
+    match = view.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
+    if match:
+        r, _ = view.rowcol(match.begin())
+        return r - 1
+    return None
+
+
 def scroll_into_view(panel, wanted_lines, errors):
-    # type: (sublime.View, Optional[List[int]], List[LintError]) -> None
+    # type: (sublime.View, Optional[List[int]], List[Optional[LintError]]) -> None
     """Compute and then scroll the view so that `wanted_lines` appear.
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
@@ -963,7 +976,7 @@ def scroll_into_view(panel, wanted_lines, errors):
     possible next file are essentially hidden. Inbetween tries to scroll as
     little as possible.
     """
-    if not errors or not wanted_lines:
+    if not wanted_lines:
         # For clean files, we know that we have exactly two rows: the
         # filename itself, followed by the "No lint results." message.
         match = panel.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
@@ -984,9 +997,20 @@ def scroll_into_view(panel, wanted_lines, errors):
     vbottom = vtop + vheight
 
     # Before the first error comes the filename
-    ftop = errors[0]['panel_line'][0] - 1
+    try:
+        ftop = errors[0]['panel_line'][0] - 1  # type: ignore[index]
+    except TypeError:
+        ftop = filename_line_for_clean_files(panel)
+        if ftop is None:
+            return
     # After the last error comes the empty line
-    fbottom = errors[-1]['panel_line'][1] + 1
+    try:
+        fbottom = errors[-1]['panel_line'][1] + 1  # type: ignore[index]
+    except TypeError:
+        fbottom = filename_line_for_clean_files(panel)
+        if fbottom is None:
+            return
+        fbottom += 1
     fheight = fbottom - ftop + 1
 
     if fheight <= vheight:
@@ -1028,6 +1052,7 @@ class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
         self.view.set_viewport_position((x, y), animate)
 
 
+@text_command
 def mark_lines(panel, lines):
     # type: (sublime.View, Optional[List[int]]) -> None
     """Select/Highlight given lines."""

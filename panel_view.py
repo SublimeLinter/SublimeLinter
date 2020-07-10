@@ -721,16 +721,16 @@ def fill_panel(window):
     if vx == 0:
         return
 
-    active_view, active_filename = State['active_view'], State['active_filename']
+    active_view, top_filename = State['active_view'], State['active_filename']
     if active_view and active_view.window() != window:
         active_view = None
-        active_filename = None
+        top_filename = None
     if panel.id() in State["original_active_views"]:
-        active_filename = State["original_active_views"][panel.id()].filename
+        top_filename = State["original_active_views"][panel.id()].filename
 
     errors_by_file = get_window_errors(window, persist.file_errors)
-    if active_filename and active_filename not in errors_by_file:
-        errors_by_file[active_filename] = []
+    if top_filename and top_filename not in errors_by_file:
+        errors_by_file[top_filename] = []
 
     fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
@@ -756,9 +756,9 @@ def fill_panel(window):
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
-    if active_filename:
+    if top_filename:
         affected_filenames = set(flatten(
-            persist.affected_filenames_per_filename.get(active_filename, {}).values()
+            persist.affected_filenames_per_filename.get(top_filename, {}).values()
         ))
 
         sorted_errors = (
@@ -770,7 +770,7 @@ def fill_panel(window):
                 for filename in (
                     errors_by_file.keys()
                     - affected_filenames
-                    - {active_filename}
+                    - {top_filename}
                 )
             )
 
@@ -778,9 +778,9 @@ def fill_panel(window):
             # The scroller will try to show this file at the top of the
             # view.
             + [(
-                fpath_by_file[active_filename],
-                active_filename,
-                errors_by_file.get(active_filename, [])
+                fpath_by_file[top_filename],
+                top_filename,
+                errors_by_file.get(top_filename, [])
             )]
 
             # Affected files can be clean, just omit those

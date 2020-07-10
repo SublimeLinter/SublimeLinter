@@ -27,6 +27,7 @@ if MYPY:
     FileName = persist.FileName
     LinterName = persist.LinterName
     Reason = Optional[str]
+    Row = int
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
         'active_filename': Optional[str],
@@ -38,8 +39,8 @@ if MYPY:
     DrawInfo = TypedDict('DrawInfo', {
         'panel': sublime.View,
         'content': str,
-        'errors_from_active_view': List[Optional[LintError]],
-        'nearby_lines': Union[int, List[int]]
+        'top_boundary': Optional[Row],
+        'nearby_lines': Union[Row, List[Row]]
     }, total=False)
     Action = Callable[[], None]
 
@@ -568,23 +569,23 @@ def draw(draw_info):
         sublime.set_timeout(lambda: draw_(**draw_info))
 
 
-def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
-    # type: (sublime.View, str, List[Optional[LintError]], Union[int, List[int]]) -> None
+def draw_(panel, content=None, top_boundary=None, nearby_lines=None):
+    # type: (sublime.View, str, Optional[Row], Union[int, List[int]]) -> None
     if content is not None:
         update_panel_content(panel, content)
 
     if nearby_lines is None:
         mark_lines(panel, None)
         draw_position_marker(panel, None)
-        scroll_into_view(panel, None, errors_from_active_view)
+        scroll_into_view(panel, None, top_boundary)
     elif isinstance(nearby_lines, list):
         mark_lines(panel, nearby_lines)
         draw_position_marker(panel, None)
-        scroll_into_view(panel, nearby_lines, errors_from_active_view)
+        scroll_into_view(panel, nearby_lines, top_boundary)
     else:
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
-        scroll_into_view(panel, [nearby_lines], errors_from_active_view)
+        scroll_into_view(panel, [nearby_lines], top_boundary)
 
 
 def get_window_errors(window, errors_by_file):
@@ -857,10 +858,11 @@ def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None)
     except KeyError:
         all_errors = []
 
-    error_boundaries = (
-        [all_errors[0], all_errors[-1]]
-        if all_errors else [None, None]
-    )  # type: List[Optional[LintError]]
+    top_boundary = (
+        # On the line before the first error is the filename
+        all_errors[0]["panel_line"][0] - 1
+        if all_errors else None
+    )  # type: Optional[Row]
     if panel.id() in VIEW_STATE_CACHE:
         vid = VIEW_STATE_CACHE[panel.id()][0]
         if vid != active_view.id():
@@ -868,10 +870,13 @@ def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None)
                 persist.file_errors[util.get_filename(sublime.View(vid))],
                 key=lambda e: e["panel_line"]
             )
-            error_boundaries[0] = top_view_errors[0] if top_view_errors else None
+            top_boundary = (
+                top_view_errors[0]["panel_line"][0] - 1
+                if top_view_errors else None
+            )
     draw_info.update({
         'panel': panel,
-        'errors_from_active_view': error_boundaries
+        'top_boundary': top_boundary
     })
 
     row, _ = active_view.rowcol(cursor)
@@ -958,16 +963,18 @@ JUMP_COEFFICIENT = 3
 
 
 def filename_line_for_clean_files(view):
-    # type: (sublime.View) -> Optional[int]
+    # type: (sublime.View) -> Optional[Row]
+    # For clean files, we know that we have exactly two rows: the
+    # filename itself, followed by the "No lint results." message.
     match = view.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
     if match:
         r, _ = view.rowcol(match.begin())
-        return r - 1
+        return max(0, r - 1)
     return None
 
 
-def scroll_into_view(panel, wanted_lines, errors):
-    # type: (sublime.View, Optional[List[int]], List[Optional[LintError]]) -> None
+def scroll_into_view(panel, wanted_lines, ftop):
+    # type: (sublime.View, Optional[List[Row]], Optional[Row]) -> None
     """Compute and then scroll the view so that `wanted_lines` appear.
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
@@ -977,12 +984,9 @@ def scroll_into_view(panel, wanted_lines, errors):
     little as possible.
     """
     if not wanted_lines:
-        # For clean files, we know that we have exactly two rows: the
-        # filename itself, followed by the "No lint results." message.
-        match = panel.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
-        if match:
-            r, _ = panel.rowcol(match.begin())
-            scroll_to_line(panel, r - 1, animate=False)
+        r = filename_line_for_clean_files(panel)
+        if r is not None:
+            scroll_to_line(panel, r, animate=False)
         return
 
     # We would like to use just `view.visible_region()` but that doesn't count
@@ -996,21 +1000,9 @@ def scroll_into_view(panel, wanted_lines, errors):
     vheight = int(panel.viewport_extent()[1] // panel.line_height())
     vbottom = vtop + vheight
 
-    # Before the first error comes the filename
-    try:
-        ftop = errors[0]['panel_line'][0] - 1  # type: ignore[index]
-    except TypeError:
-        ftop = filename_line_for_clean_files(panel)
-        if ftop is None:
-            return
-    # After the last error comes the empty line
-    try:
-        fbottom = errors[-1]['panel_line'][1] + 1  # type: ignore[index]
-    except TypeError:
-        fbottom = filename_line_for_clean_files(panel)
-        if fbottom is None:
-            return
-        fbottom += 1
+    if ftop is None:
+        ftop = filename_line_for_clean_files(panel) or 0
+    fbottom = panel.rowcol(panel.size())[0]
     fheight = fbottom - ftop + 1
 
     if fheight <= vheight:

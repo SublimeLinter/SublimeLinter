@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import lru_cache, partial
 from itertools import chain, dropwhile
 import os
@@ -16,7 +16,7 @@ MYPY = False
 if MYPY:
     from typing import (
         Any, Callable, Collection, Dict, Iterable, Iterator, List,
-        Optional, Set, Tuple, TypeVar, Union
+        NamedTuple, Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
@@ -28,12 +28,18 @@ if MYPY:
     LinterName = persist.LinterName
     Reason = Optional[str]
     Row = int
+    ViewState = NamedTuple("ViewState", [
+        ("view", sublime.View),
+        ("filename", FileName),
+        ("sel", List[sublime.Region])
+    ])
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
         'active_filename': Optional[str],
         'cursor': int,
         'panel_opened_automatically': Set[sublime.WindowId],
         'panel_has_focus': bool,
+        'original_active_views': Dict[sublime.ViewId, ViewState]
     })
     ErrorsByFile = Dict[FileName, List[LintError]]
     DrawInfo = TypedDict('DrawInfo', {
@@ -43,6 +49,9 @@ if MYPY:
         'nearby_lines': Union[Row, List[Row]]
     }, total=False)
     Action = Callable[[], None]
+
+else:
+    ViewState = namedtuple("ViewState", "view filename sel")
 
 
 PANEL_NAME = "SublimeLinter"
@@ -55,6 +64,7 @@ State = {
     'cursor': -1,
     'panel_opened_automatically': set(),
     'panel_has_focus': False,
+    'original_active_views': {},
 }  # type: State_
 
 
@@ -411,7 +421,7 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
             util.flash(active_view, "No problems below.")
             return
 
-        if panel.id() not in VIEW_STATE_CACHE:
+        if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
         active_view = open_location(window, *loc, preview=True)
         if loc[0] != cur_filename:
@@ -432,9 +442,10 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
         assert active_view
 
         filename = util.get_filename(active_view)
-        top_filename = filename
-        if panel.id() in VIEW_STATE_CACHE:
-            top_filename = util.get_filename(sublime.View(VIEW_STATE_CACHE[panel.id()][0]))
+        try:
+            top_filename = State["original_active_views"][panel.id()].filename
+        except KeyError:
+            top_filename = filename
 
         top_to_active_filenames = {
             normalize_filename(fn)
@@ -458,7 +469,7 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
             util.flash(active_view, "No problems above.")
             return
 
-        if panel.id() not in VIEW_STATE_CACHE:
+        if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
         active_view = open_location(window, *loc, preview=True)
         if loc[0] != cur_filename:
@@ -483,30 +494,31 @@ def cur_loc(view):
     return row + 1, col + 1
 
 
-VIEW_STATE_CACHE = {}  # type: Dict[sublime.ViewId, Tuple[sublime.ViewId, List[sublime.Region]]]
-
-
 def save_view_state(panel, active_view):
-    VIEW_STATE_CACHE[panel.id()] = (active_view.id(), [s for s in active_view.sel()])
+    State["original_active_views"][panel.id()] = ViewState(
+        active_view,
+        util.get_filename(active_view),
+        [s for s in active_view.sel()]
+    )
 
 
 def restore_view_state(panel):
     try:
-        vid, frozen_sel = VIEW_STATE_CACHE.pop(panel.id())
+        state = State["original_active_views"].pop(panel.id())
     except KeyError:
         return
 
-    view = sublime.View(vid)
+    view = state.view
     view.sel().clear()
-    view.sel().add_all(frozen_sel)
+    view.sel().add_all(state.sel)
     window = view.window()
-    view.show(frozen_sel[0])
+    view.show(state.sel[0])
     if window:
         window.focus_view(view)
 
 
 def forget_view_state(panel):
-    VIEW_STATE_CACHE.pop(panel.id(), None)
+    State["original_active_views"].pop(panel.id(), None)
 
 
 def open_location(window, fname, line, column, preview=False):
@@ -709,18 +721,12 @@ def fill_panel(window):
     if vx == 0:
         return
 
-    # Hack 1: Try to put the view the quick panel started with at the top!
-    if panel.id() not in VIEW_STATE_CACHE:
-        active_view = State['active_view']
-        if active_view and active_view.window() == window:
-            active_filename = State['active_filename']
-        else:
-            active_view = None
-            active_filename = None
-    else:
-        vid = VIEW_STATE_CACHE[panel.id()][0]
-        active_view = sublime.View(vid)
-        active_filename = util.get_filename(active_view)
+    active_view, active_filename = State['active_view'], State['active_filename']
+    if active_view and active_view.window() != window:
+        active_view = None
+        active_filename = None
+    if panel.id() in State["original_active_views"]:
+        active_filename = State["original_active_views"][panel.id()].filename
 
     errors_by_file = get_window_errors(window, persist.file_errors)
     if active_filename and active_filename not in errors_by_file:
@@ -820,7 +826,6 @@ def fill_panel(window):
         'content': content
     }  # type: DrawInfo
 
-    active_view = State['active_view']
     if active_view:
         update_panel_selection(
             active_view,
@@ -863,11 +868,11 @@ def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None)
         all_errors[0]["panel_line"][0] - 1
         if all_errors else None
     )  # type: Optional[Row]
-    if panel.id() in VIEW_STATE_CACHE:
-        vid = VIEW_STATE_CACHE[panel.id()][0]
-        if vid != active_view.id():
+    if panel.id() in State["original_active_views"]:
+        state = State["original_active_views"][panel.id()]
+        if state.view.id() != active_view.id():
             top_view_errors = sorted(
-                persist.file_errors[util.get_filename(sublime.View(vid))],
+                persist.file_errors[state.filename],
                 key=lambda e: e["panel_line"]
             )
             top_boundary = (

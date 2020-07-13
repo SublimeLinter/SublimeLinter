@@ -322,7 +322,7 @@ def get_raw_linter_settings(linter, view):
     # type: (Type[Linter], sublime.View) -> MutableMapping[str, Any]
     """Return 'raw' linter settings without variables substituted."""
     defaults = linter.defaults or {}
-    user_settings = persist.settings.get('linters', {}).get(linter.name, {})
+    global_settings = persist.settings.get('linters', {}).get(linter.name, {})
     view_settings = ViewSettings(
         view, 'SublimeLinter.linters.{}.'.format(linter.name)
     )  # type: Mapping[str, Any]  # type: ignore
@@ -330,7 +330,7 @@ def get_raw_linter_settings(linter, view):
     return ChainMap(
         {},
         view_settings,
-        user_settings,
+        global_settings,
         defaults,
         {'lint_mode': persist.settings.get('lint_mode')}
     )

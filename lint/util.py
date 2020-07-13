@@ -36,14 +36,6 @@ def on_settings_changed(settings, **kwargs):
     get_augmented_path.cache_clear()
 
 
-def printf(*args):
-    """Print args to the console, prefixed by the plugin name."""
-    print('SublimeLinter: ', end='')
-    for arg in args:
-        print(arg, end=' ')
-    print()
-
-
 @contextmanager
 def print_runtime(message):
     start_time = time.perf_counter()

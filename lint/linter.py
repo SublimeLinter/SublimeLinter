@@ -322,32 +322,7 @@ def get_raw_linter_settings(linter, view):
     # type: (Type[Linter], sublime.View) -> MutableMapping[str, Any]
     """Return 'raw' linter settings without variables substituted."""
     defaults = linter.defaults or {}
-    user_settings = persist.settings.get('linters', {}).get(linter.name, {})
-
-    # We actually don't want to lint detached views, so failing here
-    # when there is no window would be more appropriate, but also less
-    # convenient.
-    window = view.window()
-    if window:
-        data = window.project_data() or {}
-        if 'SublimeLinter' in data:
-            project_file_name = window.project_file_name()
-            deprecation_warning(
-                "Project settings for SublimeLinter have a new form and follow "
-                "Sublime's standard now. You can read more about it here: "
-                "http://www.sublimelinter.com/en/stable/settings.html#project-settings \n"
-                "If you just open '{}' now and save the file, a popup will "
-                "show the necessary changes."
-                .format(project_file_name)
-            )
-        project_settings = (
-            data.get('SublimeLinter', {})
-                .get('linters', {})
-                .get(linter.name, {})
-        )
-    else:
-        project_settings = {}
-
+    global_settings = persist.settings.get('linters', {}).get(linter.name, {})
     view_settings = ViewSettings(
         view, 'SublimeLinter.linters.{}.'.format(linter.name)
     )  # type: Mapping[str, Any]  # type: ignore
@@ -355,8 +330,7 @@ def get_raw_linter_settings(linter, view):
     return ChainMap(
         {},
         view_settings,
-        project_settings,
-        user_settings,
+        global_settings,
         defaults,
         {'lint_mode': persist.settings.get('lint_mode')}
     )

@@ -213,6 +213,11 @@ class TestIgnoreFixers(DeferrableTestCase):
             "view = window.new_file()  # type: ignore[attr]  # comment ",
             "view = window.new_file()  # type: ignore[attr, no-idea]  # comment ",
         ),
+        (
+            "keep existing type comment in-place",
+            "view = window.new_file()  # type: sublime.View",
+            "view = window.new_file()  # type: sublime.View  # type: ignore[no-idea]",
+        ),
     ])
     def test_mypy(self, _description, BEFORE, AFTER):
         view = self.create_view(self.window)

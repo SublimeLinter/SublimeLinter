@@ -420,7 +420,7 @@ def fix_mypy_error(error, view):
             line
         )
         or maybe_add_before_string(
-            "  # ",
+            r"  # (?!type:)",
             "  # type: ignore[{}]".format(code),
             line
         )
@@ -515,14 +515,13 @@ def indentation(line):
     return line.text[:level]
 
 
-def maybe_add_before_string(needle, text, line):
+def maybe_add_before_string(pattern, text, line):
     # type: (str, str, TextRange) -> Optional[TextRange]
-    try:
-        start = line.text.index(needle)
-    except ValueError:
-        return None
-    else:
+    match = re.search(pattern, line.text)
+    if match:
+        start, _ = match.span()
         return TextRange(
             text,
             sublime.Region(line.range.a + start)
         )
+    return None

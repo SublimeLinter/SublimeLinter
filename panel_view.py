@@ -424,6 +424,7 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
         active_view = open_location(window, *loc, preview=True)
+        window.focus_view(panel)
         if loc[0] != cur_filename:
             State.update({
                 'active_view': active_view,
@@ -472,6 +473,7 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
         active_view = open_location(window, *loc, preview=True)
+        window.focus_view(panel)
         if loc[0] != cur_filename:
             State.update({
                 'active_view': active_view,

@@ -1,0 +1,9 @@
+SublimeLinter 4.16 - Quick Actions (beta)
+
+We're building a new feature to quickly ignore specific error messages.
+At first we will ship actions for eslint, stylelint, flake8, mypy and phpcs.
+
+Want to see actions for your favourite linter?
+Please open an issue so we can investigate it.
+
+Eventually this will become an API so that plugins can add their own.

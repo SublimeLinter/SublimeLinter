@@ -6,7 +6,7 @@ SublimeLinter
 The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).
 
-<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
+<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="785">
 
 ## Installation 
 

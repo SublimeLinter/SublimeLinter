@@ -1,6 +1,6 @@
 from collections import defaultdict, namedtuple
 from functools import lru_cache, partial
-from itertools import chain, dropwhile
+from itertools import chain, dropwhile, islice
 import os
 import sublime
 import sublime_plugin
@@ -376,6 +376,47 @@ def force_focus_active_view(window):
     window.focus_view(active_view)
 
 
+def take(n, iterable):
+    # type: (int, Iterable[T]) -> Iterator[T]
+    return islice(iterable, n)
+
+
+take2 = partial(take, 2)  # type: Callable[[Iterable[T]], Iterator[T]]
+
+
+def errors_in_display_order(filenames):
+    # type: (Iterable[FileName]) -> List[LintError]
+    return sorted(
+        flatten(map(errors_for_file, filenames)),
+        key=lambda error: error["panel_line"]
+    )
+
+
+def errors_for_file(filename):
+    # type: (FileName) -> List[LintError]
+    return persist.file_errors.get(filename, [])
+
+
+def file_plus_dependencies(filename):
+    # type: (FileName) -> List[FileName]
+    return [filename] + sorted(affected_files_with_errors(filename))
+
+
+def affected_files_with_errors(filename):
+    # type: (FileName) -> Iterator[FileName]
+    return filter(
+        lambda fn: persist.file_errors.get(fn),
+        set(flatten(
+            persist.affected_filenames_per_filename.get(filename, {}).values()
+        ))
+    )
+
+
+def loc_from_error(error):
+    # type: (LintError) -> Tuple[FileName, int, int]
+    return error["filename"], error["line"] + 1, error["start"] + 1
+
+
 class sublime_linter_panel_next(sublime_plugin.TextCommand):
     def run(self, edit):
         # type: (sublime.Edit) -> None
@@ -391,26 +432,17 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
         except KeyError:
             top_filename = cur_filename
 
-        affected_filenames = set(flatten(
-            persist.affected_filenames_per_filename.get(top_filename, {}).values()
-        ))
-        topfile_plus_dependencies = [top_filename] + sorted(affected_filenames)
-        from_active_file_to_end = dropwhile(
+        current_and_next = take2(dropwhile(
             lambda fn: fn != cur_filename,
-            topfile_plus_dependencies
-        )
-        errors = sorted(
-            flatten(
-                persist.file_errors.get(fname, [])
-                for fname in from_active_file_to_end
-            ),
-            key=lambda error: error["panel_line"]
-        )
+            file_plus_dependencies(top_filename)
+        ))
 
-        cur_row, cur_col = active_view.rowcol(active_view.sel()[0].b)
-        current = (0, cur_row, cur_col)
-        for error in errors:
-            if (error["filename"] != cur_filename, error["line"], error["start"]) > current:
+        cur_rowcol = active_view.rowcol(active_view.sel()[0].b)
+        for error in errors_in_display_order(current_and_next):
+            if (
+                error["filename"] != cur_filename
+                or (error["line"], error["start"]) > cur_rowcol
+            ):
                 break
         else:
             util.flash(active_view, "No problems below.")
@@ -418,13 +450,7 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
 
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
-        active_view = open_location(
-            window,
-            error["filename"],
-            error["line"] + 1,
-            error["start"] + 1,
-            preview=True
-        )
+        active_view = open_location(window, *loc_from_error(error), preview=True)
         window.focus_view(panel)
         if error["filename"] != cur_filename:
             State.update({
@@ -449,26 +475,17 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
         except KeyError:
             top_filename = cur_filename
 
-        affected_filenames = set(flatten(
-            persist.affected_filenames_per_filename.get(top_filename, {}).values()
-        ))
-        topfile_plus_dependencies = [top_filename] + sorted(affected_filenames)
-        top_to_active = dropwhile(
+        current_and_previous = take2(dropwhile(
             lambda fn: fn != cur_filename,
-            reversed(topfile_plus_dependencies)
-        )
-        errors = sorted(
-            flatten(
-                persist.file_errors.get(fname, [])
-                for fname in top_to_active
-            ),
-            key=lambda error: error["panel_line"]
-        )
+            reversed(file_plus_dependencies(top_filename))
+        ))
 
-        cur_row, cur_col = active_view.rowcol(active_view.sel()[0].b)
-        current = (1, cur_row, cur_col)
-        for error in reversed(errors):
-            if (error["filename"] == cur_filename, error["line"], error["start"]) < current:
+        cur_rowcol = active_view.rowcol(active_view.sel()[0].b)
+        for error in reversed(errors_in_display_order(current_and_previous)):
+            if (
+                error["filename"] != cur_filename
+                or (error["line"], error["start"]) < cur_rowcol
+            ):
                 break
         else:
             util.flash(active_view, "No problems above.")
@@ -476,13 +493,7 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
 
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
-        active_view = open_location(
-            window,
-            error["filename"],
-            error["line"] + 1,
-            error["start"] + 1,
-            preview=True
-        )
+        active_view = open_location(window, *loc_from_error(error), preview=True)
         window.focus_view(panel)
         if error["filename"] != cur_filename:
             State.update({

@@ -279,6 +279,7 @@ class UpdateState(sublime_plugin.EventListener):
             panel = get_panel(window)
             if panel:
                 panel.settings().set("sl_quick_panel_mode", False)
+                forget_view_state(panel)
             stop_viewport_poller()
             return
 
@@ -298,6 +299,9 @@ class UpdateState(sublime_plugin.EventListener):
                 fill_panel(window)
                 sublime.set_timeout(start_viewport_poller)
             else:
+                panel = get_panel(window)
+                if panel:
+                    forget_view_state(panel)
                 stop_viewport_poller()
 
 

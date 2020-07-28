@@ -376,19 +376,6 @@ def force_focus_active_view(window):
     window.focus_view(active_view)
 
 
-def list_all_visible_filenames(panel):
-    # type: (Panel) -> Iterator[FileName]
-    base_dir = panel.settings().get("result_base_dir") or ""
-    shortened_names = (
-        panel.substr(r)
-        for r in panel.find_by_selector("entity.name.filename")
-    )
-    return (
-        short_name if short_name.startswith("<untitled") else os.path.join(base_dir, short_name)
-        for short_name in shortened_names
-    )
-
-
 class sublime_linter_panel_next(sublime_plugin.TextCommand):
     def run(self, edit):
         # type: (sublime.Edit) -> None
@@ -398,28 +385,32 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
         active_view = window.active_view()
         assert active_view
 
-        filename = util.get_filename(active_view)
+        cur_filename = util.get_filename(active_view)
+        try:
+            top_filename = State["original_active_views"][panel.id()].filename
+        except KeyError:
+            top_filename = cur_filename
 
-        # Two complications here: `find_all_results` returns cygwin like
-        # paths on Windows, so we need to "normalize" all paths we get from
-        # other sources.
-        # Generally, if the current active view is clean ("ok") it is not in
-        # `find_all_results` but it can still have dependencies we want to jump
-        # to.
-        active_filename_plus_dependencies = {
-            normalize_filename(fn)
-            for fn in dropwhile(
-                lambda fn: fn != filename,
-                list_all_visible_filenames(panel)
-            )
-        }
-        cur_filename = normalize_filename(filename)
-        cur_line, cur_col = cur_loc(active_view)
-        for loc in filter(
-            lambda r: r[0] in active_filename_plus_dependencies,
-            panel.find_all_results()
-        ):
-            if (loc[0] != cur_filename, loc[1], loc[2]) > (0, cur_line, cur_col):
+        affected_filenames = set(flatten(
+            persist.affected_filenames_per_filename.get(top_filename, {}).values()
+        ))
+        topfile_plus_dependencies = [top_filename] + sorted(affected_filenames)
+        from_active_file_to_end = dropwhile(
+            lambda fn: fn != cur_filename,
+            topfile_plus_dependencies
+        )
+        errors = sorted(
+            flatten(
+                persist.file_errors.get(fname, [])
+                for fname in from_active_file_to_end
+            ),
+            key=lambda error: error["panel_line"]
+        )
+
+        cur_row, cur_col = active_view.rowcol(active_view.sel()[0].b)
+        current = (0, cur_row, cur_col)
+        for error in errors:
+            if (error["filename"] != cur_filename, error["line"], error["start"]) > current:
                 break
         else:
             util.flash(active_view, "No problems below.")
@@ -427,9 +418,15 @@ class sublime_linter_panel_next(sublime_plugin.TextCommand):
 
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
-        active_view = open_location(window, *loc, preview=True)
+        active_view = open_location(
+            window,
+            error["filename"],
+            error["line"] + 1,
+            error["start"] + 1,
+            preview=True
+        )
         window.focus_view(panel)
-        if loc[0] != cur_filename:
+        if error["filename"] != cur_filename:
             State.update({
                 'active_view': active_view,
                 'active_filename': util.get_filename(active_view),
@@ -446,29 +443,32 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
         active_view = window.active_view()
         assert active_view
 
-        filename = util.get_filename(active_view)
+        cur_filename = util.get_filename(active_view)
         try:
             top_filename = State["original_active_views"][panel.id()].filename
         except KeyError:
-            top_filename = filename
+            top_filename = cur_filename
 
-        top_to_active_filenames = {
-            normalize_filename(fn)
-            for fn in dropwhile(
-                lambda fn: fn != filename,
-                reversed(list(dropwhile(
-                    lambda fn: fn != top_filename,
-                    list_all_visible_filenames(panel)
-                )))
-            )
-        }
-        cur_filename = normalize_filename(filename)
-        cur_line, cur_col = cur_loc(active_view)
-        for loc in filter(
-            lambda r: r[0] in top_to_active_filenames,
-            reversed(panel.find_all_results())
-        ):
-            if (loc[0] == cur_filename, loc[1], loc[2]) < (1, cur_line, cur_col):
+        affected_filenames = set(flatten(
+            persist.affected_filenames_per_filename.get(top_filename, {}).values()
+        ))
+        topfile_plus_dependencies = [top_filename] + sorted(affected_filenames)
+        top_to_active = dropwhile(
+            lambda fn: fn != cur_filename,
+            reversed(topfile_plus_dependencies)
+        )
+        errors = sorted(
+            flatten(
+                persist.file_errors.get(fname, [])
+                for fname in top_to_active
+            ),
+            key=lambda error: error["panel_line"]
+        )
+
+        cur_row, cur_col = active_view.rowcol(active_view.sel()[0].b)
+        current = (1, cur_row, cur_col)
+        for error in reversed(errors):
+            if (error["filename"] == cur_filename, error["line"], error["start"]) < current:
                 break
         else:
             util.flash(active_view, "No problems above.")
@@ -476,22 +476,20 @@ class sublime_linter_panel_previous(sublime_plugin.TextCommand):
 
         if panel.id() not in State["original_active_views"]:
             save_view_state(panel, active_view)
-        active_view = open_location(window, *loc, preview=True)
+        active_view = open_location(
+            window,
+            error["filename"],
+            error["line"] + 1,
+            error["start"] + 1,
+            preview=True
+        )
         window.focus_view(panel)
-        if loc[0] != cur_filename:
+        if error["filename"] != cur_filename:
             State.update({
                 'active_view': active_view,
                 'active_filename': util.get_filename(active_view),
                 'cursor': -1 if active_view.is_loading() else get_current_pos(active_view)
             })
-
-
-def normalize_filename(filename):
-    # type: (str) -> str
-    if filename.startswith("<untitled"):
-        return filename
-    else:
-        return "/" + filename.replace(":\\", "/").replace("\\", "/").lstrip("/")
 
 
 def cur_loc(view):

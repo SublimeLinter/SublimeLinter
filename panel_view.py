@@ -406,10 +406,15 @@ def affected_files_with_errors(filename):
     # type: (FileName) -> Iterator[FileName]
     return filter(
         lambda fn: persist.file_errors.get(fn),
-        set(flatten(
-            persist.affected_filenames_per_filename.get(filename, {}).values()
-        ))
+        affected_files(filename)
     )
+
+
+def affected_files(filename):
+    # type: (FileName) -> Set[FileName]
+    return set(flatten(
+        persist.affected_filenames_per_filename.get(filename, {}).values()
+    ))
 
 
 def loc_from_error(error):
@@ -638,12 +643,7 @@ def filenames_per_window(window):
     # type: (sublime.Window) -> Set[FileName]
     """Return filenames of all open files plus their dependencies."""
     open_filenames = set(util.get_filename(v) for v in window.views())
-    return open_filenames | set(
-        flatten(
-            flatten(persist.affected_filenames_per_filename[filename].values())
-            for filename in open_filenames
-        )
-    )
+    return open_filenames | set(flatten(map(affected_files, open_filenames)))
 
 
 @lru_cache(maxsize=16)
@@ -772,9 +772,7 @@ def fill_panel(window):
 
     to_render = []
     if top_filename:
-        affected_filenames = set(flatten(
-            persist.affected_filenames_per_filename.get(top_filename, {}).values()
-        ))
+        affected_filenames = set(affected_files_with_errors(top_filename))
 
         sorted_errors = (
             # Unrelated errors surprisingly come first. The scroller
@@ -798,11 +796,9 @@ def fill_panel(window):
                 errors_by_file.get(top_filename, [])
             )]
 
-            # Affected files can be clean, just omit those
             + sorted(
                 (fpath_by_file[filename], filename, errors_by_file[filename])
                 for filename in affected_filenames
-                if filename in errors_by_file
             )
         )
 

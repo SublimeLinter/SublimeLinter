@@ -624,7 +624,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
             error,
             (
                 abs(error['line'] - row),
-                error['region'].contains(cursor),
+                -error['region'].contains(cursor),
                 min(
                     abs(error['region'].begin() - cursor),
                     abs(error['region'].end() - cursor)

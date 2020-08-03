@@ -6,7 +6,7 @@ SublimeLinter
 The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).
 
-<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="848">
+<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="785">
 
 ## Installation 
 
@@ -19,6 +19,13 @@ Settings are mostly documented in the [default settings](https://github.com/Subl
 - Additional information is in our docs at [sublimelinter.com](http://sublimelinter.com/).
 - Read about all the changes between 3 and 4 [here](https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/messages/4.0.0.txt). 
 
+## Quick Actions (beta)
+
+We're building a new feature called Quick Actions, that will allow you to quickly ignore specific error messages. At first SublimeLinter will ship actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
+
+Want to see actions for your favourite linter? Please open a PR with your addition to [quickfix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quickfix.py). We have some [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests) you can add to as well. 
+
+Eventually, as this feature becomes more stable, we will expose it as an API so that plugins can add their own actions.
 
 ## Key Bindings
 

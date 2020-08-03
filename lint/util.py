@@ -36,14 +36,6 @@ def on_settings_changed(settings, **kwargs):
     get_augmented_path.cache_clear()
 
 
-def printf(*args):
-    """Print args to the console, prefixed by the plugin name."""
-    print('SublimeLinter: ', end='')
-    for arg in args:
-        print(arg, end=' ')
-    print()
-
-
 @contextmanager
 def print_runtime(message):
     start_time = time.perf_counter()
@@ -63,6 +55,12 @@ def show_message(message, window=None):
 def clear_message():
     window = sublime.active_window()
     window.run_command("sublime_linter_remove_panel")
+
+
+def flash(view, msg):
+    # type: (sublime.View, str) -> None
+    window = view.window() or sublime.active_window()
+    window.status_message(msg)
 
 
 def distinct_until_buffer_changed(method):

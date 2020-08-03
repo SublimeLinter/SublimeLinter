@@ -1,0 +1,11 @@
+[
+    {
+        "caption": "Lint This View",
+        "command": "sublime_linter_lint"
+    },
+    {
+        "caption": "Linter Quick Action",
+        "command": "sublime_linter_quick_actions",
+        "args": { "prefer_panel": true }
+    }
+]

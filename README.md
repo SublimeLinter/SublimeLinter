@@ -23,7 +23,7 @@ Settings are mostly documented in the [default settings](https://github.com/Subl
 
 We're building a new feature called Quick Actions, that will allow you to quickly ignore specific error messages. At first SublimeLinter will ship actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
 
-Want to see actions for your favourite linter? Please open a PR with your addition to [quickfix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quickfix.py). We have some [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests) you can add to as well. 
+Want to see actions for your favourite linter? Please open a PR with your addition to [quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py). We have some [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests) you can add to as well. 
 
 Eventually, as this feature becomes more stable, we will expose it as an API so that plugins can add their own actions.
 

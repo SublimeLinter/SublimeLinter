@@ -11,3 +11,8 @@ Eventually this will become an API so that plugins can add their own.
 
 For more information please refer to our README:
 https://github.com/SublimeLinter/SublimeLinter
+
+---
+
+P.S. If you saw this message before, we updated some important links..
+     Sorry for the noise! Hope you enjoy the new feature!

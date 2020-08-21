@@ -1,11 +1,23 @@
 import sublime
 import sublime_plugin
-from Default import history_list
 
 from itertools import dropwhile, takewhile
 
 from .lint import persist, util
 from .lint.util import flash
+
+
+# Patch ST4 adding to jump list.
+# See https://github.com/SublimeLinter/SublimeLinter/issues/1763
+if int(sublime.version()) < 4082:
+    from Default.history_list import get_jump_history_for_view
+
+    def add_jump_record(view):
+        get_jump_history_for_view(view).push_selection(view)
+else:
+
+    def add_jump_record(view):
+        view.run_command("add_jump_record", {"selection": [(r.a, r.b) for r in view.sel()]})
 
 
 MYPY = False
@@ -90,5 +102,5 @@ class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
 
 def move_to(view, point):
     # type: (sublime.View, int) -> None
-    history_list.get_jump_history_for_view(view).push_selection(view)
+    add_jump_record(view)
     view.run_command('_sublime_linter_move_cursor', {'point': point})

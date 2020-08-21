@@ -1,6 +1,5 @@
 import sublime
 import sublime_plugin
-from Default import history_list
 
 from itertools import dropwhile, takewhile
 
@@ -90,5 +89,18 @@ class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
 
 def move_to(view, point):
     # type: (sublime.View, int) -> None
-    history_list.get_jump_history_for_view(view).push_selection(view)
+    add_selection_to_jump_history(view)
     view.run_command('_sublime_linter_move_cursor', {'point': point})
+
+
+if int(sublime.version()) < 4000:
+    from Default import history_list
+
+    def add_selection_to_jump_history(view):
+        history_list.get_jump_history_for_view(view).push_selection(view)
+
+else:
+    def add_selection_to_jump_history(view):
+        view.run_command("add_jump_record", {
+            "selection": [(r.a, r.b) for r in view.sel()]
+        })

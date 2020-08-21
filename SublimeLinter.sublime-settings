@@ -110,6 +110,14 @@
                 }
             ],
 
+            // Specify what form of quick fix to implement if there are
+            // multiple options
+            "quick_fix_settings": {
+                // An ESLint can either have an eslint-disable-next-line or an
+                // eslint-disable-line comment
+                "eslint": "previous_line"
+            },
+
             // The current working dir the lint job will run in.
             "working_dir": "",
 

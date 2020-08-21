@@ -109,6 +109,15 @@
                             },
                             "additionalProperties":false
                         }
+                    },
+                    "quick_fix_settings": {
+                        "type":"object",
+                        "properties": {
+                            "eslint": {
+                                "type": "string",
+                                "enum": ["previous_line", "same_line"]
+                            }
+                        }
                     }
                 }
             }

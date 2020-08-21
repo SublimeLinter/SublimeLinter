@@ -5,6 +5,8 @@ import re
 
 import sublime
 
+import Settings
+
 from . import persist
 from .generic_text_command import replace_view_content, text_command
 flatten = chain.from_iterable
@@ -231,18 +233,27 @@ def fix_eslint_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     code = error["code"]
-    yield (
-        extend_existing_comment(
-            r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
-            ", ",
-            {code},
-            read_previous_line(view, line)
+    print self.settings().get('quick_fix_settings')
+    if self.settings().get('quick_fix_settings')['eslint'] == 'same_line':
+        yield (
+            add_at_eol(
+                "// eslint-disable-line {}".format(code),
+                line
+            )
         )
-        or insert_preceding_line(
-            "// eslint-disable-next-line {}".format(code),
-            line
+    else:
+        yield (
+            extend_existing_comment(
+                r"// eslint-disable-next-line (?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
+                ", ",
+                {code},
+                read_previous_line(view, line)
+            )
+            or insert_preceding_line(
+                "// eslint-disable-next-line {}".format(code),
+                line
+            )
         )
-    )
 
 
 @quick_actions_for("eslint")
@@ -525,3 +536,6 @@ def maybe_add_before_string(pattern, text, line):
             sublime.Region(line.range.a + start)
         )
     return None
+
+def settings(self):
+    return sublime.load_settings('SublimeLinter.sublime-settings')

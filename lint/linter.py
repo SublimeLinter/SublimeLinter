@@ -1619,8 +1619,9 @@ class Linter(metaclass=LinterMeta):
             raise PermanentError("popen constructor failed")
 
         if logger.isEnabledFor(logging.INFO):
+            augmented_env = dict(ChainMap(*env.maps[0:-1]))
             logger.info(make_nice_log_message(
-                'Running ...', cmd, uses_stdin, cwd, view, env=None))
+                'Running ...', cmd, uses_stdin, cwd, view, env=augmented_env))
 
         bid = view.buffer_id()
         with store_proc_while_running(bid, proc):

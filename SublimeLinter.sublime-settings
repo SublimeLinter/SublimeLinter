@@ -186,9 +186,9 @@
             // redish, orangish, yellowish, greenish, bluish, purplish, pinkish.
             "scope": "region.yellowish markup.warning.sublime_linter",
 
-            // The error type this style definition will match for.
-            // An array which can contain "warning" and/or "error".
-            // If omitted will match both.
+            // The error types this style definition will match for.
+            // E.g. "warning" and/or "error". If omitted will match for all
+            // types.
             "types": ["warning"]
         },
         {

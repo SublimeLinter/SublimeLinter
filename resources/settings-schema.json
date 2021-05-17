@@ -92,8 +92,7 @@
                                 "types":{
                                     "type":"array",
                                     "items":{
-                                        "type":"string",
-                                        "enum": ["error", "warning"]
+                                        "type":"string"
                                     },
                                     "minItems":1,
                                     "uniqueItems":true
@@ -172,8 +171,7 @@
                     "types":{
                         "type":"array",
                         "items":{
-                            "type":"string",
-                            "enum": ["error", "warning"]
+                            "type":"string"
                         },
                         "minItems":1,
                         "uniqueItems":true

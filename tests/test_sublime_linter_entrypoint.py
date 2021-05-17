@@ -6,6 +6,7 @@ from SublimeLinter.tests.mockito import unstub, verify, when
 import sublime
 from SublimeLinter import sublime_linter
 from SublimeLinter.lint import Linter, persist
+from SublimeLinter.lint.generic_text_command import replace_view_content
 
 
 class TestLinterElection(DeferrableTestCase):
@@ -49,6 +50,38 @@ class TestLinterElection(DeferrableTestCase):
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
 
         verify(sublime_linter.backend).lint_view(...)
+
+    def test_file_only_linter_skip_on_unsaved_file(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+            tempfile_suffix = '-'
+
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        assert view.file_name() is None
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+
+        verify(sublime_linter.backend, times=0).lint_view(...)
+
+    def test_file_only_linter_skip_dirty_file(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+            tempfile_suffix = '-'
+
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        replace_view_content(view, "Some text.")
+        assert view.is_dirty()
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+
+        verify(sublime_linter.backend, times=0).lint_view(...)
+        # Strangely, `set_scratch(True)` is not enough to close the view
+        # without Sublime wanting to save it.  Empty the view to succeed.
+        replace_view_content(view, "")
 
     def test_log_info_if_no_assignable_linter(self):
         class FakeLinter(Linter):

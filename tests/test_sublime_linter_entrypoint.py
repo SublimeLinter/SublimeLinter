@@ -8,7 +8,7 @@ from SublimeLinter import sublime_linter
 from SublimeLinter.lint import Linter, persist
 
 
-class TestResultRegexes(DeferrableTestCase):
+class TestLinterElection(DeferrableTestCase):
     @classmethod
     def setUpClass(cls):
 

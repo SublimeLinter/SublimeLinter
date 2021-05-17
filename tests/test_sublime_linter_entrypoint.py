@@ -60,6 +60,7 @@ class TestLinterElection(DeferrableTestCase):
         when(sublime_linter.backend).lint_view(...).thenReturn(None)
 
         view = self.create_view(self.window)
+        assert not view.is_dirty(), "Just created views should not be marked dirty"
         assert view.file_name() is None
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
 
@@ -74,8 +75,10 @@ class TestLinterElection(DeferrableTestCase):
         when(sublime_linter.backend).lint_view(...).thenReturn(None)
 
         view = self.create_view(self.window)
+        when(view).file_name().thenReturn("some_filename.txt")
         replace_view_content(view, "Some text.")
         assert view.is_dirty()
+        assert view.file_name()
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
 
         verify(sublime_linter.backend, times=0).lint_view(...)

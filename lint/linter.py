@@ -1063,7 +1063,9 @@ class Linter(metaclass=LinterMeta):
         # type: (sublime.View, LinterSettings, Reason) -> bool
         """Decide whether the linter can run at this point in time."""
         # A 'saved-file-only' linter does not run on unsaved views
-        if cls.tempfile_suffix == '-' and view.is_dirty():
+        if cls.tempfile_suffix == '-' and (
+            view.is_dirty() or not view.file_name()
+        ):
             return False
 
         if reason not in KNOWN_REASONS:  # be open

@@ -144,6 +144,7 @@ class VirtualView:
         newlines.append(len(code))
 
     def full_line(self, line):
+        # type: (int) -> Tuple[int, int]
         """Return the start/end character positions for the given line."""
         start = self._newlines[line]
         end = self._newlines[min(line + 1, len(self._newlines) - 1)]
@@ -151,14 +152,17 @@ class VirtualView:
         return start, end
 
     def select_line(self, line):
+        # type: (int) -> str
         """Return code for the given line."""
         start, end = self.full_line(line)
         return self._code[start:end]
 
     def max_lines(self):
+        # type: () -> int
         return len(self._newlines) - 2
 
     def substr(self, region):
+        # type: (sublime.Region) -> str
         return self._code[region.begin():region.end()]
 
     # Actual Sublime API would look like:

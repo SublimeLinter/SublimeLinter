@@ -58,7 +58,9 @@ ACCEPTED_REASONS_PER_MODE = {
 KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
-COMMON_CAPTURING_NAMES = ("filename", "error_type", "code") + LEGACY_LINT_MATCH_DEF
+COMMON_CAPTURING_NAMES = (
+    "filename", "error_type", "code", "end_line", "end_col"
+) + LEGACY_LINT_MATCH_DEF
 
 
 class LintMatch(dict):

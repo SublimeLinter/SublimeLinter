@@ -82,6 +82,20 @@ class LintMatch(dict):
 
     """
 
+    if MYPY:
+        match = None       # type: Optional[object]
+        filename = None    # type: Optional[str]
+        line = None        # type: int
+        col = None         # type: Optional[int]
+        end_line = None    # type: Optional[int]
+        end_col = None     # type: Optional[int]
+        error_type = None  # type: Optional[str]
+        code = None        # type: Optional[str]
+        message = None     # type: str
+        error = None       # type: Optional[str]
+        warning = None     # type: Optional[str]
+        near = None        # type: Optional[str]
+
     def __init__(self, *args, **kwargs):
         if len(args) == 7:
             self.update(zip(LEGACY_LINT_MATCH_DEF, args))
@@ -1323,11 +1337,8 @@ class Linter(metaclass=LinterMeta):
             # use the filename of the current view
             filename = util.get_filename(self.view)
 
-        line = m.line  # type: int
-        col = m.col    # type: Optional[int]
-
         # Ensure `line` is within bounds
-        line = max(min(line, vv.max_lines()), 0)
+        line = max(min(m.line, vv.max_lines()), 0)
         if line != m.line:
             logger.warning(
                 "Reported line '{}' is not within the code we're linting.\n"
@@ -1336,6 +1347,7 @@ class Linter(metaclass=LinterMeta):
                 .format(m.line + self.line_col_base[0])
             )
 
+        col = m.col
         if col is not None:
             # Pin the column to the start/end line offsets
             start, end = vv.full_line(line)

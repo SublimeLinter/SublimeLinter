@@ -164,8 +164,12 @@ class VirtualView:
         """Return the start/end character positions for the given line."""
         start = self._newlines[line]
         end = self._newlines[min(line + 1, len(self._newlines) - 1)]
-
         return start, end
+
+    def full_line_region(self, line):
+        # type: (int) -> sublime.Region
+        """Return the (full) line region including any trailing newline char."""
+        return sublime.Region(*self.full_line(line))
 
     def select_line(self, line):
         # type: (int) -> str
@@ -1350,14 +1354,14 @@ class Linter(metaclass=LinterMeta):
         col = m.col
         if col is not None:
             # Pin the column to the start/end line offsets
-            start, end = vv.full_line(line)
-            col = max(min(col, (end - start) - 1), 0)
+            line_region = vv.full_line_region(line)
+            col = max(min(col, len(line_region) - 1), 0)
 
         line, start, end = self.reposition_match(line, col, m, vv)
 
         # find the region to highlight for this error
-        line_start, _ = vv.full_line(line)
-        region = sublime.Region(line_start + start, line_start + end)
+        line_region = vv.full_line_region(line)
+        region = sublime.Region(line_region.a + start, line_region.a + end)
         if len(region) == 0:
             region.b += 1
         offending_text = vv.substr(region)

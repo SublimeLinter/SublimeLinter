@@ -217,7 +217,7 @@ def filter_errors(errors, group_fn):
 
 def by_position(error):
     # type: (LintError) -> Hashable
-    return (error['line'], error['start'], error['end'])
+    return error['line'], error['start'], error['region'].end()
 
 
 def by_line(error):
@@ -639,14 +639,11 @@ def maybe_update_error_store(view):
             continue
 
         line, start = view.rowcol(region.begin())
-        endLine, end = view.rowcol(region.end())
         error = error.copy()
         error.update({
             'region': region,
             'line': line,
             'start': start,
-            'endLine': endLine,
-            'end': end
         })
         new_errors.append(error)
 
@@ -972,7 +969,7 @@ def join_msgs(errors, show_count, width, pt):
     for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
             grouped_by_type[error_type],
-            key=lambda e: (e["linter"], e["start"], e["end"])
+            key=lambda e: (e["linter"], e["region"])
         )
 
         filled_templates = []

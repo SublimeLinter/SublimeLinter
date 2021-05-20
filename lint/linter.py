@@ -1421,7 +1421,6 @@ class Linter(metaclass=LinterMeta):
             "filename": filename,
             "line": line,
             "start": start,
-            "end": end,
             "region": region,
             "error_type": error_type,
             "code": code,

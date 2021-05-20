@@ -11,6 +11,7 @@
                 "children": [
                     {
                         "caption": "SublimeLinter",
+                        "id": "sublimelinter-settings",
                         "children": [
                             {
                                 "caption": "Settings",

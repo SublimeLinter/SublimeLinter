@@ -361,7 +361,7 @@ def get_window_errors(window, errors_by_file):
     return {
         filename: sorted(
             errors,
-            key=lambda e: (e["line"], e["start"], e["linter"], e["end"])
+            key=lambda e: (e["line"], e["start"], e["linter"], e["region"].end())
         )
         for filename, errors in (
             (filename, errors_by_file.get(filename))

@@ -268,7 +268,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 0, 'end': 4, 'region': sublime.Region(0, 4)}],
+            [{'line': 0, 'start': 0, 'region': sublime.Region(0, 4)}],
             result,
         )
 
@@ -306,7 +306,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 5,
                     'start': 10,
-                    'end': 14,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
                 }
             ],
@@ -340,7 +339,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 6,
                     'start': 0,
-                    'end': 4,
                     'region': sublime.Region(char_offset + 0, char_offset + 4),
                 }
             ],
@@ -359,7 +357,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 0, 'end': 1, 'region': sublime.Region(0, 1)}],
+            [{'line': 0, 'start': 0, 'region': sublime.Region(0, 1)}],
             result,
         )
 
@@ -382,7 +380,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 0,
                     'start': 0,
-                    'end': 10,
                     'region': sublime.Region(0, 10),
                 }
             ],
@@ -410,7 +407,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 0,
                     'start': 0,
-                    'end': 10,
                     'region': sublime.Region(0, 10),
                 }
             ],
@@ -436,7 +432,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 0, 'end': 0, 'region': sublime.Region(0, 1)}],
+            [{'line': 0, 'start': 0, 'region': sublime.Region(0, 1)}],
             result,
         )
 
@@ -458,7 +454,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 1, 'end': 5, 'region': sublime.Region(1, 5)}],
+            [{'line': 0, 'start': 1, 'region': sublime.Region(1, 5)}],
             result,
         )
 
@@ -480,7 +476,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 5, 'end': 8, 'region': sublime.Region(5, 8)}],
+            [{'line': 0, 'start': 5, 'region': sublime.Region(5, 8)}],
             result,
         )
 
@@ -511,7 +507,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 0,
                     'start': 0,
-                    'end': 10,
                     'region': sublime.Region(0, 10),
                 }
             ],
@@ -541,7 +536,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 0, 'end': 0, 'region': sublime.Region(0, 1)}],
+            [{'line': 0, 'start': 0, 'region': sublime.Region(0, 1)}],
             result,
         )
 
@@ -599,7 +594,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 0, 'end': 0, 'region': sublime.Region(0, 1)}],
+            [{'line': 0, 'start': 0, 'region': sublime.Region(0, 1)}],
             result,
         )
 
@@ -638,7 +633,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 6, 'end': 9, 'region': sublime.Region(6, 9)}],
+            [{'line': 0, 'start': 6, 'region': sublime.Region(6, 9)}],
             result,
         )
 
@@ -658,7 +653,6 @@ class TestRegexBasedParsing(_BaseTestCase):
         self.assertResult([{
             'line': 1,
             'start': 3,
-            'end': 6,
             'region': sublime.Region(14, 17)
         }], result)
 
@@ -719,7 +713,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         drop_info_keys(result)
 
         self.assertResult(
-            [{'line': 0, 'start': 5, 'end': 7, 'region': sublime.Region(5, 7)}],
+            [{'line': 0, 'start': 5, 'region': sublime.Region(5, 7)}],
             result,
         )
 
@@ -739,7 +733,6 @@ class TestRegexBasedParsing(_BaseTestCase):
                 {
                     'line': 0,
                     'start': 9,
-                    'end': 10,
                     'region': sublime.Region(9, 10),
                 }
             ],
@@ -780,7 +773,6 @@ class TestRegexBasedParsing(_BaseTestCase):
         self.assertResult([{
             'line': LINE,
             'start': 0,
-            'end': 10,
             'region': sublime.Region(0 + PT_OFFSET, 10 + PT_OFFSET)
         }], result)
 
@@ -978,7 +970,6 @@ class TestRegexBasedParsing(_BaseTestCase):
         self.assertResult([{
             'line': 1,
             'start': 17,
-            'end': 21,
             'region': sublime.Region(22, 26)
         }], result)
 
@@ -1006,7 +997,6 @@ class TestRegexBasedParsing(_BaseTestCase):
         self.assertResult([{
             'line': 0,
             'start': 17,
-            'end': 21,
             'region': sublime.Region(17, 21)
         }], result)
 
@@ -1038,7 +1028,6 @@ class TestEndLineEndColumn(_BaseTestCase):
         self.assertResult([{
             'line': 0,
             'start': 4,
-            'end': 21,
             'region': sublime.Region(4, 21)
         }], result)
 
@@ -1047,31 +1036,31 @@ class TestEndLineEndColumn(_BaseTestCase):
             "given all values",
             {'line': 0, 'col': 4, 'end_line': 1, 'end_col': 7},
             "foo456789\n0123foo",
-            {'line': 0, 'start': 4, 'end': 21, 'region': sublime.Region(4, 21)}
+            {'line': 0, 'start': 4, 'region': sublime.Region(4, 21)}
         ),
         (
             "no columns provided",
             {'line': 0, 'end_line': 1},
             "0123foo456789\n0123foo456789",
-            {'line': 0, 'start': 0, 'end': 27, 'region': sublime.Region(0, 27)}
+            {'line': 0, 'start': 0, 'region': sublime.Region(0, 27)}
         ),
         (
             "no end column",
             {'line': 0, 'col': 4, 'end_line': 1},
             "foo456789\n0123foo456789",
-            {'line': 0, 'start': 4, 'end': 27, 'region': sublime.Region(4, 27)}
+            {'line': 0, 'start': 4, 'region': sublime.Region(4, 27)}
         ),
         (
             "no start column",
             {'line': 0, 'end_line': 1, 'end_col': 7},
             "0123foo456789\n0123foo",
-            {'line': 0, 'start': 0, 'end': 21, 'region': sublime.Region(0, 21)}
+            {'line': 0, 'start': 0, 'region': sublime.Region(0, 21)}
         ),
         (
             "no end line but end column",
             {'line': 0, 'col': 4, 'end_col': 7},
             "foo",
-            {'line': 0, 'start': 4, 'end': 7, 'region': sublime.Region(4, 7)}
+            {'line': 0, 'start': 4, 'region': sublime.Region(4, 7)}
         ),
 
         # clamping wrong values
@@ -1079,31 +1068,31 @@ class TestEndLineEndColumn(_BaseTestCase):
             "clamp out of bounds columns",
             {'line': 0, 'col': 40, 'end_col': 30},
             "\n",
-            {'line': 0, 'start': 13, 'end': 13, 'region': sublime.Region(13, 14)}
+            {'line': 0, 'start': 13, 'region': sublime.Region(13, 14)}
         ),
         (
             "clamp out of bounds columns (no trailing newline)",
             {'line': 1, 'col': 40, 'end_col': 30},
             "9",
-            {'line': 1, 'start': 12, 'end': 13, 'region': sublime.Region(26, 27)}
+            {'line': 1, 'start': 12, 'region': sublime.Region(26, 27)}
         ),
         (
             "clamp end line being above start line",
             {'line': 1, 'col': 4, 'end_line': 0, 'end_col': 7},
             "foo",
-            {'line': 1, 'start': 4, 'end': 7, 'region': sublime.Region(18, 21)}
+            {'line': 1, 'start': 4, 'region': sublime.Region(18, 21)}
         ),
         (
             "clamp end column is before start column",
             {'line': 0, 'col': 4, 'end_col': 3},
             "f",
-            {'line': 0, 'start': 4, 'end': 4, 'region': sublime.Region(4, 5)}
+            {'line': 0, 'start': 4, 'region': sublime.Region(4, 5)}
         ),
         (
             "clamp end line",
             {'line': 0, 'col': 4, 'end_line': 10, 'end_col': 7},
             "foo456789\n0123foo",
-            {'line': 0, 'start': 4, 'end': 21, 'region': sublime.Region(4, 21)}
+            {'line': 0, 'start': 4, 'region': sublime.Region(4, 21)}
         ),
 
     ])
@@ -1290,4 +1279,4 @@ def drop_keys(keys, array, strict=False):
 drop_info_keys = partial(
     drop_keys, ['error_type', 'code', 'msg', 'linter', 'filename', 'offending_text']
 )
-drop_position_keys = partial(drop_keys, ['line', 'start', 'end', 'region'])
+drop_position_keys = partial(drop_keys, ['line', 'start', 'region'])

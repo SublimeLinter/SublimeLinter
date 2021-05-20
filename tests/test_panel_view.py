@@ -13,7 +13,6 @@ CODE = 'arbitrary_violation'
 STD_ERROR = {
     'line': 0,
     'start': 0,
-    'end': '2',
     'region': sublime.Region(0, 2),
     'error_type': 'error',
     'linter': 'the_foo',

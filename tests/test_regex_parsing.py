@@ -771,7 +771,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         self.set_buffer_content(INPUT)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-        when(linter_module.logger).warning(...)
+        when(linter.logger).warning(...)
 
         result = execute_lint_task(linter, INPUT)
         drop_info_keys(result)
@@ -801,7 +801,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        with expect(linter_module.logger, times=1).warning(
+        with expect(linter.logger, times=1).warning(
             "Reported line '{}' is not within the code we're linting.\n"
             "Maybe the linter reports problems from multiple files "
             "or `line_col_base` is not set correctly."
@@ -811,7 +811,7 @@ class TestRegexBasedParsing(_BaseTestCase):
 
             # Looks like we're using an outdated version of mockito,
             # which does not automatically verify on `__exit__`.
-            verifyNoUnwantedInteractions(linter_module.logger)
+            verifyNoUnwantedInteractions(linter.logger)
 
     @p.expand([
         ((0, 0), "0\n1", "stdin:0:1 ERROR: The message"),
@@ -827,11 +827,11 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter.line_col_base = LINE_COL_BASE
 
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-        when(linter_module.logger).warning(...)
+        when(linter.logger).warning(...)
 
         execute_lint_task(linter, INPUT)
 
-        verify(linter_module.logger, times=0).warning(...)
+        verify(linter.logger, times=0).warning(...)
 
     @p.expand([
         (FakeLinter, "0123456789", "stdin:1:1 ERROR: The message"),
@@ -950,7 +950,7 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter = self.create_linter(FakeLinterCaptureFilename)
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
 
-        with expect(linter_module.logger, times=1).warning(...):
+        with expect(linter.logger, times=1).warning(...):
             execute_lint_task(linter, INPUT)
 
     def test_ensure_errors_from_other_files_have_correct_regions(self):

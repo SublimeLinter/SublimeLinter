@@ -152,8 +152,8 @@ class TestPostFilterResults(_BaseTestCase):
             """)
 
         when(linter)._communicate(...).thenReturn(OUTPUT)
-        expect(linter_module.logger, times=1).error(message)
+        expect(linter.logger, times=1).error(message)
         execute_lint_task(linter, INPUT)
         # `execute_lint_task` eats all uncatched errors, so we check again
         # to get faster and nicer output during the test
-        verifyNoUnwantedInteractions(linter_module.logger)
+        verifyNoUnwantedInteractions(linter.logger)

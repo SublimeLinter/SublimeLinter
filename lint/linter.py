@@ -1293,54 +1293,40 @@ class Linter(metaclass=LinterMeta):
 
         """
         error = LintMatch(match.groupdict())
-        error["match"] = match
+        error['match'] = match
+        error['line'] = self.apply_line_base(error.get('line'))
+        error['end_line'] = self.apply_line_base(error.get('end_line'))
+        error['end_col'] = self.apply_col_base(error.get('end_col'))
 
-        # Normalize line and col if necessary
-        try:
-            line = error['line']
-        except KeyError:
-            pass
+        col = error.get('col')
+        if col and not col.isdigit():
+            error['col'] = len(col)
         else:
-            if line:
-                error['line'] = int(line) - self.line_col_base[0]
-            else:  # Exchange the empty string with `None`
-                error['line'] = None
-
-        try:
-            col = error['col']
-        except KeyError:
-            pass
-        else:
-            if col:
-                if col.isdigit():
-                    col = int(col) - self.line_col_base[1]
-                else:
-                    col = len(col)
-                error['col'] = col
-            else:  # Exchange the empty string with `None`
-                error['col'] = None
-
-        try:
-            end_line = error['end_line']
-        except KeyError:
-            pass
-        else:
-            if end_line:
-                error['end_line'] = int(end_line) - self.line_col_base[0]
-            else:
-                error['end_line'] = None
-
-        try:
-            end_col = error['end_col']
-        except KeyError:
-            pass
-        else:
-            if end_col:
-                error['end_col'] = int(end_col) - self.line_col_base[1]
-            else:
-                error['end_col'] = None
+            error['col'] = self.apply_col_base(col)
 
         return error
+
+    def apply_line_base(self, val):
+        # type: (Union[int, str, None]) -> Optional[int]
+        if val is None:
+            return None
+        try:
+            v = int(val)
+        except ValueError:
+            return None
+        else:
+            return v - self.line_col_base[0]
+
+    def apply_col_base(self, val):
+        # type: (Union[int, str, None]) -> Optional[int]
+        if val is None:
+            return None
+        try:
+            v = int(val)
+        except ValueError:
+            return None
+        else:
+            return v - self.line_col_base[1]
 
     def process_match(self, m, vv):
         # type: (LintMatch, VirtualView) -> Optional[LintError]

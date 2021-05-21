@@ -78,8 +78,7 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        cwd = self.get_working_dir()
-        executable = ask_pipenv(cmd_name, cwd)
+        executable = self._ask_pipenv(cmd_name)
         if executable:
             logger.info(
                 "{}: Using {} according to 'pipenv'"
@@ -104,6 +103,32 @@ class PythonLinter(linter.Linter):
             )
         return True, executable
 
+    def _ask_pipenv(self, linter_name):
+        # type: (str) -> Optional[str]
+        """Ask pipenv for a virtual environment and maybe resolve the linter."""
+        # Some pre-checks bc `pipenv` is super slow
+        cwd = self.get_working_dir()
+        if cwd is None:
+            return None
+
+        pipfile = os.path.join(cwd, 'Pipfile')
+        if not os.path.exists(pipfile):
+            return None
+
+        try:
+            venv = ask_pipenv_for_venv(linter_name, cwd)
+        except Exception:
+            return None
+
+        executable = find_script_by_python_env(venv, linter_name)
+        if not executable:
+            logger.info(
+                "{} is not installed in the virtual env at '{}'."
+                .format(linter_name, venv)
+            )
+            return None
+        return executable
+
 
 def find_python_version(version):
     # type: (str) -> Optional[str]
@@ -118,37 +143,18 @@ def find_python_version(version):
 
 
 def find_script_by_python_env(python_env_path, script):
+    # type: (str, str) -> Optional[str]
     """Return full path to a script, given a python environment base dir."""
     posix = sublime.platform() in ('osx', 'linux')
-
     if posix:
         full_path = os.path.join(python_env_path, 'bin', script)
     else:
         full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
 
-    logger.info("trying {}".format(full_path))
     if os.path.exists(full_path):
         return full_path
 
     return None
-
-
-def ask_pipenv(linter_name, cwd):
-    """Ask pipenv for a virtual environment and maybe resolve the linter."""
-    # Some pre-checks bc `pipenv` is super slow
-    if cwd is None:
-        return
-
-    pipfile = os.path.join(cwd, 'Pipfile')
-    if not os.path.exists(pipfile):
-        return
-
-    try:
-        venv = ask_pipenv_for_venv(linter_name, cwd)
-    except Exception:
-        return
-
-    return find_script_by_python_env(venv, linter_name)
 
 
 @lru_cache(maxsize=None)

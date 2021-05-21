@@ -15,7 +15,6 @@ from SublimeLinter.tests.mockito import (
     mock,
     unstub,
     verify,
-    verifyNoUnwantedInteractions,
     when,
 )
 
@@ -470,10 +469,6 @@ class TestWorkingDirSetting(_BaseTestCase):
             "{}: wanted working_dir '{}' is not a directory".format('fakelinter', dir)
         ):
             actual = linter.get_working_dir()
-
-            # Looks like we're using an outdated version of mockito,
-            # which does not automatically verify on `__exit__`.
-            verifyNoUnwantedInteractions(linter.logger)
 
         self.assertEqual(None, actual)
 

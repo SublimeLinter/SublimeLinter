@@ -25,7 +25,6 @@ from SublimeLinter.tests.mockito import (
     spy,
     spy2,
     verify,
-    verifyNoUnwantedInteractions
 )
 
 version = sublime.version()
@@ -821,18 +820,16 @@ class TestRegexBasedParsing(_BaseTestCase):
         linter.line_col_base = LINE_COL_BASE
 
         when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(linter.logger).warning(...)
 
-        with expect(linter.logger, times=1).warning(
+        execute_lint_task(linter, INPUT)
+
+        verify(linter.logger, times=1).warning(
             "Reported line '{}' is not within the code we're linting.\n"
             "Maybe the linter reports problems from multiple files "
             "or `line_col_base` is not set correctly."
             .format(LINE)
-        ):
-            execute_lint_task(linter, INPUT)
-
-            # Looks like we're using an outdated version of mockito,
-            # which does not automatically verify on `__exit__`.
-            verifyNoUnwantedInteractions(linter.logger)
+        )
 
     @p.expand([
         ((0, 0), "0\n1", "stdin:0:1 ERROR: The message"),

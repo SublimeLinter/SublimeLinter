@@ -13,10 +13,9 @@ from SublimeLinter.lint import (
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
-    when,
-    expect,
     unstub,
-    verifyNoUnwantedInteractions
+    verify,
+    when,
 )
 
 
@@ -152,8 +151,6 @@ class TestPostFilterResults(_BaseTestCase):
             """)
 
         when(linter)._communicate(...).thenReturn(OUTPUT)
-        expect(linter.logger, times=1).error(message)
+        when(linter.logger).error(message)
         execute_lint_task(linter, INPUT)
-        # `execute_lint_task` eats all uncatched errors, so we check again
-        # to get faster and nicer output during the test
-        verifyNoUnwantedInteractions(linter.logger)
+        verify(linter.logger, times=1).error(message)

@@ -78,12 +78,12 @@ class TestNodeLinters(DeferrableTestCase):
     def test_not_globally_installed_warn(self):
         linter = make_fake_linter(self.view)
 
-        when(linter_module.logger).warning(...).thenReturn(None)
+        when(linter.logger).warning(...).thenReturn(None)
 
         cmd = linter.get_cmd()
         self.assertEqual(cmd, None)
 
-        verify(linter_module.logger).warning(...)
+        verify(linter.logger).warning(...)
 
     @p.expand([
         ('/p',),
@@ -158,7 +158,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             contains(
                 "We found a 'package.json' at {}; however, reading it raised"
                 .format(ROOT_DIR)
@@ -173,7 +173,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     @p.expand([
@@ -203,7 +203,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             "Skipping 'mylinter' for now which is listed as a {} in {} but "
             "not installed.  Forgot to '{} install'?"
             .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, EXPECTED_PACKAGE_MANAGER)
@@ -222,7 +222,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     @p.expand([
@@ -262,7 +262,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             "We want to execute 'node {}'; but you should first 'npm install' "
             "this project."
             .format(SCRIPT_FILE)
@@ -277,7 +277,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     @p.expand([
@@ -293,7 +293,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             "We want to execute 'node {}'; however, finding a node executable failed."
             .format(SCRIPT_FILE)
         ).thenReturn(None)
@@ -309,7 +309,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     @p.expand([
@@ -370,7 +370,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             "This seems like a Yarn PnP project. However, finding "
             "a Yarn executable failed. Make sure to install Yarn first."
         ).thenReturn(None)
@@ -387,7 +387,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     @p.expand([
@@ -402,7 +402,7 @@ class TestNodeLinters(DeferrableTestCase):
         linter = make_fake_linter(self.view)
 
         when(linter).notify_failure().thenReturn(None)
-        when(node_linter.logger).warning(
+        when(linter.logger).warning(
             "We did execute 'yarn run --silent mylinter' but "
             "'mylinter' cannot be found.  Forgot to 'yarn install'?"
         ).thenReturn(None)
@@ -421,7 +421,7 @@ class TestNodeLinters(DeferrableTestCase):
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).warning(...)
+        verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
     def test_disable_if_not_dependency(self):
@@ -429,14 +429,14 @@ class TestNodeLinters(DeferrableTestCase):
         linter.settings['disable_if_not_dependency'] = True
 
         when(linter).notify_unassign().thenReturn(None)
-        when(node_linter.logger).info(...).thenReturn(None)
+        when(linter.logger).info(...).thenReturn(None)
 
         try:
             linter.get_cmd()
         except linter_module.PermanentError:
             pass
 
-        verify(node_linter.logger).info(
+        verify(linter.logger).info(
             "Skipping 'fakelinter' since it is not installed locally.\nYou "
             "can change this behavior by setting 'disable_if_not_dependency' "
             "to 'false'."

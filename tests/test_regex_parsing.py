@@ -121,6 +121,15 @@ class FakeLinterCaptureTempFilename(FakeLinterCaptureFilename):
     tempfile_suffix = "tmp"
 
 
+class FakeLinterCapturingEndLineAndCol(Linter):
+    defaults = {'selector': 'NONE'}
+    cmd = 'fake_linter_1'
+    regex = r"""(?x)
+        ^stdin:(?P<line>\d+):(?P<col>\d+):(?P<end_line>\d+):(?P<end_col>\d+)\s
+        (?P<message>.*)$
+    """
+
+
 class _BaseTestCase(DeferrableTestCase):
     def setUp(self):
         self.view = self.create_view(sublime.active_window())
@@ -1012,6 +1021,108 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         self.assertEqual(result[0]['filename'],
                          "<untitled {}>".format(self.view.buffer_id()))
+
+
+class TestEndLineEndColumn(_BaseTestCase):
+    def test_take_provided_values_literally_and_apply_line_col_base(self):
+        linter = self.create_linter(FakeLinterCapturingEndLineAndCol)
+
+        INPUT = "0123foo456789\n0123foo456789"
+        OUTPUT = "stdin:1:5:2:8 Hi"
+
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual("foo456789\n0123foo", result[0]["offending_text"])
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 0,
+            'start': 4,
+            'end': 21,
+            'region': sublime.Region(4, 21)
+        }], result)
+
+    @p.expand([
+        (
+            "given all values",
+            {'line': 0, 'col': 4, 'end_line': 1, 'end_col': 7},
+            "foo456789\n0123foo",
+            {'line': 0, 'start': 4, 'end': 21, 'region': sublime.Region(4, 21)}
+        ),
+        (
+            "no columns provided",
+            {'line': 0, 'end_line': 1},
+            "0123foo456789\n0123foo456789",
+            {'line': 0, 'start': 0, 'end': 27, 'region': sublime.Region(0, 27)}
+        ),
+        (
+            "no end column",
+            {'line': 0, 'col': 4, 'end_line': 1},
+            "foo456789\n0123foo456789",
+            {'line': 0, 'start': 4, 'end': 27, 'region': sublime.Region(4, 27)}
+        ),
+        (
+            "no start column",
+            {'line': 0, 'end_line': 1, 'end_col': 7},
+            "0123foo456789\n0123foo",
+            {'line': 0, 'start': 0, 'end': 21, 'region': sublime.Region(0, 21)}
+        ),
+        (
+            "no end line but end column",
+            {'line': 0, 'col': 4, 'end_col': 7},
+            "foo",
+            {'line': 0, 'start': 4, 'end': 7, 'region': sublime.Region(4, 7)}
+        ),
+
+        # clamping wrong values
+        (
+            "clamp out of bounds columns",
+            {'line': 0, 'col': 40, 'end_col': 30},
+            "\n",
+            {'line': 0, 'start': 13, 'end': 13, 'region': sublime.Region(13, 14)}
+        ),
+        (
+            "clamp out of bounds columns (no trailing newline)",
+            {'line': 1, 'col': 40, 'end_col': 30},
+            "9",
+            {'line': 1, 'start': 12, 'end': 13, 'region': sublime.Region(26, 27)}
+        ),
+        (
+            "clamp end line being above start line",
+            {'line': 1, 'col': 4, 'end_line': 0, 'end_col': 7},
+            "foo",
+            {'line': 1, 'start': 4, 'end': 7, 'region': sublime.Region(18, 21)}
+        ),
+        (
+            "clamp end column is before start column",
+            {'line': 0, 'col': 4, 'end_col': 3},
+            "f",
+            {'line': 0, 'start': 4, 'end': 4, 'region': sublime.Region(4, 5)}
+        ),
+        (
+            "clamp end line",
+            {'line': 0, 'col': 4, 'end_line': 10, 'end_col': 7},
+            "foo456789\n0123foo",
+            {'line': 0, 'start': 4, 'end': 21, 'region': sublime.Region(4, 21)}
+        ),
+
+    ])
+    def test_multi_line_matches(self, _, match, captured_text, final_error):
+        linter = self.create_linter()
+
+        INPUT = "0123foo456789\n0123foo456789"
+        OUTPUT = "fake output"
+
+        def find_errors(output):
+            yield LintMatch(message="Hi", **match)
+
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(linter).find_errors(...).thenAnswer(find_errors)
+
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual(captured_text, result[0]["offending_text"])
+        drop_info_keys(result)
+        self.assertResult([final_error], result)
 
 
 class TestSplitMatchContract(_BaseTestCase):

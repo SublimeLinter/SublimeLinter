@@ -633,6 +633,26 @@ class TestRegexBasedParsing(_BaseTestCase):
             result,
         )
 
+    def test_ensure_reposition_match_can_change_the_line(self):
+        INPUT = "0123456789\n012foo3456789"
+        OUTPUT = "stdin:1:1 ERROR: The message"
+
+        def reposition_match(line, col, m, vv):
+            return 1, 3, 6
+
+        linter = self.create_linter()
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        when(linter).reposition_match(...).thenAnswer(reposition_match)
+
+        result = execute_lint_task(linter, INPUT)
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 1,
+            'start': 3,
+            'end': 6,
+            'region': sublime.Region(14, 17)
+        }], result)
+
     def test_multiline_false(self):
         linter = self.create_linter()
         self.assertNotEqual(linter.regex.flags & re.MULTILINE, re.MULTILINE)

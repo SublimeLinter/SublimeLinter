@@ -188,6 +188,10 @@ class VirtualView:
         # type: () -> int
         return len(self._newlines) - 2
 
+    def size(self):
+        # type: () -> int
+        return len(self._code)
+
     def substr(self, region):
         # type: (sublime.Region) -> str
         return self._code[region.begin():region.end()]
@@ -1408,15 +1412,17 @@ class Linter(metaclass=LinterMeta):
 
             region = sublime.Region(line_region.a + col, end_line_region.a + end_col)
 
-        if len(region) == 0:
-            region.b += 1
-        offending_text = vv.substr(region)
+        # ensure a length of 1 but do not exceed eof (`size()`)
+        normalized_region = sublime.Region(
+            region.a, min(vv.size(), max(region.a + 1, region.b))
+        )
+        offending_text = vv.substr(normalized_region)
 
         return {
             "filename": filename,
             "line": line,
             "start": col,
-            "region": region,
+            "region": normalized_region,
             "error_type": error_type,
             "code": code,
             "msg": m.message.strip(),

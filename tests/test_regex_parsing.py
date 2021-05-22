@@ -776,6 +776,35 @@ class TestRegexBasedParsing(_BaseTestCase):
             'region': sublime.Region(0 + PT_OFFSET, 10 + PT_OFFSET)
         }], result)
 
+    def test_clamp_on_eof_and_make_empty_region(self):
+        linter = self.create_linter()
+        INPUT = "0\n1\n"
+        OUTPUT = "stdin:3:1 ERROR: The message"
+        self.set_buffer_content(INPUT)
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual("", result[0]["offending_text"])
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 2,
+            'start': 0,
+            'region': sublime.Region(4, 4)
+        }], result)
+
+    def test_clamp_col_and_select_trailing_newline(self):
+        linter = self.create_linter()
+        INPUT = "0\n1\n"
+        OUTPUT = "stdin:2:10 ERROR: The message"
+        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
+        result = execute_lint_task(linter, INPUT)
+        self.assertEqual("\n", result[0]["offending_text"])
+        drop_info_keys(result)
+        self.assertResult([{
+            'line': 1,
+            'start': 1,
+            'region': sublime.Region(3, 4)
+        }], result)
+
     @p.expand([
         # LINE_COL_BASE, INPUT, OUTPUT, LINE
         ((0, 0), "0\n1", "stdin:2:1 ERROR: The message", 2),

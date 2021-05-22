@@ -197,6 +197,7 @@ def finalize_errors(linter, errors, offsets):
     # type: (Linter, List[LintError], Tuple[int, ...]) -> None
     linter_name = linter.name
     view = linter.view
+    eof = view.size()
     view_filename = util.get_filename(view)
     line_offset, col_offset, pt_offset = offsets
 
@@ -206,17 +207,26 @@ def finalize_errors(linter, errors, offsets):
         )
 
         region, line, start = error['region'], error['line'], error['start']
+        offending_text = error['offending_text']
         if belongs_to_main_file:  # offsets are for the main file only
             if line == 0:
                 start += col_offset
             line += line_offset
             region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+            # If only parts of a file are linted, the virtual view inside
+            # the linter can "think" it has an error on eof when it is
+            # actually on the end of the linted *part* of the file only.
+            # Check here, and maybe undo.
+            if region.empty() and region.a != eof:
+                region.b += 1
+                offending_text = view.substr(region)
 
         error.update({
             'linter': linter_name,
             'region': region,
             'line': line,
             'start': start,
+            'offending_text': offending_text,
         })
 
         error.update({

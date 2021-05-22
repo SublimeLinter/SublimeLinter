@@ -622,12 +622,16 @@ def maybe_update_error_store(view):
         # XXX: Why keep the error in the store when we don't have
         # a region key for it in the store?
         key = uid_key_map.get(uid, None)
-        region = head(view.get_regions(key)) if key else None
+        if key is None:
+            new_errors.append(error)
+            continue
+
+        region = head(view.get_regions(key))
         if region is None or region == error['region']:
             new_errors.append(error)
             continue
-        else:
-            changed = True
+
+        changed = True
 
         if region.empty():
             # Either the user edited away our region (and the error)
@@ -635,7 +639,7 @@ def maybe_update_error_store(view):
             # zero length (and moved to a different line at col 0).
             # It is useless now so we remove the error by not
             # copying it.
-            erase_view_region(view, key)  # type: ignore
+            erase_view_region(view, key)
             continue
 
         line, start = view.rowcol(region.begin())

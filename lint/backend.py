@@ -77,19 +77,23 @@ def run_tasks(tasks, next):
 
 def warn_excessive_tasks(view, uow):
     # type: (sublime.View, Dict[LinterName, List[Task[LintResult]]]) -> None
-    for linter_name, tasks in uow.items():
-        if len(tasks) > 3:
-            logger.warning(
-                "'{}' puts {} {} tasks on the queue."
-                .format(short_canonical_filename(view), len(tasks), linter_name)
-            )
-
     total_tasks = sum(len(tasks) for tasks in uow.values())
     if total_tasks > 4:
-        logger.warning(
-            "'{}' puts in total {}(!) tasks on the queue."
-            .format(short_canonical_filename(view), total_tasks)
+        linter_info = ", ".join(
+            "{}x {}".format(len(tasks), linter_name)
+            for linter_name, tasks in uow.items()
         )
+        logger.warning(
+            "'{}' puts in total {}(!) tasks on the queue:  {}."
+            .format(short_canonical_filename(view), total_tasks, linter_info)
+        )
+    else:
+        for linter_name, tasks in uow.items():
+            if len(tasks) > 3:
+                logger.warning(
+                    "'{}' puts {} {} tasks on the queue."
+                    .format(short_canonical_filename(view), len(tasks), linter_name)
+                )
 
 
 def tasks_per_linter(view, view_has_changed, linter_class, settings):

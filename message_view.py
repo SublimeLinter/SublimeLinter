@@ -16,6 +16,7 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
 
         if is_panel_active(window):
             panel = window.find_output_panel(PANEL_NAME)
+            assert panel
         else:
             panel = window.create_output_panel(PANEL_NAME)
             syntax_path = "Packages/SublimeLinter/panel/message_view.sublime-syntax"

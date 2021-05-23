@@ -1,0 +1,26 @@
+[
+    {
+        "keys": ["enter"],
+        "command": "sublime_linter_panel_commit",
+        "context": [
+            { "key": "panel", "operand": "output.SublimeLinter" },
+            { "key": "panel_has_focus" },
+        ]
+    },
+    {
+        "keys": ["down"],
+        "command": "sublime_linter_panel_next",
+        "context": [
+            { "key": "panel", "operand": "output.SublimeLinter" },
+            { "key": "panel_has_focus" },
+        ]
+    },
+    {
+        "keys": ["up"],
+        "command": "sublime_linter_panel_previous",
+        "context": [
+            { "key": "panel", "operand": "output.SublimeLinter" },
+            { "key": "panel_has_focus" },
+        ]
+    },
+]

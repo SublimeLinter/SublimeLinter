@@ -1,6 +1,6 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import lru_cache, partial
-from itertools import chain
+from itertools import chain, dropwhile, islice
 import os
 import sublime
 import sublime_plugin
@@ -8,37 +8,50 @@ import textwrap
 import uuid
 
 from .lint import elect, events, persist, util
+from .lint.generic_text_command import text_command
 flatten = chain.from_iterable
 
 
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Collection, Dict, Iterable, List, Optional, Set,
-        Tuple, TypeVar, Union
+        Any, Callable, Collection, Dict, Iterable, Iterator, List,
+        NamedTuple, Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
     T = TypeVar('T')
     U = TypeVar('U')
+    Panel = sublime.View
     FileName = persist.FileName
     LinterName = persist.LinterName
     Reason = Optional[str]
+    Row = int
+    ViewState = NamedTuple("ViewState", [
+        ("view", sublime.View),
+        ("filename", FileName),
+        ("sel", List[sublime.Region])
+    ])
     State_ = TypedDict('State_', {
         'active_view': Optional[sublime.View],
         'active_filename': Optional[str],
         'cursor': int,
-        'panel_opened_automatically': Set[sublime.WindowId]
+        'panel_opened_automatically': Set[sublime.WindowId],
+        'panel_has_focus': bool,
+        'original_active_views': Dict[sublime.ViewId, ViewState]
     })
     ErrorsByFile = Dict[FileName, List[LintError]]
     DrawInfo = TypedDict('DrawInfo', {
         'panel': sublime.View,
         'content': str,
-        'errors_from_active_view': List[LintError],
-        'nearby_lines': Union[int, List[int]]
+        'top_boundary': Optional[Row],
+        'nearby_lines': Union[Row, List[Row]]
     }, total=False)
     Action = Callable[[], None]
+
+else:
+    ViewState = namedtuple("ViewState", "view filename sel")
 
 
 PANEL_NAME = "SublimeLinter"
@@ -49,7 +62,9 @@ State = {
     'active_view': None,
     'active_filename': None,
     'cursor': -1,
-    'panel_opened_automatically': set()
+    'panel_opened_automatically': set(),
+    'panel_has_focus': False,
+    'original_active_views': {},
 }  # type: State_
 
 
@@ -138,7 +153,7 @@ def execute_on_lint_result_request(linter_name):
 def _on_lint_result(filenames, maybe_toggle_panel_automatically):
     # type: (Set[FileName], bool) -> None
     for window in sublime.windows():
-        panel_open = panel_is_active(window)
+        panel_open = panel_is_visible(window)
         if (
             (panel_open or maybe_toggle_panel_automatically)
             and filenames & filenames_per_window(window)
@@ -153,7 +168,7 @@ def _on_lint_result(filenames, maybe_toggle_panel_automatically):
 @events.on('updated_error_positions')
 def on_updated_error_positions(filename, **kwargs):
     for window in sublime.windows():
-        if panel_is_active(window) and filename in filenames_per_window(window):
+        if panel_is_visible(window) and filename in filenames_per_window(window):
             fill_panel(window)
 
 
@@ -162,11 +177,22 @@ def on_renamed_file(new_filename, **kwargs):
     # update all panels that contain this file
     for window in sublime.windows():
         if new_filename in filenames_per_window(window):
-            if panel_is_active(window):
+            if panel_is_visible(window):
                 fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
+    def on_activated(self, active_view):
+        window = active_view.window()
+        if not window:
+            return
+
+        panel = get_panel(window)
+        panel_has_focus = panel.id() == active_view.id() if panel else False
+        State.update({
+            'panel_has_focus': panel_has_focus
+        })
+
     def on_activated_async(self, active_view):
         if not util.is_lintable(active_view):
             return
@@ -181,7 +207,7 @@ class UpdateState(sublime_plugin.EventListener):
             'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
-        if panel_is_active(window):
+        if panel_is_visible(window):
             fill_panel(window)
             start_viewport_poller()
         else:
@@ -201,14 +227,18 @@ class UpdateState(sublime_plugin.EventListener):
             State.update({
                 'cursor': cursor
             })
-            if panel_is_active(active_view.window()):
-                update_panel_selection(**State)
+            if panel_is_visible(active_view.window()):
+                update_panel_selection(
+                    active_view,
+                    cursor,
+                    State["panel_has_focus"],
+                )
 
     def on_pre_close(self, view):
         window = view.window()
         # If the user closes the window and not *just* a view, the view is
         # already detached, hence we check.
-        if window and panel_is_active(window):
+        if window and panel_is_visible(window):
             sublime.set_timeout_async(lambda: fill_panel(window))
 
     @util.distinct_until_buffer_changed
@@ -219,17 +249,42 @@ class UpdateState(sublime_plugin.EventListener):
         if view_gets_linted_on_modified_event(view):
             toggle_panel_if_errors(view.window(), {util.get_filename(view)})
 
+    def on_window_command(self, window, command_name, args):
+        if (
+            command_name == 'hide_panel'
+            and args and args.get("cancel")
+            and State["panel_has_focus"]
+        ):
+            panel = get_panel(window)
+            if panel:
+                restore_view_state(panel)
+                if panel.settings().get("sl_quick_panel_mode"):
+                    return
+                else:
+                    force_focus_active_view(window)
+                    return "noop"
+        elif (
+            command_name == "show_panel"
+            and args.get('panel') == OUTPUT_PANEL
+            and args.get('focus')
+        ):
+            panel = get_panel(window)
+            if panel:
+                is_visible = panel_is_visible(window)
+                panel.settings().set("sl_quick_panel_mode", not is_visible)
+
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
             State['panel_opened_automatically'].discard(window.id())
+            panel = get_panel(window)
+            if panel:
+                panel.settings().set("sl_quick_panel_mode", False)
+                forget_view_state(panel)
             stop_viewport_poller()
             return
 
         if command_name == 'show_panel':
-
             if args.get('panel') == OUTPUT_PANEL:
-                fill_panel(window)
-
                 # Apply focus fix to ensure `next_result` is bound to our panel.
                 active_group = window.active_group()
                 active_view = window.active_view()
@@ -237,10 +292,16 @@ class UpdateState(sublime_plugin.EventListener):
                 panel = get_panel(window)
                 window.focus_view(panel)
 
-                window.focus_group(active_group)
-                window.focus_view(active_view)
+                if not args.get('focus', False):
+                    window.focus_group(active_group)
+                    window.focus_view(active_view)
+
+                fill_panel(window)
                 sublime.set_timeout(start_viewport_poller)
             else:
+                panel = get_panel(window)
+                if panel:
+                    forget_view_state(panel)
                 stop_viewport_poller()
 
 
@@ -265,31 +326,234 @@ def toggle_panel_if_errors(window, filenames):
         or filenames & errors_by_file.keys()
     )
 
-    if not panel_is_active(window) and has_relevant_errors:
+    if not panel_is_visible(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
         State['panel_opened_automatically'].add(window.id())
 
     elif (
-        panel_is_active(window) and
+        panel_is_visible(window) and
         not has_relevant_errors and
         window.id() in State['panel_opened_automatically']
     ):
         window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
-class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
-    def run(self):
-        if panel_is_active(self.window):
+class sublime_linter_panel_toggle(sublime_plugin.WindowCommand):
+    def run(self, focus=False):
+        if (
+            State["panel_has_focus"]
+            or (panel_is_visible(self.window) and not focus)
+        ):
             self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
         else:
-            self.window.run_command("show_panel", {"panel": OUTPUT_PANEL})
+            self.window.run_command("show_panel", {
+                "panel": OUTPUT_PANEL, "focus": focus
+            })
+
+
+class sublime_linter_panel_commit(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        panel = self.view
+        window = panel.window()
+        assert window
+        active_view = State["active_view"]
+        assert active_view
+
+        forget_view_state(panel)
+        open_location(window, util.get_filename(active_view), *cur_loc(active_view))
+        if panel.settings().get("sl_quick_panel_mode"):
+            window.run_command("sublime_linter_panel_toggle")
+        else:
+            force_focus_active_view(window)
+
+
+def force_focus_active_view(window):
+    active_group = window.active_group()
+    active_view = window.active_view()
+    assert active_view
+    window.focus_group(active_group)
+    window.focus_view(active_view)
+
+
+def take(n, iterable):
+    # type: (int, Iterable[T]) -> Iterator[T]
+    return islice(iterable, n)
+
+
+take2 = partial(take, 2)  # type: Callable[[Iterable[T]], Iterator[T]]
+
+
+def errors_in_display_order(filenames):
+    # type: (Iterable[FileName]) -> List[LintError]
+    return sorted(
+        flatten(map(errors_for_file, filenames)),
+        key=lambda error: error["panel_line"]
+    )
+
+
+def errors_for_file(filename):
+    # type: (FileName) -> List[LintError]
+    return persist.file_errors.get(filename, [])
+
+
+def file_plus_dependencies(filename):
+    # type: (FileName) -> List[FileName]
+    return [filename] + sorted(affected_files_with_errors(filename))
+
+
+def affected_files_with_errors(filename):
+    # type: (FileName) -> Iterator[FileName]
+    return filter(
+        lambda fn: persist.file_errors.get(fn),
+        affected_files(filename)
+    )
+
+
+def affected_files(filename):
+    # type: (FileName) -> Set[FileName]
+    return set(flatten(
+        persist.affected_filenames_per_filename.get(filename, {}).values()
+    ))
+
+
+def loc_from_error(error):
+    # type: (LintError) -> Tuple[FileName, int, int]
+    return error["filename"], error["line"] + 1, error["start"] + 1
+
+
+class sublime_linter_panel_next(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        panel = self.view
+        window = panel.window()
+        assert window
+        active_view = window.active_view()
+        assert active_view
+
+        cur_filename = util.get_filename(active_view)
+        try:
+            top_filename = State["original_active_views"][panel.id()].filename
+        except KeyError:
+            top_filename = cur_filename
+
+        current_and_next = take2(dropwhile(
+            lambda fn: fn != cur_filename,
+            file_plus_dependencies(top_filename)
+        ))
+
+        cur_rowcol = active_view.rowcol(active_view.sel()[0].b)
+        for error in errors_in_display_order(current_and_next):
+            if (
+                error["filename"] != cur_filename
+                or (error["line"], error["start"]) > cur_rowcol
+            ):
+                break
+        else:
+            util.flash(active_view, "No problems below.")
+            return
+
+        if panel.id() not in State["original_active_views"]:
+            save_view_state(panel, active_view)
+        active_view = open_location(window, *loc_from_error(error), preview=True)
+        window.focus_view(panel)
+        if error["filename"] != cur_filename:
+            State.update({
+                'active_view': active_view,
+                'active_filename': util.get_filename(active_view),
+                'cursor': -1 if active_view.is_loading() else get_current_pos(active_view)
+            })
+
+
+class sublime_linter_panel_previous(sublime_plugin.TextCommand):
+    def run(self, edit):
+        # type: (sublime.Edit) -> None
+        panel = self.view
+        window = panel.window()
+        assert window
+        active_view = window.active_view()
+        assert active_view
+
+        cur_filename = util.get_filename(active_view)
+        try:
+            top_filename = State["original_active_views"][panel.id()].filename
+        except KeyError:
+            top_filename = cur_filename
+
+        current_and_previous = take2(dropwhile(
+            lambda fn: fn != cur_filename,
+            reversed(file_plus_dependencies(top_filename))
+        ))
+
+        cur_rowcol = active_view.rowcol(active_view.sel()[0].b)
+        for error in reversed(errors_in_display_order(current_and_previous)):
+            if (
+                error["filename"] != cur_filename
+                or (error["line"], error["start"]) < cur_rowcol
+            ):
+                break
+        else:
+            util.flash(active_view, "No problems above.")
+            return
+
+        if panel.id() not in State["original_active_views"]:
+            save_view_state(panel, active_view)
+        active_view = open_location(window, *loc_from_error(error), preview=True)
+        window.focus_view(panel)
+        if error["filename"] != cur_filename:
+            State.update({
+                'active_view': active_view,
+                'active_filename': util.get_filename(active_view),
+                'cursor': -1 if active_view.is_loading() else get_current_pos(active_view)
+            })
+
+
+def cur_loc(view):
+    # type: (sublime.View) -> Tuple[int, int]
+    row, col = view.rowcol(view.sel()[0].b)
+    return row + 1, col + 1
+
+
+def save_view_state(panel, active_view):
+    State["original_active_views"][panel.id()] = ViewState(
+        active_view,
+        util.get_filename(active_view),
+        [s for s in active_view.sel()]
+    )
+
+
+def restore_view_state(panel):
+    try:
+        state = State["original_active_views"].pop(panel.id())
+    except KeyError:
+        return
+
+    view = state.view
+    view.sel().clear()
+    view.sel().add_all(state.sel)
+    window = view.window()
+    view.show(state.sel[0])
+    if window:
+        window.focus_view(view)
+
+
+def forget_view_state(panel):
+    State["original_active_views"].pop(panel.id(), None)
+
+
+def open_location(window, fname, line, column, preview=False):
+    # type: (sublime.Window, str, int, int, bool) -> sublime.View
+    flags = sublime.ENCODED_POSITION | sublime.FORCE_GROUP
+    if preview:
+        flags |= sublime.TRANSIENT
+    return window.open_file("{}:{}:{}".format(fname, line, column), flags=flags)
 
 
 def get_current_pos(view):
     return next((s.begin() for s in view.sel()), -1)
 
 
-def panel_is_active(window):
+def panel_is_visible(window):
     if not window:
         return False
 
@@ -337,23 +601,23 @@ def draw(draw_info):
         sublime.set_timeout(lambda: draw_(**draw_info))
 
 
-def draw_(panel, content=None, errors_from_active_view=[], nearby_lines=None):
-    # type: (sublime.View, str, List[LintError], Union[int, List[int]]) -> None
+def draw_(panel, content=None, top_boundary=None, nearby_lines=None):
+    # type: (sublime.View, str, Optional[Row], Union[int, List[int]]) -> None
     if content is not None:
         update_panel_content(panel, content)
 
     if nearby_lines is None:
         mark_lines(panel, None)
         draw_position_marker(panel, None)
-        scroll_into_view(panel, None, errors_from_active_view)
+        scroll_into_view(panel, None, top_boundary)
     elif isinstance(nearby_lines, list):
         mark_lines(panel, nearby_lines)
         draw_position_marker(panel, None)
-        scroll_into_view(panel, nearby_lines, errors_from_active_view)
+        scroll_into_view(panel, nearby_lines, top_boundary)
     else:
         mark_lines(panel, None)
         draw_position_marker(panel, nearby_lines)
-        scroll_into_view(panel, [nearby_lines], errors_from_active_view)
+        scroll_into_view(panel, [nearby_lines], top_boundary)
 
 
 def get_window_errors(window, errors_by_file):
@@ -379,12 +643,7 @@ def filenames_per_window(window):
     # type: (sublime.Window) -> Set[FileName]
     """Return filenames of all open files plus their dependencies."""
     open_filenames = set(util.get_filename(v) for v in window.views())
-    return open_filenames | set(
-        flatten(
-            flatten(persist.affected_filenames_per_filename[filename].values())
-            for filename in open_filenames
-        )
-    )
+    return open_filenames | set(flatten(map(affected_files, open_filenames)))
 
 
 @lru_cache(maxsize=16)
@@ -477,47 +736,43 @@ def fill_panel(window):
     if vx == 0:
         return
 
-    active_view = State['active_view']
-    if active_view and active_view.window() == window:
-        active_filename = State['active_filename']
-    else:
+    active_view, top_filename = State['active_view'], State['active_filename']
+    if active_view and active_view.window() != window:
         active_view = None
-        active_filename = None
+        top_filename = None
+    if panel.id() in State["original_active_views"]:
+        top_filename = State["original_active_views"][panel.id()].filename
 
     errors_by_file = get_window_errors(window, persist.file_errors)
-    if active_filename and active_filename not in errors_by_file:
-        errors_by_file[active_filename] = []
+    if top_filename and top_filename not in errors_by_file:
+        errors_by_file[top_filename] = []
 
     fpath_by_file, base_dir = create_path_dict(tuple(errors_by_file.keys()))
 
     settings = panel.settings()
     settings.set("result_base_dir", base_dir)
 
+    widths_per_error = (
+        (
+            len(str(error['line'] + 1)),
+            len(str(error['start'] + 1)),
+            len(error['error_type']),
+            len(error['linter']),
+            len(str(error['code'])),
+        )
+        for error in flatten(errors_by_file.values())
+    )
     widths = tuple(
         zip(
             ('line', 'col', 'error_type', 'linter_name', 'code'),
-            map(
-                max,
-                zip(*[
-                    (
-                        len(str(error['line'] + 1)),
-                        len(str(error['start'] + 1)),
-                        len(error['error_type']),
-                        len(error['linter']),
-                        len(str(error['code'])),
-                    )
-                    for error in flatten(errors_by_file.values())
-                ])
-            )
+            map(max, zip(*widths_per_error))  # type: ignore[arg-type]
         )
     )  # type: Tuple[Tuple[str, int], ...]
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
     to_render = []
-    if active_filename:
-        affected_filenames = set(flatten(
-            persist.affected_filenames_per_filename.get(active_filename, {}).values()
-        ))
+    if top_filename:
+        affected_filenames = set(affected_files_with_errors(top_filename))
 
         sorted_errors = (
             # Unrelated errors surprisingly come first. The scroller
@@ -528,7 +783,7 @@ def fill_panel(window):
                 for filename in (
                     errors_by_file.keys()
                     - affected_filenames
-                    - {active_filename}
+                    - {top_filename}
                 )
             )
 
@@ -536,16 +791,14 @@ def fill_panel(window):
             # The scroller will try to show this file at the top of the
             # view.
             + [(
-                fpath_by_file[active_filename],
-                active_filename,
-                errors_by_file.get(active_filename, [])
+                fpath_by_file[top_filename],
+                top_filename,
+                errors_by_file.get(top_filename, [])
             )]
 
-            # Affected files can be clean, just omit those
             + sorted(
                 (fpath_by_file[filename], filename, errors_by_file[filename])
                 for filename in affected_filenames
-                if filename in errors_by_file
             )
         )
 
@@ -585,26 +838,34 @@ def fill_panel(window):
     }  # type: DrawInfo
 
     if active_view:
-        update_panel_selection(draw_info=draw_info, **State)
+        update_panel_selection(
+            active_view,
+            State["cursor"],
+            State["panel_has_focus"],
+            draw_info=draw_info
+        )
     else:
         draw(draw_info)
 
 
-def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
-    # type: (sublime.View, int, Optional[DrawInfo], Any) -> None
+def update_panel_selection(active_view, cursor, panel_has_focus, draw_info=None):
+    # type: (sublime.View, int, bool, Optional[DrawInfo]) -> None
     """Alter panel highlighting according to the current cursor position."""
-    if draw_info is None:
-        draw_info = {}
-
-    panel = get_panel(active_view.window())
-    if not panel:
+    window = active_view.window()
+    if not window:
         return
 
     if cursor == -1:
         return
 
-    filename = util.get_filename(active_view)
+    if draw_info is None:
+        draw_info = {}
 
+    panel = get_panel(window)
+    if not panel:
+        return
+
+    filename = util.get_filename(active_view)
     try:
         # Rarely, and if so only on hot-reload, `update_panel_selection` runs
         # before `fill_panel`, thus 'panel_line' has not been set.
@@ -613,9 +874,25 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
     except KeyError:
         all_errors = []
 
+    top_boundary = (
+        # On the line before the first error is the filename
+        all_errors[0]["panel_line"][0] - 1
+        if all_errors else None
+    )  # type: Optional[Row]
+    if panel.id() in State["original_active_views"]:
+        state = State["original_active_views"][panel.id()]
+        if state.view.id() != active_view.id():
+            top_view_errors = sorted(
+                persist.file_errors[state.filename],
+                key=lambda e: e["panel_line"]
+            )
+            top_boundary = (
+                top_view_errors[0]["panel_line"][0] - 1
+                if top_view_errors else None
+            )
     draw_info.update({
         'panel': panel,
-        'errors_from_active_view': all_errors
+        'top_boundary': top_boundary
     })
 
     row, _ = active_view.rowcol(cursor)
@@ -635,7 +912,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
         for error in all_errors
     )  # type: Iterable[Tuple[LintError, Tuple[int, int, int, int]]]
 
-    SNAP = (3, )  # [lines]
+    SNAP = (0, 0) if panel_has_focus else (3,)
     nearest_error = None
     try:
         nearest_error, _ = min(
@@ -701,8 +978,19 @@ INNER_MARGIN = 2  # [lines]
 JUMP_COEFFICIENT = 3
 
 
-def scroll_into_view(panel, wanted_lines, errors):
-    # type: (sublime.View, Optional[List[int]], List[LintError]) -> None
+def filename_line_for_clean_files(view):
+    # type: (sublime.View) -> Optional[Row]
+    # For clean files, we know that we have exactly two rows: the
+    # filename itself, followed by the "No lint results." message.
+    match = view.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
+    if match:
+        r, _ = view.rowcol(match.begin())
+        return max(0, r - 1)
+    return None
+
+
+def scroll_into_view(panel, wanted_lines, ftop):
+    # type: (sublime.View, Optional[List[Row]], Optional[Row]) -> None
     """Compute and then scroll the view so that `wanted_lines` appear.
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
@@ -711,13 +999,10 @@ def scroll_into_view(panel, wanted_lines, errors):
     possible next file are essentially hidden. Inbetween tries to scroll as
     little as possible.
     """
-    if not errors or not wanted_lines:
-        # For clean files, we know that we have exactly two rows: the
-        # filename itself, followed by the "No lint results." message.
-        match = panel.find(NO_RESULTS_MESSAGE, 0, sublime.LITERAL)
-        if match:
-            r, _ = panel.rowcol(match.begin())
-            scroll_to_line(panel, r - 1, animate=False)
+    if not wanted_lines:
+        r = filename_line_for_clean_files(panel)
+        if r is not None:
+            scroll_to_line(panel, r, animate=False)
         return
 
     # We would like to use just `view.visible_region()` but that doesn't count
@@ -731,10 +1016,9 @@ def scroll_into_view(panel, wanted_lines, errors):
     vheight = int(panel.viewport_extent()[1] // panel.line_height())
     vbottom = vtop + vheight
 
-    # Before the first error comes the filename
-    ftop = errors[0]['panel_line'][0] - 1
-    # After the last error comes the empty line
-    fbottom = errors[-1]['panel_line'][1] + 1
+    if ftop is None:
+        ftop = filename_line_for_clean_files(panel) or 0
+    fbottom = panel.rowcol(panel.size())[0]
     fheight = fbottom - ftop + 1
 
     if fheight <= vheight:
@@ -776,6 +1060,7 @@ class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
         self.view.set_viewport_position((x, y), animate)
 
 
+@text_command
 def mark_lines(panel, lines):
     # type: (sublime.View, Optional[List[int]]) -> None
     """Select/Highlight given lines."""
@@ -789,7 +1074,8 @@ def mark_lines(panel, lines):
 
 
 CURSOR_MARKER_KEY = 'SL.PanelMarker'
-CURSOR_MARKER_SCOPE = 'region.yellowish.panel_cursor.sublime_linter'
+CURSOR_MARKER_SCOPE = 'region.blueish.panel_cursor.sublime_linter'
+CURSOR_MARKER_SCOPE_FOCUSED = 'region.yellowish.panel_cursor.sublime_linter'
 
 
 def draw_position_marker(panel, line):
@@ -808,7 +1094,12 @@ def draw_position_marker(panel, line):
 
     line_start = panel.text_point(line - 1, 0)
     region = sublime.Region(line_start, line_start)
-    draw_region_dangle(panel, CURSOR_MARKER_KEY, CURSOR_MARKER_SCOPE, [region])
+    scope = (
+        CURSOR_MARKER_SCOPE_FOCUSED
+        if State["panel_has_focus"]
+        else CURSOR_MARKER_SCOPE
+    )
+    draw_region_dangle(panel, CURSOR_MARKER_KEY, scope, [region])
 
 
 CONFUSION_THRESHOLD = 5

@@ -47,8 +47,9 @@ contexts:
 
   expect-filename:
     - include: pop-at-end
-    - match: ([^:]+)
-      scope: entity.name.filename.sublime_linter
+    - match: (.+):(?=\n)
+      captures:
+        1: entity.name.filename.sublime_linter
       pop: true
 
   ensure-error-meta-scope:

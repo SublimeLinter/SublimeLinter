@@ -679,7 +679,7 @@ class TestContextSensitiveExecutablePathContract(_BaseTestCase):
         linter = FakeLinter(self.view, {})
         when(linter).context_sensitive_executable_path(...).thenReturn((True, None))
 
-        with expect(linter, times=0)._communicate(...):
+        with self.assertRaises(linter_module.PermanentError):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
     def test_returns_false_and_any_indicates_fallback(self):

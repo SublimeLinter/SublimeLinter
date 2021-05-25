@@ -1112,9 +1112,9 @@ class Linter(metaclass=LinterMeta):
             output = self.run(None, code)  # type: Union[str, util.popen_output]
         else:
             cmd = self.get_cmd()
-            if not cmd:  # We couldn't find an executable
+            if not cmd:
                 self.notify_failure()
-                return []
+                raise PermanentError("couldn't find an executable")
 
             output = self.run(cmd, code)
 

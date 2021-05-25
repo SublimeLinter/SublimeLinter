@@ -10,7 +10,7 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 ## Installation 
 
-Install SublimeLinter and linters via [Package Control](https://packagecontrol.io/search/SublimeLinter)). 
+Install SublimeLinter and linters via [Package Control](https://packagecontrol.io/search/SublimeLinter). 
 
 ## Settings
 

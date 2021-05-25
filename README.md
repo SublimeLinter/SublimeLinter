@@ -3,7 +3,7 @@ SublimeLinter
 
 [![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter)
 
-The code linting framework for [Sublime Text 3](http://sublimetext.com/3).
+The code linting framework for [Sublime Text](http://sublimetext.com/).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).
 
 <img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="785">

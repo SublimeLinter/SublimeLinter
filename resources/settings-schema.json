@@ -89,6 +89,9 @@
                                 "icon":{
                                     "type":"string"
                                 },
+                                "annotation":{
+                                    "type":"string"
+                                },
                                 "types":{
                                     "type":"array",
                                     "items":{
@@ -166,6 +169,9 @@
                             "markup.warning", "markup.error"]
                     },
                     "icon":{
+                        "type":"string"
+                    },
+                    "annotation":{
                         "type":"string"
                     },
                     "types":{

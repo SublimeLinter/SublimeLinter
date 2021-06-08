@@ -6,13 +6,14 @@ env:
   PACKAGE: SublimeLinter
   SUBLIME_TEXT_VERSION: 3
   UNITTESTING_TAG: master
+  TRAVIS_OS_NAME: linux
 
 jobs:
   linux:
-    runs-on: ubuntu-20.04
-    container: sublimetext/unittesting
-    env:
-      TRAVIS_OS_NAME: linux
+    runs-on: ubuntu-latest
+    container:
+      image: sublimetext/unittesting
+      options: --cap-add=NET_ADMIN
     steps:
       - uses: actions/checkout@v1
       - run: sh -e /etc/init.d/xvfb start

@@ -10,7 +10,9 @@ env:
 jobs:
   linux:
     runs-on: ubuntu-20.04
-    container: sublimetext/unittesting
+    container:
+      image: sublimetext/unittesting
+      options: --cap-add=NET_ADMIN
     env:
       TRAVIS_OS_NAME: linux
     steps:

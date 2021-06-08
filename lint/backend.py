@@ -178,7 +178,7 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
 
 
 PROPERTIES_FOR_UID = (
-    'filename', 'linter', 'line', 'start', 'end', 'error_type', 'code', 'msg',
+    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
 )
 
 
@@ -197,41 +197,36 @@ def finalize_errors(linter, errors, offsets):
     # type: (Linter, List[LintError], Tuple[int, ...]) -> None
     linter_name = linter.name
     view = linter.view
+    eof = view.size()
     view_filename = util.get_filename(view)
     line_offset, col_offset, pt_offset = offsets
 
     for error in errors:
-        error.setdefault('filename', view_filename)
         belongs_to_main_file = (
             os.path.normcase(error['filename']) == os.path.normcase(view_filename)
         )
 
-        line, start, end = error['line'], error['start'], error['end']
+        region, line, start = error['region'], error['line'], error['start']
+        offending_text = error['offending_text']
         if belongs_to_main_file:  # offsets are for the main file only
             if line == 0:
                 start += col_offset
-                end += col_offset
-
             line += line_offset
-
-        try:
-            region = error['region']
-        except KeyError:
-            line_start = view.text_point(line, 0)
-            region = sublime.Region(line_start + start, line_start + end)
-            if len(region) == 0:
-                region.b = region.b + 1
-
-        else:
-            if belongs_to_main_file:  # offsets are for the main file only
-                region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+            region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+            # If only parts of a file are linted, the virtual view inside
+            # the linter can "think" it has an error on eof when it is
+            # actually on the end of the linted *part* of the file only.
+            # Check here, and maybe undo.
+            if region.empty() and region.a != eof:
+                region.b += 1
+                offending_text = view.substr(region)
 
         error.update({
             'linter': linter_name,
             'region': region,
             'line': line,
             'start': start,
-            'end': end,
+            'offending_text': offending_text,
         })
 
         error.update({

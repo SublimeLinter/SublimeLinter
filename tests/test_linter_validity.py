@@ -330,19 +330,19 @@ class TestRegexCompiling(DeferrableTestCase):
         OUTPUT = """\
         errrrors
         """
-        when(linter_module.logger).error(...).thenReturn(None)
 
         linter_class = def_linter()
         view = self.create_view(sublime.active_window())
         linter = linter_class(view, {})
         when(util).which('foo').thenReturn('foo.exe')
         when(linter)._communicate(...).thenReturn(OUTPUT)
+        when(linter.logger).error(...).thenReturn(None)
 
         try:
             linter.lint(INPUT, lambda: False)
         except Exception:
             pass
 
-        verify(linter_module.logger).error(
+        verify(linter.logger).error(
             contains("'self.regex' is not defined.")
         )

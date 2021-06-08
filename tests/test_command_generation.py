@@ -15,7 +15,6 @@ from SublimeLinter.tests.mockito import (
     mock,
     unstub,
     verify,
-    verifyNoUnwantedInteractions,
     when,
 )
 
@@ -203,14 +202,14 @@ class TestExecutableSetting(_BaseTestCase):
         linter = FakeLinter(self.view, settings)
         when(linter).notify_failure().thenReturn(None)
         when(util).which(...).thenReturn(None)
-        when(linter_module.logger).error(...)
+        when(linter.logger).error(...)
 
         try:
             linter.lint(INPUT, VIEW_UNCHANGED)
         except linter_module.PermanentError:
             pass
 
-        verify(linter_module.logger).error(
+        verify(linter.logger).error(
             contains(
                 "You set 'executable' to 'my_linter'.  "
                 "However, 'which my_linter' returned nothing.\n"
@@ -230,14 +229,14 @@ class TestExecutableSetting(_BaseTestCase):
         linter = FakeLinter(self.view, settings)
         when(linter).notify_failure().thenReturn(None)
         when(util).which(...).thenReturn(None)
-        when(linter_module.logger).error(...)
+        when(linter.logger).error(...)
 
         try:
             linter.lint(INPUT, VIEW_UNCHANGED)
         except linter_module.PermanentError:
             pass
 
-        verify(linter_module.logger).error(
+        verify(linter.logger).error(
             "You set 'executable' to '/usr/bin/my_linter'.  However, "
             "'/usr/bin/my_linter' does not exist or is not executable. "
         )
@@ -254,14 +253,14 @@ class TestExecutableSetting(_BaseTestCase):
         linter = FakeLinter(self.view, settings)
         when(linter).notify_failure().thenReturn(None)
         when(util).which(...).thenReturn(None)
-        when(linter_module.logger).error(...)
+        when(linter.logger).error(...)
 
         try:
             linter.lint(INPUT, VIEW_UNCHANGED)
         except linter_module.PermanentError:
             pass
 
-        verify(linter_module.logger).error(
+        verify(linter.logger).error(
             contains(
                 "You set 'executable' to ['my_interpreter', 'my_linter'].  "
                 "However, 'which my_interpreter' returned nothing.\n"
@@ -281,14 +280,14 @@ class TestExecutableSetting(_BaseTestCase):
         linter = FakeLinter(self.view, settings)
         when(linter).notify_failure().thenReturn(None)
         when(util).which(...).thenReturn(None)
-        when(linter_module.logger).error(...)
+        when(linter.logger).error(...)
 
         try:
             linter.lint(INPUT, VIEW_UNCHANGED)
         except linter_module.PermanentError:
             pass
 
-        verify(linter_module.logger).error(
+        verify(linter.logger).error(
             "You set 'executable' to ['/usr/bin/my_interpreter', 'my_linter'].  "
             "However, '/usr/bin/my_interpreter' does not exist or is not executable. "
         )
@@ -466,14 +465,10 @@ class TestWorkingDirSetting(_BaseTestCase):
         when('os.path').isdir(dir).thenReturn(False)
 
         linter = FakeLinter(self.view, settings)
-        with expect(linter_module.logger).error(
+        with expect(linter.logger).error(
             "{}: wanted working_dir '{}' is not a directory".format('fakelinter', dir)
         ):
             actual = linter.get_working_dir()
-
-            # Looks like we're using an outdated version of mockito,
-            # which does not automatically verify on `__exit__`.
-            verifyNoUnwantedInteractions(linter_module.logger)
 
         self.assertEqual(None, actual)
 
@@ -679,7 +674,7 @@ class TestContextSensitiveExecutablePathContract(_BaseTestCase):
         linter = FakeLinter(self.view, {})
         when(linter).context_sensitive_executable_path(...).thenReturn((True, None))
 
-        with expect(linter, times=0)._communicate(...):
+        with self.assertRaises(linter_module.PermanentError):
             linter.lint(INPUT, VIEW_UNCHANGED)
 
     def test_returns_false_and_any_indicates_fallback(self):

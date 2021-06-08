@@ -3,7 +3,6 @@
 from functools import lru_cache
 from itertools import chain, takewhile
 import json
-import logging
 import os
 import shutil
 
@@ -14,7 +13,6 @@ if False:
     from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 
-logger = logging.getLogger(__name__)
 HOME = os.path.expanduser('~')
 
 
@@ -80,7 +78,7 @@ class NodeLinter(linter.Linter):
         npm_name = cmd[0]
         start_dir = self.get_start_dir()
         if start_dir:
-            logger.info(
+            self.logger.info(
                 "Searching executable for '{}' starting at '{}'."
                 .format(npm_name, start_dir)
             )
@@ -89,7 +87,7 @@ class NodeLinter(linter.Linter):
                 return True, local_cmd
 
         if self.settings.get('disable_if_not_dependency', False):
-            logger.info(
+            self.logger.info(
                 "Skipping '{}' since it is not installed locally.\n"
                 "You can change this behavior by setting 'disable_if_not_dependency' to 'false'."
                 .format(self.name)
@@ -124,7 +122,7 @@ class NodeLinter(linter.Linter):
                 try:
                     manifest = read_json_file(manifest_file)
                 except Exception as err:
-                    logger.warning(
+                    self.logger.warning(
                         "We found a 'package.json' at {}; however, reading it raised\n  {}"
                         .format(path, str(err))
                     )
@@ -139,7 +137,7 @@ class NodeLinter(linter.Linter):
                     pass
                 else:
                     if not os.path.exists(os.path.join(path, 'node_modules', '.bin')):
-                        logger.warning(
+                        self.logger.warning(
                             "We want to execute 'node {}'; but you should first "
                             "'npm install' this project.".format(script)
                         )
@@ -151,7 +149,7 @@ class NodeLinter(linter.Linter):
                         self.context['project_root'] = path
                         return [node_binary, script]
 
-                    logger.warning(
+                    self.logger.warning(
                         "We want to execute 'node {}'; however, finding a node executable "
                         "failed.".format(script)
                     )
@@ -173,7 +171,7 @@ class NodeLinter(linter.Linter):
                         if yarn_binary:
                             return [yarn_binary, 'run', '--silent', npm_name]
 
-                        logger.warning(
+                        self.logger.warning(
                             "This seems like a Yarn PnP project. However, finding "
                             "a Yarn executable failed. Make sure to install Yarn first."
                         )
@@ -190,7 +188,7 @@ class NodeLinter(linter.Linter):
                             return executable
 
                     package_lock_exists = os.path.exists(os.path.join(path, 'package-lock.json'))
-                    logger.warning(
+                    self.logger.warning(
                         "Skipping '{}' for now which is listed as a {} "
                         "in {} but not installed.  Forgot to '{} install'?"
                         .format(
@@ -216,7 +214,7 @@ class NodeLinter(linter.Linter):
                 if isinstance(result, util.popen_output)
                 else result
             ):
-                logger.warning(
+                self.logger.warning(
                     "We did execute 'yarn run --silent {0}' but "
                     "'{0}' cannot be found.  Forgot to 'yarn install'?"
                     .format(npm_name)

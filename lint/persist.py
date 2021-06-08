@@ -20,7 +20,6 @@ if MYPY:
     LintError = TypedDict('LintError', {
         'line': int,
         'start': int,
-        'end': int,
         'region': sublime.Region,
         'linter': LinterName,
         'error_type': str,

@@ -1,15 +1,11 @@
 """This module exports the RubyLinter subclass of Linter."""
 
-import logging
 import os
 import re
 import shlex
 import sublime
 
 from .. import linter, util
-
-
-logger = logging.getLogger(__name__)
 
 
 CMD_RE = re.compile(r'(?P<gem>.+?)@ruby')
@@ -65,7 +61,7 @@ class RubyLinter(linter.Linter):
 
         if not rbenv and not ruby:
             msg = "{} deactivated, cannot locate ruby, rbenv or rvm-auto-ruby".format(self.name)
-            logger.warning(msg)
+            self.logger.warning(msg)
             return True, None
 
         if isinstance(cmd, str):
@@ -94,7 +90,7 @@ class RubyLinter(linter.Linter):
                     ruby_cmd = [ruby, gem_path]
             else:
                 msg = '{} deactivated, cannot locate the gem \'{}\''.format(self.name, gem)
-                logger.warning(msg)
+                self.logger.warning(msg)
                 return True, None
         else:
             ruby_cmd = [ruby]

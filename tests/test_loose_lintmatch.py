@@ -31,7 +31,7 @@ class TestLooseLintMatch(DeferrableTestCase):
 
         for k in (
             "match", "line", "col", "error", "warning", "message", "near",
-            "filename", "error_type", "code",
+            "filename", "error_type", "code", "end_line", "end_col",
         ):
             self.assertEqual(getattr(rv, k), '' if k == 'message' else None)
 

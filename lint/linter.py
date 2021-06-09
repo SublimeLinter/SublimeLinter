@@ -58,7 +58,9 @@ ACCEPTED_REASONS_PER_MODE = {
 KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
-COMMON_CAPTURING_NAMES = ("filename", "error_type", "code") + LEGACY_LINT_MATCH_DEF
+COMMON_CAPTURING_NAMES = (
+    "filename", "error_type", "code", "end_line", "end_col"
+) + LEGACY_LINT_MATCH_DEF
 
 
 class LintMatch(dict):
@@ -79,6 +81,20 @@ class LintMatch(dict):
         error.quux  # raises AttributeError
 
     """
+
+    if MYPY:
+        match = None       # type: Optional[object]
+        filename = None    # type: Optional[str]
+        line = None        # type: int
+        col = None         # type: Optional[int]
+        end_line = None    # type: Optional[int]
+        end_col = None     # type: Optional[int]
+        error_type = None  # type: Optional[str]
+        code = None        # type: Optional[str]
+        message = None     # type: str
+        error = None       # type: Optional[str]
+        warning = None     # type: Optional[str]
+        near = None        # type: Optional[str]
 
     def __init__(self, *args, **kwargs):
         if len(args) == 7:
@@ -144,21 +160,36 @@ class VirtualView:
         newlines.append(len(code))
 
     def full_line(self, line):
+        # type: (int) -> Tuple[int, int]
         """Return the start/end character positions for the given line."""
         start = self._newlines[line]
         end = self._newlines[min(line + 1, len(self._newlines) - 1)]
-
         return start, end
 
+    def full_line_region(self, line):
+        # type: (int) -> sublime.Region
+        """Return the (full) line region including any trailing newline char."""
+        return sublime.Region(*self.full_line(line))
+
+    def line_region(self, line):
+        # type: (int) -> sublime.Region
+        """Return the line region without the possible trailing newline char."""
+        r = self.full_line_region(line)
+        t = self.substr(r).rstrip('\n')
+        return sublime.Region(r.a, r.a + len(t))
+
     def select_line(self, line):
+        # type: (int) -> str
         """Return code for the given line."""
         start, end = self.full_line(line)
         return self._code[start:end]
 
     def max_lines(self):
+        # type: () -> int
         return len(self._newlines) - 2
 
     def substr(self, region):
+        # type: (sublime.Region) -> str
         return self._code[region.begin():region.end()]
 
     # Actual Sublime API would look like:
@@ -1262,34 +1293,40 @@ class Linter(metaclass=LinterMeta):
 
         """
         error = LintMatch(match.groupdict())
-        error["match"] = match
+        error['match'] = match
+        error['line'] = self.apply_line_base(error.get('line'))
+        error['end_line'] = self.apply_line_base(error.get('end_line'))
+        error['end_col'] = self.apply_col_base(error.get('end_col'))
 
-        # Normalize line and col if necessary
-        try:
-            line = error['line']
-        except KeyError:
-            pass
+        col = error.get('col')
+        if col and not col.isdigit():
+            error['col'] = len(col)
         else:
-            if line:
-                error['line'] = int(line) - self.line_col_base[0]
-            else:  # Exchange the empty string with `None`
-                error['line'] = None
-
-        try:
-            col = error['col']
-        except KeyError:
-            pass
-        else:
-            if col:
-                if col.isdigit():
-                    col = int(col) - self.line_col_base[1]
-                else:
-                    col = len(col)
-                error['col'] = col
-            else:  # Exchange the empty string with `None`
-                error['col'] = None
+            error['col'] = self.apply_col_base(col)
 
         return error
+
+    def apply_line_base(self, val):
+        # type: (Union[int, str, None]) -> Optional[int]
+        if val is None:
+            return None
+        try:
+            v = int(val)
+        except ValueError:
+            return None
+        else:
+            return v - self.line_col_base[0]
+
+    def apply_col_base(self, val):
+        # type: (Union[int, str, None]) -> Optional[int]
+        if val is None:
+            return None
+        try:
+            v = int(val)
+        except ValueError:
+            return None
+        else:
+            return v - self.line_col_base[1]
 
     def process_match(self, m, vv):
         # type: (LintMatch, VirtualView) -> Optional[LintError]
@@ -1317,11 +1354,8 @@ class Linter(metaclass=LinterMeta):
             # use the filename of the current view
             filename = util.get_filename(self.view)
 
-        line = m.line  # type: int
-        col = m.col    # type: Optional[int]
-
         # Ensure `line` is within bounds
-        line = max(min(line, vv.max_lines()), 0)
+        line = max(min(m.line, vv.max_lines()), 0)
         if line != m.line:
             logger.warning(
                 "Reported line '{}' is not within the code we're linting.\n"
@@ -1330,16 +1364,55 @@ class Linter(metaclass=LinterMeta):
                 .format(m.line + self.line_col_base[0])
             )
 
-        if col is not None:
-            # Pin the column to the start/end line offsets
-            start, end = vv.full_line(line)
-            col = max(min(col, (end - start) - 1), 0)
+        line_region = vv.full_line_region(line)
 
-        line, start, end = self.reposition_match(line, col, m, vv)
+        if m.end_line is None and m.end_col is None:
+            col = None if m.col is None else max(min(m.col, len(line_region) - 1), 0)
+            line, start, end = self.reposition_match(line, col, m, vv)
+            line_region = vv.full_line_region(line)  # read again as `line` might have changed
+
+        else:
+            col = 0 if m.col is None else max(min(m.col, len(line_region) - 1), 0)
+            end_line = line if m.end_line is None else max(line, min(m.end_line, vv.max_lines()))
+            end_line_region = vv.line_region(end_line)
+            end_col = (
+                len(end_line_region)
+                if m.end_col is None
+                else max(
+                    col if end_line == line else 0,
+                    min(m.end_col, len(end_line_region))
+                )
+            )
+
+            if m.end_line is not None:
+                if m.end_line < line:
+                    logger.warning(
+                        "Reported end_line '{}' is before the start line '{}'."
+                        .format(m.end_line, line)
+                    )
+                elif end_line != m.end_line:
+                    logger.warning(
+                        "Reported end_line '{}' is not within the code we're linting.\n"
+                        "Maybe the linter reports problems from multiple files "
+                        "or `line_col_base` is not set or applied correctly."
+                        .format(m.end_line)
+                    )
+
+            if m.end_col is not None:
+                if end_line == line and m.end_col < col:
+                    logger.warning(
+                        "Reported end_col '{}' is before the start col '{}'."
+                        .format(m.end_col, col)
+                    )
+
+            for _line in range(line, end_line):
+                text = vv.select_line(_line)
+                end_col += len(text)
+
+            line, start, end = line, col, end_col
 
         # find the region to highlight for this error
-        line_start, _ = vv.full_line(line)
-        region = sublime.Region(line_start + start, line_start + end)
+        region = sublime.Region(line_region.a + start, line_region.a + end)
         if len(region) == 0:
             region.b += 1
         offending_text = vv.substr(region)

@@ -178,7 +178,7 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
 
 
 PROPERTIES_FOR_UID = (
-    'filename', 'linter', 'line', 'start', 'end', 'error_type', 'code', 'msg',
+    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
 )
 
 
@@ -201,37 +201,22 @@ def finalize_errors(linter, errors, offsets):
     line_offset, col_offset, pt_offset = offsets
 
     for error in errors:
-        error.setdefault('filename', view_filename)
         belongs_to_main_file = (
             os.path.normcase(error['filename']) == os.path.normcase(view_filename)
         )
 
-        line, start, end = error['line'], error['start'], error['end']
+        region, line, start = error['region'], error['line'], error['start']
         if belongs_to_main_file:  # offsets are for the main file only
             if line == 0:
                 start += col_offset
-                end += col_offset
-
             line += line_offset
-
-        try:
-            region = error['region']
-        except KeyError:
-            line_start = view.text_point(line, 0)
-            region = sublime.Region(line_start + start, line_start + end)
-            if len(region) == 0:
-                region.b = region.b + 1
-
-        else:
-            if belongs_to_main_file:  # offsets are for the main file only
-                region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
+            region = sublime.Region(region.a + pt_offset, region.b + pt_offset)
 
         error.update({
             'linter': linter_name,
             'region': region,
             'line': line,
             'start': start,
-            'end': end,
         })
 
         error.update({

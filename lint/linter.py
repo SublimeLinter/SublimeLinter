@@ -1367,9 +1367,10 @@ class Linter(metaclass=LinterMeta):
         line_region = vv.full_line_region(line)
 
         if m.end_line is None and m.end_col is None:
-            col = None if m.col is None else max(min(m.col, len(line_region) - 1), 0)
-            line, start, end = self.reposition_match(line, col, m, vv)
+            _col = None if m.col is None else max(min(m.col, len(line_region) - 1), 0)
+            line, col, end = self.reposition_match(line, _col, m, vv)
             line_region = vv.full_line_region(line)  # read again as `line` might have changed
+            region = sublime.Region(line_region.a + col, line_region.a + end)
 
         else:
             col = 0 if m.col is None else max(min(m.col, len(line_region) - 1), 0)
@@ -1405,14 +1406,8 @@ class Linter(metaclass=LinterMeta):
                         .format(m.end_col, col)
                     )
 
-            for _line in range(line, end_line):
-                text = vv.select_line(_line)
-                end_col += len(text)
+            region = sublime.Region(line_region.a + col, end_line_region.a + end_col)
 
-            line, start, end = line, col, end_col
-
-        # find the region to highlight for this error
-        region = sublime.Region(line_region.a + start, line_region.a + end)
         if len(region) == 0:
             region.b += 1
         offending_text = vv.substr(region)
@@ -1420,8 +1415,7 @@ class Linter(metaclass=LinterMeta):
         return {
             "filename": filename,
             "line": line,
-            "start": start,
-            "end": end,
+            "start": col,
             "region": region,
             "error_type": error_type,
             "code": code,

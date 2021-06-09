@@ -1,7 +1,6 @@
 """This module exports the PythonLinter subclass of Linter."""
 
 from functools import lru_cache
-import logging
 import os
 import re
 
@@ -11,9 +10,6 @@ from .. import linter, util
 
 if False:
     from typing import List, Optional, Tuple, Union
-
-
-logger = logging.getLogger(__name__)
 
 
 class PythonLinter(linter.Linter):
@@ -40,7 +36,7 @@ class PythonLinter(linter.Linter):
         # `python` can be number or a string. If it is a string it should
         # point to a python environment, NOT a python binary.
         python = self.settings.get('python', None)
-        logger.info(
+        self.logger.info(
             "{}: wanted python is '{}'".format(self.name, python)
         )
 
@@ -51,7 +47,7 @@ class PythonLinter(linter.Linter):
             if VERSION_RE.match(python):
                 python_bin = find_python_version(python)
                 if python_bin is None:
-                    logger.error(
+                    self.logger.error(
                         "{} deactivated, cannot locate '{}' "
                         "for given python '{}'"
                         .format(self.name, cmd_name, python)
@@ -59,7 +55,7 @@ class PythonLinter(linter.Linter):
                     # Do not fallback, user specified something we didn't find
                     return True, None
 
-                logger.info(
+                self.logger.info(
                     "{}: Using '{}' for given python '{}'"
                     .format(self.name, python_bin, python)
                 )
@@ -67,7 +63,7 @@ class PythonLinter(linter.Linter):
 
             else:
                 if not os.path.exists(python):
-                    logger.error(
+                    self.logger.error(
                         "{} deactivated, cannot locate '{}'"
                         .format(self.name, python)
                     )
@@ -78,10 +74,9 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        cwd = self.get_working_dir()
-        executable = ask_pipenv(cmd_name, cwd)
+        executable = self._ask_pipenv(cmd_name)
         if executable:
-            logger.info(
+            self.logger.info(
                 "{}: Using {} according to 'pipenv'"
                 .format(self.name, executable)
             )
@@ -90,19 +85,45 @@ class PythonLinter(linter.Linter):
         # Should we try a `pyenv which` as well? Problem: I don't have it,
         # it's MacOS only.
 
-        logger.info(
+        self.logger.info(
             "{}: trying to use globally installed {}"
             .format(self.name, cmd_name)
         )
         # fallback, similiar to a which(cmd)
         executable = util.which(cmd_name)
         if executable is None:
-            logger.warning(
+            self.logger.warning(
                 "cannot locate '{}'. Fill in the 'python' or "
                 "'executable' setting."
                 .format(self.name)
             )
         return True, executable
+
+    def _ask_pipenv(self, linter_name):
+        # type: (str) -> Optional[str]
+        """Ask pipenv for a virtual environment and maybe resolve the linter."""
+        # Some pre-checks bc `pipenv` is super slow
+        cwd = self.get_working_dir()
+        if cwd is None:
+            return None
+
+        pipfile = os.path.join(cwd, 'Pipfile')
+        if not os.path.exists(pipfile):
+            return None
+
+        try:
+            venv = ask_pipenv_for_venv(linter_name, cwd)
+        except Exception:
+            return None
+
+        executable = find_script_by_python_env(venv, linter_name)
+        if not executable:
+            self.logger.info(
+                "{} is not installed in the virtual env at '{}'."
+                .format(linter_name, venv)
+            )
+            return None
+        return executable
 
 
 def find_python_version(version):
@@ -118,37 +139,18 @@ def find_python_version(version):
 
 
 def find_script_by_python_env(python_env_path, script):
+    # type: (str, str) -> Optional[str]
     """Return full path to a script, given a python environment base dir."""
     posix = sublime.platform() in ('osx', 'linux')
-
     if posix:
         full_path = os.path.join(python_env_path, 'bin', script)
     else:
         full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
 
-    logger.info("trying {}".format(full_path))
     if os.path.exists(full_path):
         return full_path
 
     return None
-
-
-def ask_pipenv(linter_name, cwd):
-    """Ask pipenv for a virtual environment and maybe resolve the linter."""
-    # Some pre-checks bc `pipenv` is super slow
-    if cwd is None:
-        return
-
-    pipfile = os.path.join(cwd, 'Pipfile')
-    if not os.path.exists(pipfile):
-        return
-
-    try:
-        venv = ask_pipenv_for_venv(linter_name, cwd)
-    except Exception:
-        return
-
-    return find_script_by_python_env(venv, linter_name)
 
 
 @lru_cache(maxsize=None)

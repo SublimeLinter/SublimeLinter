@@ -466,6 +466,7 @@ class LinterMeta(type):
         name = attrs.get('name') or cls_name.lower()
         setattr(cls, 'disabled', None)
         setattr(cls, 'name', name)
+        cls.logger = logging.getLogger('SublimeLinter.plugin.{}'.format(name))
 
         # BEGIN DEPRECATIONS
         for key in ('syntax', 'selectors'):
@@ -664,6 +665,7 @@ class Linter(metaclass=LinterMeta):
     # Public attributes
     #
     name = ''
+    logger = None  # type: logging.Logger
 
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
@@ -803,8 +805,8 @@ class Linter(metaclass=LinterMeta):
             })
 
     def on_stderr(self, output):
-        logger.warning('{} output:\n{}'.format(self.name, output))
-        logger.info(
+        self.logger.warning('{} output:\n{}'.format(self.name, output))
+        self.logger.info(
             'Note: above warning will become an error in the future. '
             'Implement `on_stderr` if you think this is wrong.')
         self.notify_failure()
@@ -865,7 +867,7 @@ class Linter(metaclass=LinterMeta):
         else:
             path = self.which(which)
             if not path:
-                logger.warning(
+                self.logger.warning(
                     "{} cannot locate '{}'\n"
                     "Please refer to the readme of this plugin and our troubleshooting guide: "
                     "http://www.sublimelinter.com/en/stable/troubleshooting.html"
@@ -912,11 +914,11 @@ class Linter(metaclass=LinterMeta):
                         "http://www.sublimelinter.com/en/stable/troubleshooting.html"
                         .format(executable, wanted_executable)
                     )
-                logger.error(message)
+                self.logger.error(message)
                 self.notify_failure()
                 raise PermanentError()
 
-            logger.info(
+            self.logger.info(
                 "{}: wanted executable is {!r}".format(self.name, executable)
             )
             return True, [resolved_executable] + rest
@@ -1028,7 +1030,7 @@ class Linter(metaclass=LinterMeta):
             if os.path.isdir(cwd):
                 return cwd
             else:
-                logger.error(
+                self.logger.error(
                     "{}: wanted working_dir '{}' is not a directory"
                     .format(self.name, cwd)
                 )
@@ -1072,7 +1074,7 @@ class Linter(metaclass=LinterMeta):
                     matched = fnmatch(filename, pattern)
 
                 if matched:
-                    logger.info(
+                    cls.logger.info(
                         "{} skipped '{}', excluded by '{}'"
                         .format(cls.name, filename, pattern)
                     )
@@ -1104,7 +1106,7 @@ class Linter(metaclass=LinterMeta):
             return False
 
         if reason not in KNOWN_REASONS:  # be open
-            logger.info(
+            cls.logger.info(
                 "{}: Unknown reason '{}' is okay."
                 .format(cls.name, reason)
             )
@@ -1112,7 +1114,7 @@ class Linter(metaclass=LinterMeta):
 
         lint_mode = settings.get('lint_mode')
         if lint_mode not in ACCEPTED_REASONS_PER_MODE:
-            logger.warning(
+            cls.logger.warning(
                 "{}: Unknown lint mode '{}'.  "
                 "Check your SublimeLinter settings for typos."
                 .format(cls.name, lint_mode)
@@ -1120,7 +1122,7 @@ class Linter(metaclass=LinterMeta):
             return True
 
         ok = reason in ACCEPTED_REASONS_PER_MODE[lint_mode]
-        logger.info(
+        cls.logger.info(
             "{}: Checking lint mode '{}' vs lint reason '{}'.  {}"
             .format(cls.name, lint_mode, reason, 'Ok.' if ok else 'Skip.')
         )
@@ -1137,7 +1139,7 @@ class Linter(metaclass=LinterMeta):
         - If the view has been modified in between, stop.
         - Parse the linter output with the regex.
         """
-        logger.info(
+        self.logger.info(
             "{}: linting '{}'"
             .format(self.name, util.canonical_filename(self.view)))
 
@@ -1171,13 +1173,13 @@ class Linter(metaclass=LinterMeta):
                 try:
                     filters.append(re.compile(pattern, re.I))
                 except re.error as err:
-                    logger.error(
+                    self.logger.error(
                         "'{}' in 'filter_errors' is not a valid "
                         "regex pattern: '{}'.".format(pattern, err)
                     )
 
         except TypeError:
-            logger.error(
+            self.logger.error(
                 "'filter_errors' must be set to a string or a list of strings.\n"
                 "Got '{}' instead".format(filter_patterns))
 
@@ -1215,12 +1217,12 @@ class Linter(metaclass=LinterMeta):
     def parse_output_via_regex(self, output, virtual_view):
         # type: (str, VirtualView) -> Iterator[LintError]
         if not output:
-            logger.info('{}: no output'.format(self.name))
+            self.logger.info('{}: no output'.format(self.name))
             return
 
-        if logger.isEnabledFor(logging.INFO):
+        if self.logger.isEnabledFor(logging.INFO):
             import textwrap
-            logger.info('{}: output:\n{}'.format(
+            self.logger.info('{}: output:\n{}'.format(
                 self.name, textwrap.indent(output.strip(), '  ')))
 
         for m in self.find_errors(output):
@@ -1245,7 +1247,7 @@ class Linter(metaclass=LinterMeta):
         in output.
         """
         if not self.regex:
-            logger.error(
+            self.logger.error(
                 "{}: 'self.regex' is not defined.  If this is intentional "
                 "because e.g. the linter reports JSON, implement your own "
                 "'def find_errors(self, output)'."
@@ -1260,7 +1262,7 @@ class Linter(metaclass=LinterMeta):
         if self.multiline:
             matches = list(self.regex.finditer(output))
             if not matches:
-                logger.info(
+                self.logger.info(
                     '{}: No matches for regex: {}'.format(self.name, self.regex.pattern))
                 return
 
@@ -1272,7 +1274,7 @@ class Linter(metaclass=LinterMeta):
                 if match:
                     yield self.split_match(match)
                 else:
-                    logger.info(
+                    self.logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))
 
     def split_match(self, match):
@@ -1347,7 +1349,7 @@ class Linter(metaclass=LinterMeta):
                 vv = VirtualView.from_file(filename)
             except OSError as err:
                 # warn about the error and drop this match
-                logger.warning(
+                self.logger.warning(
                     "{} reported errors coming from '{}'. "
                     "However, reading that file raised:\n  {}."
                     .format(self.name, filename, str(err))
@@ -1361,7 +1363,7 @@ class Linter(metaclass=LinterMeta):
         # Ensure `line` is within bounds
         line = max(min(m.line, vv.max_lines()), 0)
         if line != m.line:
-            logger.warning(
+            self.logger.warning(
                 "Reported line '{}' is not within the code we're linting.\n"
                 "Maybe the linter reports problems from multiple files "
                 "or `line_col_base` is not set correctly."
@@ -1391,12 +1393,12 @@ class Linter(metaclass=LinterMeta):
 
             if m.end_line is not None:
                 if m.end_line < line:
-                    logger.warning(
+                    self.logger.warning(
                         "Reported end_line '{}' is before the start line '{}'."
                         .format(m.end_line, line)
                     )
                 elif end_line != m.end_line:
-                    logger.warning(
+                    self.logger.warning(
                         "Reported end_line '{}' is not within the code we're linting.\n"
                         "Maybe the linter reports problems from multiple files "
                         "or `line_col_base` is not set or applied correctly."
@@ -1405,7 +1407,7 @@ class Linter(metaclass=LinterMeta):
 
             if m.end_col is not None:
                 if end_line == line and m.end_col < col:
-                    logger.warning(
+                    self.logger.warning(
                         "Reported end_col '{}' is before the start col '{}'."
                         .format(m.end_col, col)
                     )
@@ -1646,7 +1648,7 @@ class Linter(metaclass=LinterMeta):
             try:
                 suffix = self.tempfile_suffix[syntax]
             except KeyError:
-                logger.info(
+                self.logger.info(
                     'No default filename suffix for the syntax `{}` '
                     'defined in `tempfile_suffix`.'.format(syntax)
                 )
@@ -1684,16 +1686,16 @@ class Linter(metaclass=LinterMeta):
             )
         except Exception as err:
             augmented_env = dict(ChainMap(*env.maps[0:-1]))
-            logger.error(make_nice_log_message(
+            self.logger.error(make_nice_log_message(
                 '  Execution failed\n\n  {}'.format(str(err)),
                 cmd, uses_stdin, cwd, view, augmented_env))
 
             self.notify_failure()
             raise PermanentError("popen constructor failed")
 
-        if logger.isEnabledFor(logging.INFO):
+        if self.logger.isEnabledFor(logging.INFO):
             augmented_env = dict(ChainMap(*env.maps[0:-1]))
-            logger.info(make_nice_log_message(
+            self.logger.info(make_nice_log_message(
                 'Running ...', cmd, uses_stdin, cwd, view, env=augmented_env))
 
         bid = view.buffer_id()
@@ -1704,11 +1706,13 @@ class Linter(metaclass=LinterMeta):
             except BrokenPipeError as err:
                 friendly_terminated = getattr(proc, 'friendly_terminated', False)
                 if friendly_terminated:
-                    logger.info('Broken pipe after friendly terminating '
-                                '<pid {}>'.format(proc.pid))
+                    self.logger.info(
+                        'Broken pipe after friendly terminating '
+                        '<pid {}>'.format(proc.pid)
+                    )
                     raise TransientError('Friendly terminated')
                 else:
-                    logger.warning('Exception: {}'.format(str(err)))
+                    self.logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
                     raise PermanentError("non-friendly broken pipe")
 
@@ -1717,7 +1721,7 @@ class Linter(metaclass=LinterMeta):
                 # We just eat them here for user convenience, although there
                 # is no deeper knowledge about why this happens.
                 if err.errno == 9:
-                    logger.warning('Exception: {}'.format(str(err)))
+                    self.logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
                     raise TransientError('Bad File Descriptor')
                 else:

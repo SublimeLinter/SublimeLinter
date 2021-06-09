@@ -1,0 +1,22 @@
+SublimeLinter 4.17.0
+
+Mostly shipping maintenance, we have two notable changes for plugins:
+
+- Beside the obvious `line` and `col` you can now capture `end_line` and
+  `end_col` in the regexes.  The low level `LintMatch` usually used with JSON
+  formats also understands these keys of course.
+
+- If a plugin wants to log something, no need to `import logging; ...` anymore,
+  as there is a configured `self.logger` now.
+
+  As a reminder:
+
+  * `self.logger.info("message")` only emits in debug mode
+  * `self.logger.warning("message")` always emits to Sublime's builtin console
+  * `self.logger.error("message")` popups a panel (usually don't!)
+
+
+
+https://github.com/SublimeLinter/SublimeLinter/compare/4.16.3...4.17.0
+
+

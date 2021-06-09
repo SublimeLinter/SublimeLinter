@@ -307,6 +307,8 @@ def _compute_flags(error):
     flags = MARK_STYLES[mark_style]
     if not persist.settings.get('show_marks_in_minimap'):
         flags |= sublime.HIDE_ON_MINIMAP
+    if error['region'].empty():
+        flags |= sublime.DRAW_EMPTY_AS_OVERWRITE
     return flags
 
 
@@ -413,6 +415,13 @@ class Squiggle(str):
     def visible(self):
         # type: () -> bool
         return bool(self.icon or (self.scope and not self.flags == sublime.HIDDEN))
+
+    def intentional_empty(self):
+        # type: () -> bool
+        return (
+            self.flags & sublime.DRAW_EMPTY_AS_OVERWRITE
+            == sublime.DRAW_EMPTY_AS_OVERWRITE
+        )
 
 
 def get_demote_scope():
@@ -568,6 +577,7 @@ def revalidate_regions(view):
 
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
+    eof = view.size()
     for key in region_keys:
         if isinstance(key, Squiggle) and key.visible():
             # We can have keys without any region drawn for example
@@ -595,7 +605,17 @@ def revalidate_regions(view):
             filtered_regions = [
                 region
                 for region in regions
-                if not region.empty()
+                if not region.empty() or (
+                    # There is no 1:1 mapping from a GutterKey to an error as
+                    # it is for Squiggles, so we can't have an
+                    # `intentional_empty` flag either.  Thus, we do the right
+                    # thing by observing:
+                    # Keep the icon for an empty region, if it's at EOF
+                    # position *and* the cursor is not in it. This is probably
+                    # good enough for an edge case.
+                    region.a == eof
+                    and not any(region.contains(s) for s in selections)
+                )
             ]
             if len(filtered_regions) != len(regions):
                 draw_view_region(view, key, filtered_regions)
@@ -622,20 +642,24 @@ def maybe_update_error_store(view):
         # XXX: Why keep the error in the store when we don't have
         # a region key for it in the store?
         key = uid_key_map.get(uid, None)
-        region = head(view.get_regions(key)) if key else None
+        if key is None:
+            new_errors.append(error)
+            continue
+
+        region = head(view.get_regions(key))
         if region is None or region == error['region']:
             new_errors.append(error)
             continue
-        else:
-            changed = True
 
-        if region.empty():
+        changed = True
+
+        if region.empty() and not key.intentional_empty():
             # Either the user edited away our region (and the error)
             # or: Dangle! Sublime has invalidated our region, it has
             # zero length (and moved to a different line at col 0).
             # It is useless now so we remove the error by not
             # copying it.
-            erase_view_region(view, key)  # type: ignore
+            erase_view_region(view, key)
             continue
 
         line, start = view.rowcol(region.begin())

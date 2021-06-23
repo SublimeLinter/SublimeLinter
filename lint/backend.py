@@ -252,7 +252,7 @@ def run_concurrently(tasks, executor):
     try:
         return [future.result() for future in done]
     except Exception:
-        # The catch-all will obviously catch any expections coming from the
+        # The catch-all will obviously catch any exceptions coming from the
         # actual task/future. But it will also catch 'CancelledError's from
         # the executor machinery.
         return None

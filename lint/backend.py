@@ -2,7 +2,7 @@ import sublime
 
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from itertools import chain, count
-from functools import partial
+from functools import lru_cache, partial
 import hashlib
 import logging
 import multiprocessing
@@ -83,17 +83,23 @@ def warn_excessive_tasks(view, uow):
             "{}x {}".format(len(tasks), linter_name)
             for linter_name, tasks in uow.items()
         )
-        logger.warning(
+        excess_warning(
             "'{}' puts in total {}(!) tasks on the queue:  {}."
             .format(short_canonical_filename(view), total_tasks, linter_info)
         )
     else:
         for linter_name, tasks in uow.items():
             if len(tasks) > 3:
-                logger.warning(
+                excess_warning(
                     "'{}' puts {} {} tasks on the queue."
                     .format(short_canonical_filename(view), len(tasks), linter_name)
                 )
+
+
+@lru_cache(4)
+def excess_warning(msg):
+    # type: (str) -> None
+    logger.warning(msg)
 
 
 def tasks_per_linter(view, view_has_changed, linter_class, settings):

@@ -51,13 +51,3 @@ If your issue is specific to a particular linter, please report it on that linte
 
 Fork the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
 It contains a howto with all the information you need.
-
----------------------------
-
-
-If you use SublimeLinter and feel it is making your coding life better and easier,
-please consider making a donation for all the coffee and beer involved in this project.
-Thank you!
-
-Donate via: 
-* [**Paypal**](https://paypal.me/pools/c/82jmBQtUbY)

@@ -1,6 +1,7 @@
 from collections import defaultdict
 from functools import partial
 from itertools import chain
+import webbrowser
 import re
 
 import sublime
@@ -430,6 +431,56 @@ def fix_mypy_error(error, view):
         )
     )
 
+SHELLCHECK_CODE_PATTERN=r"\[(?P<code>SC\d+)\]$"
+
+@ignore_rules_inline("shellcheck")
+def fix_shellcheck_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
+
+    code = match.groups("code")[0]
+
+    yield (
+        extend_existing_comment(
+            r"# shellcheck disable=(?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
+            ",",
+            {code},
+            read_previous_line(view, line)
+        )
+        or insert_preceding_line(
+            "# shellcheck disable={}".format(code),
+            line
+        )
+    )
+
+
+@quick_actions_for("shellcheck")
+def shellcheck_goto_documentation(errors, view):
+    # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+    if view:
+        region = view.sel()[0]
+
+        for error in errors:
+            match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
+
+            code = match.groups("code")[0];
+
+            yield QuickAction(
+                "shellcheck: Open documentation — {}".format(error['msg']),
+                # partial(eslint_ignore_block, errors, region),
+                partial(shellcheck_open_documentation_in_browser, code, region),
+                "",
+                solves=[]
+            )
+
+def shellcheck_open_documentation_in_browser(errorCode, region, view):
+    # type: (List[LintError], sublime.Region, sublime.View) -> Iterator[TextRange]
+    webbrowser.open_new_tab("https://github.com/koalaman/shellcheck/wiki/{}".format(errorCode))
+
+    # return generator without any text commands
+    return
+    yield
 
 def line_from_point(view, pt):
     # type: (sublime.View, int) -> TextRange

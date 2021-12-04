@@ -335,3 +335,25 @@ class TestIgnoreFixers(DeferrableTestCase):
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
+            "clean line",
+            "r|esult=$variable",
+            "# shellcheck disable=SC2154\nresult=$variable"
+        ),
+        (
+            "add to existing rule",
+            "# shellcheck disable=SC2154\nr|esult=$variable"
+            "# shellcheck disable=SC2154,SC2154\nresult=$variable"
+        ),
+    ])
+    def test_eslint(self, _description, BEFORE, AFTER):
+        view = self.create_view(self.window)
+        BEFORE, POS = "".join(BEFORE.split("|")), BEFORE.index("|")
+        view.run_command("insert", {"characters": BEFORE})
+        error = dict(code="SC2154", region=sublime.Region(POS))
+        edit = fix_eslint_error(error, view)
+        apply_edits(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)

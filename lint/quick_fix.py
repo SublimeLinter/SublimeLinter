@@ -431,7 +431,7 @@ def fix_mypy_error(error, view):
     )
 
 
-SHELLCHECK_CODE_PATTERN=r"\[(?P<code>SC\d+)\]$"
+SHELLCHECK_CODE_PATTERN = r"\[(?P<code>SC\d+)\]$"
 
 
 @ignore_rules_inline("shellcheck")

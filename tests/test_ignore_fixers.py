@@ -13,6 +13,7 @@ from SublimeLinter.lint.quick_fix import (
     fix_flake8_error,
     fix_mypy_error,
     fix_stylelint_error,
+    fix_shellcheck_error,
     ignore_rules_actions,
 
 
@@ -353,7 +354,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         BEFORE, POS = "".join(BEFORE.split("|")), BEFORE.index("|")
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="SC2154", region=sublime.Region(POS))
-        edit = fix_eslint_error(error, view)
+        edit = fix_shellcheck_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

@@ -1,7 +1,6 @@
 from collections import defaultdict
 from functools import partial
 from itertools import chain
-import webbrowser
 import re
 
 import sublime
@@ -431,6 +430,10 @@ def fix_mypy_error(error, view):
         )
     )
 
+
+SHELLCHECK_CODE_PATTERN=r"\[(?P<code>SC\d+)\]$"
+
+
 @ignore_rules_inline("shellcheck")
 def fix_shellcheck_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
@@ -451,6 +454,7 @@ def fix_shellcheck_error(error, view):
             line
         )
     )
+
 
 def line_from_point(view, pt):
     # type: (sublime.View, int) -> TextRange

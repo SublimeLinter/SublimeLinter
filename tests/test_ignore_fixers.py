@@ -344,11 +344,11 @@ class TestIgnoreFixers(DeferrableTestCase):
         ),
         (
             "add to existing rule",
-            "# shellcheck disable=SC2154\nr|esult=$variable"
+            "# shellcheck disable=SC2154\nr|esult=$variable",
             "# shellcheck disable=SC2154,SC2154\nresult=$variable"
         ),
     ])
-    def test_eslint(self, _description, BEFORE, AFTER):
+    def test_shellcheck(self, _description, BEFORE, AFTER):
         view = self.create_view(self.window)
         BEFORE, POS = "".join(BEFORE.split("|")), BEFORE.index("|")
         view.run_command("insert", {"characters": BEFORE})

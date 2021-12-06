@@ -431,6 +431,31 @@ def fix_mypy_error(error, view):
     )
 
 
+SHELLCHECK_CODE_PATTERN = r"\[(?P<code>SC\d+)\]$"
+
+
+@ignore_rules_inline("shellcheck")
+def fix_shellcheck_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
+
+    code = match.groups("code")[0]
+
+    yield (
+        extend_existing_comment(
+            r"# shellcheck disable=(?P<codes>[\w\-/]+(?:,\s?[\w\-/]+)*)(?P<comment>\s+-{2,})?",
+            ",",
+            {code},
+            read_previous_line(view, line)
+        )
+        or insert_preceding_line(
+            "# shellcheck disable={}".format(code),
+            line
+        )
+    )
+
+
 def line_from_point(view, pt):
     # type: (sublime.View, int) -> TextRange
     line_region = view.line(pt)

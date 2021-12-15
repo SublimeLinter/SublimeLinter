@@ -2,8 +2,8 @@ name: flake8
 
 on:
   schedule:
-    # flake8 regulary has breaking changes, so we re-check
-    # regulary as well.
+    # flake8 regularly has breaking changes, so we re-check
+    # regularly as well.
     - cron:  '0 9 * * 1'
 
   push:

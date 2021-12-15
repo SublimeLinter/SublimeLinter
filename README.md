@@ -1,7 +1,7 @@
 SublimeLinter
 =============
 
-[![Build Status](https://img.shields.io/travis/SublimeLinter/SublimeLinter/master.svg)](https://travis-ci.org/SublimeLinter/SublimeLinter)
+[![tests](https://github.com/SublimeLinter/SublimeLinter/actions/workflows/test.yml/badge.svg)](https://github.com/SublimeLinter/SublimeLinter/actions/workflows/test.yml)
 
 The code linting framework for [Sublime Text](http://sublimetext.com/).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).

@@ -23,6 +23,7 @@ if MYPY:
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
     Fix = Callable[[sublime.View], Iterator[TextRange]]
+    LintErrorPredicate = Callable[[LintError], bool]
 
 else:
     from collections import namedtuple
@@ -77,6 +78,7 @@ def apply_edits(view, edits):
 if MYPY:
     Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
     T_provider = TypeVar("T_provider", bound=Provider)
+    T_fixer = TypeVar("T_fixer", bound=Fixer)
 
 PROVIDERS = defaultdict(
     dict
@@ -102,6 +104,8 @@ def quick_actions_for(linter_name):
 
     return register
 
+
+TrueFn = lambda _: True
 
 def ignore_rules_inline(
     linter_name,
@@ -196,32 +200,41 @@ def group_by(key, iterable):
     return grouped
 
 
-def fix(linter_name, only_for=set()):
-    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
-    if isinstance(only_for, str):
-        only_for = {only_for}
+def provide_fix_for(linter_name, when=TrueFn):
+    # type: (str, LintErrorPredicate) -> Callable[[T_fixer], T_fixer]
+
+    def provider_(fixer, errors, _view):
+        # type: (Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+        return (
+            QuickAction(
+                "{linter}: Fix {code} {msg}".format(**error),
+                partial(fixer, error),
+                "",
+                solves=[error]
+            )
+            for error in errors
+            if when(error)
+        )
 
     def register(fn):
-        # type: (Fixer) -> Fixer
+        # type: (T_fixer) -> T_fixer
         ns_name = namespacy_name(fn)
-        provider = partial(std_fix_provider, linter_name, only_for, fn)
+        provider = partial(provider_, fn)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
     return register
 
 
-def std_fix_provider(linter_name, only_for, fixer, errors, _view):
-    return (
-        QuickAction(
-            "{linter}: Fix {code} {msg}".format(**error),
-            partial(fixer, error),
-            "",
-            solves=[error]
-        )
-        for error in errors
-        if error["code"] in only_for or not only_for
-    )
+def fix(linter_name, only_for=set()):
+    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
+    if isinstance(only_for, str):
+        only_for = {only_for}
+
+    def predicate(error):
+        return error["code"] in only_for
+
+    return provide_fix_for(linter_name, when=predicate if only_for else TrueFn)
 
 
 # --- FIXERS --- #

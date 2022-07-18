@@ -13,9 +13,10 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, Final, Iterable, Iterator, List,
+        Callable, DefaultDict, Dict, Iterable, Iterator, List,
         NamedTuple, Optional, Set, TypeVar, Union
     )
+    from typing_extensions import Final
     T = TypeVar("T")
     S = TypeVar("S")
     LintError = persist.LintError

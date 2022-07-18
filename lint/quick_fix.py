@@ -429,7 +429,23 @@ def fix_e266(error, view):
     )
 
 
-@ignore_rules_inline("mypy", except_for={"syntax"})
+@provide_fix_for("mypy", lambda e: e["msg"] == 'Unused "type: ignore" comment')
+def fix_mypy_unused_ignore(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(r"\s*#\s*type:\s*ignore\[.+]", line.text)
+    if match:
+        a, b = match.span()
+        yield TextRange("", sublime.Region(line.range.a + a, line.range.a + b))
+
+
+@ignore_rules_inline(
+    "mypy",
+    except_for=lambda e: (
+        e.get("code") == "syntax"
+        or e["msg"] == 'Unused "type: ignore" comment'
+    )
+)
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)

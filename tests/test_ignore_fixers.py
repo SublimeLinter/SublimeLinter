@@ -87,7 +87,12 @@ class TestActionReducer(DeferrableTestCase):
         except_for = set()
 
         actions = ignore_rules_actions(
-            DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS, None
+            DEFAULT_SUBJECT,
+            DEFAULT_DETAIL,
+            lambda e: not e["code"] or e["code"] in except_for,
+            fixer,
+            ERRORS,
+            None
         )
         self.assertEquals(RESULT, [action.description for action in actions])
 

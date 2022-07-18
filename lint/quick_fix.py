@@ -106,18 +106,26 @@ def quick_actions_for(linter_name):
 
 
 TrueFn = lambda _: True
+FalseFn = lambda _: False
+
 
 def ignore_rules_inline(
     linter_name,
     subject=DEFAULT_SUBJECT,
     detail=DEFAULT_DETAIL,
-    except_for=set()
+    except_for=FalseFn
 ):
-    # type: (str, str, str, Set[str]) -> Callable[[Fixer], Fixer]
+    # type: (str, str, str, Union[Set[str], LintErrorPredicate]) -> Callable[[Fixer], Fixer]
+
+    if callable(except_for):
+        except_for_ = except_for
+    else:
+        except_for_ = lambda e: not e["code"] or e["code"] in except_for  # type: ignore[operator]
+
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
-        provider = partial(ignore_rules_actions, subject, detail, except_for, fn)
+        provider = partial(ignore_rules_actions, subject, detail, except_for_, fn)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
@@ -126,7 +134,7 @@ def ignore_rules_inline(
 
 
 def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
-    # type: (str, str, Set[str], Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+    # type: (str, str, LintErrorPredicate, Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
         subject.format(**error),
         partial(fixer, error),
@@ -136,7 +144,7 @@ def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
 
     grouped_by_code = group_by(
         lambda e: e["code"],
-        (e for e in errors if e["code"] and e["code"] not in except_for)
+        (e for e in errors if not except_for(e))
     )
     for code, errors_with_same_code in sorted(grouped_by_code.items()):
         grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)

@@ -440,7 +440,7 @@ def fix_shellcheck_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
-
+    assert match
     code = match.groups("code")[0]
 
     yield (

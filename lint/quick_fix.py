@@ -76,7 +76,7 @@ def apply_edits(view, edits):
 
 if MYPY:
     Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
-    F = TypeVar("F", bound=Provider)
+    T_provider = TypeVar("T_provider", bound=Provider)
 
 PROVIDERS = defaultdict(
     dict
@@ -92,9 +92,9 @@ def namespacy_name(fn):
 
 
 def quick_actions_for(linter_name):
-    # type: (str) -> Callable[[F], F]
+    # type: (str) -> Callable[[T_provider], T_provider]
     def register(fn):
-        # type: (F) -> F
+        # type: (T_provider) -> T_provider
         ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = fn
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]

@@ -145,8 +145,8 @@ class ErrorPanelHandler(logging.Handler):
 
             shown_error_messages[wid].add(rest)
 
-            beaty_msg = '\n'.join([header, '=' * len(header), rest])
-            util.show_message(beaty_msg, window)
+            formatted_message = '\n'.join([header, '=' * len(header), rest])
+            util.show_message(formatted_message, window)
         except Exception:
             self.handleError(record)
 

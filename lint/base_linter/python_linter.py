@@ -86,7 +86,7 @@ class PythonLinter(linter.Linter):
             "{}: trying to use globally installed {}"
             .format(self.name, cmd_name)
         )
-        # fallback, similiar to a which(cmd)
+        # fallback, similar to a which(cmd)
         executable = util.which(cmd_name)
         if executable is None:
             self.logger.warning(

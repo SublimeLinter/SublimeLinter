@@ -466,6 +466,7 @@ class LinterMeta(type):
         name = attrs.get('name') or cls_name.lower()
         setattr(cls, 'disabled', None)
         setattr(cls, 'name', name)
+        setattr(cls, 'plugin_name', cls.__module__.split(".", 1)[0])
         cls.logger = logging.getLogger('SublimeLinter.plugin.{}'.format(name))
 
         # BEGIN DEPRECATIONS

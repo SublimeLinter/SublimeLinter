@@ -469,6 +469,17 @@ def fix_mypy_error(error, view):
     )
 
 
+def codespell_error_has_exactly_one_suggestion(error):
+    return len(error["msg"].split(" ==> ")[1].split(",")) == 1
+
+
+@provide_fix_for("codespell", when=codespell_error_has_exactly_one_suggestion)
+def fix_codespell_error(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    correction = error["msg"].split(" ==> ")[1]
+    yield TextRange(correction, error["region"])
+
+
 SHELLCHECK_CODE_PATTERN = r"\[(?P<code>SC\d+)\]$"
 
 

@@ -10,6 +10,7 @@ from SublimeLinter.lint.quick_fix import (
     apply_edits,
     fix_eslint_error,
     eslint_ignore_block,
+    fix_codespell_error,
     fix_flake8_error,
     fix_mypy_error,
     fix_mypy_unused_ignore,
@@ -247,6 +248,22 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(msg='Unused "type: ignore" comment', region=sublime.Region(4))
         edit = fix_mypy_unused_ignore(error, view)
+        apply_edits(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
+            "replace word",
+            "# test crate",
+            "# test create",
+        ),
+    ])
+    def test_codespell(self, _description, BEFORE, AFTER):
+        view = self.create_view(self.window)
+        view.run_command("insert", {"characters": BEFORE})
+        error = dict(msg='crate  ==> create', region=sublime.Region(7, 12))
+        edit = fix_codespell_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

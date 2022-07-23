@@ -270,6 +270,8 @@ def prepare_highlights_data(
     # type: (...) -> Squiggles
     by_region_id = {}
     for error in errors:
+        if error.get('revalidate'):
+            continue
         scope = style.get_value('scope', error)
         flags = _compute_flags(error)
         demote_while_busy = demote_predicate(error)
@@ -565,11 +567,15 @@ def revalidate_regions(view):
     if vid in State['quiet_views']:
         return
 
+    filename = util.canonical_filename(view)
+    errors = persist.file_errors.get(filename, [])
+    errors_by_uid = {e['uid']: e for e in errors}
+
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
     eof = view.size()
     for key in region_keys:
-        if isinstance(key, Squiggle) and key.visible():
+        if isinstance(key, Squiggle):
             # We can have keys without any region drawn for example
             # if we loaded the `EVERSTORE`.
             region = head(view.get_regions(key))
@@ -587,6 +593,10 @@ def revalidate_regions(view):
             # and remove the error from the store.
             if any(region.contains(s) for s in selections):
                 draw_squiggle_invisible(view, key, [region])
+                try:
+                    errors_by_uid[key.uid]['revalidate'] = True  # type: ignore[typeddict-item]
+                except LookupError:
+                    pass
 
         elif isinstance(key, GutterIcon):
             # Remove gutter icon if its region is empty,

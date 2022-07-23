@@ -284,7 +284,13 @@ def _compute_flags(error):
     if mark_style in UNDERLINE_STYLES and regex.search(selected_text):
         mark_style = FALLBACK_MARK_STYLE
 
-    flags = MARK_STYLES[mark_style]
+    if (
+        mark_style == 'none'
+        and style.get_value('annotation', error, '')
+    ):
+        flags = -1
+    else:
+        flags = MARK_STYLES[mark_style]
     if not persist.settings.get('show_marks_in_minimap'):
         flags |= sublime.HIDE_ON_MINIMAP
     if error['region'].empty():

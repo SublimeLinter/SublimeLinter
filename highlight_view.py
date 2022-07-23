@@ -176,7 +176,7 @@ def highlight_linter_errors(views, filename, linter_name):
 
 def update_error_priorities_inline(errors):
     # type: (List[LintError]) -> None
-    # We need to update `prioritiy` here (although a user will rarely change
+    # We need to update `priority` here (although a user will rarely change
     # this setting that often) for correctness. Generally, on views with
     # multiple linters running, we compare new lint results from the
     # 'fast' linters with old results from the 'slower' linters. The below

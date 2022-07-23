@@ -238,7 +238,7 @@ def prepare_gutter_data(
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
-    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str], List[sublime.Region]]
+    by_key = defaultdict(list)
     for error in errors:
         icon = style.get_icon(error)
         if icon == 'none':
@@ -252,17 +252,11 @@ def prepare_gutter_data(
 
         # We group towards the optimal sublime API usage:
         #   view.add_regions(uuid(), [region], scope, icon)
-        id = (scope, icon)
-        by_id[id].append(region)
+        linter_name = error['linter']
+        key = GutterIcon(linter_name, scope, icon)
+        by_key[key].append(region)
 
-    # Exchange the `id` with a regular region_id which is a unique string, so
-    # uuid() would be candidate here, that can be reused for efficient updates.
-    by_region_id = {}
-    for (scope, icon), regions in by_id.items():
-        region_id = GutterIcon(linter_name, scope, icon)
-        by_region_id[region_id] = regions
-
-    return by_region_id
+    return by_key
 
 
 def prepare_highlights_data(

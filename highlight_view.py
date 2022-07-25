@@ -131,7 +131,6 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_highlights, loosers = filter_errors(errors, by_position)
     errors_for_the_gutter, _ = filter_errors(errors, by_line)
 
-    view = views[0]  # to calculate regions we can take any of the views
     protected_regions = prepare_protected_regions(errors_for_the_gutter)
     gutter_regions = prepare_gutter_data(linter_name, errors_for_the_gutter)
 

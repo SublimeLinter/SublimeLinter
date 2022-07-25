@@ -311,10 +311,10 @@ def draw(
 
     """
     current_region_keys = get_regions_keys(view)
-    new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
+    next_region_keys = highlight_regions.keys() | gutter_regions.keys()
 
     # remove unused regions
-    for key in current_region_keys - new_linter_keys:
+    for key in current_region_keys - next_region_keys:
         erase_view_region(view, key)
 
     # overlaying all gutter regions with common invisible one,

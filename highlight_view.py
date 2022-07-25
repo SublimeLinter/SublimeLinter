@@ -131,7 +131,6 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_highlights, loosers = filter_errors(errors, by_position)
     errors_for_the_gutter, _ = filter_errors(errors, by_line)
 
-    protected_regions = prepare_protected_regions(errors_for_the_gutter)
     gutter_regions = prepare_gutter_data(linter_name, errors_for_the_gutter)
 
     for view in views:
@@ -169,7 +168,6 @@ def highlight_linter_errors(views, filename, linter_name):
             linter_name,
             squiggle_regions,
             gutter_regions,
-            protected_regions,
         )
 
 
@@ -213,11 +211,6 @@ def by_position(error):
 def by_line(error):
     # type: (LintError) -> Hashable
     return error['line']
-
-
-def prepare_protected_regions(errors):
-    # type: (List[LintError]) -> ProtectedRegions
-    return list(flatten(prepare_gutter_data('_', errors).values()))
 
 
 def prepare_gutter_data(
@@ -309,7 +302,6 @@ def draw(
     linter_name,        # type: LinterName
     highlight_regions,  # type: Squiggles
     gutter_regions,     # type: GutterIcons
-    protected_regions,  # type: ProtectedRegions
 ):
     # type: (...) -> None
     """
@@ -328,7 +320,7 @@ def draw(
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
-    view.add_regions(PROTECTED_REGIONS_KEY, protected_regions)
+    view.add_regions(PROTECTED_REGIONS_KEY, list(flatten(gutter_regions.values())))
 
     # otherwise update (or create) regions
     for squiggle, regions in highlight_regions.items():

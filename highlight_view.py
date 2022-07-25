@@ -131,7 +131,7 @@ def highlight_linter_errors(views, filename, linter_name):
     errors_for_the_highlights, loosers = filter_errors(errors, by_position)
     errors_for_the_gutter, _ = filter_errors(errors, by_line)
 
-    gutter_regions = prepare_gutter_data(linter_name, errors_for_the_gutter)
+    gutter_regions = prepare_gutter_data(errors_for_the_gutter)
 
     for view in views:
         vid = view.id()
@@ -214,8 +214,7 @@ def by_line(error):
 
 
 def prepare_gutter_data(
-    linter_name,  # type: LinterName
-    errors        # type: List[LintError]
+    errors,        # type: List[LintError]
 ):
     # type: (...) -> GutterIcons
     # Compute the icon and scope for the gutter mark from the error.

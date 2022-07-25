@@ -128,7 +128,8 @@ def highlight_linter_errors(views, filename, linter_name):
 
     errors = persist.file_errors[filename]
     update_error_priorities_inline(errors)
-    (errors_for_the_highlights, loosers), (errors_for_the_gutter, _) = prepare_data(errors)
+    errors_for_the_highlights, loosers = filter_errors(errors, by_position)
+    errors_for_the_gutter, _ = filter_errors(errors, by_line)
 
     view = views[0]  # to calculate regions we can take any of the views
     protected_regions = prepare_protected_regions(errors_for_the_gutter)
@@ -184,17 +185,6 @@ def update_error_priorities_inline(errors):
     # ATT: inline, so this change propagates throughout the system
     for error in errors:
         error['priority'] = style.get_value('priority', error, 0)
-
-
-def prepare_data(errors):
-    # type: (List[LintError]) -> Tuple[FilteredErrors, FilteredErrors]
-    # We need to filter the errors, bc we cannot draw multiple regions
-    # on the same position. E.g. we can only draw one gutter icon per line,
-    # and we can only 'underline' a word once.
-    return (
-        filter_errors(errors, by_position),  # highlights
-        filter_errors(errors, by_line)       # gutter icons
-    )
 
 
 def filter_errors(errors, group_fn):

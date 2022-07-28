@@ -21,6 +21,7 @@ from .lint import queue
 from .lint import reloader
 from .lint import settings
 from .lint import util
+from .lint.const import IS_ENABLED_SWITCH
 from .lint.util import flash
 
 
@@ -356,9 +357,12 @@ def lint(view, view_has_changed, lock, reason):
 
     This function MUST run on a thread because it blocks!
     """
-    linters = list(elect.assignable_linters_for_view(view, reason))
-    if not linters:
-        logger.info("No installed linter matches the view.")
+    if view.settings().get(IS_ENABLED_SWITCH) is False:
+        linters = []
+    else:
+        linters = list(elect.assignable_linters_for_view(view, reason))
+        if not linters:
+            logger.info("No installed linter matches the view.")
 
     with lock:
         _assign_linters_to_view(view, {linter['name'] for linter in linters})

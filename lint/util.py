@@ -13,6 +13,7 @@ import threading
 
 import sublime
 from . import events
+from .const import IS_ENABLED_SWITCH
 
 
 MYPY = False
@@ -132,6 +133,10 @@ def is_lintable(view):
     being opened is in the Sublime Text packages directory.
 
     """
+    enabled = view.settings().get(IS_ENABLED_SWITCH)
+    if enabled is not None:
+        return enabled
+
     if (
         not view.window() or
         view.is_scratch() or

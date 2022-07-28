@@ -2,6 +2,7 @@ import logging
 
 import sublime
 from . import events, util
+from .const import IS_ENABLED_SWITCH
 from jsonschema import validate, FormatChecker, ValidationError
 
 
@@ -150,7 +151,7 @@ def validate_project_settings(filename):
     sl_settings = {
         key: value
         for key, value in settings.items()
-        if key.startswith('SublimeLinter.')
+        if key.startswith('SublimeLinter.') and key != IS_ENABLED_SWITCH
     }
     if not sl_settings:
         util.clear_message()
@@ -164,9 +165,11 @@ def validate_project_settings(filename):
     if invalid_top_level_keys:
         logger.error(
             "Invalid settings in '{}':\n"
-            "Only 'SublimeLinter.linters.*' keys are allowed. "
-            "Got {}.".format(
+            "Only '{}' and 'SublimeLinter.linters.*' "
+            "keys are allowed. Got {}."
+            .format(
                 filename,
+                IS_ENABLED_SWITCH,
                 ', '.join(map(repr, invalid_top_level_keys))
             )
         )

@@ -209,3 +209,23 @@ class TestArgsDSL(_BaseTestCase):
         linter = FakeLinterArgDSL(self.view, settings)
         with expect(linter)._communicate(['fake_linter_1'], ...):
             linter.lint(INPUT, VIEW_UNCHANGED)
+
+    @p.expand([
+        ('enabled?',),
+        ('funny+',),
+        ('not,so,fast',),
+        ('rude!',),
+    ])
+    def test_setting_names_which_are_not_args(self, arg):
+        # Docstring is here to get verbose parameterized printing
+        """"""
+        class FakeLinterArgDSL(Linter):
+            defaults = {
+                'selector': None,
+                arg: 42
+            }
+            cmd = 'fake_linter_1'
+
+        settings = linter_module.get_linter_settings(FakeLinterArgDSL, self.view)
+        linter = FakeLinterArgDSL(self.view, settings)
+        self.assertEqual(linter.settings.get(arg), 42)

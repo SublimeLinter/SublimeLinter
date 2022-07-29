@@ -626,7 +626,7 @@ class LinterMeta(type):
         for name, value in defaults.items():
             match = ARG_RE.match(name)
 
-            if match:
+            if match and match.group('prefix'):
                 name = match.group('name')
                 args_map[name] = match.groupdict()
 

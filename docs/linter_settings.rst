@@ -93,7 +93,7 @@ a case-insensitive regex pattern, and then matched against the error type, code 
 
 .. note::
 
-    This will completely supress the matching errors. If you only want to visually demote some errors, take a look at the :ref:`styles <linter_styles>` section below.
+    This will completely suppress the matching errors. If you only want to visually demote some errors, take a look at the :ref:`styles <linter_styles>` section below.
 
 Some examples:
 

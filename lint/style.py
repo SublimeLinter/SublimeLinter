@@ -59,7 +59,7 @@ def get_value_(key, linter, code, error_type, default):
     linter_styles = persist.settings.get('linters', {}).get(linter, {}).get('styles', [])
     global_styles = persist.settings.get('styles', [])
     for style_definition in linter_styles:
-        if code in style_definition.get('codes', []):
+        if any(map(code.startswith, style_definition.get('codes', []))):
             try:
                 return style_definition[key]
             except KeyError:

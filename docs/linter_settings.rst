@@ -220,12 +220,15 @@ Example: this changes the appearance of whitespace warnings in flake8:
                         "mark_style": "outline",
                         "scope": "comment",
                         "icon": "none",
-                        "codes": ["W293", "W291", "W292"]
+                        "codes": ["W291", "W292", "W293"]
                     }
                 ]
             }
         }
     }
+
+Note `codes` are actually prefix matchers, so the above could be simplified to
+`["W29"]` or even `["W"]`.
 
 .. note::
 

@@ -1055,7 +1055,7 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def can_lint_view(cls, view, settings):
         # type: (sublime.View, LinterSettings) -> bool
-        """Decide wheter the linter is applicable to given view."""
+        """Decide whether the linter is applicable to given view."""
         if cls.disabled is True:
             return False
 

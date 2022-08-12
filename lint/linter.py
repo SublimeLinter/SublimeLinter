@@ -1790,13 +1790,13 @@ def make_nice_log_message(headline, cmd, is_stdin,
     import textwrap
 
     filename = view.file_name()
-    if filename and cwd:
+    if filename:
         rel_filename = (
             os.path.relpath(filename, cwd)
-            if os.path.commonprefix([filename, cwd])
+            if cwd and os.path.commonprefix([filename, cwd])
             else filename
         )
-    elif not filename:
+    else:
         rel_filename = '<buffer {}>'.format(view.buffer_id())
 
     on_win = os.name == 'nt'

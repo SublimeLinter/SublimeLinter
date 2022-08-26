@@ -570,7 +570,7 @@ def make_view_has_changed_fn(view):
 
 
 elapsed_runtimes = deque([0.6] * 3, maxlen=10)
-MIN_DEBOUNCE_DELAY = 0.05
+MIN_DEBOUNCE_DELAY = 0.0005
 MAX_AUTOMATIC_DELAY = 2.0
 
 

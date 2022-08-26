@@ -93,7 +93,7 @@ a case-insensitive regex pattern, and then matched against the error type, code 
 
 .. note::
 
-    This will completely supress the matching errors. If you only want to visually demote some errors, take a look at the :ref:`styles <linter_styles>` section below.
+    This will completely suppress the matching errors. If you only want to visually demote some errors, take a look at the :ref:`styles <linter_styles>` section below.
 
 Some examples:
 
@@ -220,12 +220,15 @@ Example: this changes the appearance of whitespace warnings in flake8:
                         "mark_style": "outline",
                         "scope": "comment",
                         "icon": "none",
-                        "codes": ["W293", "W291", "W292"]
+                        "codes": ["W291", "W292", "W293"]
                     }
                 ]
             }
         }
     }
+
+Note `codes` are actually prefix matchers, so the above could be simplified to
+`["W29"]` or even `["W"]`.
 
 .. note::
 

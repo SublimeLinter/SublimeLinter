@@ -511,6 +511,15 @@ def fill_panel(window):
     )  # type: Tuple[Tuple[str, int], ...]
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
 
+    def sorted_by_path(active_filename, items):
+        active_filename_parts = len(fpath_by_file[active_filename].split(os.sep))
+
+        def by_path(item):
+            fpath, filename, errors = item
+            parts = fpath.split(os.sep)
+            return (abs(len(parts) - active_filename_parts), len(parts), parts)
+        return sorted(items, key=by_path)
+
     to_render = []
     if active_filename:
         affected_filenames = set(flatten(
@@ -540,10 +549,13 @@ def fill_panel(window):
             )]
 
             # Affected files can be clean, just omit those
-            + sorted(
-                (fpath_by_file[filename], filename, errors_by_file[filename])
-                for filename in affected_filenames
-                if filename in errors_by_file
+            + sorted_by_path(
+                active_filename,
+                (
+                    (fpath_by_file[filename], filename, errors_by_file[filename])
+                    for filename in affected_filenames
+                    if filename in errors_by_file
+                )
             )
         )
 

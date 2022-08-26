@@ -81,20 +81,20 @@ contexts:
 
   expect-linter-type:
     - include: pop-at-end
-    - match: ([^\s:]+)\s*(?:(:)(\S+))?
+    - match: (\S+)\s+
       captures:
-        0: meta.linter-code.sublime_linter
-        1: entity.name.label.linter-name.sublime_linter
-        2: punctuation.separator.sublime_linter
-        3: entity.name.class.error-code.sublime_linter
+        1: meta.linter-code.sublime_linter entity.name.label.linter-name.sublime_linter
       pop: true
 
   expect-linter-message:
     - include: pop-on-new-error-line
     - match: ^$
       pop: true
-    - match: .*
-      scope: markup.quote.linter-message.sublime_linter
+    - match: ([^\x{200b}]*)\s+(?:(\x{200b})(\S+))?
+      captures:
+        1: markup.quote.linter-message.sublime_linter
+        2: punctuation.separator.sublime_linter
+        3: entity.name.class.error-code.sublime_linter
 
   expect-line-maybe-column:
     - include: pop-at-end

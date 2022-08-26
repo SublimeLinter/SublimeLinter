@@ -7,21 +7,21 @@ highlight_view.py:
 #^^^^^^^^^^^^^^^^^ meta.error_panel.fileline.sublime_linter
 
 
-   667:14   warning       flake8:E211         whitespace before '('
+   667:14   warning       flake8         whitespace before '('
 #  ^^^^^^ meta.line-col.sublime_linter
 #  ^^^ constant.numeric.line-number.sublime_linter
 #     ^ punctuation.separator.sublime_linter
 #      ^^ constant.numeric.col-number.sublime_linter
 
 
-   667:14   warning       flake8:E211         whitespace before '('
+   667:14   warning       flake8         whitespace before '('
 # <- meta.linter.body.warning.sublime_linter
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.linter.body.warning.sublime_linter
 #           ^^^^^^^ entity.name.tag.error-type.sublime_linter
 #           ^^^^^^^ markup.warning.sublime_linter
 
 
-   668:18   error         flake8:E999         SyntaxError: invalid syntax
+   668:18   error         flake8         SyntaxError: invalid syntax
 # <- meta.linter.body.error.sublime_linter
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.linter.body.error.sublime_linter
 #           ^^^^^ entity.name.tag.error-type.sublime_linter
@@ -34,40 +34,41 @@ highlight_view.py:
 #           ^^^^ entity.name.tag.error-type.sublime_linter
 
 
-   669:1    error         flake8:E113         unexpected indentation
-#                         ^^^^^^^^^^^ meta.linter-code.sublime_linter
+   669:1    error         flake8         unexpected indentation ​E113
+#                         ^^^^^^ meta.linter-code.sublime_linter
 #                         ^^^^^^ entity.name.label.linter-name.sublime_linter
-#                               ^ punctuation.separator.sublime_linter
-#                                ^^^^ entity.name.class.error-code.sublime_linter
+#                                                               ^ punctuation.separator.sublime_linter
+#                                                                ^^^^ entity.name.class.error-code.sublime_linter
 
-   669:1    error         flake8  :E113         unexpected indentation
-#                         ^^^^^^^^^^^^^ meta.linter-code.sublime_linter
+   669:1    error         fl-ke8         unexpected indentation   ​E113
+#                         ^^^^^^ meta.linter-code.sublime_linter
+#                               ^^^^^^^^^ - meta.linter-code.sublime_linter
 #                         ^^^^^^ entity.name.label.linter-name.sublime_linter
-#                                 ^ punctuation.separator.sublime_linter
-#                                  ^^^^ entity.name.class.error-code.sublime_linter
+#                                                                 ^ punctuation.separator.sublime_linter
+#                                                                  ^^^^ entity.name.class.error-code.sublime_linter
 
-   669:1    error         flake8              unexpected indentation
+   669:1    error         fl:ke8              unexpected indentation  ​E113
 #                         ^^^^^^ meta.linter-code.sublime_linter
 #                         ^^^^^^ entity.name.label.linter-name.sublime_linter
 #                                             ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
 
-   669:1    error         flake8:E113         unexpected indentation
-#                                             ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
-   669:1    warning       flake8:E113         unexpected indentation
-#                                             ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
-   669:1    info          flake8:E113         unexpected indentation
-#                                             ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    error         flake8         unexpected indentation
+#                                        ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    warning       flake8         unexpected indentation
+#                                        ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    info          flake8         unexpected indentation
+#                                        ^^^^^^^^^^^^^^^^^^^^^^ markup.quote.linter-message.sublime_linter
 
-   669:1    error         flake8:E113         wrapped
-#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    error         flake8         wrapped
+#                                        ^^^^^^^ markup.quote.linter-message.sublime_linter
                                               message
 #                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
-   669:1    warning       flake8:E113         wrapped
-#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    warning       flake8         wrapped
+#                                        ^^^^^^^ markup.quote.linter-message.sublime_linter
                                               message
 #                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
-   669:1    info          flake8:E113         wrapped
-#                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
+   669:1    info          flake8         wrapped
+#                                        ^^^^^^^ markup.quote.linter-message.sublime_linter
                                               message
 #                                             ^^^^^^^ markup.quote.linter-message.sublime_linter
 

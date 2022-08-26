@@ -9,7 +9,7 @@ from .. import linter, util
 
 
 if False:
-    from typing import List, Optional, Tuple, Union
+    from typing import Iterator, List, Optional, Tuple, Union
 
 
 class PythonLinter(linter.Linter):
@@ -74,22 +74,19 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        executable = self._ask_pipenv(cmd_name)
+        executable = self.look_into_virtual_environments(cmd_name)
         if executable:
             self.logger.info(
-                "{}: Using {} according to 'pipenv'"
+                "{}: Using '{}'"
                 .format(self.name, executable)
             )
             return True, executable
-
-        # Should we try a `pyenv which` as well? Problem: I don't have it,
-        # it's MacOS only.
 
         self.logger.info(
             "{}: trying to use globally installed {}"
             .format(self.name, cmd_name)
         )
-        # fallback, similiar to a which(cmd)
+        # fallback, similar to a which(cmd)
         executable = util.which(cmd_name)
         if executable is None:
             self.logger.warning(
@@ -99,31 +96,38 @@ class PythonLinter(linter.Linter):
             )
         return True, executable
 
-    def _ask_pipenv(self, linter_name):
+    def look_into_virtual_environments(self, linter_name):
         # type: (str) -> Optional[str]
-        """Ask pipenv for a virtual environment and maybe resolve the linter."""
-        # Some pre-checks bc `pipenv` is super slow
-        cwd = self.get_working_dir()
-        if cwd is None:
-            return None
+        for venv in self._possible_virtual_environments():
+            executable = find_script_by_python_env(venv, linter_name)
+            if executable:
+                return executable
 
-        pipfile = os.path.join(cwd, 'Pipfile')
-        if not os.path.exists(pipfile):
-            return None
-
-        try:
-            venv = ask_pipenv_for_venv(linter_name, cwd)
-        except Exception:
-            return None
-
-        executable = find_script_by_python_env(venv, linter_name)
-        if not executable:
             self.logger.info(
                 "{} is not installed in the virtual env at '{}'."
                 .format(linter_name, venv)
             )
+        else:
             return None
-        return executable
+
+    def _possible_virtual_environments(self):
+        # type: () -> Iterator[str]
+        cwd = self.get_working_dir()
+        if cwd is None:
+            return None
+
+        for candidate in ('.env', '.venv'):
+            full_path = os.path.join(cwd, candidate)
+            if os.path.isdir(full_path):
+                yield full_path
+
+        poetrylock = os.path.join(cwd, 'poetry.lock')
+        if os.path.exists(poetrylock):
+            yield from ask_utility_for_venv(cwd, ('poetry', 'env', 'info', '-p'))
+
+        pipfile = os.path.join(cwd, 'Pipfile')
+        if os.path.exists(pipfile):
+            yield from ask_utility_for_venv(cwd, ('pipenv', '--venv'))
 
 
 def find_python_version(version):
@@ -153,9 +157,17 @@ def find_script_by_python_env(python_env_path, script):
     return None
 
 
+def ask_utility_for_venv(cwd, cmd):
+    # type: (str, Tuple[str, ...]) -> Iterator[str]
+    try:
+        yield _ask_utility_for_venv(cwd, cmd)
+    except Exception:
+        pass
+
+
 @lru_cache(maxsize=None)
-def ask_pipenv_for_venv(linter_name, cwd):
-    cmd = ['pipenv', '--venv']
+def _ask_utility_for_venv(cwd, cmd):
+    # type: (str, Tuple[str, ...]) -> str
     return util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
 

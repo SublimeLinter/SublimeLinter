@@ -466,6 +466,7 @@ class LinterMeta(type):
         name = attrs.get('name') or cls_name.lower()
         setattr(cls, 'disabled', None)
         setattr(cls, 'name', name)
+        setattr(cls, 'plugin_name', cls.__module__.split(".", 1)[0])
         cls.logger = logging.getLogger('SublimeLinter.plugin.{}'.format(name))
 
         # BEGIN DEPRECATIONS
@@ -626,7 +627,7 @@ class LinterMeta(type):
         for name, value in defaults.items():
             match = ARG_RE.match(name)
 
-            if match:
+            if match and match.group('prefix'):
                 name = match.group('name')
                 args_map[name] = match.groupdict()
 
@@ -1054,7 +1055,7 @@ class Linter(metaclass=LinterMeta):
     @classmethod
     def can_lint_view(cls, view, settings):
         # type: (sublime.View, LinterSettings) -> bool
-        """Decide wheter the linter is applicable to given view."""
+        """Decide whether the linter is applicable to given view."""
         if cls.disabled is True:
             return False
 

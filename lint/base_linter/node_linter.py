@@ -9,7 +9,8 @@ import shutil
 from .. import linter, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 
@@ -35,6 +36,15 @@ def paths_upwards(path):
 def paths_upwards_until_home(path):
     # type: (str) -> Iterator[str]
     return chain(takewhile(lambda p: p != HOME, paths_upwards(path)), [HOME])
+
+
+def smart_paths_upwards(start_dir):
+    # type: (str) -> Iterator[str]
+    return (
+        paths_upwards_until_home(start_dir)
+        if os.path.commonprefix([start_dir, HOME]) == HOME
+        else paths_upwards(start_dir)
+    )
 
 
 # `read_json_file` is maybe used by plugins. Check `eslint` and
@@ -106,11 +116,7 @@ class NodeLinter(linter.Linter):
 
     def find_local_executable(self, start_dir, npm_name):
         # type: (str, str) -> Union[None, str, List[str]]
-        paths = (
-            paths_upwards_until_home(start_dir)
-            if os.path.commonprefix([start_dir, HOME]) == HOME
-            else paths_upwards(start_dir)
-        )
+        paths = smart_paths_upwards(start_dir)
         for path in paths:
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
             if executable:

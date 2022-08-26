@@ -22,7 +22,7 @@ def unsubscribe(topic, fn):
 
 
 def broadcast(topic, payload={}):
-    for fn in listeners.get(topic, []):
+    for fn in listeners.get(topic, []).copy():
         try:
             fn(**payload)
         except Exception:

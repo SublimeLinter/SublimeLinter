@@ -5,6 +5,11 @@ import sublime
 from .lint import util
 
 
+MYPY = False
+if MYPY:
+    from typing import DefaultDict, Set
+
+
 DEBUG_FALSE_LEVEL = logging.WARNING
 DEBUG_TRUE_LEVEL = logging.INFO
 ERROR_PANEL_LEVEL = logging.ERROR
@@ -117,7 +122,7 @@ class TaskNumberFormatter(logging.Formatter):
         return super().format(record)
 
 
-shown_error_messages = defaultdict(set)
+shown_error_messages = defaultdict(set)  # type: DefaultDict[sublime.WindowId, Set[str]]
 
 
 class ErrorPanelHandler(logging.Handler):
@@ -140,8 +145,8 @@ class ErrorPanelHandler(logging.Handler):
 
             shown_error_messages[wid].add(rest)
 
-            beaty_msg = '\n'.join([header, '=' * len(header), rest])
-            util.show_message(beaty_msg, window)
+            formatted_message = '\n'.join([header, '=' * len(header), rest])
+            util.show_message(formatted_message, window)
         except Exception:
             self.handleError(record)
 

@@ -34,7 +34,7 @@ contexts:
         - expect-line-maybe-column
     - match: '^\s+(?=[0-9: ]+)'
       push:
-        - ensure-warning-other-scope
+        - ensure-other-meta-scope
         - expect-linter-message
         - expect-linter-type
         - expect-linter-severity
@@ -62,8 +62,8 @@ contexts:
     - include: pop-on-new-error-line
     - include: pop-at-end
 
-  ensure-warning-other-scope:
-    - meta_scope: meta.linter.body.sublime_linter
+  ensure-other-meta-scope:
+    - meta_scope: meta.linter.body.other.sublime_linter
     - include: pop-on-new-error-line
     - include: pop-at-end
 

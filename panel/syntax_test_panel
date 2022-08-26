@@ -29,8 +29,8 @@ highlight_view.py:
 
 
    668:18   info         flake8:E999         SyntaxError: invalid syntax
-# <- meta.linter.body
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.linter.body
+# <- meta.linter.body.other.sublime_linter
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.linter.body.other.sublime_linter
 #           ^^^^ entity.name.tag.error-type.sublime_linter
 
 

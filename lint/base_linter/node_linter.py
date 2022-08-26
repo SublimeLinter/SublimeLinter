@@ -9,7 +9,8 @@ import shutil
 from .. import linter, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 

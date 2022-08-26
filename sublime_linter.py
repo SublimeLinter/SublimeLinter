@@ -588,11 +588,11 @@ def get_delay():
 @contextmanager
 def remember_runtime(log_msg):
     # type: (str) -> Iterator[None]
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     yield
 
-    end_time = time.time()
+    end_time = time.perf_counter()
     runtime = end_time - start_time
     logger.info(log_msg.format(runtime))
 

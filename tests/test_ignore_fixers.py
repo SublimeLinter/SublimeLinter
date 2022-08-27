@@ -12,6 +12,7 @@ from SublimeLinter.lint.quick_fix import (
     eslint_ignore_block,
     fix_flake8_error,
     fix_mypy_error,
+    fix_mypy_unused_ignore,
     fix_stylelint_error,
     fix_shellcheck_error,
     ignore_rules_actions,
@@ -87,7 +88,12 @@ class TestActionReducer(DeferrableTestCase):
         except_for = set()
 
         actions = ignore_rules_actions(
-            DEFAULT_SUBJECT, DEFAULT_DETAIL, except_for, fixer, ERRORS, None
+            DEFAULT_SUBJECT,
+            DEFAULT_DETAIL,
+            lambda e: not e["code"] or e["code"] in except_for,
+            fixer,
+            ERRORS,
+            None
         )
         self.assertEquals(RESULT, [action.description for action in actions])
 
@@ -225,6 +231,22 @@ class TestIgnoreFixers(DeferrableTestCase):
         view.run_command("insert", {"characters": BEFORE})
         error = dict(code="no-idea", region=sublime.Region(4))
         edit = fix_mypy_error(error, view)
+        apply_edits(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
+            "remove ignore comment at EOL",
+            "partial(fixer, error),  # type: ignore[arg-type]",
+            "partial(fixer, error),",
+        ),
+    ])
+    def test_mypy_unused_ignore(self, _description, BEFORE, AFTER):
+        view = self.create_view(self.window)
+        view.run_command("insert", {"characters": BEFORE})
+        error = dict(msg='Unused "type: ignore" comment', region=sublime.Region(4))
+        edit = fix_mypy_unused_ignore(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

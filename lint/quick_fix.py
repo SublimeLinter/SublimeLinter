@@ -13,15 +13,17 @@ flatten = chain.from_iterable
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, DefaultDict, Dict, Final, Iterable, Iterator, List,
+        Callable, DefaultDict, Dict, Iterable, Iterator, List,
         NamedTuple, Optional, Set, TypeVar, Union
     )
+    from typing_extensions import Final
     T = TypeVar("T")
     S = TypeVar("S")
     LintError = persist.LintError
     TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
     Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
     Fix = Callable[[sublime.View], Iterator[TextRange]]
+    LintErrorPredicate = Callable[[LintError], bool]
 
 else:
     from collections import namedtuple
@@ -75,7 +77,8 @@ def apply_edits(view, edits):
 
 if MYPY:
     Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
-    F = TypeVar("F", bound=Provider)
+    T_provider = TypeVar("T_provider", bound=Provider)
+    T_fixer = TypeVar("T_fixer", bound=Fixer)
 
 PROVIDERS = defaultdict(
     dict
@@ -91,9 +94,9 @@ def namespacy_name(fn):
 
 
 def quick_actions_for(linter_name):
-    # type: (str) -> Callable[[F], F]
+    # type: (str) -> Callable[[T_provider], T_provider]
     def register(fn):
-        # type: (F) -> F
+        # type: (T_provider) -> T_provider
         ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = fn
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
@@ -102,17 +105,27 @@ def quick_actions_for(linter_name):
     return register
 
 
+TrueFn = lambda _: True
+FalseFn = lambda _: False
+
+
 def ignore_rules_inline(
     linter_name,
     subject=DEFAULT_SUBJECT,
     detail=DEFAULT_DETAIL,
-    except_for=set()
+    except_for=FalseFn
 ):
-    # type: (str, str, str, Set[str]) -> Callable[[Fixer], Fixer]
+    # type: (str, str, str, Union[Set[str], LintErrorPredicate]) -> Callable[[Fixer], Fixer]
+
+    if callable(except_for):
+        except_for_ = except_for
+    else:
+        except_for_ = lambda e: not e["code"] or e["code"] in except_for  # type: ignore[operator]
+
     def register(fn):
         # type: (Fixer) -> Fixer
         ns_name = namespacy_name(fn)
-        provider = partial(ignore_rules_actions, subject, detail, except_for, fn)
+        provider = partial(ignore_rules_actions, subject, detail, except_for_, fn)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
@@ -121,7 +134,7 @@ def ignore_rules_inline(
 
 
 def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
-    # type: (str, str, Set[str], Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+    # type: (str, str, LintErrorPredicate, Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
     make_action = lambda error: QuickAction(
         subject.format(**error),
         partial(fixer, error),
@@ -131,7 +144,7 @@ def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
 
     grouped_by_code = group_by(
         lambda e: e["code"],
-        (e for e in errors if e["code"] and e["code"] not in except_for)
+        (e for e in errors if not except_for(e))
     )
     for code, errors_with_same_code in sorted(grouped_by_code.items()):
         grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
@@ -195,32 +208,41 @@ def group_by(key, iterable):
     return grouped
 
 
-def fix(linter_name, only_for=set()):
-    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
-    if isinstance(only_for, str):
-        only_for = {only_for}
+def provide_fix_for(linter_name, when=TrueFn):
+    # type: (str, LintErrorPredicate) -> Callable[[T_fixer], T_fixer]
+
+    def provider_(fixer, errors, _view):
+        # type: (Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+        return (
+            QuickAction(
+                "{linter}: Fix {code} {msg}".format(**error),
+                partial(fixer, error),
+                "",
+                solves=[error]
+            )
+            for error in errors
+            if when(error)
+        )
 
     def register(fn):
-        # type: (Fixer) -> Fixer
+        # type: (T_fixer) -> T_fixer
         ns_name = namespacy_name(fn)
-        provider = partial(std_fix_provider, linter_name, only_for, fn)
+        provider = partial(provider_, fn)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
     return register
 
 
-def std_fix_provider(linter_name, only_for, fixer, errors, _view):
-    return (
-        QuickAction(
-            "{linter}: Fix {code} {msg}".format(**error),
-            partial(fixer, error),
-            "",
-            solves=[error]
-        )
-        for error in errors
-        if error["code"] in only_for or not only_for
-    )
+def fix(linter_name, only_for=set()):
+    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
+    if isinstance(only_for, str):
+        only_for = {only_for}
+
+    def predicate(error):
+        return error["code"] in only_for
+
+    return provide_fix_for(linter_name, when=predicate if only_for else TrueFn)
 
 
 # --- FIXERS --- #
@@ -407,7 +429,23 @@ def fix_e266(error, view):
     )
 
 
-@ignore_rules_inline("mypy", except_for={"syntax"})
+@provide_fix_for("mypy", lambda e: e["msg"] == 'Unused "type: ignore" comment')
+def fix_mypy_unused_ignore(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(r"\s*#\s*type:\s*ignore\[.+]", line.text)
+    if match:
+        a, b = match.span()
+        yield TextRange("", sublime.Region(line.range.a + a, line.range.a + b))
+
+
+@ignore_rules_inline(
+    "mypy",
+    except_for=lambda e: (
+        e.get("code") == "syntax"
+        or e["msg"] == 'Unused "type: ignore" comment'
+    )
+)
 def fix_mypy_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
@@ -439,7 +477,7 @@ def fix_shellcheck_error(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
     match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
-
+    assert match
     code = match.groups("code")[0]
 
     yield (

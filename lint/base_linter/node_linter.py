@@ -83,6 +83,12 @@ class NodeLinter(linter.Linter):
         # setting.
         success, executable = super().context_sensitive_executable_path(cmd)
         if success:
+            self.logger.info(
+                "Note: manually setting 'executable' disables looking for a "
+                "\"project_root\" or reading any 'package.json' file.\n"
+                "This for example changes how SublimeLinter computes the "
+                "working dir."
+            )
             return True, executable
 
         npm_name = cmd[0]

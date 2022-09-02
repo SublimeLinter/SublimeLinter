@@ -1,33 +1,31 @@
 name: tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 env:
-  PACKAGE: SublimeLinter
-  SUBLIME_TEXT_VERSION: 3
-  UNITTESTING_TAG: master
   TRAVIS_OS_NAME: linux
 
 jobs:
-  linux:
+  run-tests:
     runs-on: ubuntu-latest
-    container:
-      image: sublimetext/unittesting
-      options: --cap-add=NET_ADMIN
+    strategy:
+      fail-fast: false
+      matrix:
+        st-version: [3, 4]
     steps:
-      - uses: actions/checkout@v1
-      - run: sh -e /etc/init.d/xvfb start
-      - run: curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/github.sh
-      - run: |
-          PATH="$HOME/.local/bin:$PATH"
-          sh github.sh bootstrap
-          sh github.sh install_package_control
-          sh github.sh run_tests --coverage
-          sh github.sh run_syntax_tests --coverage
-      - run: |
-          apt-get update
-          apt-get install python3-pip -y
-          pip3 install coverage==4.5.4 codecov==2.0.15
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+      - uses: actions/checkout@v3
+      - uses: SublimeText/UnitTesting/actions/setup@v1
+        with:
+          sublime-text-version: ${{ matrix.st-version }}
+      - uses: SublimeText/UnitTesting/actions/run-tests@v1
+
+  run-syntax-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: SublimeText/UnitTesting/actions/setup@v1
+      - uses: SublimeText/UnitTesting/actions/run-syntax-tests@v1

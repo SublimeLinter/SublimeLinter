@@ -32,7 +32,7 @@ def plugin_loaded():
     active_view = sublime.active_window().active_view()
     State.update({
         'active_view': active_view,
-        'active_filename': util.get_filename(active_view) if active_view else None,
+        'active_filename': util.canonical_filename(active_view) if active_view else None,
     })
 
 
@@ -55,7 +55,7 @@ class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
         State.update({
             'active_view': active_view,
-            'active_filename': util.get_filename(active_view),
+            'active_filename': util.canonical_filename(active_view),
             'current_pos': get_current_pos(active_view)
         })
         draw(**State)

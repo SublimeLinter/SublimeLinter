@@ -85,14 +85,14 @@ def warn_excessive_tasks(view, uow):
         )
         excess_warning(
             "'{}' puts in total {}(!) tasks on the queue:  {}."
-            .format(short_canonical_filename(view), total_tasks, linter_info)
+            .format(util.short_canonical_filename(view), total_tasks, linter_info)
         )
     else:
         for linter_name, tasks in uow.items():
             if len(tasks) > 3:
                 excess_warning(
                     "'{}' puts {} {} tasks on the queue."
-                    .format(short_canonical_filename(view), len(tasks), linter_name)
+                    .format(util.short_canonical_filename(view), len(tasks), linter_name)
                 )
 
 
@@ -131,21 +131,13 @@ def extract_lintable_regions(view, selector):
         return [region for region in view.find_by_selector(selector)]
 
 
-def short_canonical_filename(view):
-    return (
-        os.path.basename(view.file_name())
-        if view.file_name()
-        else '<untitled {}>'.format(view.buffer_id())
-    )
-
-
 def make_good_task_name(linter, view):
     with counter_lock:
         task_number = next(task_count)
 
-    canonical_filename = short_canonical_filename(view)
+    short_canonical_filename = util.short_canonical_filename(view)
     return 'LintTask|{}|{}|{}|{}'.format(
-        task_number, linter.name, canonical_filename, view.id())
+        task_number, linter.name, short_canonical_filename, view.id())
 
 
 def modify_thread_name(name, sink):
@@ -204,7 +196,7 @@ def finalize_errors(linter, errors, offsets):
     linter_name = linter.name
     view = linter.view
     eof = view.size()
-    view_filename = util.get_filename(view)
+    view_filename = util.canonical_filename(view)
     line_offset, col_offset, pt_offset = offsets
 
     for error in errors:

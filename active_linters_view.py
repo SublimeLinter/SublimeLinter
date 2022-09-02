@@ -66,7 +66,7 @@ def on_first_activate(view):
     if not util.is_lintable(view):
         return
 
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     set_expanded_ok(filename)
     draw(view, State['problems_per_file'][filename], expanded_ok=True)
 
@@ -96,7 +96,7 @@ def _unset_expanded_ok(vid):
     if not view.is_valid():
         return
 
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     # Keep expanded if linters are running to minimize redraws
     if State['running'].get(filename, 0) > 0:
         enqueue_unset_expanded_ok(view)
@@ -193,7 +193,7 @@ def views_into_file(filename):
         view
         for window in sublime.windows()
         for view in window.views()
-        if util.get_filename(view) == filename
+        if util.canonical_filename(view) == filename
     )
 
 

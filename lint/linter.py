@@ -412,7 +412,7 @@ def get_view_context(view, additional_context=None):
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
 
-    context['canonical_filename'] = util.get_filename(view)
+    context['canonical_filename'] = util.canonical_filename(view)
 
     if additional_context:
         context.update(additional_context)
@@ -792,7 +792,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_failed', {
-                'filename': util.get_filename(self.view),
+                'filename': util.canonical_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -801,7 +801,7 @@ class Linter(metaclass=LinterMeta):
         window = self.view.window()
         if window:
             window.run_command('sublime_linter_unassigned', {
-                'filename': util.get_filename(self.view),
+                'filename': util.canonical_filename(self.view),
                 'linter_name': self.name
             })
 
@@ -1142,7 +1142,7 @@ class Linter(metaclass=LinterMeta):
         """
         self.logger.info(
             "{}: linting '{}'"
-            .format(self.name, util.canonical_filename(self.view)))
+            .format(self.name, util.short_canonical_filename(self.view)))
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`
@@ -1359,7 +1359,7 @@ class Linter(metaclass=LinterMeta):
                 return None
         else:  # main file
             # use the filename of the current view
-            filename = util.get_filename(self.view)
+            filename = util.canonical_filename(self.view)
 
         # Ensure `line` is within bounds
         line = max(min(m.line, vv.max_lines()), 0)

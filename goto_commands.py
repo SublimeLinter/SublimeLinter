@@ -23,7 +23,7 @@ class sublime_linter_goto_error(sublime_plugin.TextCommand):
 
 def goto(view, direction, count, wrap):
     # type: (sublime.View, Direction, int, bool) -> None
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
         flash(view, 'No problems')

@@ -52,7 +52,7 @@ def on_begin_linting(filename):
     State['running'][filename] = time.time()
 
     active_view = State['active_view']
-    if active_view and util.get_filename(active_view) == filename:
+    if active_view and util.canonical_filename(active_view) == filename:
         sublime.set_timeout_async(
             lambda: draw(active_view, filename),  # type: ignore  # mypy bug
             INITIAL_DELAY * 1000
@@ -65,7 +65,7 @@ def on_finished_linting(filename):
     State['running'].pop(filename, None)
 
     active_view = State['active_view']
-    if active_view and util.get_filename(active_view) == filename:
+    if active_view and util.canonical_filename(active_view) == filename:
         draw(active_view, filename)
 
 
@@ -79,7 +79,7 @@ class UpdateState(sublime_plugin.EventListener):
             'active_view': active_view
         })
 
-        draw(active_view, util.get_filename(active_view))
+        draw(active_view, util.canonical_filename(active_view))
 
 
 indicators = [

@@ -58,7 +58,7 @@ def plugin_loaded():
     active_view = active_window.active_view()
     State.update({
         'active_view': active_view,
-        'active_filename': util.get_filename(active_view) if active_view else None,
+        'active_filename': util.canonical_filename(active_view) if active_view else None,
     })
     ensure_panel(active_window)
 
@@ -177,7 +177,7 @@ class UpdateState(sublime_plugin.EventListener):
 
         State.update({
             'active_view': active_view,
-            'active_filename': util.get_filename(active_view),
+            'active_filename': util.canonical_filename(active_view),
             'cursor': get_current_pos(active_view)
         })
         ensure_panel(window)
@@ -217,7 +217,7 @@ class UpdateState(sublime_plugin.EventListener):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
         if view_gets_linted_on_modified_event(view):
-            toggle_panel_if_errors(view.window(), {util.get_filename(view)})
+            toggle_panel_if_errors(view.window(), {util.canonical_filename(view)})
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -378,7 +378,7 @@ def buffer_ids_per_window(window):
 def filenames_per_window(window):
     # type: (sublime.Window) -> Set[FileName]
     """Return filenames of all open files plus their dependencies."""
-    open_filenames = set(util.get_filename(v) for v in window.views())
+    open_filenames = set(util.canonical_filename(v) for v in window.views())
     return open_filenames | set(
         flatten(
             flatten(persist.affected_filenames_per_filename[filename].values())
@@ -613,7 +613,7 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
     if cursor == -1:
         return
 
-    filename = util.get_filename(active_view)
+    filename = util.canonical_filename(active_view)
 
     try:
         # Rarely, and if so only on hot-reload, `update_panel_selection` runs
@@ -902,7 +902,7 @@ def render_visible_viewport(panel, view):
 
     ... indicating the current viewport into that file or error(s) list.
     """
-    errors = persist.file_errors.get(util.get_filename(view), [])
+    errors = persist.file_errors.get(util.canonical_filename(view), [])
     if len(errors) > CONFUSION_THRESHOLD:
         viewport = view.visible_region()
         visible_errors = [

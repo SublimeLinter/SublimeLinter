@@ -92,7 +92,7 @@ def short_canonical_filename(view):
     )
 
 
-def get_filename(view):
+def canonical_filename(view):
     # type: (sublime.View) -> str
     return view.file_name() or '<untitled {}>'.format(view.buffer_id())
 

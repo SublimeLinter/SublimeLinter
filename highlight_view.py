@@ -109,7 +109,7 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
     def on_load_async(self, view):
         # type: (sublime.View) -> None
         # update this new view with any errors it currently has
-        filename = util.get_filename(view)
+        filename = util.canonical_filename(view)
         errors = persist.file_errors.get(filename)
         if errors:
             set_idle(view, True)  # show errors immediately
@@ -623,7 +623,7 @@ def revalidate_regions(view):
 
 def maybe_update_error_store(view):
     # type: (sublime.View) -> None
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
         return
@@ -820,7 +820,7 @@ def head(iterable):
 def all_views_into_file(filename):
     for window in sublime.windows():
         for view in window.views():
-            if util.get_filename(view) == filename:
+            if util.canonical_filename(view) == filename:
                 yield view
 
 
@@ -913,7 +913,7 @@ def open_tooltip(view, point, line_report=False):
     if view.is_popup_visible():
         return
 
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     if line_report:
         line = view.full_line(point)
         errors = get_errors_where(

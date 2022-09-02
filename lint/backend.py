@@ -196,7 +196,7 @@ def finalize_errors(linter, errors, offsets):
     linter_name = linter.name
     view = linter.view
     eof = view.size()
-    view_filename = util.get_filename(view)
+    view_filename = util.canonical_filename(view)
     line_offset, col_offset, pt_offset = offsets
 
     for error in errors:

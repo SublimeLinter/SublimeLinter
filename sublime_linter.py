@@ -220,7 +220,7 @@ class BackendController(sublime_plugin.EventListener):
     def on_close(self, view):
         # type: (sublime.View) -> None
         bid = view.buffer_id()
-        filename = util.get_filename(view)
+        filename = util.canonical_filename(view)
 
         open_filenames = set()
         for w in sublime.windows():
@@ -229,7 +229,7 @@ class BackendController(sublime_plugin.EventListener):
                     # abort since another view into the same buffer is open
                     return
 
-                open_filenames.add(util.get_filename(v))
+                open_filenames.add(util.canonical_filename(v))
 
         # We want to discard this file and its dependencies but never a
         # file that is currently open or still referenced by another
@@ -255,7 +255,7 @@ class BackendController(sublime_plugin.EventListener):
 def detect_rename(view):
     # type: (sublime.View) -> Optional[Tuple[FileName, FileName]]
     bid = view.buffer_id()
-    current_filename = util.get_filename(view)
+    current_filename = util.canonical_filename(view)
 
     try:
         old_filename = buffer_filenames[bid]
@@ -373,7 +373,7 @@ def lint(view, view_has_changed, lock, reason):
 
     window = view.window()
     bid = view.buffer_id()
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
 
     # Very, very unlikely that `view_has_changed` is already True at this
     # point, but it also implements the kill_switch, so we ask here
@@ -524,7 +524,7 @@ def _assign_linters_to_view(view, next_linters):
         return
 
     bid = view.buffer_id()
-    filename = util.get_filename(view)
+    filename = util.canonical_filename(view)
     current_linters = persist.assigned_linters.get(bid, set())
 
     persist.assigned_linters[bid] = next_linters

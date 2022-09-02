@@ -86,7 +86,7 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
         else:
             sel = view.sel()[0]
 
-        filename = util.get_filename(view)
+        filename = util.canonical_filename(view)
         if sel.empty():
             char_selection = sublime.Region(sel.a, sel.a + 1)
             errors = get_errors_where(

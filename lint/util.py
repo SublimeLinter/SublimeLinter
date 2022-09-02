@@ -84,6 +84,14 @@ def distinct_until_buffer_changed(method):
     return wrapper
 
 
+def short_canonical_filename(view):
+    return (
+        os.path.basename(view.file_name())
+        if view.file_name()
+        else '<untitled {}>'.format(view.buffer_id())
+    )
+
+
 def canonical_filename(view):
     return (
         os.path.basename(view.file_name()) if view.file_name()

@@ -343,7 +343,7 @@ def hit(view, reason):
     delay = get_delay() if reason == 'on_modified' else 0.0
     logger.info(
         "Delay linting '{}' for {:.2}s"
-        .format(util.canonical_filename(view), delay)
+        .format(util.short_canonical_filename(view), delay)
     )
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
@@ -384,7 +384,7 @@ def lint(view, view_has_changed, lock, reason):
         kill_active_popen_calls(bid)
 
     with broadcast_lint_runtime(filename), remember_runtime(
-        "Linting '{}' took {{:.2f}}s".format(util.canonical_filename(view))
+        "Linting '{}' took {{:.2f}}s".format(util.short_canonical_filename(view))
     ):
         sink = partial(
             group_by_filename_and_update, window, filename, view_has_changed, reason)

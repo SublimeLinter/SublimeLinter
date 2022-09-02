@@ -1142,7 +1142,7 @@ class Linter(metaclass=LinterMeta):
         """
         self.logger.info(
             "{}: linting '{}'"
-            .format(self.name, util.canonical_filename(self.view)))
+            .format(self.name, util.short_canonical_filename(self.view)))
 
         # `cmd = None` is a special API signal, that the plugin author
         # implemented its own `run`

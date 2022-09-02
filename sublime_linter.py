@@ -570,7 +570,7 @@ def make_view_has_changed_fn(view):
 
 
 elapsed_runtimes = deque([0.6] * 3, maxlen=10)
-MIN_DEBOUNCE_DELAY = 0.05
+MIN_DEBOUNCE_DELAY = 0.0005
 MAX_AUTOMATIC_DELAY = 2.0
 
 
@@ -588,11 +588,11 @@ def get_delay():
 @contextmanager
 def remember_runtime(log_msg):
     # type: (str) -> Iterator[None]
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     yield
 
-    end_time = time.time()
+    end_time = time.perf_counter()
     runtime = end_time - start_time
     logger.info(log_msg.format(runtime))
 

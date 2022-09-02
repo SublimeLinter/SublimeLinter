@@ -135,9 +135,9 @@ def make_good_task_name(linter, view):
     with counter_lock:
         task_number = next(task_count)
 
-    canonical_filename = util.short_canonical_filename(view)
+    short_canonical_filename = util.short_canonical_filename(view)
     return 'LintTask|{}|{}|{}|{}'.format(
-        task_number, linter.name, canonical_filename, view.id())
+        task_number, linter.name, short_canonical_filename, view.id())
 
 
 def modify_thread_name(name, sink):

@@ -433,32 +433,31 @@ def _format_error(error_as_tuple, widths_as_tuple):
     # type: (Tuple[Tuple[str, object], ...], Tuple[Tuple[str, int], ...]) -> List[str]
     error = dict(error_as_tuple)  # type: LintError  # type: ignore
     widths = dict(widths_as_tuple)  # type: Dict[str, int]
-    code_width = widths['code']
-    code_tmpl = ":{{code:<{}}}".format(code_width)
-    tmpl = (
+    info_tmpl = (
         " {{LINE:>{line}}}:{{START:<{col}}}  {{error_type:{error_type}}}  "
-        "{{linter:<{linter_name}}}{{CODE}}  "
+        "{{linter:<{linter_name}}}  "
         .format(**widths)
     )
 
     line = error["line"] + 1
     start = error["start"] + 1
-    code = (
-        code_tmpl.format(**error)
-        if error['code']
-        else ' ' * (code_width + (1 if code_width else 0))  # + 1 for the ':'
-    )
-    info = tmpl.format(LINE=line, START=start, CODE=code, **error)
+    info = info_tmpl.format(LINE=line, START=start, **error)
+    code = " \u200B{}".format(error['code']) if error['code'] else ""
     rv = list(flatten(
         textwrap.wrap(
             msg_line,
             width=widths['viewport'],
-            initial_indent=" " * len(info),
+            initial_indent=" " * (len(info) + (len(code) if n == 0 else 0)),
             subsequent_indent=" " * len(info)
         )
-        for msg_line in error['msg'].splitlines()
+        for n, msg_line in enumerate(error['msg'].splitlines())
     ))
-    rv[0] = info + rv[0].lstrip()
+
+    spaces_to_fill_viewport = (
+        widths['viewport']
+        - len(info + rv[0].lstrip() + code)
+    )
+    rv[0] = info + rv[0].lstrip() + " " * spaces_to_fill_viewport + code
     return rv
 
 
@@ -495,7 +494,7 @@ def fill_panel(window):
 
     widths = tuple(
         zip(
-            ('line', 'col', 'error_type', 'linter_name', 'code'),
+            ('line', 'col', 'error_type', 'linter_name'),
             map(
                 max,
                 zip(*[
@@ -504,7 +503,6 @@ def fill_panel(window):
                         len(str(error['start'] + 1)),
                         len(error['error_type']),
                         len(error['linter']),
-                        len(str(error['code'])),
                     )
                     for error in flatten(errors_by_file.values())
                 ])
@@ -512,6 +510,15 @@ def fill_panel(window):
         )
     )  # type: Tuple[Tuple[str, int], ...]
     widths += (('viewport', int(vx // panel.em_width()) - 1), )
+
+    def sorted_by_path(active_filename, items):
+        active_filename_parts = len(fpath_by_file[active_filename].split(os.sep))
+
+        def by_path(item):
+            fpath, filename, errors = item
+            parts = fpath.split(os.sep)
+            return (abs(len(parts) - active_filename_parts), len(parts), parts)
+        return sorted(items, key=by_path)
 
     to_render = []
     if active_filename:
@@ -542,10 +549,13 @@ def fill_panel(window):
             )]
 
             # Affected files can be clean, just omit those
-            + sorted(
-                (fpath_by_file[filename], filename, errors_by_file[filename])
-                for filename in affected_filenames
-                if filename in errors_by_file
+            + sorted_by_path(
+                active_filename,
+                (
+                    (fpath_by_file[filename], filename, errors_by_file[filename])
+                    for filename in affected_filenames
+                    if filename in errors_by_file
+                )
             )
         )
 

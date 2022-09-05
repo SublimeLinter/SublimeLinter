@@ -218,22 +218,22 @@ def y_offset(view, cursor):
 
 phantoms_per_buffer = {}  # type: Dict[sublime.BufferId, sublime.PhantomSet]
 
-STYLESHEET = '''
-    <style>
-        body {
-            padding: 0rem;
-            margin: 0rem;
-        }
-        div.error {
-            padding: 0rem;
-            margin: 0rem;
-            sborder-radius: 12px;
-            position: relative;
-            sfont-size: 0.85rem;
-            scolor: var(--redish);
-            sbackground-color: var(--background);
-        }
-    </style>
+PHANTOM_TEMPLATE = '''
+    <body id="sl-inline-phantom">
+        <style>
+            body {{
+                padding: 0rem;
+                margin: 0rem;
+            }}
+            div.error {{
+                padding: 0rem;
+                margin: 0rem;
+                color: {color};
+                background-color: var(--background);
+            }}
+        </style>
+        <div class="error">{content}</div>
+    </body>
 '''
 
 
@@ -269,13 +269,15 @@ def format_message_for_phantom(view, error):
 
     rv[0] = " " * col + "\\ " + rv[0].lstrip()
 
-    text = html.escape("\n".join(rv), quote=False).replace(' ', '&nbsp;').replace("\n", "<br/>")
-    return (
-        '<body id="sl-inline-phantom">' + STYLESHEET +
-        '<div class="error">'
-        '' + text + ''
-        '</div>'
-        '</body>'
+    text = (
+        html.escape("\n".join(rv), quote=False)
+        .replace(' ', '&nbsp;')
+        .replace("\n", "<br/>")
+    )
+    scope = style.get_value('scope', error)
+    return PHANTOM_TEMPLATE.format(
+        content=text,
+        color=view.style_for_scope(scope)["foreground"]
     )
 
 

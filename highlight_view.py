@@ -488,11 +488,11 @@ def draw_view_region(view, key, regions):
     # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
     with StorageLock:
         if SUBLIME_SUPPORTS_REGION_ANNOTATIONS and isinstance(key, Squiggle):
-            if key.annotation and key.visible():
+            if key.annotation:
                 annotations = {
                     "annotations": [key.annotation],
                     "annotation_color":
-                        view.style_for_scope(key.scope)["foreground"]
+                        view.style_for_scope(key.scope or key.alt_scope)["foreground"]
                 }
             else:
                 annotations = {}

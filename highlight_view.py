@@ -229,7 +229,7 @@ PHANTOM_TEMPLATE = '''
                 padding: 0rem;
                 margin: 0rem;
                 color: {color};
-                background-color: var(--background);
+                background-color: color({color} alpha(0.2));
             }}
         </style>
         <div class="error">{content}</div>

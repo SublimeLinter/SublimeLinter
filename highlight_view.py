@@ -258,7 +258,7 @@ def format_message_for_phantom(view, error):
             msg_line,
             width=viewport_width,
             initial_indent=" " * (col if n == 0 and not ralign else 0),
-            subsequent_indent=" " * 4
+            subsequent_indent=" " * ((col + 2) if not ralign else 0)
         )
         for n, msg_line in enumerate(
             style
@@ -269,7 +269,9 @@ def format_message_for_phantom(view, error):
     ))
 
     if ralign:
-        rv[0] = " " * (col - len(rv[0]) - 2) + rv[0] + " /"
+        left_spaces = " " * (col - len(rv[0]) - 2)
+        rv = [left_spaces + rv[0] + " /"] + [left_spaces + line for line in rv[1:]]
+
     else:
         rv[0] = " " * col + "\\ " + rv[0].lstrip()
 

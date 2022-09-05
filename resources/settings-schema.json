@@ -92,6 +92,9 @@
                                 "annotation":{
                                     "type":"string"
                                 },
+                                "phantom":{
+                                    "type":"string"
+                                },
                                 "types":{
                                     "type":"array",
                                     "items":{
@@ -172,6 +175,9 @@
                         "type":"string"
                     },
                     "annotation":{
+                        "type":"string"
+                    },
+                    "phantom":{
                         "type":"string"
                     },
                     "types":{

@@ -1,4 +1,5 @@
 from collections import defaultdict, ChainMap
+from contextlib import contextmanager
 import html
 from itertools import chain
 from functools import partial
@@ -170,6 +171,124 @@ def highlight_linter_errors(views, filename, linter_name):
             squiggle_regions,
             gutter_regions,
         )
+        draw_phantoms(view)
+
+
+def draw_phantoms(view):
+    vid = view.id()
+    filename = util.canonical_filename(view)
+    errors = persist.file_errors[filename]
+    phantoms = (
+        prepare_phantoms(view, errors)
+        if vid not in State['quiet_views']
+        else []
+    )
+    update_phantoms(view, phantoms)
+
+
+def update_phantoms(view, phantoms):
+    with stable_viewport(view, phantoms):
+        get_phantom_set(view).update(phantoms)
+
+
+@contextmanager
+def stable_viewport(view, phantoms):
+    pos = cur_pos(view)
+    offset = y_offset(view, pos.a)
+
+    yield
+
+    _, cy = view.text_to_layout(pos.a)
+    vy = cy - offset
+    vx, _ = view.viewport_position()
+    view.set_viewport_position((vx, vy), animate=False)
+
+
+def cur_pos(view):
+    # type: (sublime.View) -> sublime.Region
+    return view.sel()[0]
+
+
+def y_offset(view, cursor):
+    # type: (sublime.View, int) -> float
+    _, cy = view.text_to_layout(cursor)
+    _, vy = view.viewport_position()
+    return cy - vy
+
+
+phantoms_per_buffer = {}  # type: Dict[sublime.BufferId, sublime.PhantomSet]
+
+STYLESHEET = '''
+    <style>
+        body {
+            padding: 0rem;
+            margin: 0rem;
+        }
+        div.error {
+            padding: 0rem;
+            margin: 0rem;
+            sborder-radius: 12px;
+            position: relative;
+            sfont-size: 0.85rem;
+            scolor: var(--redish);
+            sbackground-color: var(--background);
+        }
+    </style>
+'''
+
+
+def get_phantom_set(view):
+    # type: (sublime.View) -> sublime.PhantomSet
+    bid = view.buffer_id()
+    try:
+        return phantoms_per_buffer[bid]
+    except LookupError:
+        rv = phantoms_per_buffer[bid] = sublime.PhantomSet(view, "SLInlineHighlighter")
+        return rv
+
+
+def format_message_for_phantom(view, error):
+    col = error["start"]
+    vx, _ = view.viewport_extent()
+    # `40` *is* a magic number but be sure to never get a `-1` here
+    viewport_width = max(40, int(vx // view.em_width()) - 1)
+    rv = list(flatten(
+        textwrap.wrap(
+            msg_line,
+            width=viewport_width,
+            initial_indent=" " * (col if n == 0 else 0),
+            subsequent_indent=" " * 4
+        )
+        for n, msg_line in enumerate(
+            style
+            .get_value('phantom', error, '')
+            .format(**error)
+            .splitlines()
+        )
+    ))
+
+    rv[0] = " " * col + "\\ " + rv[0].lstrip()
+
+    text = html.escape("\n".join(rv), quote=False).replace(' ', '&nbsp;').replace("\n", "<br/>")
+    return (
+        '<body id="sl-inline-phantom">' + STYLESHEET +
+        '<div class="error">'
+        '' + text + ''
+        '</div>'
+        '</body>'
+    )
+
+
+def prepare_phantoms(view, errors):
+    return [
+        sublime.Phantom(
+            view.line(error["region"].b - 1),
+            format_message_for_phantom(view, error),
+            sublime.LAYOUT_BLOCK
+        )
+        for error in errors
+        if style.get_value('phantom', error, '')
+    ]
 
 
 def update_error_priorities_inline(errors):
@@ -786,6 +905,10 @@ def toggle_all_regions(view, show):
                 redraw_squiggle(view, key, regions)
             else:
                 draw_squiggle_invisible(view, key, regions)
+    if show:
+        draw_phantoms(view)
+    else:
+        update_phantoms(view, [])
 
 
 def draw_squiggle_invisible(view, key, regions):

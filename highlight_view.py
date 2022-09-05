@@ -252,11 +252,12 @@ def format_message_for_phantom(view, error):
     vx, _ = view.viewport_extent()
     # `40` *is* a magic number but be sure to never get a `-1` here
     viewport_width = max(40, int(vx // view.em_width()) - 1)
+    ralign = col > viewport_width * 2 // 3
     rv = list(flatten(
         textwrap.wrap(
             msg_line,
             width=viewport_width,
-            initial_indent=" " * (col if n == 0 else 0),
+            initial_indent=" " * (col if n == 0 and not ralign else 0),
             subsequent_indent=" " * 4
         )
         for n, msg_line in enumerate(
@@ -267,7 +268,10 @@ def format_message_for_phantom(view, error):
         )
     ))
 
-    rv[0] = " " * col + "\\ " + rv[0].lstrip()
+    if ralign:
+        rv[0] = " " * (col - len(rv[0]) - 2) + rv[0] + " /"
+    else:
+        rv[0] = " " * col + "\\ " + rv[0].lstrip()
 
     text = (
         html.escape("\n".join(rv), quote=False)

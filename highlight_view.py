@@ -273,7 +273,10 @@ def format_message_for_phantom(view, error):
         rv = [left_spaces + rv[0] + " /"] + [left_spaces + line for line in rv[1:]]
 
     else:
-        rv[0] = " " * col + "\\ " + rv[0].lstrip()
+        rv[0] = (
+            " " * col + "\\ " + rv[0].lstrip()
+            + " " * (viewport_width - col - 2 - len(rv[0].lstrip()))
+        )
 
     text = (
         html.escape("\n".join(rv), quote=False)

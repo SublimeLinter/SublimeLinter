@@ -293,7 +293,7 @@ def format_message_for_phantom(view, error):
 def prepare_phantoms(view, errors):
     return [
         sublime.Phantom(
-            view.line(error["region"].b - 1),
+            sublime.Region(error["region"].b - 1),
             format_message_for_phantom(view, error),
             sublime.LAYOUT_BLOCK
         )

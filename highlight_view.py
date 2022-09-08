@@ -291,6 +291,10 @@ def format_message_for_phantom(view, error):
 
 
 def prepare_phantoms(view, errors):
+    errors_ = [e for e in errors if e["error_type"] == "error"]
+    if any(errors_):
+        errors = errors_
+
     return [
         sublime.Phantom(
             sublime.Region(error["region"].b - 1),

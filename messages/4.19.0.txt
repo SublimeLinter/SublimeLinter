@@ -1,0 +1,47 @@
+SublimeLinter 4.19.0
+
+Howdy, long time no see.
+
+Probably about time,
+
+--- we slightly refreshed the panel design.
+
+--- we auto detect more python environment.  Typical local installation on
+".env" or ".venv" (where Kenneth' put these) and `poetry` are supported.
+
+--- in the styles settings, `code` is now a prefix match.  For example:
+
+```
+    {
+        "codes": ["E3", "E2"],
+        "scope": "comment",
+    },
+```
+
+will match against rules "E302", "E304", ...
+
+Handy for all linters that organize the rules like hierarchical
+namespaces, like e.g. rubocop and eslint.  (E.g. "prettier/")
+
+--- there is now a global on/off switch.  This is useful for example for
+plugins with special views.  For example, GitSavvy now lints the commit
+message views which was not possible before as these scratch, temporary,
+widget-like views were always skipped.
+
+But you can also turn SublimeLinter *off* on a per project basis.
+
+```
+{
+    "folders": [{ "path": "." }],
+    "settings": {
+        "SublimeLinter.enabled?": false,
+    }
+}
+```
+
+--- and a spelling fixer for the codespell linter
+
++++ the usual maintenance commits
+
+
+

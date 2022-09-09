@@ -98,27 +98,15 @@ def canonical_filename(view):
 
 
 def get_syntax(view):
+    # type: (sublime.View) -> str
     """
-    Return the view's syntax.
-
-    or the syntax it is mapped to in the "syntax_map" setting.
+    Return a short syntax name used as a key against "syntax_map"
+    and in `get_tempfile_suffix()`.
     """
-    syntax_re = re.compile(r'(?i)/([^/]+)\.(?:tmLanguage|sublime-syntax)$')
-    view_syntax = view.settings().get('syntax') or ''
-    mapped_syntax = ''
-
-    if view_syntax:
-        match = syntax_re.search(view_syntax)
-
-        if match:
-            view_syntax = match.group(1).lower()
-            from .persist import settings
-            mapped_syntax = settings.get(
-                'syntax_map', {}).get(view_syntax, '').lower()
-        else:
-            view_syntax = ''
-
-    return mapped_syntax or view_syntax
+    from .persist import settings
+    syntax = view.settings().get('syntax') or ''
+    stem = os.path.splitext(os.path.basename(syntax))[0].lower()
+    return settings.get('syntax_map', {}).get(stem, stem)
 
 
 def is_lintable(view):

@@ -166,7 +166,7 @@ def other_visible_views():
 global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
 buffer_filenames = {}  # type: Dict[Bid, FileName]
-buffer_syntaxes = {}  # type: Dict[Bid, str]
+buffer_base_scopes = {}  # type: Dict[Bid, str]
 
 
 class BackendController(sublime_plugin.EventListener):
@@ -248,7 +248,7 @@ class BackendController(sublime_plugin.EventListener):
         persist.assigned_linters.pop(bid, None)
         guard_check_linters_for_view.pop(bid, None)
         buffer_filenames.pop(bid, None)
-        buffer_syntaxes.pop(bid, None)
+        buffer_base_scopes.pop(bid, None)
         queue.cleanup(bid)
 
 
@@ -271,17 +271,18 @@ def detect_rename(view):
 
 
 def has_syntax_changed(view):
+    # type: (sublime.View) -> bool
     bid = view.buffer_id()
-    current_syntax = util.get_syntax(view)
+    base_scope = view.scope_name(0).split(" ")[0]
 
     try:
-        old_value = buffer_syntaxes[bid]
+        old_value = buffer_base_scopes[bid]
     except KeyError:
         return True
     else:
-        return old_value != current_syntax
+        return old_value != base_scope
     finally:
-        buffer_syntaxes[bid] = current_syntax
+        buffer_base_scopes[bid] = base_scope
 
 
 class sublime_linter_lint(sublime_plugin.TextCommand):

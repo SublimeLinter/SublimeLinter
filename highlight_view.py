@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, ChainMap
 import html
 from itertools import chain
 from functools import partial
@@ -19,7 +19,7 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, DefaultDict, Dict, FrozenSet, Hashable, Iterable, List,
-        Optional, Set, Tuple, TypeVar, Union
+        Mapping, Optional, Set, Tuple, TypeVar, Union
     )
     from mypy_extensions import TypedDict
     T = TypeVar('T')
@@ -29,8 +29,8 @@ if MYPY:
     Flags = int
     Icon = str
     Scope = str
-    Squiggles = Dict['Squiggle', List[sublime.Region]]
-    GutterIcons = Dict['GutterIcon', List[sublime.Region]]
+    Squiggles = Mapping['Squiggle', List[sublime.Region]]
+    GutterIcons = Mapping['GutterIcon', List[sublime.Region]]
     ProtectedRegions = List[sublime.Region]
     RegionKey = Union['GutterIcon', 'Squiggle']
 
@@ -43,6 +43,7 @@ if MYPY:
     })
 
     DemotePredicate = Callable[[LintError], bool]
+    FilteredErrors = Tuple[List[LintError], List[LintError]]
 
 
 UNDERLINE_FLAGS = (
@@ -127,23 +128,10 @@ def highlight_linter_errors(views, filename, linter_name):
 
     errors = persist.file_errors[filename]
     update_error_priorities_inline(errors)
-    errors_for_the_highlights, errors_for_the_gutter = prepare_data(errors)
+    errors_for_the_highlights, loosers = filter_errors(errors, by_position)
+    errors_for_the_gutter, _ = filter_errors(errors, by_line)
 
-    view = views[0]  # to calculate regions we can take any of the views
-    protected_regions = prepare_protected_regions(errors_for_the_gutter)
-
-    # `prepare_data` returns the state of the view as we would like to draw it.
-    # But we cannot *redraw* regions as soon as the buffer changed, in fact
-    # Sublime already moved all the regions for us.
-    # So for the next step, we filter for errors from the current finished
-    # lint, namely from linter_name. All other errors are already UP-TO-DATE.
-
-    errors_for_the_highlights = [error for error in errors_for_the_highlights
-                                 if error['linter'] == linter_name]
-    errors_for_the_gutter = [error for error in errors_for_the_gutter
-                             if error['linter'] == linter_name]
-
-    gutter_regions = prepare_gutter_data(linter_name, errors_for_the_gutter)
+    gutter_regions = prepare_gutter_data(errors_for_the_gutter)
 
     for view in views:
         vid = view.id()
@@ -165,18 +153,27 @@ def highlight_linter_errors(views, filename, linter_name):
             quiet=vid in State['quiet_views'],
             idle=vid in State['idle_views']
         )
+        hidden_highlight_regions = prepare_highlights_data(
+            loosers,
+            demote_predicate=demote_predicate,
+            demote_scope=demote_scope,
+            quiet=True,
+            idle=vid in State['idle_views']
+        )
+        squiggle_regions = ChainMap(
+            highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
+        )  # type: Squiggles
         draw(
             view,
             linter_name,
-            highlight_regions,
+            squiggle_regions,
             gutter_regions,
-            protected_regions,
         )
 
 
 def update_error_priorities_inline(errors):
     # type: (List[LintError]) -> None
-    # We need to update `prioritiy` here (although a user will rarely change
+    # We need to update `priority` here (although a user will rarely change
     # this setting that often) for correctness. Generally, on views with
     # multiple linters running, we compare new lint results from the
     # 'fast' linters with old results from the 'slower' linters. The below
@@ -187,32 +184,23 @@ def update_error_priorities_inline(errors):
         error['priority'] = style.get_value('priority', error, 0)
 
 
-def prepare_data(errors):
-    # type: (List[LintError]) -> Tuple[List[LintError], List[LintError]]
-    # We need to filter the errors, bc we cannot draw multiple regions
-    # on the same position. E.g. we can only draw one gutter icon per line,
-    # and we can only 'underline' a word once.
-    return (
-        filter_errors(errors, by_position),  # highlights
-        filter_errors(errors, by_line)       # gutter icons
-    )
-
-
 def filter_errors(errors, group_fn):
-    # type: (List[LintError], Callable[[LintError], Hashable]) -> List[LintError]
+    # type: (List[LintError], Callable[[LintError], Hashable]) -> FilteredErrors
     grouped = defaultdict(list)  # type: DefaultDict[Hashable, List[LintError]]
     for error in errors:
         grouped[group_fn(error)].append(error)
 
     filtered_errors = []
+    loosers = []
     for errors in grouped.values():
-        head = sorted(
+        head, *tail = sorted(
             errors,
             key=lambda e: (-e['priority'], e['error_type'], e['linter'])
-        )[0]
+        )
         filtered_errors.append(head)
+        loosers += tail
 
-    return filtered_errors
+    return filtered_errors, loosers
 
 
 def by_position(error):
@@ -225,20 +213,14 @@ def by_line(error):
     return error['line']
 
 
-def prepare_protected_regions(errors):
-    # type: (List[LintError]) -> ProtectedRegions
-    return list(flatten(prepare_gutter_data('_', errors).values()))
-
-
 def prepare_gutter_data(
-    linter_name,  # type: LinterName
-    errors        # type: List[LintError]
+    errors,        # type: List[LintError]
 ):
     # type: (...) -> GutterIcons
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
-    by_id = defaultdict(list)  # type: DefaultDict[Tuple[str, str], List[sublime.Region]]
+    by_key = defaultdict(list)
     for error in errors:
         icon = style.get_icon(error)
         if icon == 'none':
@@ -252,17 +234,11 @@ def prepare_gutter_data(
 
         # We group towards the optimal sublime API usage:
         #   view.add_regions(uuid(), [region], scope, icon)
-        id = (scope, icon)
-        by_id[id].append(region)
+        linter_name = error['linter']
+        key = GutterIcon(linter_name, scope, icon)
+        by_key[key].append(region)
 
-    # Exchange the `id` with a regular region_id which is a unique string, so
-    # uuid() would be candidate here, that can be reused for efficient updates.
-    by_region_id = {}
-    for (scope, icon), regions in by_id.items():
-        region_id = GutterIcon(linter_name, scope, icon)
-        by_region_id[region_id] = regions
-
-    return by_region_id
+    return by_key
 
 
 def prepare_highlights_data(
@@ -275,6 +251,8 @@ def prepare_highlights_data(
     # type: (...) -> Squiggles
     by_region_id = {}
     for error in errors:
+        if error.get('revalidate'):
+            continue
         scope = style.get_value('scope', error)
         flags = _compute_flags(error)
         demote_while_busy = demote_predicate(error)
@@ -323,7 +301,6 @@ def draw(
     linter_name,        # type: LinterName
     highlight_regions,  # type: Squiggles
     gutter_regions,     # type: GutterIcons
-    protected_regions,  # type: ProtectedRegions
 ):
     # type: (...) -> None
     """
@@ -334,20 +311,15 @@ def draw(
 
     """
     current_region_keys = get_regions_keys(view)
-    current_linter_keys = {
-        key
-        for key in current_region_keys
-        if key.linter_name == linter_name
-    }
-    new_linter_keys = set(highlight_regions.keys()) | set(gutter_regions.keys())
+    next_region_keys = highlight_regions.keys() | gutter_regions.keys()
 
     # remove unused regions
-    for key in current_linter_keys - new_linter_keys:
+    for key in current_region_keys - next_region_keys:
         erase_view_region(view, key)
 
     # overlaying all gutter regions with common invisible one,
     # to create unified handle for GitGutter and other plugins
-    view.add_regions(PROTECTED_REGIONS_KEY, protected_regions)
+    view.add_regions(PROTECTED_REGIONS_KEY, list(flatten(gutter_regions.values())))
 
     # otherwise update (or create) regions
     for squiggle, regions in highlight_regions.items():
@@ -575,11 +547,15 @@ def revalidate_regions(view):
     if vid in State['quiet_views']:
         return
 
+    filename = util.canonical_filename(view)
+    errors = persist.file_errors.get(filename, [])
+    errors_by_uid = {e['uid']: e for e in errors}
+
     selections = get_current_sel(view)  # frozen sel() for this operation
     region_keys = get_regions_keys(view)
     eof = view.size()
     for key in region_keys:
-        if isinstance(key, Squiggle) and key.visible():
+        if isinstance(key, Squiggle):
             # We can have keys without any region drawn for example
             # if we loaded the `EVERSTORE`.
             region = head(view.get_regions(key))
@@ -597,6 +573,10 @@ def revalidate_regions(view):
             # and remove the error from the store.
             if any(region.contains(s) for s in selections):
                 draw_squiggle_invisible(view, key, [region])
+                try:
+                    errors_by_uid[key.uid]['revalidate'] = True  # type: ignore[typeddict-item]
+                except LookupError:
+                    pass
 
         elif isinstance(key, GutterIcon):
             # Remove gutter icon if its region is empty,
@@ -639,11 +619,8 @@ def maybe_update_error_store(view):
     new_errors = []
     for error in errors:
         uid = error['uid']
-        # XXX: Why keep the error in the store when we don't have
-        # a region key for it in the store?
         key = uid_key_map.get(uid, None)
         if key is None:
-            new_errors.append(error)
             continue
 
         region = head(view.get_regions(key))

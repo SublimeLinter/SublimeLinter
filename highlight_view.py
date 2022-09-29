@@ -163,7 +163,7 @@ def highlight_linter_errors(views, filename, linter_name):
             idle=vid in State['idle_views']
         )
         squiggle_regions = ChainMap(
-            highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
+            {}, highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
         )  # type: Squiggles
         draw(
             view,

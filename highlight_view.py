@@ -40,6 +40,7 @@ if MYPY:
         'current_sel': Tuple[sublime.Region, ...],
         'idle_views': Set[sublime.ViewId],
         'quiet_views': Set[sublime.ViewId],
+        'views_without_phantoms': Set[sublime.ViewId],
         'views': Set[sublime.ViewId]
     })
 
@@ -80,6 +81,7 @@ State = {
     'current_sel': tuple(),
     'idle_views': set(),
     'quiet_views': set(),
+    'views_without_phantoms': set(),
     'views': set()
 }  # type: State_
 
@@ -138,14 +140,11 @@ def highlight_linter_errors(views, filename, linter_name):
     for view in views:
         vid = view.id()
 
-        if (
-            persist.settings.get('highlights.start_hidden') and
-            vid not in State['quiet_views'] and
-            vid not in State['views']
-        ):
-            State['quiet_views'].add(vid)
-
         if vid not in State['views']:
+            if persist.settings.get('highlights.start_hidden'):
+                State['quiet_views'].add(vid)
+                State['views_without_phantoms'].add(vid)
+
             State['views'].add(vid)
 
         highlight_regions = prepare_highlights_data(
@@ -180,7 +179,7 @@ def draw_phantoms(view):
     errors = persist.file_errors[filename]
     phantoms = (
         prepare_phantoms(view, errors)
-        if vid not in State['quiet_views']
+        if vid not in State['views_without_phantoms']
         else []
     )
     update_phantoms(view, phantoms)
@@ -683,6 +682,7 @@ class ViewListCleanupController(sublime_plugin.EventListener):
         vid = view.id()
         State['idle_views'].discard(vid)
         State['quiet_views'].discard(vid)
+        State['views_without_phantoms'].discard(vid)
         State['views'].discard(vid)
 
 
@@ -891,20 +891,27 @@ def toggle_demoted_regions(view, show):
                 draw_squiggle_with_different_scope(view, key, regions, demote_scope)
 
 
-class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
-    def run(self):
+class sublime_linter_toggle_highlights(sublime_plugin.WindowCommand):
+    def run(self, what=["squiggles", "phantoms"]):
         view = self.window.active_view()
         if not view:
             return
 
         vid = view.id()
-        hidden = vid in State['quiet_views']
-        if hidden:
-            State['quiet_views'].discard(vid)
-        else:
-            State['quiet_views'].add(vid)
+        if "squiggles" in what:
+            hidden = vid in State['quiet_views']
+            if hidden:
+                State['quiet_views'].discard(vid)
+            else:
+                State['quiet_views'].add(vid)
+            toggle_all_regions(view, show=hidden)
 
-        toggle_all_regions(view, show=hidden)
+        if "phantoms" in what:
+            if vid in State['views_without_phantoms']:
+                State['views_without_phantoms'].discard(vid)
+            else:
+                State['views_without_phantoms'].add(vid)
+            draw_phantoms(view)
 
 
 HIDDEN_SCOPE = ''
@@ -920,10 +927,6 @@ def toggle_all_regions(view, show):
                 redraw_squiggle(view, key, regions)
             else:
                 draw_squiggle_invisible(view, key, regions)
-    if show:
-        draw_phantoms(view)
-    else:
-        update_phantoms(view, [])
 
 
 def draw_squiggle_invisible(view, key, regions):

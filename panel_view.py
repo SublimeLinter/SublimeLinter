@@ -202,7 +202,7 @@ class UpdateState(sublime_plugin.EventListener):
                 'cursor': cursor
             })
             if panel_is_active(active_view.window()):
-                update_panel_selection(**State)
+                update_panel_selection(**State)  # type: ignore[arg-type]
 
     def on_pre_close(self, view):
         window = view.window()
@@ -595,7 +595,7 @@ def fill_panel(window):
     }  # type: DrawInfo
 
     if active_view:
-        update_panel_selection(draw_info=draw_info, **State)
+        update_panel_selection(draw_info=draw_info, **State)  # type: ignore[arg-type]
     else:
         draw(draw_info)
 
@@ -606,7 +606,9 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
     if draw_info is None:
         draw_info = {}
 
-    panel = get_panel(active_view.window())
+    window = active_view.window()
+    assert window
+    panel = get_panel(window)
     if not panel:
         return
 
@@ -717,9 +719,7 @@ def scroll_into_view(panel, wanted_lines, errors):
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
     possible shows the start of this file section (the filename) at the top
-    of the viewport. Otherwise tries to not 'overscroll' so that errors from a
-    possible next file are essentially hidden. Inbetween tries to scroll as
-    little as possible.
+    of the viewport. Generally tries to scroll as little as possible.
     """
     if not errors or not wanted_lines:
         # For clean files, we know that we have exactly two rows: the

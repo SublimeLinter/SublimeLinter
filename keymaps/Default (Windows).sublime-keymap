@@ -23,9 +23,16 @@
     // * wrap:      If true will jump to the top if you're on the last error
     //              and vice versa. Defaults to False
 
-    // You can toggle all highlights super-fast
+    // You can toggle all squiggles and phantoms super-fast
     // { "keys": ["ctrl+k", "ctrl+k"],
     //   "command": "sublime_linter_toggle_highlights"
+    // },
+    //
+    // This commands optionally takes a `what` arg.
+    // For example, to toggle only the phantoms use
+    // { "keys": ["ctrl+k", "ctrl+k"],
+    //   "command": "sublime_linter_toggle_highlights",
+    //   "args": {"what": ["phantoms"]}  // or "squiggles"
     // },
 
     // To trigger a quick action

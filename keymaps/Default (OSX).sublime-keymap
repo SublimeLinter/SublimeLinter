@@ -27,6 +27,13 @@
     // { "keys": ["ctrl+super+k"],
     //   "command": "sublime_linter_toggle_highlights"
     // },
+    //
+    // This commands optionally takes a `what` arg.
+    // For example, to toggle only the phantoms use
+    // { "keys": ["ctrl+super+k"],
+    //   "command": "sublime_linter_toggle_highlights",
+    //   "args": {"what": ["phantoms"]}  // or "squiggles"
+    // },
 
     // To trigger a quick action
     // { "keys": ["super+alt+a"],

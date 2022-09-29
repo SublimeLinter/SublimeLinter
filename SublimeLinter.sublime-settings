@@ -177,7 +177,7 @@
     // herein a style definition. A style definition must match a specific
     // linter error, either its code or its error type, to take any effect.
     //
-    // The default styles cannot be overriden per se, you extend them
+    // The default styles cannot be overridden per se, you extend them
     // in your user settings. The defaults can be read as "All linter problems
     // are red, outline, dots, but warnings are yellow."
     "styles": [
@@ -216,7 +216,19 @@
             // there are newlines in the problem region for readability.
             "mark_style": "outline",
 
-            "scope": "region.redish markup.error.sublime_linter"
+            "scope": "region.redish markup.error.sublime_linter",
+
+            // The text of an annotation placed on the right side of the view.
+            // This is a template string, so e.g. "{msg}","{code}", "{linter}"
+            // are the typical values used here besides normal text.
+            // Override this *per* linter to reduce clutter and noise.
+            "annotation": "",
+
+            // The text of the phantom placed directly below the squiggle.
+            // This is a template string, so e.g. "{msg}","{code}", "{linter}"
+            // are the typical values used here besides normal text.
+            // Override this *per* linter to reduce clutter and noise.
+            "phantom": ""
         }
     ],
 

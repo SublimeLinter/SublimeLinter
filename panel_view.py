@@ -719,9 +719,7 @@ def scroll_into_view(panel, wanted_lines, errors):
 
     Basically an optimized, do-it-yourself version of `view.show()`. If
     possible shows the start of this file section (the filename) at the top
-    of the viewport. Otherwise tries to not 'overscroll' so that errors from a
-    possible next file are essentially hidden. Inbetween tries to scroll as
-    little as possible.
+    of the viewport. Generally tries to scroll as little as possible.
     """
     if not errors or not wanted_lines:
         # For clean files, we know that we have exactly two rows: the

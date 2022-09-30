@@ -62,13 +62,19 @@ For example, it is very advisable to bind `sublime_linter_quick_actions`, e.g.
 
 ## Support & Bugs
 
-Please use the [debug mode](http://www.sublimelinter.com/en/stable/troubleshooting.html#debug-mode)
-and include all console output, and your settings in your
-[bug report](https://github.com/SublimeLinter/SublimeLinter/issues/new).
-If your issue is specific to a particular linter, please report it on that linter's repository instead.
+Yeah, totally!  Often if it doesn't work, Sublime will have something in the
+console (`View -> Show Console`).  Enable `debug` mode in the settings,
+restart Sublime Text and look at the console output for anything.
+
+If your issue is specific to a particular linter, please report it on that linter's repository, otherwise open it right [here](https://github.com/SublimeLinter/SublimeLinter/issues).
 
 
 ## Creating a linter plugin
 
 Fork the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
-It contains a howto with all the information you need.
+It contains a howto with all the information you need.  Of course, take a look at a similar linter plugin and let it inspire you.
+
+
+## Also Support 
+
+❤️😒 [Donate](https://paypal.me/herrkaste) 🙄

@@ -68,8 +68,8 @@ def get_value_(key, linter, code, error_type, default):
     for style_definition in linter_styles:
         # For linter_styles, do not auto fill 'types' if the user already
         # provided 'codes'
-        default = [] if 'codes' in style_definition else [error_type]
-        if error_type in style_definition.get('types', default):
+        default_ = [] if 'codes' in style_definition else [error_type]
+        if error_type in style_definition.get('types', default_):
             try:
                 return style_definition[key]
             except KeyError:

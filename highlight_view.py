@@ -1,4 +1,5 @@
 from collections import defaultdict, ChainMap
+from contextlib import contextmanager
 import html
 from itertools import chain
 from functools import partial
@@ -39,6 +40,7 @@ if MYPY:
         'current_sel': Tuple[sublime.Region, ...],
         'idle_views': Set[sublime.ViewId],
         'quiet_views': Set[sublime.ViewId],
+        'views_without_phantoms': Set[sublime.ViewId],
         'views': Set[sublime.ViewId]
     })
 
@@ -72,12 +74,14 @@ MULTILINES = re.compile('(?s)\n(?=.)')
 # Sublime >= 4074 supports underline styles on white space
 # https://github.com/sublimehq/sublime_text/issues/137
 SUBLIME_SUPPORTS_WS_SQUIGGLES = int(sublime.version()) >= 4074
+SUBLIME_SUPPORTS_REGION_ANNOTATIONS = int(sublime.version()) >= 4050
 
 State = {
     'active_view': None,
     'current_sel': tuple(),
     'idle_views': set(),
     'quiet_views': set(),
+    'views_without_phantoms': set(),
     'views': set()
 }  # type: State_
 
@@ -136,14 +140,11 @@ def highlight_linter_errors(views, filename, linter_name):
     for view in views:
         vid = view.id()
 
-        if (
-            persist.settings.get('highlights.start_hidden') and
-            vid not in State['quiet_views'] and
-            vid not in State['views']
-        ):
-            State['quiet_views'].add(vid)
-
         if vid not in State['views']:
+            if persist.settings.get('highlights.start_hidden'):
+                State['quiet_views'].add(vid)
+                State['views_without_phantoms'].add(vid)
+
             State['views'].add(vid)
 
         highlight_regions = prepare_highlights_data(
@@ -161,7 +162,7 @@ def highlight_linter_errors(views, filename, linter_name):
             idle=vid in State['idle_views']
         )
         squiggle_regions = ChainMap(
-            highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
+            {}, highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
         )  # type: Squiggles
         draw(
             view,
@@ -169,6 +170,139 @@ def highlight_linter_errors(views, filename, linter_name):
             squiggle_regions,
             gutter_regions,
         )
+        draw_phantoms(view)
+
+
+def draw_phantoms(view):
+    vid = view.id()
+    filename = util.canonical_filename(view)
+    errors = persist.file_errors[filename]
+    phantoms = (
+        prepare_phantoms(view, errors)
+        if vid not in State['views_without_phantoms']
+        else []
+    )
+    update_phantoms(view, phantoms)
+
+
+def update_phantoms(view, phantoms):
+    with stable_viewport(view, phantoms):
+        get_phantom_set(view).update(phantoms)
+
+
+@contextmanager
+def stable_viewport(view, phantoms):
+    pos = cur_pos(view)
+    offset = y_offset(view, pos.a)
+
+    yield
+
+    _, cy = view.text_to_layout(pos.a)
+    vy = cy - offset
+    vx, _ = view.viewport_position()
+    view.set_viewport_position((vx, vy), animate=False)
+
+
+def cur_pos(view):
+    # type: (sublime.View) -> sublime.Region
+    return view.sel()[0]
+
+
+def y_offset(view, cursor):
+    # type: (sublime.View, int) -> float
+    _, cy = view.text_to_layout(cursor)
+    _, vy = view.viewport_position()
+    return cy - vy
+
+
+phantoms_per_buffer = {}  # type: Dict[sublime.BufferId, sublime.PhantomSet]
+
+PHANTOM_TEMPLATE = '''
+    <body id="sl-inline-phantom">
+        <style>
+            body {{
+                padding: 0rem;
+                margin: 0rem;
+            }}
+            div.error {{
+                padding: 0rem;
+                margin: 0rem;
+                color: {color};
+                background-color: color({color} alpha(0.2));
+            }}
+        </style>
+        <div class="error">{content}</div>
+    </body>
+'''
+
+
+def get_phantom_set(view):
+    # type: (sublime.View) -> sublime.PhantomSet
+    bid = view.buffer_id()
+    try:
+        return phantoms_per_buffer[bid]
+    except LookupError:
+        rv = phantoms_per_buffer[bid] = sublime.PhantomSet(view, "SLInlineHighlighter")
+        return rv
+
+
+def format_message_for_phantom(view, error):
+    col = error["start"]
+    vx, _ = view.viewport_extent()
+    # `40` *is* a magic number but be sure to never get a `-1` here
+    viewport_width = max(40, int(vx // view.em_width()) - 1)
+    ralign = col > viewport_width * 2 // 3
+    rv = list(flatten(
+        textwrap.wrap(
+            msg_line,
+            width=viewport_width,
+            initial_indent=" " * (col if n == 0 and not ralign else 0),
+            subsequent_indent=" " * ((col + 2) if not ralign else 0)
+        )
+        for n, msg_line in enumerate(
+            style
+            .get_value('phantom', error, '')
+            .format(**error)
+            .splitlines()
+        )
+    ))
+
+    if ralign:
+        left_spaces = " " * (col - len(rv[0]) - 2)
+        rv = [left_spaces + rv[0] + " /"] + [left_spaces + line for line in rv[1:]]
+
+    else:
+        rv[0] = (
+            " " * col + "\\ " + rv[0].lstrip()
+            + " " * (viewport_width - col - 2 - len(rv[0].lstrip()))
+        )
+
+    text = (
+        html.escape("\n".join(rv), quote=False)
+        .replace(' ', '&nbsp;')
+        .replace("\n", "<br/>")
+    )
+    scope = style.get_value('scope', error)
+    return PHANTOM_TEMPLATE.format(
+        content=text,
+        color=view.style_for_scope(scope)["foreground"]
+    )
+
+
+def prepare_phantoms(view, errors):
+    errors_ = [e for e in errors if e["error_type"] == "error"]
+    if any(errors_):
+        errors = errors_
+
+    return [
+        sublime.Phantom(
+            sublime.Region(error["region"].b - 1),
+            format_message_for_phantom(view, error),
+            sublime.LAYOUT_BLOCK
+        )
+        for error in errors
+        if style.get_value('phantom', error, '')
+    ]
 
 
 def update_error_priorities_inline(errors):
@@ -265,7 +399,8 @@ def prepare_highlights_data(
 
         uid = error['uid']
         linter_name = error['linter']
-        key = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope)
+        annotation = style.get_value('annotation', error, '').format(**error)
+        key = Squiggle(linter_name, uid, scope, flags, demote_while_busy, alt_scope, annotation=annotation)
         by_region_id[key] = [error['region']]
 
     return by_region_id
@@ -282,7 +417,13 @@ def _compute_flags(error):
     if mark_style in UNDERLINE_STYLES and regex.search(selected_text):
         mark_style = FALLBACK_MARK_STYLE
 
-    flags = MARK_STYLES[mark_style]
+    if (
+        mark_style == 'none'
+        and style.get_value('annotation', error, '')
+    ):
+        flags = -1
+    else:
+        flags = MARK_STYLES[mark_style]
     if not persist.settings.get('show_marks_in_minimap'):
         flags |= sublime.HIDE_ON_MINIMAP
     if error['region'].empty():
@@ -355,9 +496,10 @@ class Squiggle(str):
     linter_name = ''  # type: str
     uid = ''  # type: str
     demotable = False  # type: bool
+    annotation = ""  # type: str
 
-    def __new__(cls, linter_name, uid, scope, flags, demotable=False, alt_scope=None):
-        # type: (str, str, str, int, bool, str) -> Squiggle
+    def __new__(cls, linter_name, uid, scope, flags, demotable=False, alt_scope=None, annotation=""):
+        # type: (str, str, str, int, bool, str, str) -> Squiggle
         key = (
             'SL.{}.Highlights.|{}|{}|{}'
             .format(linter_name, uid, scope, flags)
@@ -372,6 +514,7 @@ class Squiggle(str):
         self.linter_name = linter_name
         self.uid = uid
         self.demotable = demotable
+        self.annotation = annotation
         return self
 
     def _replace(self, **overrides):
@@ -379,7 +522,7 @@ class Squiggle(str):
         base = {
             name: overrides.pop(name, getattr(self, name))
             for name in {
-                'linter_name', 'uid', 'scope', 'flags', 'demotable', 'alt_scope'
+                'linter_name', 'uid', 'scope', 'flags', 'demotable', 'alt_scope', 'annotation'
             }
         }
         return Squiggle(**base)
@@ -477,7 +620,25 @@ else:
 def draw_view_region(view, key, regions):
     # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
     with StorageLock:
-        view.add_regions(key, regions, key.scope, key.icon, key.flags)
+        if SUBLIME_SUPPORTS_REGION_ANNOTATIONS and isinstance(key, Squiggle):
+            if key.annotation and key.visible():
+                annotations = {
+                    "annotations": [key.annotation],
+                    "annotation_color":
+                        view.style_for_scope(key.scope)["foreground"]
+                }
+            else:
+                annotations = {}
+            view.add_regions(
+                key,
+                regions,
+                key.scope,
+                key.icon,
+                key.flags,
+                **annotations
+            )
+        else:
+            view.add_regions(key, regions, key.scope, key.icon, key.flags)
         vid = view.id()
         CURRENTSTORE[vid].add(key)
         EVERSTORE[vid].add(key)
@@ -521,6 +682,7 @@ class ViewListCleanupController(sublime_plugin.EventListener):
         vid = view.id()
         State['idle_views'].discard(vid)
         State['quiet_views'].discard(vid)
+        State['views_without_phantoms'].discard(vid)
         State['views'].discard(vid)
 
 
@@ -729,20 +891,27 @@ def toggle_demoted_regions(view, show):
                 draw_squiggle_with_different_scope(view, key, regions, demote_scope)
 
 
-class SublimeLinterToggleHighlights(sublime_plugin.WindowCommand):
-    def run(self):
+class sublime_linter_toggle_highlights(sublime_plugin.WindowCommand):
+    def run(self, what=["squiggles", "phantoms"]):
         view = self.window.active_view()
         if not view:
             return
 
         vid = view.id()
-        hidden = vid in State['quiet_views']
-        if hidden:
-            State['quiet_views'].discard(vid)
-        else:
-            State['quiet_views'].add(vid)
+        if "squiggles" in what:
+            hidden = vid in State['quiet_views']
+            if hidden:
+                State['quiet_views'].discard(vid)
+            else:
+                State['quiet_views'].add(vid)
+            toggle_all_regions(view, show=hidden)
 
-        toggle_all_regions(view, show=hidden)
+        if "phantoms" in what:
+            if vid in State['views_without_phantoms']:
+                State['views_without_phantoms'].discard(vid)
+            else:
+                State['views_without_phantoms'].add(vid)
+            draw_phantoms(view)
 
 
 HIDDEN_SCOPE = ''

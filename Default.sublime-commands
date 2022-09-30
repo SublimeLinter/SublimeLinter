@@ -22,7 +22,7 @@
     {
         "caption": "SublimeLinter: Toggle Highlights",
         "command": "sublime_linter_toggle_highlights"
-
+        // "args": {"what": ["squiggles", "phantoms"]}
     },
     {
         "caption": "SublimeLinter: Quick Action",

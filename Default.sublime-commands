@@ -4,7 +4,11 @@
         "command": "sublime_linter_lint"
     },
     {
-        "caption": "SublimeLinter: Show All Errors",
+        "caption": "SublimeLinter: Open diagnostics panel",
+        "command": "sublime_linter_panel_toggle"
+    },
+    {
+        "caption": "SublimeLinter: Show All Errors",  // deprecated alias
         "command": "sublime_linter_panel_toggle"
     },
     {

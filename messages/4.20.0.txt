@@ -1,0 +1,93 @@
+              ^ ^
+SublimeLinter 4.20.0
+
+
+Holy, finally, I mean: f i n a l l y, we have annotation and inline phantoms[*].
+
+-- By default, nothing changes, you have to opt-in.
+
+Here's how it goes as it is a bit tricky and also sophisticated:
+
+++ Everything is configured within the `styles` section in the global
+   SublimeLinter settings. For that to work, the style definitions accept two
+   new keys, namely `annotation` and `phantom`.
+
+   These are template strings, therefore e.g. "{code}", "{msg}", "{linter}"
+   are typical values used here.
+   Use "" (the default) to turn this feature off.
+
+
+Because this is implemented as "style" of an error, you can adjust and
+fine-tune the feature for each linter separately. (°°)
+
+This is extremely important to reduce clutter and noise where possible.
+Because, believe me, this can lead to clutter and noise.
+
+For example, while writing, you often produce intermittent syntax errors.
+But that is natural for writing and shouldn't produce too much visual
+distraction. You can for example define
+
+    "mypy": {
+        "styles": [
+            {
+                "codes": ["syntax"],  # mypy's rule/code for syntax errors
+                "icon": "cog",
+                "phantom": "",        # no inline phantoms
+                "annotation": "💣",   # an icon on the right side
+            },
+            {
+                "phantom": "{msg}",   # for all other reported problems
+            }
+        ],
+    },
+
+to mitigate this effect.
+
+E.g. for "annotations", everything is already pretty much in the code. You
+could try:
+
+    "annotations": {
+        "styles": [
+            {
+                "types": ["error"],
+                "scope": "region.redish",
+                "annotation": "!"
+            },
+            {
+                "annotation": "",
+                "phantom": ""
+            },
+        ]
+    },
+
+
+Especially phantoms are both annoying and the best thing since sliced bread.
+So we only show them for "errors" (not for "warnings" etc) as long as there
+are any errors and only then also for warnings and other types.  Yeah, that
+should probably be pluggable but then I would never release anything.
+
+To quickly toggle the phantoms you can use our `sublime_linter_toggle_highlights`
+command.  By default it toggles both the squiggles and the inline phantoms but: --
+
+    { "keys": ["ctrl+k", "ctrl+k"],
+      "command": "sublime_linter_toggle_highlights",
+      "args": {"what": ["phantoms"]}  // or "squiggles"
+    },
+
+-- this is already pluggable.
+
+
+Sincerely,
+❤️
+
+
+And yes, I do drink coffee:  https://paypal.me/herrkaste
+
+[*] Annotations are small text fields on the right hand side of the view at
+    the same line of an error.  Because of that they usually have not much
+    space to show anything.
+    Phantoms appear right below the error and use the full width of the view.
+    They make clear what an error is about, have lots of space but - if you
+    have lots of them in a small section - the actual code might get too
+    interspersed.
+

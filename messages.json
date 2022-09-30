@@ -2,5 +2,6 @@
     "install": "messages/install.txt",
     "4.16.1": "messages/4.16.1.txt",
     "4.17.0": "messages/4.17.0.txt",
-    "4.19.0": "messages/4.19.0.txt"
+    "4.19.0": "messages/4.19.0.txt",
+    "4.20.0": "messages/4.20.0.txt"
 }

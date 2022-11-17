@@ -8,7 +8,8 @@ from .lint import util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, List, Optional, TypedDict
+    from typing import Callable, List, Optional
+    from mypy_extensions import TypedDict
 
     LintError = persist.LintError
     QuickAction = quick_fix.QuickAction

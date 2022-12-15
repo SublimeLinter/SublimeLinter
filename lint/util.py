@@ -245,13 +245,13 @@ class popen_output(str):
 
         combined_output = ''.join(filter(None, [stdout, stderr]))
 
-        rv = super().__new__(cls, combined_output)  # type: ignore
+        rv = super().__new__(cls, combined_output)
         rv.combined_output = combined_output
         rv.stdout = stdout
         rv.stderr = stderr
-        rv.proc = proc
-        rv.pid = proc.pid
-        rv.returncode = proc.returncode
+        rv.proc = proc                   # type: ignore[attr-defined]
+        rv.pid = proc.pid                # type: ignore[attr-defined]
+        rv.returncode = proc.returncode  # type: ignore[attr-defined]
         return rv
 
 

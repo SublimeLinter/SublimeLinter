@@ -25,4 +25,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - run: pip install "flake8<6.0.0"
     - uses: TrueBrain/actions-flake8@v2

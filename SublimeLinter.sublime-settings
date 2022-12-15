@@ -3,7 +3,7 @@
     "debug": false,
 
     // When in the "background" lint mode, this value determines
-    // the minimum delay before a request is send to the linter
+    // the minimum delay before a request is sent to the linter
     "delay": 0.1,
 
     // Available gutter themes:
@@ -21,7 +21,7 @@
     // to an icon in the theme (they usually include "warning" and "error")
     "gutter_theme": "Default",
 
-    // Demote the visibility of a class off errors while you're editing.
+    // Demote the visibility of a class of errors while you're editing.
     // The errors will re-appear after `time_to_idle` and immediately on save.
     // - ws_only: erroneous regions that contain only whitespace
     // - some_ws: erroneous regions that contain *some* whitespace
@@ -55,11 +55,11 @@
     // - save: only when a file is saved
     "lint_mode": "background",
 
-    // Linter specific settings.
+    // Linter-specific settings.
     // More info: http://www.sublimelinter.com/en/stable/linter_settings.html
-    // Linter specific settings except for 'styles' can also be changed
+    // Linter-specific settings except for 'styles' can also be changed
     // in sublime-project settings.
-    // What settings are available is documented in the readme of the
+    // What settings are available are documented in the readme of the
     // specific linter plugin.
     // Example:
     "linters": {
@@ -86,7 +86,7 @@
             // Exclude files that match the given pattern(s).
             "excludes": [],
 
-            // Suppress errors that match the the given pattern(s).
+            // Suppress errors that match the given pattern(s).
             // Either a 'string' or an 'array'. Each input string is handled as
             // a case-insensitive regex pattern and matched against the
             // error_type, code, and message. If it matches, the error will be

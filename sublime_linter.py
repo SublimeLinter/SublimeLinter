@@ -49,7 +49,7 @@ def plugin_loaded():
     log_handler.install()
 
     try:
-        import package_control
+        import package_control.events
         if (
             package_control.events.install('SublimeLinter') or
             package_control.events.post_upgrade('SublimeLinter')

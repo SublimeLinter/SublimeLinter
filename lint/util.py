@@ -1,7 +1,7 @@
 """This module provides general utility methods."""
 from collections import ChainMap
 from contextlib import contextmanager
-from functools import lru_cache, wraps
+from functools import lru_cache, partial, wraps
 import locale
 import logging
 import os
@@ -18,7 +18,10 @@ from .const import IS_ENABLED_SWITCH
 
 MYPY = False
 if MYPY:
-    from typing import Iterator, List, MutableMapping, Optional, TypeVar, Union
+    from typing import (
+        Callable, Iterator, List, MutableMapping, Optional, TypeVar, Union)
+    from typing_extensions import ParamSpec
+    P = ParamSpec('P')
     T = TypeVar('T')
 
 
@@ -28,13 +31,67 @@ logger = logging.getLogger(__name__)
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
-
+UI_THREAD_NAME = None  # type: Optional[str]
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 
 
 @events.on('settings_changed')
 def on_settings_changed(settings, **kwargs):
     get_augmented_path.cache_clear()
+
+
+def determine_thread_names():
+    def callback():
+        global UI_THREAD_NAME
+        UI_THREAD_NAME = threading.current_thread().name
+    sublime.set_timeout(callback)
+
+
+def ensure_on_ui_thread(fn):
+    # type: (Callable[P, T]) -> Callable[P, None]
+    """Decorate a `fn` to always run on the UI thread
+
+    Check at runtime on which thread the code runs and maybe
+    enqueue a task on the UI thread.  If already on the UI
+    thread run `fn` immediately and blocking.  Otherwise
+    return immediately.
+    """
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        # type: (P.args, P.kwargs) -> None
+        _ensure_on_ui(fn, *args, **kwargs)
+    return wrapped
+
+
+def assert_on_ui_thread(fn):
+    # type: (Callable[P, T]) -> Callable[P, T]
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        # type: (P.args, P.kwargs) -> T
+        if it_runs_on_ui():
+            return fn(*args, **kwargs)
+        msg = "'{}' must be called from the UI thread".format(fn.__name__)
+        sublime.status_message("RuntimeError: {}".format(msg))
+        raise RuntimeError(msg)
+    return wrapped
+
+
+def _ensure_on_ui(fn, *args, **kwargs):
+    # type: (Callable[P, T], P.args, P.kwargs) -> None
+    if it_runs_on_ui():
+        fn(*args, **kwargs)
+    else:
+        enqueue_on_ui(fn, *args, **kwargs)
+
+
+def it_runs_on_ui():
+    # type: () -> bool
+    return threading.current_thread().name == UI_THREAD_NAME
+
+
+def enqueue_on_ui(fn, *args, **kwargs):
+    # type: (Callable[P, T], P.args, P.kwargs) -> None
+    sublime.set_timeout(partial(fn, *args, **kwargs))
 
 
 @contextmanager

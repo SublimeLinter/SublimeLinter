@@ -5,7 +5,6 @@ from itertools import chain
 from functools import partial
 import re
 import textwrap
-import threading
 import uuid
 
 import sublime
@@ -164,12 +163,8 @@ def highlight_linter_errors(views, filename, linter_name):
         squiggle_regions = ChainMap(
             {}, highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
         )  # type: Squiggles
-        draw(
-            view,
-            linter_name,
-            squiggle_regions,
-            gutter_regions,
-        )
+
+        draw(view, linter_name, squiggle_regions, gutter_regions)
         draw_phantoms(view)
 
 
@@ -185,6 +180,7 @@ def draw_phantoms(view):
     update_phantoms(view, phantoms)
 
 
+@util.ensure_on_ui_thread
 def update_phantoms(view, phantoms):
     with stable_viewport(view, phantoms):
         get_phantom_set(view).update(phantoms)
@@ -437,6 +433,7 @@ def undraw(view):
         erase_view_region(view, key)
 
 
+@util.ensure_on_ui_thread
 def draw(
     view,               # type: sublime.View
     linter_name,        # type: LinterName
@@ -585,7 +582,6 @@ class DemotePredicates:
 # --------------- ZOMBIE PROTECTION ---------------- #
 #    [¬º°]¬ [¬º°]¬  [¬º˚]¬  [¬º˙]* ─ ─ ─ ─ ─ ─ ─╦╤︻ #
 
-StorageLock = threading.Lock()
 # Just trying and catching `NameError` reuses the previous value or
 # "version" of this variable when hot-reloading
 try:
@@ -617,38 +613,38 @@ else:
         EVERSTORE = defaultdict(set)
 
 
+@util.assert_on_ui_thread
 def draw_view_region(view, key, regions):
     # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
-    with StorageLock:
-        if SUBLIME_SUPPORTS_REGION_ANNOTATIONS and isinstance(key, Squiggle):
-            if key.annotation and key.visible():
-                annotations = {
-                    "annotations": [key.annotation],
-                    "annotation_color":
-                        view.style_for_scope(key.scope)["foreground"]
-                }
-            else:
-                annotations = {}
-            view.add_regions(
-                key,
-                regions,
-                key.scope,
-                key.icon,
-                key.flags,
-                **annotations
-            )
+    if SUBLIME_SUPPORTS_REGION_ANNOTATIONS and isinstance(key, Squiggle):
+        if key.annotation and key.visible():
+            annotations = {
+                "annotations": [key.annotation],
+                "annotation_color":
+                    view.style_for_scope(key.scope)["foreground"]
+            }
         else:
-            view.add_regions(key, regions, key.scope, key.icon, key.flags)
-        vid = view.id()
-        CURRENTSTORE[vid].add(key)
-        EVERSTORE[vid].add(key)
+            annotations = {}
+        view.add_regions(
+            key,
+            regions,
+            key.scope,
+            key.icon,
+            key.flags,
+            **annotations
+        )
+    else:
+        view.add_regions(key, regions, key.scope, key.icon, key.flags)
+    vid = view.id()
+    CURRENTSTORE[vid].add(key)
+    EVERSTORE[vid].add(key)
 
 
+@util.assert_on_ui_thread
 def erase_view_region(view, key):
     # type: (sublime.View, RegionKey) -> None
-    with StorageLock:
-        view.erase_regions(key)
-        CURRENTSTORE[view.id()].discard(key)
+    view.erase_regions(key)
+    CURRENTSTORE[view.id()].discard(key)
 
 
 def get_regions_keys(view):
@@ -656,11 +652,11 @@ def get_regions_keys(view):
     return frozenset(CURRENTSTORE.get(view.id(), set()))
 
 
+@util.assert_on_ui_thread
 def restore_from_everstore(view):
     # type: (sublime.View) -> None
-    with StorageLock:
-        vid = view.id()
-        CURRENTSTORE[vid] = EVERSTORE[vid].copy()
+    vid = view.id()
+    CURRENTSTORE[vid] = EVERSTORE[vid].copy()
 
 
 class ZombieController(sublime_plugin.EventListener):
@@ -703,6 +699,7 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
         sublime.set_timeout_async(lambda: maybe_update_error_store(view))
 
 
+@util.ensure_on_ui_thread
 def revalidate_regions(view):
     # type: (sublime.View) -> None
     vid = view.id()
@@ -779,6 +776,7 @@ def maybe_update_error_store(view):
 
     changed = False
     new_errors = []
+    regions_to_erase = []
     for error in errors:
         uid = error['uid']
         key = uid_key_map.get(uid, None)
@@ -798,7 +796,7 @@ def maybe_update_error_store(view):
             # zero length (and moved to a different line at col 0).
             # It is useless now so we remove the error by not
             # copying it.
-            erase_view_region(view, key)
+            regions_to_erase.append(key)
             continue
 
         line, start = view.rowcol(region.begin())
@@ -811,8 +809,15 @@ def maybe_update_error_store(view):
         new_errors.append(error)
 
     if changed:
+        _erase_view_regions(view, regions_to_erase)
         persist.file_errors[filename] = new_errors
         events.broadcast('updated_error_positions', {'filename': filename})
+
+
+@util.ensure_on_ui_thread
+def _erase_view_regions(view, keys):
+    for key in keys:
+        erase_view_region(view, key)
 
 
 class IdleViewController(sublime_plugin.EventListener):
@@ -874,6 +879,7 @@ def set_idle(view, idle):
         toggle_demoted_regions(view, idle)
 
 
+@util.ensure_on_ui_thread
 def toggle_demoted_regions(view, show):
     # type: (sublime.View, bool) -> None
     vid = view.id()
@@ -917,6 +923,7 @@ class sublime_linter_toggle_highlights(sublime_plugin.WindowCommand):
 HIDDEN_SCOPE = ''
 
 
+@util.ensure_on_ui_thread
 def toggle_all_regions(view, show):
     # type: (sublime.View, bool) -> None
     region_keys = get_regions_keys(view)

@@ -45,7 +45,7 @@ def text_command(fn):
     def decorated(view, *args, **kwargs):
         # type: (sublime.View, Any, Any) -> Optional[T]
         return run_as_text_command(fn, view, *args, **kwargs)
-    return decorated
+    return decorated  # type: ignore[return-value]
 
 
 @lru_cache()

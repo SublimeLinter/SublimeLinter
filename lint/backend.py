@@ -12,7 +12,8 @@ import threading
 from . import linter as linter_module, style, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
     from .persist import LintError
     from .elect import LinterInfo

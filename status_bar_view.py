@@ -4,7 +4,8 @@ import sublime_plugin
 from .lint import persist, events, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import Iterable, Optional
     from mypy_extensions import TypedDict
 

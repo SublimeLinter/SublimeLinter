@@ -3,7 +3,7 @@ import logging
 import sublime
 from . import events, util
 from .const import IS_ENABLED_SWITCH
-from jsonschema import validate, FormatChecker, ValidationError
+from jsonschema import validate, FormatChecker, ValidationError  # type: ignore[attr-defined]
 
 
 logger = logging.getLogger(__name__)
@@ -191,7 +191,7 @@ def validate_project_settings(filename):
         )
         return False
 
-    deep_settings = {}
+    deep_settings = {}  # type: ignore[var-annotated]
     for key, value in sl_settings.items():
         _, *parts = key.split('.')
         edge = deep_settings

@@ -242,6 +242,11 @@ class TestIgnoreFixers(DeferrableTestCase):
             "partial(fixer, error),  # type: ignore[arg-type]",
             "partial(fixer, error),",
         ),
+        (
+            "remove bare ignore comment at EOL",
+            "partial(fixer, error),  # type: ignore",
+            "partial(fixer, error),",
+        ),
     ])
     def test_mypy_unused_ignore(self, _description, BEFORE, AFTER):
         view = self.create_view(self.window)

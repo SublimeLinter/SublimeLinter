@@ -433,7 +433,7 @@ def fix_e266(error, view):
 def fix_mypy_unused_ignore(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
-    match = re.search(r"\s*#\s*type:\s*ignore\[.+]", line.text)
+    match = re.search(r"\s*#\s*type:\s*ignore(\[.+])?", line.text)
     if match:
         a, b = match.span()
         yield TextRange("", sublime.Region(line.range.a + a, line.range.a + b))

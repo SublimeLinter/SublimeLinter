@@ -515,8 +515,8 @@ class LinterMeta(type):
                 "because as it is the linter cannot run and thus will be "
                 "disabled.  :-( \n\n"
                 "(Extending 'should_lint' is an edge-case and you probably don't "
-                "even need it, but if you do look it up \nin the source code on "
-                "GitHub.)"
+                "even need it, but if you do, look it up \n"
+                "in the source code on GitHub.)"
                 .format(name))
             cls.disabled = True
 

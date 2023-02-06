@@ -439,11 +439,31 @@ def fix_mypy_unused_ignore(error, view):
         yield TextRange("", sublime.Region(line.range.a + a, line.range.a + b))
 
 
+@provide_fix_for("mypy", lambda e: e["msg"].startswith('Unused "type: ignore['))
+def fix_mypy_specific_unused_ignore(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(r"type: ignore\[(?P<codes>.*)\]", error["msg"])
+    if match:
+        unused_rules = {
+            rule.strip()
+            for rule in match.group("codes").split(",")
+        }
+        edit = shrink_existing_comment(
+            r"  # type: ignore\[(?P<codes>.*)\]",
+            ", ",
+            unused_rules,
+            line
+        )
+        if edit:
+            yield edit
+
+
 @ignore_rules_inline(
     "mypy",
     except_for=lambda e: (
         e.get("code") == "syntax"
-        or e["msg"] == 'Unused "type: ignore" comment'
+        or e["msg"].startswith('Unused "type: ignore')
     )
 )
 def fix_mypy_error(error, view):
@@ -543,6 +563,25 @@ def extend_existing_comment(search_pattern, joiner, rulenames, line):
             for rule in match.group("codes").split(joiner.strip())
         }
         next_rules = sorted(existing_rules | rulenames)
+        a, b = match.span("codes")
+        return TextRange(
+            joiner.join(next_rules),
+            sublime.Region(line.range.a + a, line.range.a + b)
+        )
+    return None
+
+
+def shrink_existing_comment(search_pattern, joiner, rulenames, line):
+    # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+    if line is None:
+        return None
+    match = re.search(search_pattern, line.text)
+    if match:
+        existing_rules = {
+            rule.strip()
+            for rule in match.group("codes").split(joiner.strip())
+        }
+        next_rules = sorted(existing_rules - rulenames)
         a, b = match.span("codes")
         return TextRange(
             joiner.join(next_rules),

@@ -8,7 +8,8 @@ import sublime
 from .. import linter, util
 
 
-if False:
+MYPY = False
+if MYPY:
     from typing import Iterator, List, Optional, Tuple, Union
 
 

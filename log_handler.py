@@ -7,7 +7,7 @@ from .lint import util
 
 MYPY = False
 if MYPY:
-    from typing import DefaultDict, Set
+    from typing import DefaultDict, Optional, Set
 
 
 DEBUG_FALSE_LEVEL = logging.WARNING
@@ -16,8 +16,8 @@ ERROR_PANEL_LEVEL = logging.ERROR
 
 logger = logging.getLogger('SublimeLinter')
 logger.setLevel(logging.DEBUG)
-handler = None
-error_panel_handler = None
+handler = None  # type: Optional[logging.Handler]
+error_panel_handler = None  # type: Optional[logging.Handler]
 
 
 def plugin_unloaded():

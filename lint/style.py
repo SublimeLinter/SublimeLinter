@@ -7,11 +7,16 @@ import sublime
 from . import events, persist, util
 
 
+MYPY = False
+if MYPY:
+    from typing import Dict, List, Optional
+
+
 logger = logging.getLogger(__name__)
 
 COLORIZE = True
 WHITE_SCOPE = 'region.whitish'  # hopefully a white color
-DEFAULT_STYLES = None  # holds the styles we ship as the default settings
+DEFAULT_STYLES = None  # type: Optional[List[Dict]]
 
 
 @events.on('plugin_loaded')

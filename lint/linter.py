@@ -315,7 +315,7 @@ class LinterSettings:
             # Dirt-alert: We clone here bc we extract this context-object
             # in `Linter.__init__`. In the scope of a linter instance,
             # `self.context == self.settings.context` must hold.
-            ChainMap({}, self.context),
+            ChainMap({}, self.context),  # type: ignore[arg-type]
             ChainMap({}, self._computed_settings)
         )
 
@@ -347,7 +347,7 @@ def get_linter_settings(linter, view, context=None):
     if context is None:
         context = get_view_context(view)
     else:
-        context = ChainMap({}, context)
+        context = ChainMap({}, context)  # type: ignore[arg-type]
 
     settings = get_raw_linter_settings(linter, view)
     return LinterSettings(settings, context)
@@ -364,7 +364,7 @@ def get_raw_linter_settings(linter, view):
 
     return ChainMap(
         {},
-        view_settings,
+        view_settings,  # type: ignore[arg-type]
         global_settings,
         defaults,
         {'lint_mode': persist.settings.get('lint_mode')}
@@ -444,7 +444,8 @@ def guess_project_root_of_view(view):
 class LinterMeta(type):
     """Metaclass for Linter and its subclasses."""
 
-    def __init__(cls, cls_name, bases, attrs):
+    def __init__(cls, cls_name, bases, attrs):  # type: ignore[misc]
+        # type: (Type[Linter], str, Tuple[object, ...], Dict[str, object]) -> None
         """
         Initialize a Linter class.
 
@@ -463,7 +464,7 @@ class LinterMeta(type):
         if cls_name in BASE_CLASSES:
             return
 
-        name = attrs.get('name') or cls_name.lower()
+        name = attrs.get('name') or cls_name.lower()  # type: str  # type: ignore[assignment]
         setattr(cls, 'disabled', None)
         setattr(cls, 'name', name)
         setattr(cls, 'plugin_name', cls.__module__.split(".", 1)[0])
@@ -515,8 +516,8 @@ class LinterMeta(type):
                 "because as it is the linter cannot run and thus will be "
                 "disabled.  :-( \n\n"
                 "(Extending 'should_lint' is an edge-case and you probably don't "
-                "even need it, but if you do look it up \nin the source code on "
-                "GitHub.)"
+                "even need it, but if you do, look it up \n"
+                "in the source code on GitHub.)"
                 .format(name))
             cls.disabled = True
 
@@ -560,7 +561,7 @@ class LinterMeta(type):
 
             if isinstance(attr, str):
                 try:
-                    setattr(cls, regex, re.compile(attr, cls.re_flags))
+                    cls.regex = _regex_c = re.compile(attr, cls.re_flags)
                 except re.error as err:
                     logger.error(
                         '{} disabled, error compiling {}: {}.'
@@ -568,13 +569,13 @@ class LinterMeta(type):
                     )
                     cls.disabled = True
                 else:
-                    if regex == 'regex' and cls.regex.flags & re.M == re.M:
+                    if regex == 'regex' and _regex_c.flags & re.M == re.M:
                         cls.multiline = True
 
         # If this class has its own defaults, create an args_map.
         defaults = attrs.get('defaults', None)
         if defaults and isinstance(defaults, dict):
-            cls.map_args(attrs['defaults'])
+            cls.map_args(defaults)
         # END CLASS MUTATIONS
 
         # BEGIN VALIDATION
@@ -586,7 +587,7 @@ class LinterMeta(type):
             cls.disabled = True
 
         if not isinstance(cls.defaults, dict):
-            logger.error(
+            logger.error(  # type: ignore[unreachable]  # in case a user overrides our default
                 "{} disabled. 'cls.defaults' is mandatory and MUST be a dict."
                 .format(name)
             )
@@ -610,7 +611,8 @@ class LinterMeta(type):
 
         register_linter(name, cls)
 
-    def map_args(cls, defaults):
+    def map_args(cls, defaults):  # type: ignore[misc]
+        # type: (Type[Linter], Dict[str, object]) -> None
         """
         Map plain setting names to args that will be passed to the linter executable.
 
@@ -637,6 +639,7 @@ class LinterMeta(type):
 
 
 def register_linter(name, cls):
+    # type: (str, Type[Linter]) -> None
     """Add a linter class to our mapping of class names <-> linter classes."""
     persist.linter_classes[name] = cls
 
@@ -668,9 +671,11 @@ class Linter(metaclass=LinterMeta):
     name = ''
     logger = None  # type: logging.Logger
 
+    if MYPY:
+        _CmdDefinition = Union[str, List[str], Tuple[str, ...]]
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
-    cmd = ''  # type: Union[None, str, List[str], Tuple[str, ...]]
+    cmd = ''  # type: Union[None, _CmdDefinition, Callable[[], _CmdDefinition]]
 
     # A regex pattern used to extract information from the executable's output.
     regex = None  # type: Union[None, str, Pattern]
@@ -1231,7 +1236,7 @@ class Linter(metaclass=LinterMeta):
                 continue
 
             if not isinstance(m, LintMatch):  # ensure right type
-                m = LintMatch(*m)
+                m = LintMatch(*m)  # type: ignore[unreachable]  # backwards compatibility
 
             if m.message and m.line is not None:
                 error = self.process_match(m, virtual_view)

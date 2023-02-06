@@ -14,6 +14,7 @@ from SublimeLinter.lint.quick_fix import (
     fix_flake8_error,
     fix_mypy_error,
     fix_mypy_unused_ignore,
+    fix_mypy_specific_unused_ignore,
     fix_stylelint_error,
     fix_shellcheck_error,
     ignore_rules_actions,
@@ -242,12 +243,43 @@ class TestIgnoreFixers(DeferrableTestCase):
             "partial(fixer, error),  # type: ignore[arg-type]",
             "partial(fixer, error),",
         ),
+        (
+            "remove bare ignore comment at EOL",
+            "partial(fixer, error),  # type: ignore",
+            "partial(fixer, error),",
+        ),
     ])
     def test_mypy_unused_ignore(self, _description, BEFORE, AFTER):
         view = self.create_view(self.window)
         view.run_command("insert", {"characters": BEFORE})
         error = dict(msg='Unused "type: ignore" comment', region=sublime.Region(4))
         edit = fix_mypy_unused_ignore(error, view)
+        apply_edits(view, edit)
+        view_content = view.substr(sublime.Region(0, view.size()))
+        self.assertEquals(AFTER, view_content)
+
+    @p.expand([
+        (
+            "remove ignore comment at EOL 1",
+            "partial(fixer, error),  # type: ignore[arg-type, import, other]",
+            "partial(fixer, error),  # type: ignore[arg-type]",
+        ),
+        (
+            "remove ignore comment at EOL 2",
+            "partial(fixer, error),  # type: ignore[arg-type, other, import]",
+            "partial(fixer, error),  # type: ignore[arg-type]",
+        ),
+        (
+            "remove ignore comment at EOL 3",
+            "partial(fixer, error),  # type: ignore[other, import, arg-type]",
+            "partial(fixer, error),  # type: ignore[arg-type]",
+        ),
+    ])
+    def test_mypy_specific_unused_ignore(self, _description, BEFORE, AFTER):
+        view = self.create_view(self.window)
+        view.run_command("insert", {"characters": BEFORE})
+        error = dict(msg='Unused "type: ignore[import, other]" comment', region=sublime.Region(4))
+        edit = fix_mypy_specific_unused_ignore(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
         self.assertEquals(AFTER, view_content)

@@ -16,7 +16,7 @@ if MYPY:
         Callable, DefaultDict, Dict, Iterable, Iterator, List,
         NamedTuple, Optional, Set, TypeVar, Union
     )
-    from typing_extensions import Final
+    from typing_extensions import Final, Literal
     T = TypeVar("T")
     S = TypeVar("S")
     LintError = persist.LintError
@@ -433,17 +433,37 @@ def fix_e266(error, view):
 def fix_mypy_unused_ignore(error, view):
     # type: (LintError, sublime.View) -> Iterator[TextRange]
     line = line_error_is_on(view, error)
-    match = re.search(r"\s*#\s*type:\s*ignore\[.+]", line.text)
+    match = re.search(r"\s*#\s*type:\s*ignore(\[.+])?", line.text)
     if match:
         a, b = match.span()
         yield TextRange("", sublime.Region(line.range.a + a, line.range.a + b))
+
+
+@provide_fix_for("mypy", lambda e: e["msg"].startswith('Unused "type: ignore['))
+def fix_mypy_specific_unused_ignore(error, view):
+    # type: (LintError, sublime.View) -> Iterator[TextRange]
+    line = line_error_is_on(view, error)
+    match = re.search(r"type: ignore\[(?P<codes>.*)\]", error["msg"])
+    if match:
+        unused_rules = {
+            rule.strip()
+            for rule in match.group("codes").split(",")
+        }
+        edit = shrink_existing_comment(
+            r"  # type: ignore\[(?P<codes>.*)\]",
+            ", ",
+            unused_rules,
+            line
+        )
+        if edit:
+            yield edit
 
 
 @ignore_rules_inline(
     "mypy",
     except_for=lambda e: (
         e.get("code") == "syntax"
-        or e["msg"] == 'Unused "type: ignore" comment'
+        or e["msg"].startswith('Unused "type: ignore')
     )
 )
 def fix_mypy_error(error, view):
@@ -534,6 +554,16 @@ def read_next_line(view, line):
 
 def extend_existing_comment(search_pattern, joiner, rulenames, line):
     # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+    return _modify_existing_comment("add", search_pattern, joiner, rulenames, line)
+
+
+def shrink_existing_comment(search_pattern, joiner, rulenames, line):
+    # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+    return _modify_existing_comment("remove", search_pattern, joiner, rulenames, line)
+
+
+def _modify_existing_comment(operation, search_pattern, joiner, rulenames, line):
+    # type: (Literal["add", "remove"], str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
     if line is None:
         return None
     match = re.search(search_pattern, line.text)
@@ -542,7 +572,12 @@ def extend_existing_comment(search_pattern, joiner, rulenames, line):
             rule.strip()
             for rule in match.group("codes").split(joiner.strip())
         }
-        next_rules = sorted(existing_rules | rulenames)
+        if operation == "add":
+            next_rules = sorted(existing_rules | rulenames)
+        elif operation == "remove":
+            next_rules = sorted(existing_rules - rulenames)
+        else:
+            raise RuntimeError("operation '{}' not supported".format(operation))
         a, b = match.span("codes")
         return TextRange(
             joiner.join(next_rules),

@@ -556,20 +556,21 @@ class LinterMeta(type):
         if attrs.get('multiline', False):
             cls.re_flags |= re.MULTILINE
 
-        for regex in ('regex', 'word_re'):
-            attr = attrs.get(regex)
+        for attr_name in ('regex', 'word_re'):
+            regex = attrs.get(attr_name)
 
-            if isinstance(attr, str):
+            if isinstance(regex, str):
                 try:
-                    cls.regex = _regex_c = re.compile(attr, cls.re_flags)
+                    compiled_regex = re.compile(regex, cls.re_flags)
+                    setattr(cls, attr_name, compiled_regex)
                 except re.error as err:
                     logger.error(
                         '{} disabled, error compiling {}: {}.'
-                        .format(name, regex, str(err))
+                        .format(name, attr_name, str(err))
                     )
                     cls.disabled = True
                 else:
-                    if regex == 'regex' and _regex_c.flags & re.M == re.M:
+                    if attr_name == 'regex' and compiled_regex.flags & re.M == re.M:
                         cls.multiline = True
 
         # If this class has its own defaults, create an args_map.

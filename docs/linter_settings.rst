@@ -129,12 +129,12 @@ Lint Mode determines when the linter is run.
 
 python
 ------
-This should point to a python binary on your system. Alternatively
+This should point to a python binary on your system or, alternatively,
 it can be set to a version, in which case we try to find a python
-binary on your system matching that version (using PATH).
+binary on your system matching that version (using PATH). On Windows
+we directly use `py.exe` if installed.
 
-It then executes ``python -m script_name``
-(where script_name is e.g. ``flake8``).
+It then executes e.g. ``python -m flake8`` or ``py -3.10 -m mypy``.
 
 
 .. _selector:

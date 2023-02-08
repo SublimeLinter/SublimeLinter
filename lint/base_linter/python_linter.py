@@ -3,14 +3,33 @@
 from functools import lru_cache
 import os
 import re
+import shutil
 
 import sublime
+from . import node_linter
 from .. import linter, util
 
 
 MYPY = False
 if MYPY:
-    from typing import Iterator, List, Optional, Tuple, Union
+    from typing import List, Optional, Tuple, Union
+
+
+POSIX = sublime.platform() in ('osx', 'linux')
+ON_WINDOWS = sublime.platform() == 'windows'
+BIN = 'bin' if POSIX else 'Scripts'
+VIRTUAL_ENV_MARKERS = ('venv', '.env', '.venv')
+ROOT_MARKERS = ("setup.cfg", "pyproject.toml", "tox.ini", ".git", ".hg", )
+
+
+class SimplePath(str):
+    def append(self, *parts):
+        # type: (str) -> SimplePath
+        return SimplePath(os.path.join(self, *parts))
+
+    def exists(self):
+        # type: () -> bool
+        return os.path.exists(self)
 
 
 class PythonLinter(linter.Linter):
@@ -20,9 +39,18 @@ class PythonLinter(linter.Linter):
     Linters that check python should inherit from this class.
     By doing so, they automatically get the following features:
 
-    - Automatic discovery of virtual environments using `pipenv`
-    - Support for a "python" setting.
-    - Support for a "executable" setting.
+    - Automatic discovery of virtual environments in typical local folders
+      like ".env", "venv", or ".venv".  Ask `pipenv` or `poetry` for the
+      location o a virtual environment if it finds their lock files.
+    - Support for a "python" setting which can be version (`3.10` or `"3.10"`)
+      or a string pointing to a python executable.
+    - Searches and sets `project_root` which in turn affects which
+      `working_dir` we will use (if not overridden by the user).
+    """
+
+    config_file_names = (".flake8", "pytest.ini", ".pylintrc")
+    """File or directory names that would count as marking the root of a project.
+    This is always in addition to what `ROOT_MARKERS` in SL core defines.
     """
 
     def context_sensitive_executable_path(self, cmd):
@@ -34,8 +62,6 @@ class PythonLinter(linter.Linter):
         if success:
             return success, executable
 
-        # `python` can be number or a string. If it is a string it should
-        # point to a python environment, NOT a python binary.
         python = self.settings.get('python', None)
         self.logger.info(
             "{}: wanted python is '{}'".format(self.name, python)
@@ -46,6 +72,10 @@ class PythonLinter(linter.Linter):
         if python:
             python = str(python)
             if VERSION_RE.match(python):
+                if ON_WINDOWS:
+                    py_exe = util.which('py')
+                    if py_exe:
+                        return True, [py_exe, '-{}'.format(python), '-m', cmd_name]
                 python_bin = find_python_version(python)
                 if python_bin is None:
                     self.logger.error(
@@ -75,7 +105,7 @@ class PythonLinter(linter.Linter):
 
         # If we're here the user didn't specify anything. This is the default
         # experience. So we kick in some 'magic'
-        executable = self.look_into_virtual_environments(cmd_name)
+        executable = self.find_local_executable(cmd_name)
         if executable:
             self.logger.info(
                 "{}: Using '{}'"
@@ -97,38 +127,74 @@ class PythonLinter(linter.Linter):
             )
         return True, executable
 
-    def look_into_virtual_environments(self, linter_name):
+    def find_local_executable(self, linter_name):
         # type: (str) -> Optional[str]
-        for venv in self._possible_virtual_environments():
-            executable = find_script_by_python_env(venv, linter_name)
-            if executable:
-                return executable
-
+        start_dir = self.get_start_dir()
+        if start_dir:
             self.logger.info(
-                "{} is not installed in the virtual env at '{}'."
-                .format(linter_name, venv)
+                "Searching executable for '{}' starting at '{}'."
+                .format(linter_name, start_dir)
             )
-        else:
-            return None
+            root_dir, venv = self._nearest_virtual_environment(start_dir)
+            if root_dir:
+                self.logger.info(
+                    "Setting 'project_root' to '{}'".format(root_dir)
+                )
+                self.context['project_root'] = root_dir
+            if venv:
+                executable = find_script_by_python_env(venv, linter_name)
+                if executable:
+                    return executable
 
-    def _possible_virtual_environments(self):
-        # type: () -> Iterator[str]
-        cwd = self.get_working_dir()
-        if cwd is None:
-            return None
+                self.logger.info(
+                    "{} is not installed in the virtual env at '{}'."
+                    .format(linter_name, venv)
+                )
+        return None
 
-        for candidate in ('.env', '.venv'):
-            full_path = os.path.join(cwd, candidate)
-            if os.path.isdir(full_path):
-                yield full_path
+    def get_start_dir(self):
+        # type: () -> Optional[str]
+        return (
+            self.context.get('file_path') or
+            self.get_working_dir()
+        )
 
-        poetrylock = os.path.join(cwd, 'poetry.lock')
-        if os.path.exists(poetrylock):
-            yield from ask_utility_for_venv(cwd, ('poetry', 'env', 'info', '-p'))
+    def _nearest_virtual_environment(self, start_dir):
+        # type: (str) -> Tuple[Optional[str], Optional[str]]
+        paths = node_linter.smart_paths_upwards(start_dir)
+        root_dir_markers = ROOT_MARKERS + self.config_file_names
+        root_dir = None
+        for path in paths:
+            path_to = SimplePath(path).append
+            for candidate in VIRTUAL_ENV_MARKERS:
+                if os.path.isdir(path_to(candidate, BIN)):
+                    return root_dir or path, path_to(candidate)
 
-        pipfile = os.path.join(cwd, 'Pipfile')
-        if os.path.exists(pipfile):
-            yield from ask_utility_for_venv(cwd, ('pipenv', '--venv'))
+            poetrylock = path_to('poetry.lock')
+            if poetrylock.exists():
+                venv = ask_utility_for_venv(path, ('poetry', 'env', 'info', '-p'))
+                if not venv:
+                    self.logger.info(
+                        "virtualenv for '{}' not created yet".format(poetrylock)
+                    )
+                return root_dir or path, venv
+
+            pipfile = path_to('Pipfile')
+            if pipfile.exists():
+                venv = ask_utility_for_venv(path, ('pipenv', '--venv'))
+                if not venv:
+                    self.logger.info(
+                        "virtualenv for '{}' not created yet".format(pipfile)
+                    )
+                return root_dir or path, venv
+
+            if not root_dir and any(
+                path_to(candidate).exists()
+                for candidate in root_dir_markers
+            ):
+                root_dir = path
+
+        return root_dir, None
 
 
 def find_python_version(version):
@@ -146,24 +212,16 @@ def find_python_version(version):
 def find_script_by_python_env(python_env_path, script):
     # type: (str, str) -> Optional[str]
     """Return full path to a script, given a python environment base dir."""
-    posix = sublime.platform() in ('osx', 'linux')
-    if posix:
-        full_path = os.path.join(python_env_path, 'bin', script)
-    else:
-        full_path = os.path.join(python_env_path, 'Scripts', script + '.exe')
-
-    if os.path.exists(full_path):
-        return full_path
-
-    return None
+    full_path = os.path.join(python_env_path, BIN)
+    return shutil.which(script, path=full_path)
 
 
 def ask_utility_for_venv(cwd, cmd):
-    # type: (str, Tuple[str, ...]) -> Iterator[str]
+    # type: (str, Tuple[str, ...]) -> Optional[str]
     try:
-        yield _ask_utility_for_venv(cwd, cmd)
+        return _ask_utility_for_venv(cwd, cmd)
     except Exception:
-        pass
+        return None
 
 
 @lru_cache(maxsize=None)

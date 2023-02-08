@@ -16,6 +16,7 @@ if MYPY:
 
 
 POSIX = sublime.platform() in ('osx', 'linux')
+ON_WINDOWS = sublime.platform() == 'windows'
 BIN = 'bin' if POSIX else 'Scripts'
 VIRTUAL_ENV_MARKERS = ('venv', '.env', '.venv')
 ROOT_MARKERS = ("setup.cfg", "pyproject.toml", "tox.ini", ".git", ".hg", )
@@ -71,6 +72,10 @@ class PythonLinter(linter.Linter):
         if python:
             python = str(python)
             if VERSION_RE.match(python):
+                if ON_WINDOWS:
+                    py_exe = util.which('py')
+                    if py_exe:
+                        return True, [py_exe, '-{}'.format(python), '-m', cmd_name]
                 python_bin = find_python_version(python)
                 if python_bin is None:
                     self.logger.error(

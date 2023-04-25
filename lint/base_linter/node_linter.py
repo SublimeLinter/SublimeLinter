@@ -47,6 +47,20 @@ def smart_paths_upwards(start_dir):
     )
 
 
+def is_yarn_project(path, manifest):
+    # type: (str, Dict[str, Any]) -> bool
+    package_manager = manifest.get('packageManager')
+    if isinstance(package_manager, str):
+        name = package_manager.split('@')[0]
+        return name == 'yarn'
+
+    yarn_files = ['yarn.lock', '.yarnrc.yml', '.yarnrc']
+    if [file for file in yarn_files if os.path.exists(os.path.join(path, file))]:
+        return True
+
+    return os.path.exists(os.path.join(path, 'node_modules', '.yarn-integrity'))
+
+
 # `read_json_file` is maybe used by plugins. Check `eslint` and
 # `xo` for example.
 def read_json_file(path):
@@ -173,18 +187,15 @@ class NodeLinter(linter.Linter):
                 if is_dep or is_dev_dep:
                     self.context['project_root'] = path
 
-                    # Perhaps this is a Yarn PnP project?
-                    yarn_lock_exists = os.path.exists(os.path.join(path, 'yarn.lock'))
-                    if yarn_lock_exists and (
-                        os.path.exists(os.path.join(path, '.pnp.js'))
-                        or bool(manifest.get('installConfig', {}).get('pnp'))
-                    ):
+                    # Perhaps this is a Yarn project?
+                    if is_yarn_project(path, manifest):
+                        # https://yarnpkg.com/advanced/rulebook#user-scripts-shouldnt-hardcode-the-node_modulesbin-folder
                         yarn_binary = shutil.which('yarn')
                         if yarn_binary:
                             return [yarn_binary, 'run', '--silent', npm_name]
 
                         self.logger.warning(
-                            "This seems like a Yarn PnP project. However, finding "
+                            "This seems like a Yarn project. However, finding "
                             "a Yarn executable failed. Make sure to install Yarn first."
                         )
                         self.notify_failure()
@@ -199,7 +210,6 @@ class NodeLinter(linter.Linter):
                         if executable:
                             return executable
 
-                    package_lock_exists = os.path.exists(os.path.join(path, 'package-lock.json'))
                     self.logger.warning(
                         "Skipping '{}' for now which is listed as a {} "
                         "in {} but not installed.  Forgot to '{} install'?"
@@ -207,7 +217,7 @@ class NodeLinter(linter.Linter):
                             npm_name,
                             'dependency' if is_dep else 'devDependency',
                             manifest_file,
-                            'yarn' if yarn_lock_exists and not package_lock_exists else 'npm'
+                            'npm'
                         )
                     )
                     self.notify_failure()

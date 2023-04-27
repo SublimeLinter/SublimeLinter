@@ -41,8 +41,6 @@ BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 # set as well.
 UTF8_ENV_VARS = {
     'PYTHONIOENCODING': 'utf8',
-#     'LANG': 'en_US.UTF-8',
-#     'LC_CTYPE': 'en_US.UTF-8',
 }
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 

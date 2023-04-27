@@ -6,10 +6,11 @@ import locale
 import logging
 import os
 import re
+import shellenv
 import shutil
 import subprocess
-import time
 import threading
+import time
 
 import sublime
 from . import events
@@ -232,7 +233,8 @@ def get_augmented_path():
         for path in persist.settings.get('paths', {}).get(sublime.platform(), [])
     ]  # type: List[str]
 
-    augmented_path = os.pathsep.join(paths + [os.environ['PATH']])
+    _, login_shell_paths = shellenv.get_path()
+    augmented_path = os.pathsep.join(paths + [os.environ['PATH']] + login_shell_paths)
     if logger.isEnabledFor(logging.INFO):
         debug_print_env(augmented_path)
     return augmented_path

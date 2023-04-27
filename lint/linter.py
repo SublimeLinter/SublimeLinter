@@ -7,6 +7,7 @@ from itertools import chain
 import logging
 import os
 import re
+import shellenv
 import shlex
 import subprocess
 import tempfile
@@ -40,8 +41,8 @@ BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 # set as well.
 UTF8_ENV_VARS = {
     'PYTHONIOENCODING': 'utf8',
-    'LANG': 'en_US.UTF-8',
-    'LC_CTYPE': 'en_US.UTF-8',
+#     'LANG': 'en_US.UTF-8',
+#     'LC_CTYPE': 'en_US.UTF-8',
 }
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
@@ -1056,7 +1057,15 @@ class Linter(metaclass=LinterMeta):
                 .format(self.name)
             )
 
-        return ChainMap({}, self.settings.get('env', {}), self.env, BASE_LINT_ENVIRONMENT)
+        _, environment = shellenv.get_env()
+
+        return ChainMap(
+            {},
+            self.settings.get('env', {}),
+            self.env,
+            BASE_LINT_ENVIRONMENT,
+            environment,
+        )
 
     @classmethod
     def can_lint_view(cls, view, settings):

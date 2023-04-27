@@ -1,7 +1,8 @@
 {
     "*": {
         "*": [
-            "jsonschema"
+            "jsonschema",
+            "shellenv"
         ]
     }
 }

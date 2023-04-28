@@ -57,7 +57,7 @@ def is_yarn_project(path, manifest):
         return name == 'yarn' or name == '@yarnpkg/berry'
 
     yarn_files = ['yarn.lock', '.yarnrc.yml', '.yarnrc']
-    if [file for file in yarn_files if os.path.exists(os.path.join(path, file))]:
+    if any(os.path.exists(os.path.join(path, file)) for file in yarn_files):
         return True
 
     return os.path.exists(os.path.join(path, 'node_modules', '.yarn-integrity'))

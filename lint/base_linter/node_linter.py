@@ -214,12 +214,11 @@ class NodeLinter(linter.Linter):
 
                     self.logger.warning(
                         "Skipping '{}' for now which is listed as a {} "
-                        "in {} but not installed.  Forgot to '{} install'?"
+                        "in {} but not installed.  Forgot to 'npm install'?"
                         .format(
                             npm_name,
                             'dependency' if is_dep else 'devDependency',
-                            manifest_file,
-                            'npm'
+                            manifest_file
                         )
                     )
                     self.notify_failure()

@@ -177,15 +177,14 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter).notify_failure()
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', 'npm'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', 'npm'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency'),
     ])
     def test_uninstalled_local_dependency(
         self,
         ROOT_DIR,
         CONTENT,
         DEPENDENCY_TYPE,
-        EXPECTED_PACKAGE_MANAGER,
     ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
 
@@ -195,8 +194,8 @@ class TestNodeLinters(DeferrableTestCase):
         when(linter).notify_failure().thenReturn(None)
         when(linter.logger).warning(
             "Skipping 'mylinter' for now which is listed as a {} in {} but "
-            "not installed.  Forgot to '{} install'?"
-            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, EXPECTED_PACKAGE_MANAGER)
+            "not installed.  Forgot to 'npm install'?"
+            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE)
         ).thenReturn(None)
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)

@@ -6,6 +6,7 @@ import re
 import shutil
 
 import sublime
+
 from . import node_linter
 from .. import linter, util
 
@@ -112,6 +113,16 @@ class PythonLinter(linter.Linter):
                 .format(self.name, executable)
             )
             return True, executable
+
+        if self.settings.get('disable_if_not_dependency', False):
+            self.logger.info(
+                "Skipping '{}' since it is not installed locally.\n"
+                "You can change this behavior by setting "
+                "'disable_if_not_dependency' to 'false'."
+                .format(self.name)
+            )
+            self.notify_unassign()
+            raise linter.PermanentError('disable_if_not_dependency')
 
         self.logger.info(
             "{}: trying to use globally installed {}"

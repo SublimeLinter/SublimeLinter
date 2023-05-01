@@ -1,0 +1,30 @@
+SublimeLinter 4.22.0
+
+
+--- @mataha improved our Yarn support drastically (#1899).
+
+--- There is a new setting `"highlights.start_hidden": ["phantoms"],`.
+    (I actually promised this for 4.20.0 but it wasn't there yet.)
+
+    Use this to hide possible drawn inline phantoms initially, and then toggle
+    them when needed.  Really like you might do with the error panel, but then
+    with the error details inlined.
+
+    You might try a key-binding for fast toggling:
+
+    ```
+    { "keys": ["ctrl+k", "ctrl+k"],
+      "command": "sublime_linter_toggle_highlights",
+      "args": {"what": ["phantoms"]}
+    },
+    ```
+
+--- Implement `disable_if_not_dependency` for Python based linters, useful
+    if you don't want to use globally installed binaries.
+
+
+Sincerely,
+💕
+
+
+Yes, I do drink coffee:  https://paypal.me/herrkaste

@@ -140,9 +140,15 @@ def highlight_linter_errors(views, filename, linter_name):
         vid = view.id()
 
         if vid not in State['views']:
-            if persist.settings.get('highlights.start_hidden'):
+            start_hidden = persist.settings.get('highlights.start_hidden') or []
+            if start_hidden is True:  # compat
                 State['quiet_views'].add(vid)
                 State['views_without_phantoms'].add(vid)
+            else:
+                if 'squiggles' in start_hidden:
+                    State['quiet_views'].add(vid)
+                if 'phantoms' in start_hidden:
+                    State['views_without_phantoms'].add(vid)
 
             State['views'].add(vid)
 
@@ -285,10 +291,17 @@ def format_message_for_phantom(view, error):
     )
 
 
+def phantoms_start_hidden():
+    # type: () -> bool
+    start_hidden = persist.settings.get('highlights.start_hidden') or []
+    return start_hidden is True or 'phantoms' in start_hidden
+
+
 def prepare_phantoms(view, errors):
-    errors_ = [e for e in errors if e["error_type"] == "error"]
-    if any(errors_):
-        errors = errors_
+    if not phantoms_start_hidden():
+        errors_ = [e for e in errors if e["error_type"] == "error"]
+        if any(errors_):
+            errors = errors_
 
     return [
         sublime.Phantom(

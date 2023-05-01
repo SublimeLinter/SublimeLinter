@@ -40,9 +40,16 @@
     // you save the buffer.
     "highlights.time_to_idle": 1.5,
 
-    // Set to true to start the highlights hidden. Use the command
-    // "SublimeLinter: Toggle Highlights" to toggle the highlights
-    "highlights.start_hidden": false,
+    // Set to ["squiggles", "phantoms"] or one of them to skip these
+    // highlighting features initially when opening a view.
+    // Use the command "SublimeLinter: Toggle Highlights", to toggle the
+    // highlights afterwards.  Usually you would define a key-binding
+    // to do this quickly.  E.g.
+    // { "keys": ["ctrl+k", "ctrl+k"],
+    //   "command": "sublime_linter_toggle_highlights",
+    //   "args": {"what": ["phantoms"]}
+    // },
+    "highlights.start_hidden": [],
 
     // Send a "terminate" signal to old lint processes, if their result would
     // be thrown away. If false we fire-and-forget processes instead.

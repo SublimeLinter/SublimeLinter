@@ -25,7 +25,11 @@
             "type":"string"
         },
         "highlights.start_hidden":{
-            "type":"boolean"
+            "type": ["array", "boolean"],
+            "items": {
+                "type": "string",
+                "enum": ["phantoms", "squiggles"]
+            }
         },
         "lint_mode":{
             "type":"string",

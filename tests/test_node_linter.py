@@ -319,6 +319,8 @@ class TestNodeLinters(DeferrableTestCase):
     @p.expand([
         ('/p', {'dependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'packageManager': '@yarnpkg/berry@2'}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'packageManager': '@yarnpkg/berry@2'}),
         ('/p', {'dependencies': {'mylinter': '0.2'}}, True, False, False, False),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True, False, False, False),
         ('/p', {'dependencies': {'mylinter': '0.2'}}, False, True, False, False),

@@ -51,8 +51,10 @@ def is_yarn_project(path, manifest):
     # type: (str, Dict[str, Any]) -> bool
     package_manager = manifest.get('packageManager')
     if isinstance(package_manager, str):
-        name = package_manager.split('@')[0]
-        return name == 'yarn'
+        # When this field was being adopted and hadn't been standardised yet
+        # package managers could have scoped names, i.e. `@<scope>/<package>`
+        name = package_manager.rsplit('@', 1)[0]
+        return name == 'yarn' or name == '@yarnpkg/berry'
 
     yarn_files = ['yarn.lock', '.yarnrc.yml', '.yarnrc']
     if [file for file in yarn_files if os.path.exists(os.path.join(path, file))]:

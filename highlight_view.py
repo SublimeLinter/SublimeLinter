@@ -585,11 +585,11 @@ class DemotePredicates:
 # Just trying and catching `NameError` reuses the previous value or
 # "version" of this variable when hot-reloading
 try:
-    CURRENTSTORE
+    CURRENTSTORE  # type: ignore[used-before-def]
 except NameError:
     CURRENTSTORE = defaultdict(set)  # type: Dict[sublime.ViewId, Set[RegionKey]]
 try:
-    EVERSTORE
+    EVERSTORE  # type: ignore[used-before-def]
 except NameError:
     EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.ViewId, Set[RegionKey]]
 else:
@@ -606,7 +606,7 @@ else:
                     r.__class__ = GutterIcon
 
     try:
-        _reload_everstore(EVERSTORE)
+        _reload_everstore(EVERSTORE)  # type: ignore[used-before-def]
     except TypeError:
         # On initial migration the `EVERSTORE` only holds native strings.
         # These are not compatible, so we initialize to a fresh state.
@@ -733,7 +733,7 @@ def revalidate_regions(view):
             if any(region.contains(s) for s in selections):
                 draw_squiggle_invisible(view, key, [region])
                 try:
-                    errors_by_uid[key.uid]['revalidate'] = True  # type: ignore[typeddict-item]
+                    errors_by_uid[key.uid]['revalidate'] = True  # type: ignore[typeddict-unknown-key]
                 except LookupError:
                     pass
 

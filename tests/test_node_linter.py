@@ -177,27 +177,16 @@ class TestNodeLinters(DeferrableTestCase):
         verify(linter).notify_failure()
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False, False, 'npm'),
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', False, True, 'npm'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False, False, 'npm'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', False, True, 'npm'),
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True, False, 'yarn'),
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency', True, True, 'npm'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True, False, 'yarn'),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency', True, True, 'npm'),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, 'dependency'),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, 'devDependency'),
     ])
     def test_uninstalled_local_dependency(
         self,
         ROOT_DIR,
         CONTENT,
         DEPENDENCY_TYPE,
-        HAS_YARN_LOCK,
-        HAS_PACKAGE_LOCK,
-        EXPECTED_PACKAGE_MANAGER,
     ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
-        PACKAGE_LOCK_FILE = os.path.join(ROOT_DIR, 'package-lock.json')
-        YARN_LOCK_FILE = os.path.join(ROOT_DIR, 'yarn.lock')
 
         when(self.view).file_name().thenReturn('/p/a/f.js')
         linter = make_fake_linter(self.view)
@@ -205,16 +194,12 @@ class TestNodeLinters(DeferrableTestCase):
         when(linter).notify_failure().thenReturn(None)
         when(linter.logger).warning(
             "Skipping 'mylinter' for now which is listed as a {} in {} but "
-            "not installed.  Forgot to '{} install'?"
-            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE, EXPECTED_PACKAGE_MANAGER)
+            "not installed.  Forgot to 'npm install'?"
+            .format(DEPENDENCY_TYPE, PRESENT_PACKAGE_FILE)
         ).thenReturn(None)
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        if HAS_YARN_LOCK:
-            when(os.path).exists(YARN_LOCK_FILE).thenReturn(True)
-        if HAS_PACKAGE_LOCK:
-            when(os.path).exists(PACKAGE_LOCK_FILE).thenReturn(True)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
         try:
@@ -331,12 +316,28 @@ class TestNodeLinters(DeferrableTestCase):
         self.assertEqual(cmd, ['fake.exe'])
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}, False),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}, False),
-        ('/p', {'dependencies': {'mylinter': '0.2'}}, True),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True),
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'packageManager': '@yarnpkg/berry@2'}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'packageManager': '@yarnpkg/berry@2'}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, True, False, False, False),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True, False, False, False),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, False, True, False, False),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, False, True, False, False),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, False, False, True, False),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, False, False, True, False),
+        ('/p', {'dependencies': {'mylinter': '0.2'}}, False, False, False, True),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, False, False, False, True),
     ])
-    def test_installed_yarn_pnp_project(self, ROOT_DIR, CONTENT, PNP_JS_EXISTS):
+    def test_installed_yarn_project(
+        self,
+        ROOT_DIR,
+        CONTENT,
+        HAS_YARN_LOCK=False,
+        HAS_YARNRC_YML=False,
+        HAS_YARNRC=False,
+        HAS_YARN_INTEGRITY=False
+    ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
         YARN_BIN = '/path/to/yarn'
 
@@ -346,8 +347,10 @@ class TestNodeLinters(DeferrableTestCase):
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(HAS_YARN_LOCK)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.yarnrc.yml')).thenReturn(HAS_YARNRC_YML)
+        when(os.path).exists(os.path.join(ROOT_DIR, '.yarnrc')).thenReturn(HAS_YARNRC)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'node_modules', '.yarn-integrity')).thenReturn(HAS_YARN_INTEGRITY)
         when(shutil).which(...).thenReturn(None)
         when(shutil).which('yarn').thenReturn(YARN_BIN)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
@@ -358,12 +361,17 @@ class TestNodeLinters(DeferrableTestCase):
         self.assertEqual(working_dir, ROOT_DIR)
 
     @p.expand([
-        ('/p', {'dependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}),
-        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'installConfig': {'pnp': True}}),
+        ('/p', {'dependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
+        ('/p/a', {'devDependencies': {'mylinter': '0.2'}, 'packageManager': 'yarn@3.5.0'}),
         ('/p', {'dependencies': {'mylinter': '0.2'}}, True),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}, True),
     ])
-    def test_yarn_pnp_project_warn_no_yarn(self, ROOT_DIR, CONTENT, PNP_JS_EXISTS=False):
+    def test_yarn_project_warn_no_yarn(
+        self,
+        ROOT_DIR,
+        CONTENT,
+        HAS_YARN_LOCK=False
+    ):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
 
         when(self.view).file_name().thenReturn('/p/a/f.js')
@@ -371,14 +379,13 @@ class TestNodeLinters(DeferrableTestCase):
 
         when(linter).notify_failure().thenReturn(None)
         when(linter.logger).warning(
-            "This seems like a Yarn PnP project. However, finding "
+            "This seems like a Yarn project. However, finding "
             "a Yarn executable failed. Make sure to install Yarn first."
         ).thenReturn(None)
         exists = os.path.exists
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(PNP_JS_EXISTS)
+        when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(HAS_YARN_LOCK)
         when(shutil).which(...).thenReturn(None)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)
 
@@ -394,7 +401,7 @@ class TestNodeLinters(DeferrableTestCase):
         ('/p', {'dependencies': {'mylinter': '0.2'}}),
         ('/p/a', {'devDependencies': {'mylinter': '0.2'}}),
     ])
-    def test_yarn_pnp_project_warn_not_completely_installed(self, ROOT_DIR, CONTENT):
+    def test_yarn_project_warn_not_completely_installed(self, ROOT_DIR, CONTENT):
         PRESENT_PACKAGE_FILE = os.path.join(ROOT_DIR, 'package.json')
         YARN_BIN = '/path/to/yarn'
 
@@ -410,7 +417,6 @@ class TestNodeLinters(DeferrableTestCase):
         when(os.path).exists(...).thenAnswer(exists)
         when(os.path).exists(PRESENT_PACKAGE_FILE).thenReturn(True)
         when(os.path).exists(os.path.join(ROOT_DIR, 'yarn.lock')).thenReturn(True)
-        when(os.path).exists(os.path.join(ROOT_DIR, '.pnp.js')).thenReturn(True)
         when(shutil).which(...).thenReturn(None)
         when(shutil).which('yarn').thenReturn(YARN_BIN)
         when(node_linter).read_json_file(PRESENT_PACKAGE_FILE).thenReturn(CONTENT)

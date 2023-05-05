@@ -10,7 +10,7 @@ def plugin_unloaded():
         window.destroy_output_panel(PANEL_NAME)
 
 
-class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
+class sublime_linter_display_panel(sublime_plugin.WindowCommand):
     def run(self, msg=""):
         window = self.window
 
@@ -37,7 +37,7 @@ class SublimeLinterDisplayPanelCommand(sublime_plugin.WindowCommand):
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})
 
 
-class SublimeLinterRemovePanelCommand(sublime_plugin.WindowCommand):
+class sublime_linter_remove_panel(sublime_plugin.WindowCommand):
     def run(self):
         self.window.destroy_output_panel(PANEL_NAME)
 

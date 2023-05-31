@@ -87,12 +87,20 @@ class RubyLinter(linter.Linter):
                 elif sublime.platform() == 'windows':
                     ruby_cmd = [gem_path]
                 else:
+                    if not ruby:
+                        msg = "{} deactivated, cannot locate ruby or rvm-auto-ruby".format(self.name)
+                        self.logger.warning(msg)
+                        return True, None
                     ruby_cmd = [ruby, gem_path]
             else:
                 msg = '{} deactivated, cannot locate the gem \'{}\''.format(self.name, gem)
                 self.logger.warning(msg)
                 return True, None
         else:
+            if not ruby:
+                msg = "{} deactivated, cannot locate ruby or rvm-auto-ruby".format(self.name)
+                self.logger.warning(msg)
+                return True, None
             ruby_cmd = [ruby]
 
         return True, ruby_cmd

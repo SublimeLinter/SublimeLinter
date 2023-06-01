@@ -123,7 +123,7 @@ def on_settings_changed(settings, **kwargs):
         )
 
 
-class SublimeLinterReloadCommand(sublime_plugin.WindowCommand):
+class sublime_linter_reload(sublime_plugin.WindowCommand):
     def run(self):
         log_handler.uninstall()
         try:

@@ -277,7 +277,7 @@ def toggle_panel_if_errors(window, filenames):
         window.run_command("hide_panel", {"panel": OUTPUT_PANEL})
 
 
-class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
+class sublime_linter_panel_toggle(sublime_plugin.WindowCommand):
     def run(self):
         if panel_is_active(self.window):
             self.window.run_command("hide_panel", {"panel": OUTPUT_PANEL})

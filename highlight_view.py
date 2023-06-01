@@ -1017,7 +1017,7 @@ class TooltipController(sublime_plugin.EventListener):
                     open_tooltip(view, point, line_report=False)
 
 
-class SublimeLinterLineReportCommand(sublime_plugin.WindowCommand):
+class sublime_linter_line_report(sublime_plugin.WindowCommand):
     def run(self):
         view = self.window.active_view()
         if not view:

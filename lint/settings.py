@@ -3,7 +3,7 @@ import logging
 import sublime
 from . import events, util
 from .const import IS_ENABLED_SWITCH
-from jsonschema import validate, FormatChecker, ValidationError  # type: ignore[attr-defined]
+from jsonschema import validate, FormatChecker, ValidationError
 
 
 logger = logging.getLogger(__name__)

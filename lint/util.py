@@ -14,7 +14,7 @@ import threading
 
 import sublime
 from . import events
-from .const import IS_ENABLED_SWITCH
+from .const import ERROR_PANEL_NAME, IS_ENABLED_SWITCH
 
 
 MYPY = False
@@ -113,7 +113,7 @@ def show_message(message, window=None):
 
 def clear_message():
     window = sublime.active_window()
-    window.run_command("sublime_linter_remove_panel")
+    window.destroy_output_panel(ERROR_PANEL_NAME)
 
 
 def flash(view, msg):

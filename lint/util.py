@@ -14,7 +14,7 @@ import threading
 
 import sublime
 from . import events
-from .const import ERROR_OUTPUT_PANEL, ERROR_PANEL_NAME, IS_ENABLED_SWITCH
+from .const import IS_ENABLED_SWITCH
 
 
 MYPY = False
@@ -35,6 +35,8 @@ STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 UI_THREAD_NAME = None  # type: Optional[str]
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
+ERROR_PANEL_NAME = "SublimeLinter Messages"
+ERROR_OUTPUT_PANEL = "output." + ERROR_PANEL_NAME
 
 
 @events.on('settings_changed')

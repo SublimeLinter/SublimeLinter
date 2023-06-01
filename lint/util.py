@@ -111,7 +111,7 @@ def show_message(message, window=None):
     window.run_command("sublime_linter_display_panel", {"msg": message})
 
 
-def clear_message():
+def close_error_panel():
     window = sublime.active_window()
     window.destroy_output_panel(ERROR_PANEL_NAME)
 

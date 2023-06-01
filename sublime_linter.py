@@ -99,6 +99,7 @@ def plugin_unloaded():
 
     queue.unload()
     persist.settings.unobserve()
+    util.close_all_error_panels()
     events.off(on_settings_changed)
 
 

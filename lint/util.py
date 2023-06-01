@@ -166,8 +166,16 @@ def _show_message(window, message):
     window.run_command("show_panel", {"panel": ERROR_OUTPUT_PANEL})
 
 
-def close_error_panel():
-    window = sublime.active_window()
+def close_all_error_panels():
+    # type: () -> None
+    for window in sublime.windows():
+        close_error_panel(window)
+
+
+def close_error_panel(window=None):
+    # type: (Optional[sublime.Window]) -> None
+    if window is None:
+        window = sublime.active_window()
     window.destroy_output_panel(ERROR_PANEL_NAME)
 
 

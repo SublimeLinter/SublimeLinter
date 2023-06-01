@@ -141,13 +141,10 @@ def reload_sublime_linter():
 
 
 def show_restart_message():
-    window = sublime.active_window()
-    window.run_command("sublime_linter_display_panel", {
-        'msg': (
-            'Reloading SublimeLinter failed. :-(\n'
-            'Please restart Sublime Text.'
-        )
-    })
+    util.show_message(
+        'Reloading SublimeLinter failed. :-(\n'
+        'Please restart Sublime Text.'
+    )
 
 
 def other_visible_views():

@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import threading
 
@@ -337,20 +338,20 @@ def decode(bytes):
 
 
 def create_startupinfo():
-    if os.name == 'nt':
+    if sys.platform == "win32":
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
         info.wShowWindow = subprocess.SW_HIDE
         return info
-
-    return None
+    else:
+        return None
 
 
 def get_creationflags():
-    if os.name == 'nt':
+    if sys.platform == "win32":
         return subprocess.CREATE_NEW_PROCESS_GROUP
-
-    return 0
+    else:
+        return 0
 
 
 # misc utils

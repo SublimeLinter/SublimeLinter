@@ -63,7 +63,10 @@ def ensure_on_ui_thread(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
         # type: (P.args, P.kwargs) -> None
-        _ensure_on_ui(fn, *args, **kwargs)
+        if it_runs_on_ui():
+            fn(*args, **kwargs)
+        else:
+            enqueue_on_ui(fn, *args, **kwargs)
     return wrapped
 
 
@@ -78,14 +81,6 @@ def assert_on_ui_thread(fn):
         sublime.status_message("RuntimeError: {}".format(msg))
         raise RuntimeError(msg)
     return wrapped
-
-
-def _ensure_on_ui(fn, *args, **kwargs):
-    # type: (Callable[P, T], P.args, P.kwargs) -> None
-    if it_runs_on_ui():
-        fn(*args, **kwargs)
-    else:
-        enqueue_on_ui(fn, *args, **kwargs)
 
 
 def it_runs_on_ui():

@@ -99,6 +99,7 @@ def plugin_unloaded():
 
     queue.unload()
     persist.settings.unobserve()
+    util.close_all_error_panels()
     events.off(on_settings_changed)
 
 
@@ -129,7 +130,10 @@ class sublime_linter_reload(sublime_plugin.WindowCommand):
         try:
             reloader.reload_everything()
         except Exception:
-            show_restart_message()
+            util.show_message(
+                'Reloading SublimeLinter failed. :-(\n'
+                'Please restart Sublime Text.'
+            )
             raise  # Still write the traceback to the console!
         finally:
             log_handler.install()
@@ -138,16 +142,6 @@ class sublime_linter_reload(sublime_plugin.WindowCommand):
 def reload_sublime_linter():
     window = sublime.active_window()
     window.run_command("sublime_linter_reload")
-
-
-def show_restart_message():
-    window = sublime.active_window()
-    window.run_command("sublime_linter_display_panel", {
-        'msg': (
-            'Reloading SublimeLinter failed. :-(\n'
-            'Please restart Sublime Text.'
-        )
-    })
 
 
 def other_visible_views():

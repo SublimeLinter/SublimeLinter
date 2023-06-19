@@ -21,9 +21,10 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, Iterator, List, MutableMapping, Optional, TypeVar, Union)
-    from typing_extensions import ParamSpec
+    from typing_extensions import Concatenate as Con, ParamSpec
     P = ParamSpec('P')
     T = TypeVar('T')
+    Q = TypeVar('Q', bound=Union[sublime.Window, sublime.View])
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,8 @@ STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
 UI_THREAD_NAME = None  # type: Optional[str]
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
+ERROR_PANEL_NAME = "SublimeLinter Messages"
+ERROR_OUTPUT_PANEL = "output." + ERROR_PANEL_NAME
 
 
 @events.on('settings_changed')
@@ -95,6 +98,33 @@ def enqueue_on_ui(fn, *args, **kwargs):
     sublime.set_timeout(partial(fn, *args, **kwargs))
 
 
+def ui_block(fn):
+    # type: (Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]
+    """Mark a function as UI block and mimic `run_command` behavior.
+
+    Annotates a function that takes as its first argument either a `View`
+    or a `Window`.  Calling that function will then ensure it will run
+    on the UI thread and with a valid subject, t.i. we call `is_valid()`
+    on the first argument.  The function will be a no-op if the subject
+    is not valid anymore.  The function will run sync and blocking if
+    called from the UI thread, otherwise a task will be enqueud on the
+    UI.  In this case the function will return immediately before it has
+    run.
+    """
+    return ensure_on_ui_thread(skip_if_invalid_subject(fn))
+
+
+def skip_if_invalid_subject(fn):
+    # type: (Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]
+    @wraps(fn)
+    def wrapped(__view_or_window, *args, **kwargs):
+        # type: (Q, P.args, P.kwargs) -> None
+        if __view_or_window.is_valid():
+            fn(__view_or_window, *args, **kwargs)
+
+    return wrapped
+
+
 @contextmanager
 def print_runtime(message):
     start_time = time.perf_counter()
@@ -106,14 +136,49 @@ def print_runtime(message):
 
 
 def show_message(message, window=None):
+    # type: (str, Optional[sublime.Window]) -> None
     if window is None:
         window = sublime.active_window()
-    window.run_command("sublime_linter_display_panel", {"msg": message})
+    _show_message(window, message)
 
 
-def clear_message():
-    window = sublime.active_window()
-    window.run_command("sublime_linter_remove_panel")
+@ui_block
+def _show_message(window, message):
+    # type: (sublime.Window, str) -> None
+    if window.active_panel() == ERROR_OUTPUT_PANEL:
+        panel = window.find_output_panel(ERROR_PANEL_NAME)
+        assert panel
+    else:
+        panel = window.create_output_panel(ERROR_PANEL_NAME)
+        syntax_path = "Packages/SublimeLinter/panel/message_view.sublime-syntax"
+        try:  # Try the resource first, in case we're in the middle of an upgrade
+            sublime.load_resource(syntax_path)
+        except Exception:
+            return
+
+        panel.assign_syntax(syntax_path)
+
+    scroll_to = panel.size()
+    msg = message.rstrip() + '\n\n\n'
+
+    panel.set_read_only(False)
+    panel.run_command('append', {'characters': msg})
+    panel.set_read_only(True)
+    panel.show(scroll_to)
+    window.run_command("show_panel", {"panel": ERROR_OUTPUT_PANEL})
+
+
+def close_all_error_panels():
+    # type: () -> None
+    for window in sublime.windows():
+        close_error_panel(window)
+
+
+def close_error_panel(window=None):
+    # type: (Optional[sublime.Window]) -> None
+    if window is None:
+        window = sublime.active_window()
+    window.destroy_output_panel(ERROR_PANEL_NAME)
 
 
 def flash(view, msg):

@@ -122,7 +122,7 @@ def validate_settings(filename_settings_pairs, flat=False):
                 window.status_message(status_msg)
 
     if good:
-        util.clear_message()
+        util.close_error_panel()
 
     return good
 
@@ -145,7 +145,7 @@ def validate_project_settings(filename):
 
     settings = obj.get('settings', {})
     if not settings:
-        util.clear_message()
+        util.close_error_panel()
         return True
 
     sl_settings = {
@@ -154,7 +154,7 @@ def validate_project_settings(filename):
         if key.startswith('SublimeLinter.') and key != IS_ENABLED_SWITCH
     }
     if not sl_settings:
-        util.clear_message()
+        util.close_error_panel()
         return True
 
     invalid_top_level_keys = [

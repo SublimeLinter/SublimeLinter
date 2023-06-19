@@ -35,12 +35,23 @@ Disables the linter.
 
 env
 ---
+
 Set additional environment variables.
 
 .. code-block:: json
 
     {
         "env": "{'GEM_HOME': '~/foo/bar'}"
+    }
+
+If you want to edit your PATH, note that we support :ref:`Settings Expansion
+<settings-expansion>` here, as everywhere else, as it is very convenient in
+this case. For example:
+
+.. code-block:: json
+
+    "env": {
+        "PATH": "~/path/to/bin:$PATH"
     }
 
 

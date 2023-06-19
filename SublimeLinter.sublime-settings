@@ -63,12 +63,16 @@
     "lint_mode": "background",
 
     // Linter-specific settings.
-    // More info: http://www.sublimelinter.com/en/stable/linter_settings.html
-    // Linter-specific settings except for 'styles' can also be changed
-    // in sublime-project settings.
-    // What settings are available are documented in the readme of the
-    // specific linter plugin.
-    // Example:
+    // See also http://www.sublimelinter.com/en/stable/linter_settings.html
+    // The following settings are implemented in core and available for
+    // all linters.  Specific linter plugins might add more settings, which are
+    // documented in their readme.
+    // Tip: Linter-specific settings except for 'styles' can also be changed
+    // in sublime-project settings. See how this is done:
+    // https://www.sublimelinter.com/en/stable/settings.html#project-settings
+    //
+    // Do not copy-paste this whole section but only the parts you want to
+    // change.  Note that the default for a key is usually "not-set"!
     "linters": {
         // The name of the linter you installed
         "linter_name": {
@@ -123,11 +127,11 @@
             // **Only valid for PythonLinter**
             // Specify which python to use. Either a number or full path
             // to a python binary. SL will then basically use 'python -m'
-            // to run the linter.
+            // to run the linter. It might use 'py.exe' on Windows.
             "python": 3,
 
-            // **Only valid for NodeLinter**
-            // If true, will *not* use a globally installed binary
+            // **Only implemented for NodeLinter and PythonLinter**
+            // If true, will *not* search for and use a globally installed binary
             "disable_if_not_dependency": false
         }
     },

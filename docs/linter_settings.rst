@@ -50,8 +50,10 @@ this case. For example:
 
 .. code-block:: json
 
-    "env": {
-        "PATH": "~/path/to/bin:$PATH"
+    {
+        "env": {
+            "PATH": "~/path/to/bin:$PATH"
+        }
     }
 
 

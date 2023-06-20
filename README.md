@@ -71,8 +71,8 @@ If your issue is specific to a particular linter, please report it on that linte
 
 ## Creating a linter plugin
 
-Fork the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
-It contains a howto with all the information you need.  Of course, take a look at a similar linter plugin and let it inspire you.
+Use the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
+It contains a how-to with all the information you need.  Refer to https://www.sublimelinter.com/en/master/linter_plugin.html for more detailed information.  Of course, take a look at a similar linter plugin and let it inspire you.
 
 
 ## Also Support 

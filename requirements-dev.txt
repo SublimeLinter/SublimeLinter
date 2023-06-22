@@ -1,0 +1,5 @@
+flake8==5.*
+mypy
+Sphinx
+sphinx-rtd-theme
+sphinx-autobuild

@@ -1,74 +1,172 @@
 Linter Attributes
-========================
-All linter plugins must be subclasses of ``SublimeLinter.lint.Linter``.
-The Linter class provides the attributes and methods necessary to make linters
-work within SublimeLinter.
+=================
 
-The Linter class is designed to allow interfacing with most linter
-executables/libraries through the configuration of class attributes.
-Some linters, however, will need to do more work
-to set up the environment for the linter executable,
-or may do the linting directly in the linter plugin itself.
-In that case, refer to the :doc:`linter method documentation <linter_methods>`.
+The Linter class is designed to allow interfacing with most linter executables
+through the configuration of class attributes. Some linters, however, may
+require additional steps to set up the execution environment for the linter
+executable or perform the linting directly within the linter plugin.  In such
+cases, refer to the :doc:`linter method documentation <linter_methods>`.
 
 
 .. _cmd:
 
 cmd (mandatory)
 ---------------
-A tuple or callable that returns a tuple,
-containing the command line (with arguments) used to lint.
 
-- If ``cmd`` is ``None``, it is assumed the plugin overrides the ``run`` method.
-- A ``${file}`` argument will be replaced with the full filename,
-  which allows you to guarantee that certain arguments will be passed after the filename.
-- When :ref:`tempfile_suffix` is set, the filename will be the temp filename.
-- A ``${args}`` argument will be replaced with the arguments built from the linter settings,
-  which allows you to guarantee that certain arguments will be passed at the end of the argument list.
+A string or a tuple of strings containing the command used to lint. Mandatory
+arguments must be placed here so a user cannot override them.  Mandatory
+arguments are e.g. the output format of a linter because it must match the
+defined :ref:`regex<regex>`.
 
+For example:
+
+.. code-block:: python
+
+    cmd = ('flake8', '--format', 'default', '-')
+
+One of the core features of SublimeLinter is that a user can always provide
+additional arguments to the command by using the ``args`` setting.  By default,
+we append the arguments to the command but you can also specify where they are
+injected.
+
+.. code-block:: python
+
+    cmd = ('flake8', '--format', 'default', '${args}', '-')
+    cmd = 'flake8 --format default $args -'
+
+By default, the linter runs in "stdin" mode, which means that we pass the source
+code to be linted (usually the contents of the file) through stdin. In this
+mode, you can refer to the current file name using ``$file``.
+
+For example:
+
+.. code-block:: python
+
+    cmd = 'eslint --stdin-filename $file'
+
+However, SublimeLinter can also run in "temp_file" or "file_on_disk" mode.
+See :ref:`tempfile_suffix` below for more details. In these modes it is
+mandatory to refer the currently linted file. In "tempfile" mode, that would
+be:
+
+.. code-block:: python
+
+    cmd = 'mypy $temp_file'
+
+In "real"-file mode, it would be:
+
+.. code-block:: python
+
+    cmd = 'pylint $file_on_disk'
+
+.. hint::
+
+    If you don't want to use the command execution system as implemented by SublimeLinter at all, set ``cmd = None`` and implement the ``run`` method on your own.
+
+
+.. _default_type:
 
 default_type
 ------------
-Usually the ``error`` and ``warning`` named capture groups in the :ref:`regex`
-classify the problems.
-If the linter output does not provide information which can be captured with those groups,
+If the linter output does not provide information which can be captured as ``error_type``,
 this attribute is used to determine how to classify the linter error.
-The value should be ``SublimeLinter.lint.ERROR`` or ``SublimeLinter.lint.WARNING``.
-
-The default value is ``SublimeLinter.lint.ERROR``.
+The value should be ``"error"`` (the default) or ``"warning"``, but actually any string is allowed.
 
 
 .. _defaults:
 
-defaults
---------
-Set this attribute to a dict of setting names and values to provide defaults for the linter's settings.
+defaults (mandatory)
+--------------------
 
-The most important setting is ``"selector"``, which specifies the scopes for which the linter is run.
+.. note::
 
-If a setting will be passed as an argument to the linter executable,
-you may specify the format of the argument here and
-the setting will automatically be passed as an argument to the executable.
-The format specification is as follows:
+    The name "defaults" can be misleading as the attribute is used to declare and define any additional settings and possibly command arguments, while *also* setting default values for all these settings.
+
+
+.. note::
+
+    All settings mentioned here are user-visible and can be changed in the global or project settings!
+
+Each linter must at least define the mandatory ``"selector"`` setting, which specifies the scopes for which the linter is run.  For example, to select all Python files::
+
+    defaults = {
+        "selector": "source.python",
+    }
+
+This is the minimum requirement that needs to be set.
+
+Apart from the mandatory setting, you can define internal and external settings. Internal settings can only be used programmatically, and you need to extend or override specific methods to use them.  Generally, you define a setting name with its default value::
+
+    defaults = {
+        ...
+        "some_flag": False,
+    }
+
+and then use it in your plugin code like this:
+
+.. code-block:: python
+
+    if self.settings.get("some_flag"):
+        ...
+
+External settings are defined using one of the prefixes `@`, `-`, or `--`, and automatically injected as additional arguments to the command.
+
+For example, you can define::
+
+    defaults = {
+        ...
+        "-I": [],
+    }
+
+If a user now sets:
+
+.. code-block:: json
+
+    {
+        "I": ["/path/to/here", "/path/to/there"]
+    }
+
+then SublimeLinter will expand the command with ``-I /path/to/here -I /path/to/there``.
+
+If you append a ``=``, like this::
+
+
+    defaults = {
+        "--include=": [],
+    }
+
+SublimeLinter will produce for example ``--include=E201``, t.i. the name and the value are joined by ``=`` and form technically a single argument.
+
+The format for defining external settings is as follows:
 
 .. code-block:: text
 
-    <prefix><name><joiner>[<sep>[+]]
+    <prefix><name><joiner>?<sep>?[+]?
 
 - **prefix** – Either ``@``, ``-`` or ``--``.
 - **name** – The name of the setting.
 - **joiner** – Either ``=`` or ``:``.
-  If ``prefix`` is ``@``, this attribute is ignored (but may not be omitted).
-  Otherwise, if this is ``=``, the setting value is joined with ``name`` by ``=`` and passed as a single argument.
-  If ``:``, ``name`` and the value are passed as separate arguments.
-- **sep** – If the argument accepts a list of values,
-  ``sep`` specifies the character used to delimit the list (usually ``,``).
+  This is ignored if the ``prefix`` is ``@``.
+  If it is ``=``, the setting value is joined with the ``name`` using ``=`` and passed as a single argument.
+  If it is ``:`` (the default), the ``name`` and the value are passed as separate arguments.
+- **sep** – If a list of values is given,
+  ``sep`` specifies the character used to join the *values* (e.g. ``,``).
+  This is redundant if **+** is also used.
+
+  For example::
+
+    "--rules,"  # **joiner** is omitted!
+
+  produces something like "--rules a,b,c"
+
 - **+** – If the setting can be a list of values,
-  but each value must be passed as a separate argument,
+  but each value must be passed separately,
   terminate the setting with ``+``.
 
+  .. note::
 
-After the format is parsed, the prefix and suffix are removed and the setting key is replaced with ``name``.
+    Do not use as it is the default!
+
 
 .. note::
 
@@ -79,16 +177,20 @@ After the format is parsed, the prefix and suffix are removed and the setting ke
 
 error_stream
 ------------
-Some linters report problem on ``stdout``, some on ``stderr``.
-By default SublimeLinter listens for both. If that's wrong you can set this
-to ``SublimeLinter.lint.STREAM_STDOUT`` or ``SublimeLinter.lint.STREAM_STDERR``.
+By default, SublimeLinter capture both ``stdout`` and ``stderr``, but it only parses ``stdout`` for reported problems (called "diagnostics" these days) and expects ``stderr`` generally to be blank.  In fact, if any messages are present on ``stderr``, SublimeLinter considers them as fatal errors.
 
-Note however, it's important to capture errors generated by the linter itself,
-for example a bad command line argument or some internal error.
-Usually linters will report their own errors on ``stderr``.
-To ensure you capture both regular linter output and internal linter errors,
-you need to determine on which stream the linter writes reports and errors.
+However, some linters report the diagnostics on ``stderr`` and you have to set this attribute to ``SublimeLinter.lint.STREAM_STDERR`` accordingly.
 
+For completeness, you can also force to only read ``stdout`` by setting the
+attribute to ``SublimeLinter.lint.STREAM_STDOUT``.  However, this approach is
+not recommended.  If your linter produces noise on ``stderr`` consider
+implementing the ``on_stderr`` method instead.  Take a look at the `eslint
+plugin <https://github.com/SublimeLinter/SublimeLinter-eslint>`_ as an example.
+It filters out deprecation warnings while still keeping other hard errors and
+reports them back to the user.
+
+
+.. _line_col_base:
 
 line_col_base
 -------------
@@ -105,7 +207,12 @@ the linter class should define this attribute accordingly.
 
 multiline
 ---------
-This attribute determines whether the :ref:`regex` attribute parses multiple lines.
+
+.. note::
+
+    You can also set the flag inline ``(?m)`` on the :ref:`regex<regex>` attribute.
+
+This attribute determines whether the :ref:`regex<regex>` attribute parses multiple lines.
 The linter may output multiline error messages, but if ``regex`` only parses single lines,
 this attribute should be ``False`` (the default).
 
@@ -116,7 +223,7 @@ this attribute should be ``False`` (the default).
 
 .. note::
 
-    It is important that you set this attribute correctly; it does more than just
+    It is important that you set this flag correctly; it does more than just
     add the ``re.MULTILINE`` flag when it compiles the ``regex`` pattern.
 
 
@@ -159,35 +266,45 @@ The pattern must contain at least the following named capture groups:
 | message   | The description of the problem                                  |
 +-----------+-----------------------------------------------------------------+
 
-If your pattern doesn't have these groups you must override the :ref:`split_match <split_match>`
-method to provide those values yourself.
-
 In addition to the above capture groups,
 the pattern should contain the following named capture groups when possible:
 
-+-----------+-----------------------------------------------------------------+
-| Name      | Description                                                     |
-+===========+=================================================================+
-| col       | The column number where the error occurred, or                  |
-|           | a string whose length provides the column number                |
-+-----------+-----------------------------------------------------------------+
-| error     | If this is not empty, the error will be marked                  |
-|           | as an error by SublimeLinter                                    |
-+-----------+-----------------------------------------------------------------+
-| warning   | If this is not empty, the error will be marked                  |
-|           | as a warning by SublimeLinter                                   |
-+-----------+-----------------------------------------------------------------+
-| near      | If the linter does not provide a column number but              |
-|           | mentions a name, match the name with this capture               |
-|           | group and SublimeLinter will attempt to highlight that name.    |
-|           | Enclosing single or double quotes will be stripped,             |
-|           | you may include them in the capture group. If the               |
-|           | linter provides a column number, you may still use              |
-|           | this capture group and SublimeLinter will highlight that text   |
-|           | (stripped of quotes) exactly.                                   |
-+-----------+-----------------------------------------------------------------+
-| code      | The corresponding error code given by the linter, if supported. |
-+-----------+-----------------------------------------------------------------+
++------------+-----------------------------------------------------------------+
+| Name       | Description                                                     |
++============+=================================================================+
+| col        | The column number where the error occurred, or                  |
+|            | a string whose length provides the column number                |
++------------+-----------------------------------------------------------------+
+| error_type | The error type, e.g. "error" or "warning"                       |
+|            |                                                                 |
++------------+-----------------------------------------------------------------+
+| code       | The corresponding error code given by the linter, if supported. |
++------------+-----------------------------------------------------------------+
+
+You can also capture ``end_line`` and ``end_col``, otherwise the :ref:`word<word_re>` beginning at ``col`` will be highlighted.  How the numbers are interpreted is defined by :ref:`line_col_base`.
+
+If you can't capture the ``error_type`` directly, you may use ``error`` and ``warning`` to set the type.  Alterantively, you fallback to :ref:`default_type`.
+
++------------+-----------------------------------------------------------------+
+| error      | If this is not empty, the error will be marked                  |
+|            | as an error by SublimeLinter                                    |
++------------+-----------------------------------------------------------------+
+| warning    | If this is not empty, the error will be marked                  |
+|            | as a warning by SublimeLinter                                   |
++------------+-----------------------------------------------------------------+
+
+You can also just search the source code line for a word to highlight:
+
++-----------++-----------------------------------------------------------------+
+| near       | If the linter does not provide a column number but              |
+|            | mentions a name, match the name with this capture               |
+|            | group and SublimeLinter will attempt to highlight that name.    |
+|            | Enclosing single or double quotes will be stripped,             |
+|            | you may include them in the capture group. If the               |
+|            | linter provides a column number, you may still use              |
+|            | this capture group and SublimeLinter will highlight that text   |
+|            | (stripped of quotes) exactly.                                   |
++------------+-----------------------------------------------------------------+
 
 
 .. _tempfile_suffix:
@@ -212,6 +329,8 @@ In such cases, you can mark a linter as *file-only* by setting :ref:`tempfile_su
 File-only linters will only run on files that have not been modified since their last save,
 ensuring that what the user sees and what the linter executable sees is in sync.
 
+
+.. _word_re:
 
 word_re
 -------

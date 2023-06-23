@@ -23,7 +23,31 @@ Node and Python linters also implement the user setting ``disable_if_not_depende
 
    If the language specific Linter does something obviously wrong or is too limited, consider making a change and submitting a pull request against the SublimeLinter framework instead of implementing a fix in your specific plugin.  Your fix or enhancement might benefit everyone using the framework.
 
-After deciding which class to inherit from, you define at least three attributes on it
+After deciding which class to inherit from, you define a class for the integration. For example::
+
+    class ESLint(NodeLinter):
+        ...
+
+    # or
+
+    class Flake8(PythonLinter):
+        ...
+
+Notice how the name of the class is just the name of tool you're integrating to.  We use this name everywhere, in the settings, in the status bar, so beware that name changes are breaking changes.
+
+.. hint::
+
+    If you need funny characters in the name, like "c#", you can use the attribute :ref:`name`.
+
+    .. code-block:: python
+
+        class MyLinter(Linter):
+            name = 'c#'
+            ...
+
+    This allows you to use the custom name in the settings and other places.
+
+You may now just save the file, and the class will try to register itself with SublimeLinter.  However, you additionally need to define at least three things, the ``cmd``, the ``selector``, and very likely the ``regex``, well unless you want to parse JSON output.
 
 1. ``cmd``: a string or a sequence of strings that describes the command we should run.
 
@@ -37,18 +61,18 @@ E.g.::
 
     Although the correct and final type is "List of arguments", strings are just fine and very readable as long as we can split them.  (We use Python's ``shlex.split`` function for that if you're curious.)  Use the sequence format if quoting of the command is likely an issue, for example because you need spaces or special characters in the command.
 
-Users can always inject arbitrary additional arguments into the command using the ``args`` setting.  By default, these arguments are appended,  but you can also tell us where we should inject them, like this::
-
-    cmd = "flake8 $args --format=foo -"
 
 .. hint::
 
-    If you need more dynamism, you can make ``cmd`` a method::
+    If you need more dynamism, you can make ``cmd`` a method that will return the command::
 
-        def cmd():
-            return "flake8"
+        def cmd(self):
+            # Do something
+            return "flake8 --format=foo -"
 
-    For detailed documentation on this, refer to the :ref:`cmd <cmd>`.
+    The return *type* is the same as before.
+
+By default, SublimeLinter will run he linter in "stdin" mode, but you can change that.  For detailed documentation refer to the :ref:`cmd <not_stdin>`.
 
 2. ``selector``: the default selector that specifies for which views the linter should be enabled or run.  The ``selector`` is not a top-level attribute but placed inside the ``defaults`` mapping, to make it overridable by users.  For example::
 
@@ -74,6 +98,10 @@ Only ``message`` and ``line`` are mandatory fields here, but usually you also ca
 .. note::
 
     If you only report ``col``, SublimeLinter will select the word beginning at that column.  What a word is, is defined by the :ref:`word_re` attribute.
+
+.. note::
+
+    If the linter prints multiple lines per error you can prepend ``(?m)`` to switch to :ref:`multiline` mode.
 
 .. hint::
 

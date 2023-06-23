@@ -44,6 +44,8 @@ For example:
 
     cmd = 'eslint --stdin-filename $file'
 
+.. _not_stdin:
+
 However, SublimeLinter can also run in "temp_file" or "file_on_disk" mode.
 See :ref:`tempfile_suffix` below for more details. In these modes it is
 mandatory to refer the currently linted file. In "tempfile" mode, that would
@@ -83,7 +85,7 @@ defaults (mandatory)
     The name "defaults" can be misleading as the attribute is used to declare and define any additional settings and possibly command arguments, while *also* setting default values for all these settings.
 
 
-.. note::
+.. attention::
 
     All settings mentioned here are user-visible and can be changed in the global or project settings!
 
@@ -95,7 +97,9 @@ Each linter must at least define the mandatory ``"selector"`` setting, which spe
 
 This is the minimum requirement that needs to be set.
 
-Apart from the mandatory setting, you can define internal and external settings. Internal settings can only be used programmatically, and you need to extend or override specific methods to use them.  Generally, you define a setting name with its default value::
+Apart from the mandatory setting, you can define internal and external settings.
+
+**Internal settings** can only be used programmatically, and you need to extend or override specific methods to use them.  Generally, you define a setting name with its default value::
 
     defaults = {
         ...
@@ -109,7 +113,12 @@ and then use it in your plugin code like this:
     if self.settings.get("some_flag"):
         ...
 
-External settings are defined using one of the prefixes `@`, `-`, or `--`, and automatically injected as additional arguments to the command.
+**External settings** are defined using one of the prefixes `@`, `-`, or `--`, and automatically injected as additional arguments to the command.
+
+.. note::
+
+    Only use external settings if you have a reason.  All linters already have the ``args`` setting through which users can inject arbitrary arguments to the command.
+
 
 For example, you can define::
 
@@ -137,7 +146,29 @@ If you append a ``=``, like this::
 
 SublimeLinter will produce for example ``--include=E201``, t.i. the name and the value are joined by ``=`` and form technically a single argument.
 
-The format for defining external settings is as follows:
+Now for both cases, both for ``-I`` and ``--include=``, it applies that multiple values provided by a user lead to multiple arguments in the command.  To change that, append for example a ``,``.  (This is the **sep** further below).  For example::
+
+    defaults = {
+        "--rules,": [],
+    }
+
+may yield ``--rules a,b,c`` for a user setting ``["a", "b", "c"]``.
+
+Please note the following:
+
+* Users can omit the array-style when they only want to set a single value. For example, they can simply use ``"include": "E302"`` to set a single value.
+
+* Not all arguments have values but are switches or flags. To handle this scenario, SublimeLinter treats all boolean values as argument switches. For instance
+
+.. code-block:: python
+
+    defaults = {
+        "--follow-imports": True,
+    }
+
+will produce ``--follow-imports`` on the command line, and nothing if the user sets it to ``false``.
+
+The complete format for defining external settings is as follows:
 
 .. code-block:: text
 
@@ -151,13 +182,7 @@ The format for defining external settings is as follows:
   If it is ``:`` (the default), the ``name`` and the value are passed as separate arguments.
 - **sep** – If a list of values is given,
   ``sep`` specifies the character used to join the *values* (e.g. ``,``).
-  This is redundant if **+** is also used.
-
-  For example::
-
-    "--rules,"  # **joiner** is omitted!
-
-  produces something like "--rules a,b,c"
+  This is ignored if **+** is also used.
 
 - **+** – If the setting can be a list of values,
   but each value must be passed separately,
@@ -172,7 +197,7 @@ The format for defining external settings is as follows:
 
    When building the list of arguments to pass to the linter,
    if the setting value is ``falsy`` (``None``, zero, ``False``, or an empty sequence),
-   the argument is not passed to the linter.
+   the argument is omitted.
 
 
 error_stream
@@ -195,15 +220,15 @@ reports them back to the user.
 line_col_base
 -------------
 This attribute is a tuple that defines the number base used by linters in reporting line and column numbers.
-In general, most linters use one-based line numbers and column numbers, so the default value is ``(1, 1)``.
+Most linters use one-based line numbers and column numbers, so the default value is ``(1, 1)``.
 If a linter uses zero-based line numbers or column numbers,
 the linter class should define this attribute accordingly.
 
-.. note::
+For example, if the linter reports one-based line numbers but zero-based column numbers,
+the value of this attribute should be ``(1, 0)``.
 
-    For example, if the linter reports one-based line numbers but zero-based column numbers,
-    the value of this attribute should be ``(1, 0)``.
 
+.. _multiline:
 
 multiline
 ---------
@@ -221,21 +246,24 @@ this attribute should be ``False`` (the default).
 - If ``multiline`` is ``True``, the linter output is iterated over using ``re.finditer``
   until no more matches are found.
 
-.. note::
 
-    It is important that you set this flag correctly; it does more than just
-    add the ``re.MULTILINE`` flag when it compiles the ``regex`` pattern.
-
+.. _name:
 
 name
 ----
-Usually the name of the linter is derived from the name of the class.
+Usually the name of the linter is derived from the name of the class but lowercased.
 If that doesn't work out, you can also set it explicitly with this attribute.
 
 
 re_flags
 --------
-If you wish to add custom ``re flags`` that are used when compiling the :ref:`regex` pattern,
+
+.. note::
+
+    These flags can also be included within the ``regex`` pattern itself.
+    It's up to you which technique you prefer.
+
+If you wish to set custom flags that are used when compiling the :ref:`regex` pattern,
 you may specify them here.
 
 For example, if you want the pattern to be case-insensitive, you could do this:
@@ -244,11 +272,6 @@ For example, if you want the pattern to be case-insensitive, you could do this:
 
     re_flags = re.IGNORECASE
 
-
-.. note::
-
-    These flags can also be included within the ``regex`` pattern itself.
-    It's up to you which technique you prefer.
 
 
 .. _regex:

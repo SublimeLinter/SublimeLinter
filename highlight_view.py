@@ -880,6 +880,7 @@ class IdleViewController(sublime_plugin.EventListener):
 
 
 def set_idle(view, idle):
+    # type: (sublime.View, bool) -> None
     vid = view.id()
 
     current_idle = vid in State['idle_views']

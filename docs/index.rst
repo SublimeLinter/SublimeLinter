@@ -12,6 +12,7 @@ issues, to create pull requests, add documentation, fix spell errors (sic!), or 
 .. toctree::
     :caption: User Documentation
     :name: toc_user
+    :maxdepth: 2
 
     installation
     settings
@@ -23,10 +24,11 @@ issues, to create pull requests, add documentation, fix spell errors (sic!), or 
 .. toctree::
     :caption: Developer Documentation
     :name: toc_developer
+    :maxdepth: 1
 
-    gutter_themes
     linter_plugin
     linter_attributes
     linter_methods
     python_linter
     ruby_linter
+    gutter_themes

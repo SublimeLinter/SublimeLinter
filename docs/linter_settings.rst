@@ -1,6 +1,7 @@
 Linter Settings
 ===============
-Each linter plugin can provide its own settings. SublimeLinter already provides these for every linter:
+
+SublimeLinter provides the following settings that are applicable to every linter. Please note that each linter plugin may introduce additional settings. For more details on specific linter settings, please refer to the respective READMEs of the linter plugins.
 
 
 args
@@ -25,13 +26,25 @@ For example, these values are equivalent:
         ]
     }
 
-The default value is an empty array.
+The default value is `nil`, not-set.
 
 
 disable
 -------
-Disables the linter.
+Disables the linter, either `true` or `false`.
 
+.. attention::
+
+    The default is "not-set".
+    Please note that we differentiate three states for `disable`.
+
+
+disable_if_not_dependency - *Python/Node only*
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+For both, Python and Node, SublimeLinter has sophisticated ways to find *locally* installed tools.
+
+When the `disable_if_not_dependency` setting is set to `true`, SublimeLinter will not attempt to use globally installed binaries if a local installation cannot be found. Instead, it will skip linting such projects altogether.
 
 env
 ---
@@ -73,9 +86,19 @@ For example, to exclude any python files whose name begins with “foo”, you w
         "excludes": "*/foo*.py"
     }
 
-The default value is an empty array.
-Untitled views can be ignored with ``<untitled>``,
-and you can use ``!`` to negate a pattern.
+The default value is `nil`, not-set.
+
+Untitled views can be ignored with ``<untitled>``.
+Use ``!`` to negate a pattern.
+
+For example, exclude everything outside of the main window folder:
+
+.. code-block:: json
+
+    {
+        "excludes": "!${folder}*",
+    }
+
 Note that :ref:`Settings Expansion <settings-expansion>` can be used here as well.
 
 
@@ -93,6 +116,20 @@ be a string or a list.
     }
 
 See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
+
+
+python - *Python only*
+~~~~~~~~~~~~~~~~~~~~~~
+
+When configuring Python-based linters, you have the option to use the `python` setting instead of `executable`. The `python` setting allows you to specify a path to a Python binary on your system or, alternatively, a version string. If you provide a version string, SublimeLinter will attempt to locate a Python binary matching that version in your system's PATH (except on Windows, where `py.exe` is used directly if installed).
+
+.. code-block:: json
+
+    {
+        "python": "3.10"
+    }
+
+With this configuration, SublimeLinter will execute commands such as `/path/to/python310/python -m flake8` or `py -3.10 -m mypy`.
 
 
 filter_errors
@@ -128,7 +165,7 @@ Some examples:
 
 Be aware of special escaping since what you're writing must be valid JSON.
 
-Technical note: For each reported problem we construct a string "<error_type>: <error_code>: <error_message". We then match each regex pattern against that virtual line. We keep the error if *none* of the patterns match, otherwise we keep it.
+Technical note: For each reported problem we construct a string "``<error_type>: <error_code>: <error_message``". We then match each regex pattern against that virtual line. We throw away the error if *any* of the patterns match, otherwise we keep it.
 
 lint_mode
 ---------
@@ -138,16 +175,6 @@ Lint Mode determines when the linter is run.
 - `load_save`: when a file is opened and every time it's saved
 - `manual`: only when calling the Lint This View command
 - `save`: only when a file is saved
-
-
-python
-------
-This should point to a python binary on your system or, alternatively,
-it can be set to a version, in which case we try to find a python
-binary on your system matching that version (using PATH). On Windows
-we directly use `py.exe` if installed.
-
-It then executes e.g. ``python -m flake8`` or ``py -3.10 -m mypy``.
 
 
 .. _selector:
@@ -200,8 +227,8 @@ styles
 ------
 Styles can be set per linter.
 
-You can change the color (via scope) or icon per linter, for errors or warnings,
-and even for each error code if the plugin reports them.
+You can change the color (via `scope`), style (`"mark_style"`) or icon per linter, for errors or warnings or other error `types`,
+and even for different error `codes` ("rule names") if the plugin reports them.
 
 Example: this changes the appearance of shellcheck warnings:
 
@@ -247,21 +274,65 @@ Note `codes` are actually prefix matchers, so the above could be simplified to
 
     If you set both "mark_style" and "icon" to "none", you get a less noisy view and still can see those errors in the panel.
 
+Besides the icons and squiggles (`mark_style`) SublimeLinter also supports
+annotations on the right hand side of the view that can reveal the error message
+on hover:
 
-working_dir
------------
-This setting specifies the linter working directory.
-The value must be a string, corresponding to a valid directory path.
+.. image:: https://user-images.githubusercontent.com/8558/248409197-1702fd9d-1653-455d-8a3b-3ad74fe5269f.png
 
-For example (this is also the default):
+.. image:: https://user-images.githubusercontent.com/8558/248409230-4928e75a-592e-49b5-9765-83eecb4e86e4.png
+
+Example: this adds an annotation that reveals more information on hover:
 
 .. code-block:: json
 
     {
-        "working_dir": "${folder:$file_path}"
+        "linters": {
+            "flake8": {
+                "styles": [
+                    {
+                        "annotation": "{code}<br>&nbsp;&nbsp;{msg}",
+                    }
+                ]
+            }
+        }
     }
 
-Here the linter will get invoked from the ``${folder}`` directory
-or the file's directory if it is not contained within a project folder.
+Inline phantoms are also enabled just using styles per linter, per `error_type`, and/or per error `code`:
 
-See :ref:`Settings Expansion <settings-expansion>` for more info on using variables.
+.. image:: https://user-images.githubusercontent.com/8558/248411042-76e5fc69-d226-4758-8907-0110d2c898ba.png
+
+Example: this adds a so-called phantom, inline and just below the error
+
+.. code-block:: json
+
+    {
+        "linters": {
+            "flake8": {
+                "styles": [
+                    {
+                        "phantom": "{msg}",
+                    }
+                ]
+            }
+        }
+    }
+
+
+working_dir
+-----------
+
+The `working_dir` setting specifies the working directory of the subprocess in which the linter runs. It should be a string representing a valid directory path.
+
+As an example, the default is:
+
+.. code-block:: json
+
+    {
+        "working_dir": "${project_root:${folder:$file_path}}"
+    }
+
+With this configuration, the working directory is determined from left to right using the following precedence: "project_root" (if available), the folder containing the file (if the window is attached to a folder), or the path to the open file. If none of these values are available, the fallback is an empty string, resulting in the working directory being the working directory of Sublime Text's process.
+
+For more information on using variables, please refer to the :ref:`Settings Expansion <settings-expansion>` section.
+

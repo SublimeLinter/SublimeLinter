@@ -44,7 +44,7 @@ Or you can `customize your color scheme <https://www.sublimetext.com/docs/3/colo
 
 Project settings
 ----------------
-Only the "linters" settings in can be changed in a project.
+Only the "linters" settings plus a "`kill-switch <settings.html#the-kill-switch>`_" can be changed in a project.
 All other settings can only be changed in your user settings.
 
 .. note::
@@ -69,43 +69,47 @@ Here is an example project settings file where the flake8 linter has been disabl
         }
     }
 
+Notice that, what is a nested object hierarchy in the user settings file, becomes
+a flat key in the project settings.
+
+.. note::
+
+    Since project settings are effectively *view* settings that are just automatically applied to all views in that projects window, SublimeLinter also supports different settings per view.
+
+For example, disable `flake8` for a single, specific view:
+
+.. code:: python
+
+    view.settings().set("SublimeLinter.linters.flake8.disable", true)
+
+Building on that, here is a sketch for a plugin that automatically disables a
+linter for big files:
+
+.. code:: python
+
+    class MaybeDisableRubocop(sublime_plugin.EventListener):
+        def on_loaded(self, view):
+            view.settings().set("SublimeLinter.linters.rubocopy.disable", view.size() > 1_000_000)
+
+The kill-switch
+~~~~~~~~~~~~~~~
+
+You can turn off SublimeLinter per view or per project using the key ``SublimeLinter.enabled?`` (since: 4.19.0). This flag has *three* (!) states: `null/not-set` (the default), `true`, and `false`.
+
+.. attention::
+
+    It is not recommended to blindly set `true` to enable SublimeLinter. (But you can blindly set `false` to disable it.)  `true` forces a run and bypasses other checks.
 
 .. _settings-expansion:
 
 Settings Expansion
 ------------------
-After the settings have been merged, SublimeLinter iterates over all settings values and expands any strings.
-This uses Sublime Text's `expand_variables` API,
-which uses the ``${varname}`` syntax and supports placeholders (``${varname:placeholder}``).
-Placeholders are resolved recursively (e.g. ``${XDG_CONFIG_HOME:$HOME/.config}``).
 
-To insert a literal ``$`` character, use ``\\$``.
+After merging the settings, SublimeLinter proceeds to iterate over all the settings values and expands any strings. This process utilizes Sublime Text's `expand_variables` API, which is also employed in Sublime's build system. You can refer to the `build systems documentation <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_ for a comprehensive list and explanation of all available variables. Some commonly used variables include `file`, `file_path`, `file_name`, and `folder`. Please note that we enhance the value of `folder` by not blindly returning the first open folder, but rather by considering the first folder that contains the view (provided the view has a filename and is part of the project). In Node and Python projects, we may also set `project_root` if we find one.  (This typically the directory where your "package.json" or "pyproject.toml" is placed.)
 
-The following case-sensitive variables are provided:
+In addition to the standard variables, **all** environment variables are also accessible. Furthermore, the tilde character, ``~``, represents your home directory and is expanded using the `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_ function.
 
-- ``packages``
-- ``platform``
-- ``file``
-- ``file_path``
-- ``file_name``
-- ``file_base_name``
-- ``file_extension``
-- ``folder``
-- ``project``
-- ``project_path``
-- ``project_name``
-- ``project_base_name``
-- ``project_extension``
-- all environment variables
+To reference a variable, you can use either ``$var_name`` or ``${var_name}``. Placeholders are supported using the syntax ``${folder:.}``, and they are resolved recursively. For example, you can use expressions like ``${XDG_CONFIG_HOME:$HOME/.config}`` or ``${file_name:$folder}``.
 
-.. note::
-
-    See the `documentation on build systems <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_
-    for an explanation of what each variable contains.
-
-We enhanced the expansion for ``folder``.
-It now attempts to guess the correct folder if you have multiple folders open in a window.
-
-Additionally, ``~`` will get expanded using
-`os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_.
+If you need to insert a literal ``$`` character, you can use ``\\$`` to escape it.
 

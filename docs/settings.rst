@@ -44,7 +44,7 @@ Or you can `customize your color scheme <https://www.sublimetext.com/docs/color_
 
 Project settings
 ----------------
-Only the "linters" settings plus a "`kill-switch <settings.html#the-kill-switch>`_" can be changed in a project.
+Only the "linters" settings plus a ":ref:`kill-switch <the_kill_switch>`" can be changed in a project.
 All other settings can only be changed in your user settings.
 
 .. note::
@@ -90,6 +90,9 @@ linter for big files:
     class MaybeDisableRubocop(sublime_plugin.EventListener):
         def on_loaded(self, view):
             view.settings().set("SublimeLinter.linters.rubocopy.disable", view.size() > 1_000_000)
+
+
+.. _the_kill_switch:
 
 The kill-switch
 ~~~~~~~~~~~~~~~

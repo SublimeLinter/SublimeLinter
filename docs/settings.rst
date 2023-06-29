@@ -37,7 +37,7 @@ We use scopes like ``region.redish`` for color schemes that don't provide colors
 To change the colors, you can use region.colorish scopes:
 redish, orangish, yellowish, greenish, bluish, purplish, pinkish
 
-Or you can `customize your color scheme <https://www.sublimetext.com/docs/3/color_schemes.html#customization>`_.
+Or you can `customize your color scheme <https://www.sublimetext.com/docs/color_schemes.html#customization>`_.
 
 
 .. _project:
@@ -50,7 +50,7 @@ All other settings can only be changed in your user settings.
 .. note::
 
     Read more about project setting in
-    `Sublime Text's documentation <https://www.sublimetext.com/docs/3/projects.html>`_.
+    `Sublime Text's documentation <https://www.sublimetext.com/docs/projects.html>`_.
 
 Here is an example project settings file where the flake8 linter has been disabled:
 
@@ -105,7 +105,7 @@ You can turn off SublimeLinter per view or per project using the key ``SublimeLi
 Settings Expansion
 ------------------
 
-After merging the settings, SublimeLinter proceeds to iterate over all the settings values and expands any strings. This process utilizes Sublime Text's `expand_variables` API, which is also employed in Sublime's build system. You can refer to the `build systems documentation <https://www.sublimetext.com/docs/3/build_systems.html#variables>`_ for a comprehensive list and explanation of all available variables. Some commonly used variables include `file`, `file_path`, `file_name`, and `folder`. Please note that we enhance the value of `folder` by not blindly returning the first open folder, but rather by considering the first folder that contains the view (provided the view has a filename and is part of the project). In Node and Python projects, we may also set `project_root` if we find one.  (This typically the directory where your "package.json" or "pyproject.toml" is placed.)
+After merging the settings, SublimeLinter proceeds to iterate over all the settings values and expands any strings. This process utilizes Sublime Text's `expand_variables` API, which is also employed in Sublime's build system. You can refer to the `build systems documentation <https://www.sublimetext.com/docs/build_systems.html#variables>`_ for a comprehensive list and explanation of all available variables. Some commonly used variables include `file`, `file_path`, `file_name`, and `folder`. Please note that we enhance the value of `folder` by not blindly returning the first open folder, but rather by considering the first folder that contains the view (provided the view has a filename and is part of the project). In Node and Python projects, we may also set `project_root` if we find one.  (This typically the directory where your "package.json" or "pyproject.toml" is placed.)
 
 In addition to the standard variables, **all** environment variables are also accessible. Furthermore, the tilde character, ``~``, represents your home directory and is expanded using the `os.path.expanduser <https://docs.python.org/3/library/os.path.html#os.path.expanduser>`_ function.
 

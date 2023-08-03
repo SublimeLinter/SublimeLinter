@@ -308,6 +308,7 @@ You can capture ``filename`` if the linter emits for multiple files at once.
 Very often linters don't do that and then it's best to omit capturing ``filename`` as
 SublimeLinter will figure out the correct value for you and you don't run into
 problems with unnamed buffers or possibly symlinked files.
+
 You can also capture ``end_line`` and ``end_col``, otherwise the :ref:`word<word_re>` beginning at ``col`` will be highlighted.  How the numbers are interpreted is defined by :ref:`line_col_base`.
 
 If you can't capture the ``error_type`` directly, you may use ``error`` and ``warning`` to set the type.  Alterantively, you fallback to :ref:`default_type`.

@@ -53,7 +53,7 @@ ACCEPTED_REASONS_PER_MODE = {
     "manual": ("on_user_request",),
     "save": ("on_user_request", "on_save"),
     "load_save": ("on_user_request", "on_save", "on_load"),
-    "background": ("on_user_request", "on_save", "on_load", 'on_modified'),
+    "background": ("on_user_request", "on_save", "on_load", "on_modified"),
 }  # type: Dict[str, Tuple[str, ...]]
 KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
 

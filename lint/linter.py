@@ -1,3 +1,4 @@
+from bisect import bisect_right
 from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
@@ -195,6 +196,12 @@ class VirtualView:
     def substr(self, region):
         # type: (sublime.Region) -> str
         return self._code[region.begin():region.end()]
+
+    def rowcol(self, offset):
+        # type: (int) -> Tuple[int, int]
+        """Return the 0-based row and column for a given character offset"""
+        row = bisect_right(self._newlines, offset) - 1
+        return row, offset - self._newlines[row]
 
     # Actual Sublime API would look like:
     # def full_line(self, region)

@@ -465,9 +465,9 @@ class LinterMeta(type):
             return
 
         name = attrs.get('name') or cls_name.lower()  # type: str  # type: ignore[assignment]
-        setattr(cls, 'disabled', None)
-        setattr(cls, 'name', name)
-        setattr(cls, 'plugin_name', cls.__module__.split(".", 1)[0])
+        cls.disabled = None
+        cls.name = name
+        cls.plugin_name = cls.__module__.split(".", 1)[0]
         cls.logger = logging.getLogger('SublimeLinter.plugin.{}'.format(name))
 
         # BEGIN DEPRECATIONS
@@ -551,7 +551,7 @@ class LinterMeta(type):
         # BEGIN CLASS MUTATIONS
         cmd = attrs.get('cmd')
         if isinstance(cmd, str):
-            setattr(cls, 'cmd', shlex.split(cmd))
+            cls.cmd = shlex.split(cmd)
 
         if attrs.get('multiline', False):
             cls.re_flags |= re.MULTILINE
@@ -625,7 +625,7 @@ class LinterMeta(type):
         # If so, add a mapping between the setting and the argument format,
         # then change the name in the defaults to the setting name.
         args_map = {}
-        setattr(cls, 'defaults', {})
+        cls.defaults = {}
 
         for name, value in defaults.items():
             match = ARG_RE.match(name)
@@ -636,7 +636,7 @@ class LinterMeta(type):
 
             cls.defaults[name] = value
 
-        setattr(cls, 'args_map', args_map)
+        cls.args_map = args_map
 
 
 def register_linter(name, cls):

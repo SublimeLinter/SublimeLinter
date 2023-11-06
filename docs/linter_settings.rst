@@ -194,10 +194,8 @@ To do that, we can override the selector for this linter:
 
     {
         "linters": {
-            "yamllint":
-            {
-                "selector": "source.yaml, source.ansible"
-
+            "yamllint": {
+                "selector": "source.yaml, source.ansible",
             },
         }
     }

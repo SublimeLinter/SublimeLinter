@@ -36,19 +36,6 @@ or top.  Usually that's all that is needed for end-users but some additional inf
 is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/latest/linter_settings.html).
 
 
-## Quick Actions/Fixers
-
-As we do *just* linting SublimeLinter naturally does not come with fixers 
-and/or code formatters.  However, we have a fixer API and ship (mostly) 
-"fix by ignoring" actions.  These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
-
-SublimeLinter currently ships actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy), shellcheck, [codespell](https://github.com/kaste/SublimeLinter-contrib-codespell) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
-
-Want to see actions for your favourite linter? Please open a PR with your addition to [quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py). We have [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests/test_ignore_fixers.py) for them!
-
-[1]  Why this limitation though?  Well it is usually easy to add a semicolon here and a space there, but the inline ignore rules and syntaxes are very cumbersome to type and to remember.  And there is basically no project of any size where you don't have to ignore ad-hoc something somewhere once.
-
-
 ## Key Bindings
 
 SublimeLinter comes with some pre-defined keyboard shortcuts. You can customize these via the Package Settings menu.
@@ -71,6 +58,19 @@ For example, it is very advisable to bind `sublime_linter_quick_actions`, e.g.
     //   "command": "sublime_linter_quick_actions"
     // },
 ```
+
+
+## Quick Actions/Fixers
+
+As we do *just* linting SublimeLinter naturally does not come with fixers 
+and/or code formatters.  However, we have a fixer API and ship (mostly) 
+"fix by ignoring" actions.  These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
+
+SublimeLinter currently ships actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy), shellcheck, [codespell](https://github.com/kaste/SublimeLinter-contrib-codespell) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
+
+Want to see actions for your favourite linter? Please open a PR with your addition to [quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py). We have [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests/test_ignore_fixers.py) for them!
+
+[1]  Why this limitation though?  Well it is usually easy to add a semicolon here and a space there, but the inline ignore rules and syntaxes are very cumbersome to type and to remember.  And there is basically no project of any size where you don't have to ignore ad-hoc something somewhere once.
 
 
 ## Support & Bugs

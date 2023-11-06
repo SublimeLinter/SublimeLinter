@@ -129,7 +129,7 @@ When configuring Python-based linters, you have the option to use the `python` s
         "python": "3.10"
     }
 
-With this configuration, SublimeLinter will execute commands such as `/path/to/python310/python -m flake8` or `py -3.10 -m mypy`.
+With this configuration, SublimeLinter will execute commands such as ``/path/to/python310/python -m flake8`` or ``py -3.10 -m mypy``.
 
 
 filter_errors

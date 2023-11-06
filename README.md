@@ -23,7 +23,8 @@ as well, examples would be [SublimeLinter-eslint](https://packagecontrol.io/pack
 By default, SublimeLinter will run in the background and most linters support this
 mode so you should get squiggles immediately.
 
-Note that you find all commands we're installing using the Command Palette (`ctrl+shift+P`). Just search for `SublimeLinter`.
+Note that you find all commands we're installing using the Command Palette (`ctrl+shift+P`). Just search for `SublimeLinter`.  You may find https://github.com/kaste/SublimeLinter-addon-toggler
+and/or https://github.com/kaste/SublimeLinter-addon-goto-flash useful.
 
 
 ## Settings

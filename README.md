@@ -20,7 +20,8 @@ Settings are documented in the [default settings](https://github.com/SublimeLint
 Open the settings using the Command Palette (`ctrl+shift+P`) searching for `Preferences: SublimeLinter Settings` (mnemonic: `sls`).
 
 When you open the SublimeLinter settings you'll see the defaults on the left
-or top.  Usually that's all that is needed for end-users but some additional information is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/master/).
+or top.  Usually that's all that is needed for end-users but some additional information
+is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/latest/linter_settings.html).
 
 
 ## Quick Actions/Fixers

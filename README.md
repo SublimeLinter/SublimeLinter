@@ -76,8 +76,14 @@ Want to see actions for your favourite linter? Please open a PR with your additi
 ## Support & Bugs
 
 Yeah, totally!  Often if it doesn't work, Sublime will have something in the
-console (`View -> Show Console`).  Enable `debug` mode in the settings,
-restart Sublime Text and look at the console output for anything.
+console (`View -> Show Console`).  Warnings will go there by default.
+
+You can enable `debug` mode in the settings to get much more information about what's going on.
+Especially seeing the exact command and working dir SublimeLinter will use
+should be noted and helpful.
+
+As some code only runs on startup, it is good practice to restart Sublime Text
+and to examine the console output for anything odd.
 
 If your issue is specific to a particular linter, please report it on that linter's repository, otherwise open it right [here](https://github.com/SublimeLinter/SublimeLinter/issues).
 

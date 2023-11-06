@@ -28,7 +28,7 @@ For the few other SublimeLinter will run after you save a file.
 Please note the commands we're installing using Sublime's Command Palette (``ctrl+shit+p``).
 Just search for `SublimeLinter` here:
 
-.. image:: https://github.com/SublimeLinter/SublimeLinter/assets/8558/f970eb78-8cae-4e40-829b-66b27facf60d.png
+.. image:: https://user-images.githubusercontent.com/8558/280498406-f970eb78-8cae-4e40-829b-66b27facf60d.png
 
 
 It's a good idea to subscribe to releases on GitHub.

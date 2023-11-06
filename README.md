@@ -11,7 +11,19 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 ## Installation 
 
-Install SublimeLinter and linters via [Package Control](https://packagecontrol.io/search/SublimeLinter). 
+Probably don't get fancy and just install SublimeLinter via [Package Control](https://packagecontrol.io/search/SublimeLinter).
+Refer https://www.sublimelinter.com/en/latest/installation.html for further information,
+but, spoiler!,
+usually you install SublimeLinter, the plugin you're currently looking at,
+some command line tools, these are the actual linters (e.g. _eslint_ or _flake8_),
+and then some plugins/adapters between both.
+These are typically named after the linter and should be installed via Package Control
+as well, examples would be [SublimeLinter-eslint](https://packagecontrol.io/packages/SublimeLinter-eslint) or [SublimeLinter-flake8](https://packagecontrol.io/packages/SublimeLinter-flake8).
+
+By default, SublimeLinter will run in the background and most linters support this
+mode so you should get squiggles immediately.
+
+Note that you find all commands we're installing using the Command Palette (`ctrl+shift+P`). Just search for `SublimeLinter`.
 
 
 ## Settings

@@ -423,7 +423,7 @@ def format_error(error, widths):
     error_as_tuple = tuple(
         (k, v)
         for k, v in error.items()
-        if k != 'region'  # region is not hashable
+        if k in ("line", "start", "error_type", "linter", "msg", "code", )
     )
     return _format_error(error_as_tuple, widths)
 

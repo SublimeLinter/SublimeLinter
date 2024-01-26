@@ -120,7 +120,7 @@ def ignore_rules_inline(
     if callable(except_for):
         except_for_ = except_for
     else:
-        except_for_ = lambda e: not e["code"] or e["code"] in except_for  # type: ignore[operator]
+        except_for_ = lambda e: not e["code"] or e["code"] in except_for
 
     def register(fn):
         # type: (Fixer) -> Fixer

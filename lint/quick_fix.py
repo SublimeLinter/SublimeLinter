@@ -120,12 +120,20 @@ def ignore_rules_inline(
     if callable(except_for):
         except_for_ = except_for
     else:
-        except_for_ = lambda e: not e["code"] or e["code"] in except_for  # type: ignore[operator]
+        except_for_ = lambda e: not e["code"] or e["code"] in except_for
 
     def register(fn):
         # type: (Fixer) -> Fixer
+        def make_action(error):
+            # type: (LintError) -> QuickAction
+            return QuickAction(
+                subject.format(**error),
+                partial(fn, error),
+                detail.format(**error),
+                solves=[error]
+            )
         ns_name = namespacy_name(fn)
-        provider = partial(ignore_rules_actions, subject, detail, except_for_, fn)
+        provider = partial(merge_actions_by_code_and_line, make_action, except_for_)
         PROVIDERS[linter_name][ns_name] = provider
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
         return fn
@@ -133,23 +141,34 @@ def ignore_rules_inline(
     return register
 
 
-def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
-    # type: (str, str, LintErrorPredicate, Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
-    make_action = lambda error: QuickAction(
-        subject.format(**error),
-        partial(fixer, error),
-        detail.format(**error),
-        solves=[error]
-    )
+def merge_actions_by_code_and_line(
+    make_action,  # type: Callable[[LintError], QuickAction]
+    except_for,   # type: LintErrorPredicate
+    errors,       # type: List[LintError]
+    _view         # type: Optional[sublime.View]
+):
+    # type: (...) -> Iterator[QuickAction]
+    """
+    Combine multiple errors by line and code.
 
+    For ignore rules there is usually only one ignore pragma per line per code.
+    You can't selectively mute just one error; the whole inline-ignore system
+    works on a by-line basis.  (Block pragmas are handled elsewhere.)
+
+    That is really simple, if you have 3 "I010" errors on one line, you append
+    "noqa: I010" once and *all* 3 errors should go away.
+
+    If the user selected errors on multiple lines, we return a *single*
+    `QuickAction` for convenience too so that the user issues just *one* action
+    to mute errors on *multiple* lines.
+    """
     grouped_by_code = group_by(
         lambda e: e["code"],
         (e for e in errors if not except_for(e))
     )
     for code, errors_with_same_code in sorted(grouped_by_code.items()):
-        grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
-
         actions_per_line = []
+        grouped_by_line = group_by(lambda e: e["line"], errors_with_same_code)
         for line, errors_on_same_line_with_same_code in grouped_by_line.items():
             as_actions = list(map(make_action, errors_on_same_line_with_same_code))
             actions_per_line.append(as_actions)
@@ -172,6 +191,13 @@ def ignore_rules_actions(subject, detail, except_for, fixer, errors, _view):
 
 def merge_actions(actions):
     # type: (List[List[QuickAction]]) -> QuickAction
+    """
+    Reduce multiple errors per line to one `QuickAction`.  Assumes that
+    executing the first action per line will mute all other errors on that
+    line as well which is typical for ignore pragmas.
+
+    Thus: all actions usually have the same "code".
+    """
     first_action_per_chunk = next(zip(*actions))
     return QuickAction(
         subject_for_multiple_actions(list(flatten(actions))),

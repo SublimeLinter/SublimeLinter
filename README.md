@@ -64,7 +64,7 @@ For example, it is very advisable to bind `sublime_linter_quick_actions`, e.g.
 ## Quick Actions/Fixers
 
 As we do *just* linting SublimeLinter naturally does not come with fixers 
-and/or code formatters.  However, we have a fixer API and ship (mostly) 
+and/or code formatters.  However, we have a fixer API, see the Command Palette: `SublimeLinter: Quick Action`, and ship (mostly) 
 "fix by ignoring" actions.  These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
 
 SublimeLinter currently ships actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy), shellcheck, [codespell](https://github.com/kaste/SublimeLinter-contrib-codespell) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).

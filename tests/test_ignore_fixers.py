@@ -17,11 +17,8 @@ from SublimeLinter.lint.quick_fix import (
     fix_mypy_specific_unused_ignore,
     fix_stylelint_error,
     fix_shellcheck_error,
-    ignore_rules_actions,
-
-
-    DEFAULT_SUBJECT,
-    DEFAULT_DETAIL
+    actions_for_errors,
+    ignore_rules_inline,
 )
 
 
@@ -86,17 +83,11 @@ class TestActionReducer(DeferrableTestCase):
         ),
     ])
     def test_action_descriptions(self, _, ERRORS, RESULT):
-        fixer = lambda: None
-        except_for = set()
-
-        actions = ignore_rules_actions(
-            DEFAULT_SUBJECT,
-            DEFAULT_DETAIL,
-            lambda e: not e["code"] or e["code"] in except_for,
-            fixer,
-            ERRORS,
+        @ignore_rules_inline("flake", except_for=lambda e: not e["code"])
+        def fixer(errors, view):
             None
-        )
+
+        actions = actions_for_errors(ERRORS)
         self.assertEquals(RESULT, [action.description for action in actions])
 
 

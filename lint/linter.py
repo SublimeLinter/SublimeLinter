@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import tempfile
 
 import sublime
@@ -1725,6 +1726,14 @@ class Linter(metaclass=LinterMeta):
                         '<pid {}>'.format(proc.pid)
                     )
                     raise TransientError('Friendly terminated')
+
+                if sys.platform == "win32":
+                    try:
+                        out = recover_broken_pipe(proc)
+                    except Exception as err:
+                        self.logger.warning('Exception: {}'.format(str(err)))
+                        self.notify_failure()
+                        raise PermanentError("non-friendly broken pipe")
                 else:
                     self.logger.warning('Exception: {}'.format(str(err)))
                     self.notify_failure()
@@ -1747,6 +1756,40 @@ class Linter(metaclass=LinterMeta):
                     raise TransientError('Friendly terminated')
 
         return util.popen_output(proc, *out)
+
+
+# Old python versions do not protect (typically: ignore) against
+# `BrokenPipeError`s enough.   I.e. within `Popen._communicate` there is (still)
+# an unprotected call to `self.stdin.close()`.  This has been fixed rather late
+# in Python v3.5, June 2016.
+# Ref: https://github.com/python/cpython/commit/1ef8c7e886ea5260e5a6967ec2b8a4c32640f1a8
+# The following is verbatim the code that comes after closing `stdin`, unchanged
+# since v3.3.7 'til Feb 2024.
+def recover_broken_pipe(self):  # self refers `subprocess.Popen`
+    # Wait for the reader threads.
+    if self.stdout is not None:
+        self.stdout_thread.join(None)
+    if self.stderr is not None:
+        self.stderr_thread.join(None)
+
+    # Collect the output from and close both pipes, now that we know
+    # both have been read successfully.
+    stdout = None
+    stderr = None
+    if self.stdout:
+        stdout = self._stdout_buff
+        self.stdout.close()
+    if self.stderr:
+        stderr = self._stderr_buff
+        self.stderr.close()
+
+    # All data exchanged.  Translate lists into strings.
+    if stdout is not None:
+        stdout = stdout[0]
+    if stderr is not None:
+        stderr = stderr[0]
+
+    return (stdout, stderr)
 
 
 @contextmanager

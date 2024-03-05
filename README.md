@@ -67,9 +67,19 @@ As we do *just* linting SublimeLinter naturally does not come with fixers
 and/or code formatters.  However, we have a fixer API, see the Command Palette: `SublimeLinter: Quick Action`, and ship (mostly) 
 "fix by ignoring" actions.  These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
 
-SublimeLinter currently ships actions for [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint), [stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint), [flake8](https://github.com/SublimeLinter/SublimeLinter-flake8), [mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy), shellcheck, [codespell](https://github.com/kaste/SublimeLinter-contrib-codespell) and [phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
+SublimeLinter currently ships actions for
+[eslint](https://github.com/SublimeLinter/SublimeLinter-eslint),
+[stylelint](https://github.com/SublimeLinter/SublimeLinter-stylelint),
+[flake8](https://github.com/SublimeLinter/SublimeLinter-flake8),
+[mypy](https://github.com/fredcallaway/SublimeLinter-contrib-mypy),
+shellcheck,
+[codespell](https://github.com/kaste/SublimeLinter-contrib-codespell)
+and
+[phpcs](https://github.com/SublimeLinter/SublimeLinter-phpcs).
 
-Want to see actions for your favourite linter? Please open a PR with your addition to [quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py). We have [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests/test_ignore_fixers.py) for them!
+Want to see actions for your favourite linter? Please open a PR with your addition to
+[quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py).
+We have [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests/test_ignore_fixers.py) for them!
 
 [1]  Why this limitation though?  Well it is usually easy to add a semicolon here and a space there, but the inline ignore rules and syntaxes are very cumbersome to type and to remember.  And there is basically no project of any size where you don't have to ignore ad-hoc something somewhere once.
 
@@ -86,7 +96,26 @@ should be noted and helpful.
 As some code only runs on startup, it is good practice to restart Sublime Text
 and to examine the console output for anything odd.
 
-If your issue is specific to a particular linter, please report it on that linter's repository, otherwise open it right [here](https://github.com/SublimeLinter/SublimeLinter/issues).
+If your issue is specific to a particular linter, please report it on that linter's repository,
+otherwise open it right [here](https://github.com/SublimeLinter/SublimeLinter/issues).
+
+
+## Hack on it
+
+Sure, you're welcome!  Just clone the repository into your Packages folder (*Preferences -> Browse Packages*).
+
+```shell
+> git clone https://github.com/SublimeLinter/SublimeLinter.git
+> subl SublimeLinter
+```
+
+This will overrule the installed package straight away.  Just delete the folder
+to reverse the process.  The dev requirements can be read in the `pyproject.toml` file.
+Just use `rye` and install them:
+
+```shell
+> rye sync
+```
 
 
 ## Creating a linter plugin

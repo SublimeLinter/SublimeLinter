@@ -1,0 +1,14 @@
+[project]
+name = "SublimeLinter"
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[tool.rye]
+managed = true
+virtual = true
+dev-dependencies = [
+    "Sphinx",
+    "flake8==5.*",
+    "mypy",
+    "sphinx-autobuild",
+]

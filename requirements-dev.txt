@@ -1,4 +1,0 @@
-flake8==5.*
-mypy
-Sphinx
-sphinx-autobuild

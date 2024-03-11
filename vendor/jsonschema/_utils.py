@@ -1,9 +1,10 @@
 import itertools
 import json
+import os
 import pkgutil
 import re
 
-from jsonschema.compat import str_types, MutableMapping, urlsplit
+from .compat import str_types, MutableMapping, urlsplit
 
 
 class URIDict(MutableMapping):
@@ -54,8 +55,10 @@ def load_schema(name):
 
     """
 
-    data = pkgutil.get_data('jsonschema', "schemas/{0}.json".format(name))
-    return json.loads(data.decode("utf-8"))
+    fpath = os.path.join(os.path.dirname(__file__), "schemas", "{}.json".format(name))
+    with open(fpath, "r") as f:
+        data = f.read()
+    return json.loads(data)
 
 
 def indent(string, times=1):

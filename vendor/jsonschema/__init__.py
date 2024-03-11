@@ -9,16 +9,16 @@ instance under a schema, and will create a validator for you.
 
 """
 
-from jsonschema.exceptions import (
+from .exceptions import (
     ErrorTree, FormatError, RefResolutionError, SchemaError, ValidationError
 )
-from jsonschema._format import (
+from ._format import (
     FormatChecker, draft3_format_checker, draft4_format_checker,
 )
-from jsonschema.validators import (
+from .validators import (
     Draft3Validator, Draft4Validator, RefResolver, validate
 )
 
-from jsonschema._version import __version__
+from ._version import __version__
 
 # flake8: noqa

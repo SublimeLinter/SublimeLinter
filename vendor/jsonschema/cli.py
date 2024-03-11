@@ -3,8 +3,8 @@ import argparse
 import json
 import sys
 
-from jsonschema._reflect import namedAny
-from jsonschema.validators import validator_for
+from ._reflect import namedAny
+from .validators import validator_for
 
 
 def _namedAnyWithDefault(name):

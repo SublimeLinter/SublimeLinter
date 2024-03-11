@@ -2,8 +2,8 @@ import datetime
 import re
 import socket
 
-from jsonschema.compat import str_types
-from jsonschema.exceptions import FormatError
+from .compat import str_types
+from .exceptions import FormatError
 
 
 class FormatChecker(object):

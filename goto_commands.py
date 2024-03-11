@@ -77,7 +77,7 @@ def goto(view, direction, count, wrap):
     move_to(view, point)
 
 
-class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
+class sublime_linter_move_cursor(sublime_plugin.TextCommand):
     # We ensure `on_selection_modified` handlers run by using a `TextCommand`.
     # See: https://github.com/SublimeLinter/SublimeLinter/pull/867
     # and https://github.com/SublimeTextIssues/Core/issues/485#issuecomment-337480388
@@ -90,7 +90,7 @@ class _sublime_linter_move_cursor(sublime_plugin.TextCommand):
 def move_to(view, point):
     # type: (sublime.View, int) -> None
     add_selection_to_jump_history(view)
-    view.run_command('_sublime_linter_move_cursor', {'point': point})
+    view.run_command('sublime_linter_move_cursor', {'point': point})
 
 
 if int(sublime.version()) < 4000:

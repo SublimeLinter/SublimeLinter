@@ -124,7 +124,7 @@ def on_settings_changed(settings, **kwargs):
         )
 
 
-class sublime_linter_reload(sublime_plugin.WindowCommand):
+class sublime_linter_reload(sublime_plugin.ApplicationCommand):
     def run(self):
         log_handler.uninstall()
         try:
@@ -140,8 +140,7 @@ class sublime_linter_reload(sublime_plugin.WindowCommand):
 
 
 def reload_sublime_linter():
-    window = sublime.active_window()
-    window.run_command("sublime_linter_reload")
+    sublime.run_command("sublime_linter_reload")
 
 
 def other_visible_views():

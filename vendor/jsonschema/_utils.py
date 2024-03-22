@@ -1,10 +1,8 @@
 import itertools
-import json
-import os
-import pkgutil
 import re
 
 from .compat import str_types, MutableMapping, urlsplit
+from .schemas import schemas
 
 
 class URIDict(MutableMapping):
@@ -51,14 +49,14 @@ class Unset(object):
 
 def load_schema(name):
     """
-    Load a schema from ./schemas/``name``.json and return it.
+    Load a schema from .schemas and return it.
+    Note: `schemas` used to be a resource folder with two json files.
+    Because we're in a zip file when jsonschema is vendored we can't load
+    these easily, hence these json files are now python modules with
+    dictionaries in it.
 
     """
-
-    fpath = os.path.join(os.path.dirname(__file__), "schemas", "{}.json".format(name))
-    with open(fpath, "r") as f:
-        data = f.read()
-    return json.loads(data)
+    return schemas[name]
 
 
 def indent(string, times=1):

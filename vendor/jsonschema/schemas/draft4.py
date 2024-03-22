@@ -1,4 +1,4 @@
-{
+draft4 = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "default": {},
     "definitions": {
@@ -40,7 +40,7 @@
             },
             "minItems": 1,
             "type": "array",
-            "uniqueItems": true
+            "uniqueItems": True
         }
     },
     "dependencies": {
@@ -113,14 +113,14 @@
         "enum": {
             "minItems": 1,
             "type": "array",
-            "uniqueItems": true
+            "uniqueItems": True
         },
         "exclusiveMaximum": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         },
         "exclusiveMinimum": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         },
         "format": {
@@ -166,7 +166,7 @@
             "type": "number"
         },
         "multipleOf": {
-            "exclusiveMinimum": true,
+            "exclusiveMinimum": True,
             "minimum": 0,
             "type": "number"
         },
@@ -211,12 +211,12 @@
                     },
                     "minItems": 1,
                     "type": "array",
-                    "uniqueItems": true
+                    "uniqueItems": True
                 }
             ]
         },
         "uniqueItems": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         }
     },

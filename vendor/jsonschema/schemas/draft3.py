@@ -1,4 +1,4 @@
-{
+draft3 = {
     "$schema": "http://json-schema.org/draft-03/schema#",
     "dependencies": {
         "exclusiveMaximum": "maximum",
@@ -71,25 +71,25 @@
                 "string",
                 "array"
             ],
-            "uniqueItems": true
+            "uniqueItems": True
         },
         "divisibleBy": {
             "default": 1,
-            "exclusiveMinimum": true,
+            "exclusiveMinimum": True,
             "minimum": 0,
             "type": "number"
         },
         "enum": {
             "minItems": 1,
             "type": "array",
-            "uniqueItems": true
+            "uniqueItems": True
         },
         "exclusiveMaximum": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         },
         "exclusiveMinimum": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         },
         "extends": {
@@ -170,7 +170,7 @@
             "type": "object"
         },
         "required": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         },
         "title": {
@@ -190,10 +190,10 @@
                 "string",
                 "array"
             ],
-            "uniqueItems": true
+            "uniqueItems": True
         },
         "uniqueItems": {
-            "default": false,
+            "default": False,
             "type": "boolean"
         }
     },

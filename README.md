@@ -11,6 +11,13 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 ## Installation 
 
+Note:  *** We're in a transition phase to the newer ST4 plugin host.  Unless we have
+more experience for the process, it _may_ be necessary to restart Sublime Text
+after installing or upgrading helper packages.  Just check if everything works
+or if the console shows permanent errors.  On my machine, no restarts were
+necessary. ***
+
+
 Probably don't get fancy and just install SublimeLinter via [Package Control](https://packagecontrol.io/search/SublimeLinter).
 Refer https://www.sublimelinter.com/en/latest/installation.html for further information,
 but, spoiler!,

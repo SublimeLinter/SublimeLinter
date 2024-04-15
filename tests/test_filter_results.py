@@ -13,6 +13,7 @@ from SublimeLinter.lint import (
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import (
+    contains,
     unstub,
     verify,
     when,
@@ -120,7 +121,7 @@ class TestPostFilterResults(_BaseTestCase):
         self.assertEqual(result, expected)
 
     @p.expand([
-        (['d('], "'d(' in 'filter_errors' is not a valid regex pattern: 'unbalanced parenthesis'."),
+        (['d('], contains("'d(' in 'filter_errors' is not a valid regex pattern")),
         (True, "'filter_errors' must be set to a string or a list of strings.\nGot 'True' instead"),
         (123, "'filter_errors' must be set to a string or a list of strings.\nGot '123' instead"),
     ])

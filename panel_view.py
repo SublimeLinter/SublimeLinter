@@ -693,10 +693,10 @@ def update_panel_selection(active_view, cursor, draw_info=None, **kwargs):
 def update_panel_content(panel, text):
     if not text:
         text = NO_RESULTS_MESSAGE
-    panel.run_command('_sublime_linter_replace_panel_content', {'text': text})
+    panel.run_command('sublime_linter_replace_panel_content', {'text': text})
 
 
-class _sublime_linter_replace_panel_content(sublime_plugin.TextCommand):
+class sublime_linter_replace_panel_content(sublime_plugin.TextCommand):
     def run(self, edit, text):
         view = self.view
         _, y = view.viewport_position()
@@ -777,10 +777,10 @@ def scroll_into_view(panel, wanted_lines, errors):
 def scroll_to_line(view, line, animate):
     """Scroll y-axis so that `line` appears at the top of the viewport."""
     x, y = view.text_to_layout(view.text_point(line, 0))
-    view.run_command('_sublime_linter_scroll_y', {'y': y, 'animate': animate})
+    view.run_command('sublime_linter_scroll_y', {'y': y, 'animate': animate})
 
 
-class _sublime_linter_scroll_y(sublime_plugin.TextCommand):
+class sublime_linter_scroll_y(sublime_plugin.TextCommand):
     def run(self, edit, y, animate):
         x, _ = self.view.viewport_position()
         self.view.set_viewport_position((x, y), animate)

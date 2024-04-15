@@ -1,0 +1,23 @@
+SublimeLinter 4.24.0
+
+That's it: we say Goodbye to Sublime Text 3 and run on the Python 3.8 host.
+You may want to restart.
+
+How is this implemented?  On Sublime's startup and when you install/remove
+packages using Package Control we automatically lift all SL adapters/addons
+to the 3.8 host.  This is necessary as it is impossible to get cooperation
+in a single step and limited timeline for 100+ repos.  Over time these helper
+packages may eventually update and Sublime Linter will remove the "lifts".
+
+During that period it may or may not be necessary to restart Sublime Text
+after upgrades of such plugins.  This is currently unknown as I (and we) don't
+have much experience in these processes.  This is a novel approach after all.
+That being said, on my machine installing and uninstalling is seamless and
+just works™️.
+
+
+Sincerely,
+💕
+
+
+Yes, I do enjoy coffee:  https://paypal.me/herrkaste

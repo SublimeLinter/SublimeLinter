@@ -299,7 +299,7 @@ class TestRegexCompiling(DeferrableTestCase):
 
         self.assertTrue(linter.disabled)
         verify(linter_module.logger).error(
-            contains("error compiling regex: unbalanced parenthesis.")
+            contains("error compiling regex")
         )
 
     def test_valid_and_registered_without_defining_regex(self):

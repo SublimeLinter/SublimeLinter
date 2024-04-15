@@ -11,6 +11,12 @@ Welcome to SublimeLinter, a linter framework for Sublime Text.
 Linters are not included, they must be installed separately.
 Get them from Package Control: https://packagecontrol.io/search/SublimeLinter
 
+*** We're in a transition phase to the newer ST4 plugin host.  Unless we have
+more experience for the process, it _may_ be necessary to restart Sublime Text
+after installing or upgrading helper packages.  Just check if everything works
+or if the console shows permanent errors.  On my machine, no restarts were
+necessary. ***
+
 
 For complete documentation on how to use and configure SublimeLinter,
 please see: http://www.sublimelinter.com

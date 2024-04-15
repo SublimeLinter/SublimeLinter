@@ -15,9 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        st-version: [3, 4]
+        st-version: [4]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: SublimeText/UnitTesting/actions/setup@v1
         with:
           sublime-text-version: ${{ matrix.st-version }}
@@ -26,12 +26,12 @@ jobs:
   run-syntax-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: SublimeText/UnitTesting/actions/setup@v1
       - uses: SublimeText/UnitTesting/actions/run-syntax-tests@v1
 
   check-upgrade-messages:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: kaste/upgrade-messages-test-action@v1

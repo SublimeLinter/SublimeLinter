@@ -38,7 +38,7 @@ class TestCheckOutput(DeferrableTestCase):
 
         verify(util.logger).warning("""\
 Executing `python --foo` failed
-  Command '['python', '--foo']' returned non-zero exit status 2
+  Command '['python', '--foo']' returned non-zero exit status 2.
   ...
   unknown option --foo
   unknown option --foo

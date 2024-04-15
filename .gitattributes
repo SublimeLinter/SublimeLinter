@@ -6,6 +6,7 @@
 # archive files. See http://git-scm.com/docs/gitattributes for details.
 
 /docs/              export-ignore
+/scripts/           export-ignore
 /tests/             export-ignore
 /.codecov.yml       export-ignore
 /.coveragerc        export-ignore

@@ -9,3 +9,4 @@ _build/
 .mypy_cache/
 .ropeproject/
 docs-out
+scripts/sublime_linter.sublime-package

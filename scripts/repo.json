@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "packages": [
+    {
+      "name": "SublimeLinter",
+      "description": "A full-featured linter framework",
+      "author": "et.al.",
+      "homepage": "https://sublimelinter.io",
+      "donate": "https://sublimelinter.io/about",
+      "releases": [
+        {
+          "sublime_text": "*",
+          "version": "21.2.2",
+          "url": "http://localhost:8000/sublime_linter.sublime-package",
+          "date": "2024-04-15 13:02:46"
+        }
+      ]
+    }
+  ]
+}

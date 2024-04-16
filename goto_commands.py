@@ -93,14 +93,7 @@ def move_to(view, point):
     view.run_command('sublime_linter_move_cursor', {'point': point})
 
 
-if int(sublime.version()) < 4000:
-    from Default import history_list
-
-    def add_selection_to_jump_history(view):
-        history_list.get_jump_history_for_view(view).push_selection(view)
-
-else:
-    def add_selection_to_jump_history(view):
-        view.run_command("add_jump_record", {
-            "selection": [(r.a, r.b) for r in view.sel()]
-        })
+def add_selection_to_jump_history(view):
+    view.run_command("add_jump_record", {
+        "selection": [(r.a, r.b) for r in view.sel()]
+    })

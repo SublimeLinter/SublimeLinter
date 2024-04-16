@@ -32,7 +32,7 @@ State = {
 
 def plugin_loaded():
     active_view = sublime.active_window().active_view()
-    if util.is_lintable(active_view):
+    if active_view and util.is_lintable(active_view):
         State.update({
             'active_view': active_view
         })
@@ -54,7 +54,7 @@ def on_begin_linting(filename):
     active_view = State['active_view']
     if active_view and util.canonical_filename(active_view) == filename:
         sublime.set_timeout_async(
-            lambda: draw(active_view, filename),  # type: ignore  # mypy bug
+            lambda: draw(active_view, filename),
             INITIAL_DELAY * 1000
         )
 

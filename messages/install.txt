@@ -6,6 +6,11 @@
  |____/ \__,_|_.__/|_|_|_| |_| |_|\___|_____|_|_| |_|\__\___|_|
 
 
+*** As of April 2024, the current stable version of Sublime Text, Build 4169,
+has a bug and cannot install SublimeLinter without a restart.  You're fine
+if you have a later dev build, e.g. build 4173 has a better experience. ***
+
+
 Welcome to SublimeLinter, a linter framework for Sublime Text.
 
 Linters are not included, they must be installed separately.

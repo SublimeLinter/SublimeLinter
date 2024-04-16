@@ -228,6 +228,7 @@ def get_syntax(view):
 
 
 def is_lintable(view):
+    # type: (sublime.View) -> bool
     """
     Return true when a view is not lintable, e.g. scratch, read_only, etc.
 

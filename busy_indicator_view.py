@@ -32,7 +32,7 @@ State = {
 
 def plugin_loaded():
     active_view = sublime.active_window().active_view()
-    if util.is_lintable(active_view):
+    if active_view and util.is_lintable(active_view):
         State.update({
             'active_view': active_view
         })

@@ -27,7 +27,6 @@ from SublimeLinter.tests.mockito import (
     verify,
 )
 
-version = sublime.version()
 
 RUNNING_ON_LINUX_TRAVIS = os.environ.get('TRAVIS_OS_NAME') == 'linux'
 expectedFailureOnLinuxTravis = expectedFailure if RUNNING_ON_LINUX_TRAVIS else lambda f: f

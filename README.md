@@ -11,15 +11,18 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 ## Installation 
 
-Please note: The current stable version of Sublime Text, Build 4169, has a bug and cannot install
-SublimeLinter without requiring a restart.  You're fine if you have a later dev build, e.g.
-build 4173.
+> [!NOTE]
+> The current stable version of Sublime Text, Build 4169, has a bug and cannot install
+> SublimeLinter without requiring a restart.  You're fine if you have a later dev build, e.g.
+> build 4173.
 
-*** We're in a transition phase to the newer ST4 plugin host.  Unless we have
-more experience for the process, it _may_ be necessary to restart Sublime Text
-after installing or upgrading helper packages.  Just check if everything works
-or if the console shows permanent errors.  On my machine, no restarts were
-necessary. ***
+> [!NOTE]
+>
+> We're in a transition phase to the newer ST4 plugin host.  Unless we have
+> more experience for the process, it _may_ be necessary to restart Sublime Text
+> after installing or upgrading _helper packages_.  Just check if everything works
+> or if the console shows permanent errors.  On my machine, no restarts were
+> necessary.
 
 
 Probably don't get fancy and just install SublimeLinter via [Package Control](https://packagecontrol.io/search/SublimeLinter).

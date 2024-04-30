@@ -33,22 +33,19 @@ logger = logging.getLogger(__name__)
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
 STREAM_BOTH = STREAM_STDOUT + STREAM_STDERR
-UI_THREAD_NAME = None  # type: Optional[str]
+
 ANSI_COLOR_RE = re.compile(r'\033\[[0-9;]*m')
 ERROR_PANEL_NAME = "SublimeLinter Messages"
 ERROR_OUTPUT_PANEL = "output." + ERROR_PANEL_NAME
+try:
+    UI_THREAD_NAME  # type: ignore[used-before-def]
+except NameError:
+    UI_THREAD_NAME: str = threading.current_thread().name
 
 
 @events.on('settings_changed')
 def on_settings_changed(settings, **kwargs):
     get_augmented_path.cache_clear()
-
-
-def determine_thread_names():
-    def callback():
-        global UI_THREAD_NAME
-        UI_THREAD_NAME = threading.current_thread().name
-    sublime.set_timeout(callback)
 
 
 def ensure_on_ui_thread(fn):

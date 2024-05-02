@@ -634,7 +634,7 @@ def draw_view_region(view, key, regions):
             annotations = {
                 "annotations": [key.annotation],
                 "annotation_color":
-                    view.style_for_scope(key.scope)["foreground"]
+                    view.style_for_scope(key.scope).get("foreground", "#f00")
             }
         else:
             annotations = {}

@@ -72,6 +72,7 @@ def plugin_loaded():
     persist.kill_switch = False
     events.broadcast('plugin_loaded')
     persist.settings.load()
+    util.determine_thread_names()
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
 

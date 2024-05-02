@@ -7,7 +7,6 @@ import shutil
 
 import sublime
 
-from . import node_linter
 from .. import linter, util
 
 
@@ -172,7 +171,7 @@ class PythonLinter(linter.Linter):
 
     def _nearest_virtual_environment(self, start_dir):
         # type: (str) -> Tuple[Optional[str], Optional[str]]
-        paths = node_linter.smart_paths_upwards(start_dir)
+        paths = util.paths_upwards_until_home(start_dir)
         root_dir_markers = ROOT_MARKERS + self.config_file_names
         root_dir = None
         for path in paths:

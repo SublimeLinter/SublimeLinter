@@ -63,9 +63,9 @@ class TestNodeLinters(DeferrableTestCase):
         view.close()
 
     def patch_home(self, home):
-        previous_state = node_linter.HOME
-        node_linter.HOME = home
-        self.addCleanup(lambda: setattr(node_linter, 'HOME', previous_state))
+        previous_state = util.HOME
+        util.HOME = home
+        self.addCleanup(lambda: setattr(util, 'HOME', previous_state))
 
     def test_globally_installed(self):
         linter = make_fake_linter(self.view)

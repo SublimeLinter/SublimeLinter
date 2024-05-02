@@ -2,6 +2,7 @@
 from collections import ChainMap
 from contextlib import contextmanager
 from functools import lru_cache, partial, wraps
+from itertools import takewhile
 import locale
 import logging
 import os
@@ -29,6 +30,7 @@ if MYPY:
 
 logger = logging.getLogger(__name__)
 
+HOME = os.path.expanduser('~')
 
 STREAM_STDOUT = 1
 STREAM_STDERR = 2
@@ -217,6 +219,33 @@ def short_canonical_filename(view):
 def canonical_filename(view):
     # type: (sublime.View) -> str
     return view.file_name() or '<untitled {}>'.format(view.buffer_id())
+
+
+def paths_upwards(path):
+    # type: (str) -> Iterator[str]
+    while True:
+        yield path
+
+        next_path = os.path.dirname(path)
+        # Stop just before root in *nix systems
+        if next_path == '/':
+            return
+
+        if next_path == path:
+            return
+
+        path = next_path
+
+
+def paths_upwards_until_home(path):
+    # type: (str) -> Iterator[str]
+    """Yield paths 'upwards' but stop on HOME (excluding it).
+
+    Note: If the starting `path` is not below HOME we yield until
+    root, excluding root on *nix systems, but including it on
+    Windows.
+    """
+    return takewhile(lambda p: p != HOME, paths_upwards(path))
 
 
 def get_syntax(view):

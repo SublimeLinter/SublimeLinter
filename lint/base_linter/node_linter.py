@@ -1,7 +1,7 @@
 """This module exports the NodeLinter subclass of Linter."""
 
 from functools import lru_cache
-from itertools import chain, takewhile
+from itertools import chain
 import json
 import os
 import shutil
@@ -14,36 +14,15 @@ if MYPY:
     from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 
-HOME = os.path.expanduser('~')
-
-
-def paths_upwards(path):
-    # type: (str) -> Iterator[str]
-    while True:
-        yield path
-
-        next_path = os.path.dirname(path)
-        # Stop just before root in *nix systems
-        if next_path == '/':
-            return
-
-        if next_path == path:
-            return
-
-        path = next_path
-
-
-def paths_upwards_until_home(path):
-    # type: (str) -> Iterator[str]
-    return chain(takewhile(lambda p: p != HOME, paths_upwards(path)), [HOME])
-
-
 def smart_paths_upwards(start_dir):
     # type: (str) -> Iterator[str]
+    # This is special as we also may yield HOME.  This is so because
+    # we might have "global" installations there; we don't expect to
+    # find a marker file (e.g. "package.json") at HOME.
     return (
-        paths_upwards_until_home(start_dir)
-        if os.path.commonprefix([start_dir, HOME]) == HOME
-        else paths_upwards(start_dir)
+        chain(util.paths_upwards_until_home(start_dir), [util.HOME])
+        if os.path.commonprefix([start_dir, util.HOME]) == util.HOME
+        else util.paths_upwards(start_dir)
     )
 
 

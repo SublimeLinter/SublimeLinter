@@ -73,7 +73,6 @@ MULTILINES = re.compile('(?s)\n(?=.)')
 # Sublime >= 4074 supports underline styles on white space
 # https://github.com/sublimehq/sublime_text/issues/137
 SUBLIME_SUPPORTS_WS_SQUIGGLES = int(sublime.version()) >= 4074
-SUBLIME_SUPPORTS_REGION_ANNOTATIONS = int(sublime.version()) >= 4050
 
 State = {
     'active_view': None,
@@ -629,7 +628,7 @@ else:
 @util.assert_on_ui_thread
 def draw_view_region(view, key, regions):
     # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
-    if SUBLIME_SUPPORTS_REGION_ANNOTATIONS and isinstance(key, Squiggle):
+    if isinstance(key, Squiggle):
         if key.annotation and key.visible():
             annotations = {
                 "annotations": [key.annotation],

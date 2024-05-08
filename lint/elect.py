@@ -10,8 +10,7 @@ from . import persist
 
 MYPY = False
 if MYPY:
-    from typing import Iterable, Iterator, Optional, Type
-    from mypy_extensions import TypedDict
+    from typing import Iterable, Iterator, Optional, Type, TypedDict
 
     Linter = linter_module.Linter
     LinterName = str
@@ -19,12 +18,11 @@ if MYPY:
     LintError = persist.LintError
     Reason = str
 
-    LinterInfo = TypedDict('LinterInfo', {
-        'name': LinterName,
-        'klass': Type[Linter],
-        'settings': LinterSettings,
-        'runnable': bool
-    })
+    class LinterInfo(TypedDict):
+        name: LinterName
+        klass: Type[Linter]
+        settings: LinterSettings
+        runnable: bool
 
 
 logger = logging.getLogger(__name__)

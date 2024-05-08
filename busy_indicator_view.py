@@ -6,17 +6,15 @@ import time
 from .lint import events, util
 
 
-MYPY = False
-if MYPY:
-    from typing import Dict, Optional
-    from mypy_extensions import TypedDict
+from typing import Dict, Optional, TypedDict
 
-    FileName = str
-    LinterName = str
-    State_ = TypedDict('State_', {
-        'active_view': Optional[sublime.View],
-        'running': Dict[FileName, float],
-    })
+FileName = str
+LinterName = str
+
+
+class State_(TypedDict):
+    active_view: Optional[sublime.View]
+    running: Dict[FileName, float]
 
 
 INITIAL_DELAY = 2

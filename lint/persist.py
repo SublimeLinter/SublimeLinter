@@ -8,8 +8,7 @@ from .settings import Settings
 
 MYPY = False
 if MYPY:
-    from typing import DefaultDict, Dict, List, Set, Tuple, Type
-    from mypy_extensions import TypedDict
+    from typing import DefaultDict, Dict, List, Set, Tuple, Type, TypedDict
     import sublime
     import subprocess
     from .linter import Linter
@@ -17,20 +16,20 @@ if MYPY:
     Bid = sublime.BufferId
     FileName = str
     LinterName = str
-    LintError = TypedDict('LintError', {
-        'line': int,
-        'start': int,
-        'region': sublime.Region,
-        'linter': LinterName,
-        'error_type': str,
-        'code': str,
-        'msg': str,
-        'filename': FileName,
-        'uid': str,
-        'priority': int,
-        'panel_line': Tuple[int, int],
-        'offending_text': str
-    }, total=False)
+
+    class LintError(TypedDict, total=False):
+        line: int
+        start: int
+        region: sublime.Region
+        linter: LinterName
+        error_type: str
+        code: str
+        msg: str
+        filename: FileName
+        uid: str
+        priority: int
+        panel_line: Tuple[int, int]
+        offending_text: str
 
 
 api_ready = False

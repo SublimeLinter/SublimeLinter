@@ -8,20 +8,17 @@ import sublime_plugin
 from .lint import events, persist, util
 
 
-MYPY = False
-if MYPY:
-    from typing import DefaultDict, Dict, Iterator, List, Set
-    from mypy_extensions import TypedDict
+from typing import Container, DefaultDict, Dict, Iterator, List, Set, TypedDict, TypeVar
+FileName = str
+LinterName = str
 
-    FileName = str
-    LinterName = str
-    State_ = TypedDict('State_', {
-        'assigned_linters_per_file': DefaultDict[FileName, Set[LinterName]],
-        'failed_linters_per_file': DefaultDict[FileName, Set[LinterName]],
-        'problems_per_file': DefaultDict[FileName, Dict[LinterName, str]],
-        'running': DefaultDict[FileName, int],
-        'expanded_ok': Set[FileName],
-    })
+
+class State_(TypedDict):
+    assigned_linters_per_file: DefaultDict[FileName, Set[LinterName]]
+    failed_linters_per_file: DefaultDict[FileName, Set[LinterName]]
+    problems_per_file: DefaultDict[FileName, Dict[LinterName, str]]
+    running: DefaultDict[FileName, int]
+    expanded_ok: Set[FileName]
 
 
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
@@ -266,15 +263,6 @@ class OnFirstActivate(sublime_plugin.EventListener):
         ACTIVATED_VIEWS.discard(view.id())
 
 
-if MYPY:
-    from typing import Container, TypeVar
-    T = TypeVar('T')
-    U = TypeVar('U')
-
-
-ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
-
-
 def remember_actual_linters(filename, linter_names):
     # type: (FileName, Set[LinterName])  -> None
     previous = persist.actual_linters.get(filename)
@@ -284,6 +272,11 @@ def remember_actual_linters(filename, linter_names):
             'filename': filename,
             'linter_names': linter_names
         })
+
+
+T = TypeVar('T')
+U = TypeVar('U')
+ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 
 
 def assigned_linters_changed(filename, linter_names):

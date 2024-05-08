@@ -68,13 +68,13 @@ def on_first_activate(view):
 
     filename = util.canonical_filename(view)
     force_verbose_format(filename)
-    draw(view, State['problems_per_file'][filename], expanded_ok=True)
+    draw(view)
 
 
 def on_attempted_linters_changed(filename):
     # type: (FileName) -> None
     force_verbose_format(filename)
-    redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=True)
+    redraw_file_(filename)
 
 
 def force_verbose_format(filename):
@@ -99,9 +99,7 @@ def _unset_expanded_ok(filename):
         return
 
     State['expanded_ok'].discard(filename)
-    problems = State['problems_per_file'][filename]
-    for view in views_into_file(filename):
-        draw(view, problems, expanded_ok=False)
+    redraw_file_(filename)
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
@@ -155,14 +153,7 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     if actual_linters_changed(filename, set(problems.keys())):
         force_verbose_format(filename)
 
-    sublime.set_timeout(
-        lambda: redraw_file_(
-            filename,
-            problems,
-            # eval on the UI thread!
-            expanded_ok=filename in State['expanded_ok']
-        )
-    )
+    sublime.set_timeout(lambda: redraw_file_(filename))
 
 
 def count_problems(errors):
@@ -175,10 +166,10 @@ def count_problems(errors):
     return counters
 
 
-def redraw_file_(filename, problems, expanded_ok):
-    # type: (FileName, Dict[LinterName, str], bool) -> None
+def redraw_file_(filename):
+    # type: (FileName) -> None
     for view in views_into_file(filename):
-        draw(view, problems, expanded_ok)
+        draw(view)
 
 
 def views_into_file(filename):
@@ -191,9 +182,12 @@ def views_into_file(filename):
     )
 
 
-def draw(view, problems, expanded_ok):
-    # type: (sublime.View, Dict[LinterName, str], bool) -> None
+def draw(view):
+    # type: (sublime.View) -> None
     if persist.settings.get('statusbar.show_active_linters'):
+        filename = util.canonical_filename(view)
+        problems = State['problems_per_file'][filename]
+        expanded_ok = filename in State['expanded_ok']
         if (
             not expanded_ok
             and problems.keys()

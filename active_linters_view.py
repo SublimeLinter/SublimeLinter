@@ -267,7 +267,7 @@ class OnFirstActivate(sublime_plugin.EventListener):
 
 
 def remember_actual_linters(filename, linter_names):
-    # type: (FileName, Set[LinterName])  -> None
+    # type: (FileName, Set[LinterName]) -> None
     if actual_linters_changed(filename, linter_names):
         events.broadcast('actual_linters_changed', {
             'filename': filename,

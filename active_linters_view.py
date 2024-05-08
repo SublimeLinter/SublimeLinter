@@ -112,7 +112,7 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
-        if distinct_mapping(ASSIGNED_LINTERS, filename, linter_names):
+        if assigned_linters_changed(filename, linter_names):
             on_assigned_linters_changed(filename)
 
 
@@ -269,7 +269,7 @@ class OnFirstActivate(sublime_plugin.EventListener):
 
 def remember_actual_linters(filename, linter_names):
     # type: (FileName, Set[LinterName])  -> None
-    if distinct_mapping(persist.actual_linters, filename, linter_names):
+    if actual_linters_changed(filename, linter_names):
         events.broadcast('actual_linters_changed', {
             'filename': filename,
             'linter_names': linter_names
@@ -282,3 +282,7 @@ def distinct_mapping(store, key, val):
     previous = store.get(key)
     current = store[key] = val
     return current != previous
+
+
+actual_linters_changed = partial(distinct_mapping, persist.actual_linters)
+assigned_linters_changed = partial(distinct_mapping, ASSIGNED_LINTERS)

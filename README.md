@@ -6,7 +6,7 @@ SublimeLinter
 The code linting framework for [Sublime Text](http://sublimetext.com/).
 No linters included: get them via [Package Control](https://packagecontrol.io/search/SublimeLinter).
 
-<img src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png" width="785">
+<img width="785" src="https://raw.githubusercontent.com/SublimeLinter/SublimeLinter/master/docs/screenshot.png"/>
 
 
 ## Installation 
@@ -26,7 +26,7 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 
 
 Probably don't get fancy and just install SublimeLinter via [Package Control](https://packagecontrol.io/search/SublimeLinter).
-Refer https://www.sublimelinter.com/en/latest/installation.html for further information,
+Refer <https://www.sublimelinter.com/en/latest/installation.html> for further information,
 but, spoiler!,
 usually you install SublimeLinter, the plugin you're currently looking at,
 some command line tools, these are the actual linters (e.g. _eslint_ or _flake8_),
@@ -37,17 +37,17 @@ as well, examples would be [SublimeLinter-eslint](https://packagecontrol.io/pack
 By default, SublimeLinter will run in the background and most linters support this
 mode so you should get squiggles immediately.
 
-Note that you find all commands we're installing using the Command Palette (`ctrl+shift+P`). Just search for `SublimeLinter`.  You may find https://github.com/kaste/SublimeLinter-addon-toggler
-and/or https://github.com/kaste/SublimeLinter-addon-goto-flash useful.
+Note that you find all commands we're installing using the Command Palette (<kbd>ctrl<em>+</em>shift<em>+</em>p</kbd>). Just search for `SublimeLinter`. You may find <https://github.com/kaste/SublimeLinter-addon-toggler>
+and/or <https://github.com/kaste/SublimeLinter-addon-goto-flash> useful.
 
 
 ## Settings
 
 Settings are documented in the [default settings](https://github.com/SublimeLinter/SublimeLinter/blob/master/SublimeLinter.sublime-settings). 
-Open the settings using the Command Palette (`ctrl+shift+P`) searching for `Preferences: SublimeLinter Settings` (mnemonic: `sls`).
+Open the settings using the Command Palette (<kbd>ctrl<em>+</em>shift<em>+</em>p</kbd>) searching for `Preferences: SublimeLinter Settings` (mnemonic: `sls`).
 
 When you open the SublimeLinter settings you'll see the defaults on the left
-or top.  Usually that's all that is needed for end-users but some additional information
+or top. Usually that's all that is needed for end-users but some additional information
 is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/latest/linter_settings.html).
 
 
@@ -55,19 +55,19 @@ is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/latest/li
 
 SublimeLinter comes with some pre-defined keyboard shortcuts. You can customize these via the Package Settings menu.
 
-| Command                | Linux & Windows  | MacOS                  |
-|------------------------|------------------|------------------------|
-| Lint this view         | CTRL + K, L      | CTRL + CMD + L         |
-| Open diagnostics panel | CTRL + K, A      | CTRL + CMD + A         |
-| Goto next error        | CTRL + K, N      | CTRL + CMD + E         |
-| Goto prev error        | CTRL + K, P      | CTRL + CMD + SHIFT + E |
+| Command | Linux & Windows | MacOS |
+|---|---|---|
+| Lint this view | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>l</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>l</kbd> |
+| Open diagnostics panel | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>a</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>a</kbd> |
+| Goto next error | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>n</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>e</kbd> |
+| Goto prev error | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>p</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>e</kbd> |
 
 Take also a look at the [default bindings](<https://github.com/SublimeLinter/SublimeLinter/blob/master/keymaps/Default (Windows).sublime-keymap>) because
 we document other commands and have usually some tricks in there too.
 
 For example, it is very advisable to bind `sublime_linter_quick_actions`, e.g.
 
-```
+```jsonc
     // To trigger a quick action
     // { "keys": ["ctrl+k", "ctrl+f"],
     //   "command": "sublime_linter_quick_actions"
@@ -78,8 +78,8 @@ For example, it is very advisable to bind `sublime_linter_quick_actions`, e.g.
 ## Quick Actions/Fixers
 
 As we do *just* linting SublimeLinter naturally does not come with fixers 
-and/or code formatters.  However, we have a fixer API, see the Command Palette: `SublimeLinter: Quick Action`, and ship (mostly) 
-"fix by ignoring" actions.  These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
+and/or code formatters. However, we have a fixer API, see the Command Palette: `SublimeLinter: Quick Action`, and ship (mostly) 
+"fix by ignoring" actions. These allow you to quickly ignore specific error messages *inline* and ad hoc.[1]
 
 SublimeLinter currently ships actions for
 [eslint](https://github.com/SublimeLinter/SublimeLinter-eslint),
@@ -95,13 +95,13 @@ Want to see actions for your favourite linter? Please open a PR with your additi
 [quick_fix.py](https://github.com/SublimeLinter/SublimeLinter/blob/master/lint/quick_fix.py).
 We have [tests](https://github.com/SublimeLinter/SublimeLinter/tree/master/tests/test_ignore_fixers.py) for them!
 
-[1]  Why this limitation though?  Well it is usually easy to add a semicolon here and a space there, but the inline ignore rules and syntaxes are very cumbersome to type and to remember.  And there is basically no project of any size where you don't have to ignore ad-hoc something somewhere once.
+[1]  Why this limitation though? Well it is usually easy to add a semicolon here and a space there, but the inline ignore rules and syntaxes are very cumbersome to type and to remember. And there is basically no project of any size where you don't have to ignore ad-hoc something somewhere once.
 
 
 ## Support & Bugs
 
-Yeah, totally!  Often if it doesn't work, Sublime will have something in the
-console (`View -> Show Console`).  Warnings will go there by default.
+Yeah, totally! Often if it doesn't work, Sublime will have something in the
+console (*View -> Show Console*). Warnings will go there by default.
 
 You can enable `debug` mode in the settings to get much more information about what's going on.
 Especially seeing the exact command and working dir SublimeLinter will use
@@ -116,7 +116,7 @@ otherwise open it right [here](https://github.com/SublimeLinter/SublimeLinter/is
 
 ## Hack on it
 
-Sure, you're welcome!  Just clone the repository into your Packages folder (*Preferences -> Browse Packages*).
+Sure, you're welcome! Just clone the repository into your Packages folder (*Preferences -> Browse Packages*).
 
 ```shell
 > git clone https://github.com/SublimeLinter/SublimeLinter.git
@@ -135,13 +135,13 @@ Just use `rye` and install them:
 ## Creating a linter plugin
 
 Use the [template](https://github.com/SublimeLinter/SublimeLinter-template) to get started on your plugin.
-It contains a how-to with all the information you need.  Refer to https://www.sublimelinter.com/en/master/linter_plugin.html for more detailed information.  Of course, take a look at a similar linter plugin and let it inspire you.
+It contains a how-to with all the information you need. Refer to <https://www.sublimelinter.com/en/master/linter_plugin.html> for more detailed information. Of course, take a look at a similar linter plugin and let it inspire you.
 
 
-## Also Support ❤️
+## Also Support :heart:
 
 SublimeLinter is the kind of software that needs active maintenance all the time.
 If you find SublimeLinter helpful and would like to show your appreciation, you can support
-its development by buying me a coffee! 😄☕️ https://paypal.me/herrkaste
+its development by buying me a coffee! :smile::coffee: <https://paypal.me/herrkaste>
 
-😏
+:smirk:

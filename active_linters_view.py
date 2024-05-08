@@ -249,22 +249,21 @@ def throttled_on_args(fn, *args, **kwargs):
     return program
 
 
-ACTIVATED_VIEWS = set()
+ACTIVATED_VIEWS: Set[sublime.View] = set()
 
 
 class OnFirstActivate(sublime_plugin.EventListener):
     def on_activated(self, view):
         # type: (sublime.View) -> None
-        vid = view.id()
-        if vid in ACTIVATED_VIEWS:
+        if view in ACTIVATED_VIEWS:
             return
 
-        ACTIVATED_VIEWS.add(vid)
+        ACTIVATED_VIEWS.add(view)
         on_first_activate(view)
 
     def on_close(self, view):
         # type: (sublime.View) -> None
-        ACTIVATED_VIEWS.discard(view.id())
+        ACTIVATED_VIEWS.discard(view)
 
 
 def remember_actual_linters(filename, linter_names):

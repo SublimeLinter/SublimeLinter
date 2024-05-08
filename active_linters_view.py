@@ -8,7 +8,9 @@ import sublime_plugin
 from .lint import events, persist, util
 
 
-from typing import Container, DefaultDict, Dict, Iterator, List, Set, TypedDict, TypeVar
+from typing import Callable, Container, DefaultDict, Dict, Iterator, List, Set, TypedDict, TypeVar
+from typing_extensions import ParamSpec
+P = ParamSpec('P')
 FileName = str
 LinterName = str
 
@@ -230,6 +232,7 @@ THROTTLER_LOCK = threading.Lock()
 
 
 def throttled_on_args(fn, *args, **kwargs):
+    # type: (Callable[P, T], P.args, P.kwargs) -> Callable[[], None]
     key = (fn,) + args
     action = partial(fn, *args, **kwargs)
     with THROTTLER_LOCK:

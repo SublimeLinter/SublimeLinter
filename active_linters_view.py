@@ -40,7 +40,6 @@ def plugin_unloaded():
     events.off(redraw_file)
     events.off(on_begin_linting)
     events.off(on_finished_linting)
-    events.off(on_actual_linters_changed)
 
     for window in sublime.windows():
         for view in window.views():
@@ -154,7 +153,9 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     else:
         problems.pop(linter_name, None)
 
-    remember_actual_linters(filename, set(problems.keys()))
+    if actual_linters_changed(filename, set(problems.keys())):
+        set_expanded_ok(filename)
+        enqueue_unset_expanded_ok(filename)
 
     sublime.set_timeout(
         lambda: redraw_file_(
@@ -164,12 +165,6 @@ def redraw_file(filename, linter_name, errors, **kwargs):
             expanded_ok=filename in State['expanded_ok']
         )
     )
-
-
-@events.on('actual_linters_changed')
-def on_actual_linters_changed(filename, linter_names):
-    set_expanded_ok(filename)
-    enqueue_unset_expanded_ok(filename)
 
 
 def count_problems(errors):
@@ -264,15 +259,6 @@ class OnFirstActivate(sublime_plugin.EventListener):
     def on_close(self, view):
         # type: (sublime.View) -> None
         ACTIVATED_VIEWS.discard(view)
-
-
-def remember_actual_linters(filename, linter_names):
-    # type: (FileName, Set[LinterName]) -> None
-    if actual_linters_changed(filename, linter_names):
-        events.broadcast('actual_linters_changed', {
-            'filename': filename,
-            'linter_names': linter_names
-        })
 
 
 def distinct_mapping(store, key, val):

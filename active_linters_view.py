@@ -25,7 +25,7 @@ class State_(TypedDict):
     expanded_ok: Set[FileName]
 
 
-ASSIGNED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
+ATTEMPTED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
 State = {
     'assigned_linters_per_file': defaultdict(set),
@@ -73,7 +73,7 @@ def on_first_activate(view):
     draw(view, State['problems_per_file'][filename], expanded_ok=True)
 
 
-def on_assigned_linters_changed(filename):
+def on_attempted_linters_changed(filename):
     # type: (FileName) -> None
     set_expanded_ok(filename)
     enqueue_unset_expanded_ok(filename)
@@ -112,8 +112,8 @@ class sublime_linter_assigned(sublime_plugin.WindowCommand):
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
-        if assigned_linters_changed(filename, linter_names):
-            on_assigned_linters_changed(filename)
+        if attempted_linters_changed(filename, linter_names):
+            on_attempted_linters_changed(filename)
 
 
 class sublime_linter_unassigned(sublime_plugin.WindowCommand):
@@ -285,4 +285,4 @@ def distinct_mapping(store, key, val):
 
 
 actual_linters_changed = partial(distinct_mapping, persist.actual_linters)
-assigned_linters_changed = partial(distinct_mapping, ASSIGNED_LINTERS)
+attempted_linters_changed = partial(distinct_mapping, ATTEMPTED_LINTERS)

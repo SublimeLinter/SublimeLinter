@@ -67,17 +67,17 @@ def on_first_activate(view):
         return
 
     filename = util.canonical_filename(view)
-    set_expanded_ok(filename)
+    force_verbose_format(filename)
     draw(view, State['problems_per_file'][filename], expanded_ok=True)
 
 
 def on_attempted_linters_changed(filename):
     # type: (FileName) -> None
-    set_expanded_ok(filename)
+    force_verbose_format(filename)
     redraw_file_(filename, State['problems_per_file'][filename], expanded_ok=True)
 
 
-def set_expanded_ok(filename):
+def force_verbose_format(filename):
     # type: (FileName) -> None
     State['expanded_ok'].add(filename)
     enqueue_unset_expanded_ok(filename)
@@ -153,7 +153,7 @@ def redraw_file(filename, linter_name, errors, **kwargs):
         problems.pop(linter_name, None)
 
     if actual_linters_changed(filename, set(problems.keys())):
-        set_expanded_ok(filename)
+        force_verbose_format(filename)
 
     sublime.set_timeout(
         lambda: redraw_file_(

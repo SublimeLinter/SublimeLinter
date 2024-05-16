@@ -17,6 +17,7 @@ class ComposerLinter(linter.Linter):
     By doing so, they automatically get the following features:
 
     """
+    __abstract__ = True
 
     def __init__(self, view, settings):
         """Initialize a new ComposerLinter instance."""

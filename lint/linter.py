@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 ARG_RE = re.compile(r'(?P<prefix>@|--?)?(?P<name>[@\w][\w\-]*)(?:(?P<joiner>[=:])?(?:(?P<sep>.)(?P<multiple>\+)?)?)?')
-BASE_CLASSES = ('PythonLinter', 'RubyLinter', 'NodeLinter', 'ComposerLinter')
 
 # Many linters use stdin, and we convert text to utf-8
 # before sending to stdin, so we have to make sure stdin
@@ -466,10 +465,9 @@ class LinterMeta(type):
 
         Finally, the class is registered as a linter for its configured syntax.
         """
-        if not bases:
-            return
-
-        if cls_name in BASE_CLASSES:
+        cls.__abstract__ = is_abstract = attrs.get("__abstract__", False)
+        if is_abstract:
+            logger.debug(f"Skip abstract {cls_name}.")
             return
 
         name = attrs.get('name') or cls_name.lower()  # type: str  # type: ignore[assignment]
@@ -673,6 +671,7 @@ class Linter(metaclass=LinterMeta):
     Subclasses must at a minimum define the attributes syntax, cmd, and regex.
 
     """
+    __abstract__ = True
 
     #
     # Public attributes

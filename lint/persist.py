@@ -1,35 +1,35 @@
 """This module provides persistent global storage for other modules."""
+from __future__ import annotations
 
 from collections import defaultdict
+import subprocess
 import threading
+from typing import DefaultDict, Type, TypedDict, TYPE_CHECKING
 
+import sublime
 from .settings import Settings
 
-
-MYPY = False
-if MYPY:
-    from typing import DefaultDict, Dict, List, Set, Tuple, Type, TypedDict
-    import sublime
-    import subprocess
+if TYPE_CHECKING:
     from .linter import Linter
-
     Bid = sublime.BufferId
-    FileName = str
-    LinterName = str
 
-    class LintError(TypedDict, total=False):
-        line: int
-        start: int
-        region: sublime.Region
-        linter: LinterName
-        error_type: str
-        code: str
-        msg: str
-        filename: FileName
-        uid: str
-        priority: int
-        panel_line: Tuple[int, int]
-        offending_text: str
+FileName = str
+LinterName = str
+
+
+class LintError(TypedDict, total=False):
+    line: int
+    start: int
+    region: sublime.Region
+    linter: LinterName
+    error_type: str
+    code: str
+    msg: str
+    filename: FileName
+    uid: str
+    priority: int
+    panel_line: tuple[int, int]
+    offending_text: str
 
 
 api_ready = False
@@ -37,16 +37,16 @@ kill_switch = True
 
 settings = Settings()
 
-file_errors = defaultdict(list)  # type: DefaultDict[FileName, List[LintError]]
-linter_classes = {}  # type: Dict[str, Type[Linter]]
-assigned_linters = {}  # type: Dict[Bid, Set[LinterName]]
-actual_linters = {}  # type: Dict[FileName, Set[LinterName]]
+file_errors: DefaultDict[FileName, list[LintError]] = defaultdict(list)
+linter_classes: dict[str, Type[Linter]] = {}
+assigned_linters: dict[Bid, set[LinterName]] = {}
+actual_linters: dict[FileName, set[LinterName]] = {}
 
 # A mapping between actually linted files and other filenames that they
 # reported errors for
-affected_filenames_per_filename = defaultdict(
-    lambda: defaultdict(set)
-)  # type: DefaultDict[FileName, DefaultDict[LinterName, Set[FileName]]]
+affected_filenames_per_filename: \
+    DefaultDict[FileName, DefaultDict[LinterName, set[FileName]]] = \
+    defaultdict(lambda: defaultdict(set))
 
-active_procs = defaultdict(list)  # type: DefaultDict[Bid, List[subprocess.Popen]]
+active_procs: DefaultDict[Bid, list[subprocess.Popen]] = defaultdict(list)
 active_procs_lock = threading.Lock()

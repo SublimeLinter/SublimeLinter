@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict
 import logging
 import sublime
@@ -5,9 +6,7 @@ import sublime
 from .lint import util
 
 
-MYPY = False
-if MYPY:
-    from typing import DefaultDict, Optional, Set
+from typing import cast, DefaultDict, Optional
 
 
 DEBUG_FALSE_LEVEL = logging.WARNING
@@ -101,10 +100,11 @@ class TaskNumberFormatter(logging.Formatter):
         thread_name = record.threadName
         if thread_name.startswith('LintTask|'):
             _, task_number, linter_name, filename, vid = thread_name.split('|')
+            view_id = int(vid)
             record.TASK_NUMBER = '#{} '.format(task_number)
             record.LINTER_NAME = linter_name + ' '
             record.FILENAME = filename + ' '
-            record.VIEW = sublime.View(int(vid))
+            record.VIEW = sublime.View(cast("sublime.ViewId", view_id))
         else:
             record.TASK_NUMBER = ''
             record.LINTER_NAME = ''
@@ -122,7 +122,7 @@ class TaskNumberFormatter(logging.Formatter):
         return super().format(record)
 
 
-shown_error_messages = defaultdict(set)  # type: DefaultDict[sublime.WindowId, Set[str]]
+shown_error_messages = defaultdict(set)  # type: DefaultDict[sublime.WindowId, set[str]]
 
 
 class ErrorPanelHandler(logging.Handler):

@@ -75,51 +75,6 @@ def lint_view(
         orchestrator.submit(run_tasks, job, sink)
 
 
-def run_tasks(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
-    with broadcast_lint_runtime(job.ctx["canonical_filename"], job.linter_name):
-        with remember_runtime(
-            "Linting '{}' with {} took {{:.2f}}s"
-            .format(job.ctx["short_canonical_filename"], job.linter_name)
-        ):
-            results = run_concurrently(job.tasks, executor=executor)
-
-    if results is None:
-        return  # ABORT
-
-    errors = list(chain.from_iterable(results))  # flatten and consume
-
-    # We don't want to guarantee that our consumers/views are thread aware.
-    # So we merge here into Sublime's shared worker thread. Sublime guarantees
-    # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(lambda: sink(job.linter_name, errors))
-
-
-def warn_excessive_tasks(jobs: list[LintJob]) -> None:
-    total_tasks = sum(len(job.tasks) for job in jobs)
-    if total_tasks > 4:
-        details = ", ".join(
-            "{}x {}".format(len(job.tasks), job.linter_name)
-            for job in jobs
-        )
-        excess_warning(
-            "'{}' puts in total {}(!) tasks on the queue:  {}."
-            .format(jobs[0].ctx["short_canonical_filename"], total_tasks, details)
-        )
-    else:
-        for job in jobs:
-            if len(job.tasks) > 3:
-                excess_warning(
-                    "'{}' puts {} {} tasks on the queue."
-                    .format(job.ctx["short_canonical_filename"], len(job.tasks), job.linter_name)
-                )
-
-
-@lru_cache(4)
-def excess_warning(msg):
-    # type: (str) -> None
-    logger.warning(msg)
-
-
 def tasks_per_linter(view, view_has_changed, linter_info):
     # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
     for region in linter_info.regions:
@@ -179,22 +134,6 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
-PROPERTIES_FOR_UID = (
-    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
-)
-
-
-def make_error_uid(error):
-    # type: (LintError) -> str
-    return hashlib.sha256(
-        ''.join(
-            str(error[k])  # type: ignore
-            for k in PROPERTIES_FOR_UID
-        )
-        .encode('utf-8')
-    ).hexdigest()
-
-
 def finalize_errors(linter, errors, offsets):
     # type: (Linter, list[LintError], tuple[int, ...]) -> None
     linter_name = linter.name
@@ -235,6 +174,67 @@ def finalize_errors(linter, errors, offsets):
             'uid': make_error_uid(error),
             'priority': style.get_value('priority', error, 0),
         })
+
+
+PROPERTIES_FOR_UID = (
+    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
+)
+
+
+def make_error_uid(error):
+    # type: (LintError) -> str
+    return hashlib.sha256(
+        ''.join(
+            str(error[k])  # type: ignore
+            for k in PROPERTIES_FOR_UID
+        )
+        .encode('utf-8')
+    ).hexdigest()
+
+
+def warn_excessive_tasks(jobs: list[LintJob]) -> None:
+    total_tasks = sum(len(job.tasks) for job in jobs)
+    if total_tasks > 4:
+        details = ", ".join(
+            "{}x {}".format(len(job.tasks), job.linter_name)
+            for job in jobs
+        )
+        excess_warning(
+            "'{}' puts in total {}(!) tasks on the queue:  {}."
+            .format(jobs[0].ctx["short_canonical_filename"], total_tasks, details)
+        )
+    else:
+        for job in jobs:
+            if len(job.tasks) > 3:
+                excess_warning(
+                    "'{}' puts {} {} tasks on the queue."
+                    .format(job.ctx["short_canonical_filename"], len(job.tasks), job.linter_name)
+                )
+
+
+@lru_cache(4)
+def excess_warning(msg):
+    # type: (str) -> None
+    logger.warning(msg)
+
+
+def run_tasks(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+    with broadcast_lint_runtime(job.ctx["canonical_filename"], job.linter_name):
+        with remember_runtime(
+            "Linting '{}' with {} took {{:.2f}}s"
+            .format(job.ctx["short_canonical_filename"], job.linter_name)
+        ):
+            results = run_concurrently(job.tasks, executor=executor)
+
+    if results is None:
+        return  # ABORT
+
+    errors = list(chain.from_iterable(results))  # flatten and consume
+
+    # We don't want to guarantee that our consumers/views are thread aware.
+    # So we merge here into Sublime's shared worker thread. Sublime guarantees
+    # here to execute all scheduled tasks ordered and sequentially.
+    sublime.set_timeout_async(lambda: sink(job.linter_name, errors))
 
 
 def run_concurrently(tasks, executor):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from bisect import bisect_right
 from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
@@ -21,7 +22,7 @@ from .const import WARNING, ERROR
 MYPY = False
 if MYPY:
     from typing import (
-        Any, Callable, Dict, List, IO, Iterator, Match, MutableMapping,
+        Any, Callable, Dict, List, Literal, IO, Iterator, Match, MutableMapping,
         Optional, Pattern, Tuple, Type, Union
     )
     from .persist import LintError
@@ -1075,9 +1076,6 @@ class Linter(metaclass=LinterMeta):
         if cls.disabled is None and settings.get('disable'):
             return False
 
-        if not cls.matches_selector(view, settings):
-            return False
-
         excludes = settings.get('excludes', [])  # type: Union[str, List[str]]
         if excludes:
             filename = view.file_name() or '<untitled>'
@@ -1097,21 +1095,28 @@ class Linter(metaclass=LinterMeta):
         return True
 
     @classmethod
-    def matches_selector(cls, view, settings):
-        # type: (sublime.View, LinterSettings) -> bool
+    def match_selector(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> List[sublime.Region] | Literal[False]
         selector = settings.get('selector', None)
         if selector is None:
             return False
 
-        # Use `score_selector` so that empty views
-        # select their 'main' linters
         if view.score_selector(0, selector):
-            return True
+            return [sublime.Region(0, view.size())]
 
         if settings.get("enable_cells", False):
-            return bool(view.find_by_selector(selector))
+            return view.find_by_selector(selector)
 
         return False
+
+    @classmethod
+    def matches_selector(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> bool
+        deprecation_warning(
+            "`cls.matches_selector(view, settings)` is deprecated. "
+            "Use `bool(cls.match_selector(view, settings))` instead."
+        )
+        return bool(cls.match_selector(view, settings))
 
     @classmethod
     def should_lint(cls, view, settings, reason):

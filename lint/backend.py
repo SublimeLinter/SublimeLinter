@@ -14,7 +14,7 @@ from . import linter as linter_module, style, util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
+    from typing import Callable, Dict, Iterator, List, Optional, Tuple, TypeVar
     from .persist import LintError
     from .elect import LinterInfo
     Linter = linter_module.Linter
@@ -51,7 +51,7 @@ def lint_view(
     asynchronously.
     """
     lint_tasks = {
-        linter['name']: list(tasks_per_linter(view, view_has_changed, linter['klass'], linter['settings']))
+        linter['name']: list(tasks_per_linter(view, view_has_changed, linter))
         for linter in linters
     }
     warn_excessive_tasks(view, lint_tasks)
@@ -103,14 +103,10 @@ def excess_warning(msg):
     logger.warning(msg)
 
 
-def tasks_per_linter(view, view_has_changed, linter_class, settings):
-    # type: (sublime.View, ViewChangedFn, Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
-    selector = settings.get('selector')
-    if selector is None:
-        return
-
-    for region in extract_lintable_regions(view, selector):
-        linter = linter_class(view, settings.clone())
+def tasks_per_linter(view, view_has_changed, linter_info):
+    # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
+    for region in linter_info["regions"]:
+        linter = linter_info["klass"](view, linter_info["settings"].clone())
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
@@ -118,15 +114,6 @@ def tasks_per_linter(view, view_has_changed, linter_class, settings):
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
         executor = partial(modify_thread_name, task_name, task)
         yield executor
-
-
-def extract_lintable_regions(view, selector):
-    # type: (sublime.View, str) -> List[sublime.Region]
-    # Inspecting just the first char is faster
-    if view.score_selector(0, selector):
-        return [sublime.Region(0, view.size())]
-    else:
-        return [region for region in view.find_by_selector(selector)]
 
 
 def make_good_task_name(linter, view):

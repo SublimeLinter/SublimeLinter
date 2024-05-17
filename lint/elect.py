@@ -23,6 +23,7 @@ if MYPY:
         name: LinterName
         klass: type[Linter]
         settings: LinterSettings
+        regions: list[sublime.Region]
         runnable: bool
 
 
@@ -47,12 +48,16 @@ def assignable_linters_for_view(view, reason):
     ctx = linter_module.get_view_context(view, {'reason': reason})
     for name, klass in persist.linter_classes.items():
         settings = linter_module.get_linter_settings(klass, view, ctx)
-        if klass.can_lint_view(view, settings):
+        if (
+            klass.can_lint_view(view, settings)
+            and (regions := klass.match_selector(view, settings))
+        ):
             yield {
                 'name': name,
                 'klass': klass,
                 'settings': settings,
-                'runnable': can_run_now(view, reason, klass, settings)
+                'regions': regions,
+                'runnable': can_run_now(view, reason, klass, settings),
             }
 
 

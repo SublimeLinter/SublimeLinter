@@ -765,7 +765,7 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, settings):
         # type: (sublime.View, LinterSettings) -> None
         self.view = view
-        self.settings = settings
+        self.settings = settings.copy()
         # Simplify tests which often just pass in a dict instead of
         # real `LinterSettings`.
         self.context = getattr(settings, 'context', {})  # type: MutableMapping[str, str]

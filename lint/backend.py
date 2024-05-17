@@ -72,7 +72,7 @@ def lint_view(
     warn_excessive_tasks(lint_jobs)
 
     for job in lint_jobs:
-        orchestrator.submit(run_tasks, job, sink)
+        orchestrator.submit(run_job, job, sink)
 
 
 def tasks_per_linter(view, view_has_changed, linter_info):
@@ -117,11 +117,11 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return errors
     except linter_module.TransientError:
         # For `TransientError`s we want to omit calling the `sink` at all.
-        # Usually achieved by a `return None` (see: `run_tasks`). Here we
+        # Usually achieved by a `return None` (see: `run_job`). Here we
         # throw to abort all other tasks submitted (see: `run_concurrently`).
         # It's a bit stinky but good enough for our purpose.
         # Note that `run_concurrently` turns the whole result into a `None`,
-        # making in turn the `result is None` check in `run_tasks` trivial.
+        # making in turn the `result is None` check in `run_job` trivial.
         # If we were to return a `None` just here, we had to check
         # `None in result` instead. ¯\_(ツ)_/¯
         raise
@@ -218,7 +218,7 @@ def excess_warning(msg):
     logger.warning(msg)
 
 
-def run_tasks(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
     with broadcast_lint_runtime(job.ctx["canonical_filename"], job.linter_name):
         with remember_runtime(
             "Linting '{}' with {} took {{:.2f}}s"

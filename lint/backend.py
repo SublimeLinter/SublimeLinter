@@ -13,6 +13,7 @@ import multiprocessing
 import os
 import time
 import threading
+import traceback
 
 from . import events, linter as linter_module, persist, style, util
 
@@ -23,10 +24,12 @@ if MYPY:
     from typing_extensions import TypeAlias
     from .persist import LintError
     from .elect import LinterInfo
+    from typing_extensions import ParamSpec
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
 
     T = TypeVar('T')
+    P = ParamSpec('P')
     LintResult: TypeAlias[list] = "list[LintError]"
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
@@ -72,7 +75,8 @@ def lint_view(
     warn_excessive_tasks(lint_jobs)
 
     for job in lint_jobs:
-        orchestrator.submit(run_job, job, sink)
+        # Explicitly catch all unhandled errors because we fire-and-forget!
+        orchestrator.submit(print_all_exceptions(run_job), job, sink)
 
 
 def tasks_per_linter(view, view_has_changed, linter_info):
@@ -210,6 +214,15 @@ def warn_excessive_tasks(jobs: list[LintJob]) -> None:
 def excess_warning(msg):
     # type: (str) -> None
     logger.warning(msg)
+
+
+def print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
+    def inner(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+    return inner
 
 
 def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:

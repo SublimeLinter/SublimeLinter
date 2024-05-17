@@ -213,15 +213,11 @@ def excess_warning(msg):
 
 
 def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
-    with broadcast_lint_runtime(job.ctx["canonical_filename"], job.linter_name):
-        with remember_runtime(
-            "Linting '{}' with {} took {{:.2f}}s"
-            .format(job.ctx["short_canonical_filename"], job.linter_name)
-        ):
-            try:
-                results = run_concurrently(job.tasks, executor=executor)
-            except Exception:
-                return  # ABORT
+    with broadcast_lint_runtime(job), remember_runtime(job):
+        try:
+            results = run_concurrently(job.tasks, executor=executor)
+        except Exception:
+            return  # ABORT
 
     errors = list(chain.from_iterable(results))  # flatten and consume
 
@@ -260,25 +256,25 @@ def get_delay():
 
 
 @contextmanager
-def remember_runtime(log_msg):
-    # type: (str) -> Iterator[None]
+def remember_runtime(job: LintJob) -> Iterator[None]:
     start_time = time.perf_counter()
-
     yield
-
     end_time = time.perf_counter()
     runtime = end_time - start_time
-    logger.info(log_msg.format(runtime))
-
     with global_lock:
         elapsed_runtimes.append(runtime)
 
+    logger.info(
+        "Linting '{}' with {} took {:.2f}s"
+        .format(job.ctx["short_canonical_filename"], job.linter_name, runtime)
+    )
+
 
 @contextmanager
-def broadcast_lint_runtime(filename, linter_name):
-    # type: (FileName, LinterName) -> Iterator[None]
-    events.broadcast(events.LINT_START, {'filename': filename, 'linter_name': linter_name})
+def broadcast_lint_runtime(job: LintJob) -> Iterator[None]:
+    payload = {'filename': job.ctx["canonical_filename"], 'linter_name': job.linter_name}
+    events.broadcast(events.LINT_START, payload)
     try:
         yield
     finally:
-        events.broadcast(events.LINT_END, {'filename': filename, 'linter_name': linter_name})
+        events.broadcast(events.LINT_END, payload)

@@ -1,0 +1,26 @@
+SublimeLinter 4.26.0
+
+BREAKING CHANGE:  TL;DR - By default, only whole files are linted from now on.
+
+SublimeLinter was always capable of linting just parts of a view if the whole
+file did not match a given "selector".  E.g. it could lint code blocks inside
+markdown documents.  There was no way to opt-out of this behavior, except
+maybe to use the `excludes` setting to exclude all `*.md` files, although most
+linters don't have a good understanding of such sub-blocks -- let's call them
+cells, as in: notebook cells.
+
+v4.26.0 introduces a new setting `enable_cells` which defaults to `False`
+(which makes it a breaking change).  Plugin authors can opt-in in their
+plugin, so can users, on a case-by-case basis.
+
+E.g. you could still let `flake8` run on python blocks in your docs if
+you want to but then probably also configure per-file overrides, e.g. to only
+report whitespace errors or to exclude any unused-var warnings, etc for them.
+
+
+
+Sincerely,
+💕
+
+
+Yes, I do enjoy coffee:  https://paypal.me/herrkaste

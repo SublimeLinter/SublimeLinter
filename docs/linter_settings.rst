@@ -46,6 +46,21 @@ For both, Python and Node, SublimeLinter has sophisticated ways to find *locally
 
 When the `disable_if_not_dependency` setting is set to `true`, SublimeLinter will not attempt to use globally installed binaries if a local installation cannot be found. Instead, it will skip linting such projects altogether.
 
+enable_cells
+------------
+
+SublimeLinter is capable of linting just parts of a view if the whole file
+doesn't match a given "selector".  E.g. it can lint code blocks inside
+markdown documents.  By default, this is turned off as most linters don't have
+a good understanding of such sub-blocks -- let's call them cells, as in:
+notebook cells -- out of their box.
+
+Set `enable_cells` to `true` to opt-in.
+
+You may then also want to configure the linter itself, e.g. to use per-file
+overrides to only report whitespace errors or to exclude any unused-var
+warnings, etc for such files to mitigate false warnings.
+
 env
 ---
 

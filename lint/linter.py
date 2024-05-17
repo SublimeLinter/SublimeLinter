@@ -1100,13 +1100,17 @@ class Linter(metaclass=LinterMeta):
     def matches_selector(cls, view, settings):
         # type: (sublime.View, LinterSettings) -> bool
         selector = settings.get('selector', None)
-        if selector is not None:
-            return bool(
-                # Use `score_selector` here as well, so that empty views
-                # select their 'main' linters
-                view.score_selector(0, selector) or
-                view.find_by_selector(selector)
-            )
+        if selector is None:
+            return False
+
+        # Use `score_selector` so that empty views
+        # select their 'main' linters
+        if view.score_selector(0, selector):
+            return True
+
+        if settings.get("enable_cells", False):
+            return bool(view.find_by_selector(selector))
+
         return False
 
     @classmethod

@@ -103,7 +103,7 @@ def make_good_task_name(linter, view):
 
 
 def modify_thread_name(name, sink):
-    # type: (str, Callable[..., T]) -> T
+    # type: (str, Callable[[], T]) -> T
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = name

@@ -51,7 +51,7 @@ def lint_view(
     asynchronously.
     """
     lint_tasks = {
-        linter['name']: list(tasks_per_linter(view, view_has_changed, linter))
+        linter.name: list(tasks_per_linter(view, view_has_changed, linter))
         for linter in linters
     }
     warn_excessive_tasks(view, lint_tasks)
@@ -105,8 +105,8 @@ def excess_warning(msg):
 
 def tasks_per_linter(view, view_has_changed, linter_info):
     # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
-    for region in linter_info["regions"]:
-        linter = linter_info["klass"](view, linter_info["settings"].clone())
+    for region in linter_info.regions:
+        linter = linter_info.klass(view, linter_info.settings.clone())
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 

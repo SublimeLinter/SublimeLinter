@@ -38,8 +38,6 @@ if MYPY:
     LinterSettings = linter_module.LinterSettings
     ViewChangedFn = Callable[[], bool]
 
-    LinterInfo = elect.LinterInfo
-
 
 logger = logging.getLogger(__name__)
 flatten = chain.from_iterable
@@ -289,7 +287,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
         return (
             util.is_lintable(self.view)
             and any(
-                info["settings"].get("lint_mode") != "background"
+                info.settings.get("lint_mode") != "background"
                 for info in elect.runnable_linters_for_view(self.view, "on_user_request")
             )
         ) if event else True
@@ -303,7 +301,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
             return
 
         runnable_linters = [
-            info["name"]
+            info.name
             for info in elect.filter_runnable_linters(assignable_linters)
         ]
         if not runnable_linters:
@@ -360,7 +358,7 @@ def lint(view, view_has_changed, lock, reason):
             logger.info("No installed linter matches the view.")
 
     with lock:
-        _assign_linters_to_view(view, {linter['name'] for linter in linters})
+        _assign_linters_to_view(view, {linter.name for linter in linters})
 
     runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:

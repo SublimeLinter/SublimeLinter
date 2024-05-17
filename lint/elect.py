@@ -1,6 +1,7 @@
 from __future__ import annotations
 import sublime
 
+from dataclasses import dataclass
 from functools import lru_cache
 import logging
 import os
@@ -9,22 +10,22 @@ from . import linter as linter_module
 from . import persist
 
 
-MYPY = False
-if MYPY:
-    from typing import Iterable, Iterator, TypedDict
+from typing import Iterable, Iterator
 
-    Linter = linter_module.Linter
-    LinterName = str
-    LinterSettings = linter_module.LinterSettings
-    LintError = persist.LintError
-    Reason = str
+Linter = linter_module.Linter
+LinterName = str
+LinterSettings = linter_module.LinterSettings
+LintError = persist.LintError
+Reason = str
 
-    class LinterInfo(TypedDict):
-        name: LinterName
-        klass: type[Linter]
-        settings: LinterSettings
-        regions: list[sublime.Region]
-        runnable: bool
+
+@dataclass(frozen=True)
+class LinterInfo:
+    name: LinterName
+    klass: type[Linter]
+    settings: LinterSettings
+    regions: list[sublime.Region]
+    runnable: bool
 
 
 logger = logging.getLogger(__name__)
@@ -52,13 +53,13 @@ def assignable_linters_for_view(view, reason):
             klass.can_lint_view(view, settings)
             and (regions := klass.match_selector(view, settings))
         ):
-            yield {
-                'name': name,
-                'klass': klass,
-                'settings': settings,
-                'regions': regions,
-                'runnable': can_run_now(view, reason, klass, settings),
-            }
+            yield LinterInfo(
+                name=name,
+                klass=klass,
+                settings=settings,
+                regions=regions,
+                runnable=can_run_now(view, reason, klass, settings),
+            )
 
 
 def runnable_linters_for_view(view, reason):
@@ -68,7 +69,7 @@ def runnable_linters_for_view(view, reason):
 
 def filter_runnable_linters(linters):
     # type: (Iterable[LinterInfo]) -> Iterator[LinterInfo]
-    return (linter for linter in linters if linter['runnable'])
+    return (linter for linter in linters if linter.runnable)
 
 
 def can_run_now(view, reason, linter, settings):

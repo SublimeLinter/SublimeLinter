@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sublime
 
 from functools import lru_cache
@@ -10,7 +11,7 @@ from . import persist
 
 MYPY = False
 if MYPY:
-    from typing import Iterable, Iterator, Optional, Type, TypedDict
+    from typing import Iterable, Iterator, TypedDict
 
     Linter = linter_module.Linter
     LinterName = str
@@ -20,7 +21,7 @@ if MYPY:
 
     class LinterInfo(TypedDict):
         name: LinterName
-        klass: Type[Linter]
+        klass: type[Linter]
         settings: LinterSettings
         runnable: bool
 
@@ -66,12 +67,12 @@ def filter_runnable_linters(linters):
 
 
 def can_run_now(view, reason, linter, settings):
-    # type: (sublime.View, Reason, Type[Linter], LinterSettings) -> bool
+    # type: (sublime.View, Reason, type[Linter], LinterSettings) -> bool
     return linter.should_lint(view, settings, reason)
 
 
 def flash_once(window, message):
-    # type: (Optional[sublime.Window], str) -> None
+    # type: (sublime.Window | None, str) -> None
     if window:
         _flash_once(window.id(), message)
 

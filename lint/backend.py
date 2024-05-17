@@ -19,7 +19,7 @@ from . import events, linter as linter_module, persist, style, util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, Iterator, Optional, TypeVar
+    from typing import Callable, Iterator, TypeVar
     from typing_extensions import TypeAlias
     from .persist import LintError
     from .elect import LinterInfo
@@ -117,13 +117,7 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return errors
     except linter_module.TransientError:
         # For `TransientError`s we want to omit calling the `sink` at all.
-        # Usually achieved by a `return None` (see: `run_job`). Here we
-        # throw to abort all other tasks submitted (see: `run_concurrently`).
-        # It's a bit stinky but good enough for our purpose.
-        # Note that `run_concurrently` turns the whole result into a `None`,
-        # making in turn the `result is None` check in `run_job` trivial.
-        # If we were to return a `None` just here, we had to check
-        # `None in result` instead. ¯\_(ツ)_/¯
+        # Raise to abort in `run_job`.
         raise
     except linter_module.PermanentError:
         return []  # Empty list here to clear old errors
@@ -224,10 +218,10 @@ def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> Non
             "Linting '{}' with {} took {{:.2f}}s"
             .format(job.ctx["short_canonical_filename"], job.linter_name)
         ):
-            results = run_concurrently(job.tasks, executor=executor)
-
-    if results is None:
-        return  # ABORT
+            try:
+                results = run_concurrently(job.tasks, executor=executor)
+            except Exception:
+                return  # ABORT
 
     errors = list(chain.from_iterable(results))  # flatten and consume
 
@@ -238,20 +232,14 @@ def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> Non
 
 
 def run_concurrently(tasks, executor):
-    # type: (list[Task[T]], ThreadPoolExecutor) -> Optional[list[T]]
+    # type: (list[Task[T]], ThreadPoolExecutor) -> list[T]
     work = [executor.submit(task) for task in tasks]
     done, not_done = wait(work, return_when=FIRST_EXCEPTION)
 
     for future in not_done:
         future.cancel()
 
-    try:
-        return [future.result() for future in done]
-    except Exception:
-        # The catch-all will obviously catch any exceptions coming from the
-        # actual task/future. But it will also catch 'CancelledError's from
-        # the executor machinery.
-        return None
+    return [future.result() for future in done]
 
 
 global_lock = threading.RLock()

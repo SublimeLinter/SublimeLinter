@@ -229,7 +229,10 @@ def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> Non
     with broadcast_lint_runtime(job), remember_runtime(job):
         try:
             results = run_concurrently(job.tasks, executor=executor)
+        except linter_module.TransientError:
+            return  # ABORT
         except Exception:
+            traceback.print_exc()
             return  # ABORT
 
     errors = list(chain.from_iterable(results))  # flatten and consume

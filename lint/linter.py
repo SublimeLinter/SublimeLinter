@@ -776,8 +776,7 @@ class Linter(metaclass=LinterMeta):
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.
-        if self.defaults is not None:
-            self.defaults = self.defaults.copy()
+        self.defaults = self.defaults.copy()
 
     @property
     def filename(self):

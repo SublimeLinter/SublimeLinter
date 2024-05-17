@@ -114,9 +114,6 @@ def tasks_per_linter(view, view_has_changed, linter_class, settings):
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
-        # Due to a limitation in python 3.3, we cannot 'name' a thread when
-        # using the ThreadPoolExecutor. (This feature has been introduced
-        # in python 3.6.) So, we do this manually.
         task_name = make_good_task_name(linter, view)
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
         executor = partial(modify_thread_name, task_name, task)

@@ -78,7 +78,7 @@ def lint_view(
 def tasks_per_linter(view, view_has_changed, linter_info):
     # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
     for region in linter_info.regions:
-        linter = linter_info.klass(view, linter_info.settings.clone())
+        linter = linter_info.klass(view, linter_info.settings.copy())
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 

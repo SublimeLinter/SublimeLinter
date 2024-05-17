@@ -316,7 +316,7 @@ class LinterSettings:
     has = __contains__
     set = __setitem__
 
-    def clone(self):
+    def copy(self):
         # type: () -> LinterSettings
         return self.__class__(
             self.raw_settings,

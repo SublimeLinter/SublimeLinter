@@ -86,31 +86,31 @@ def tasks_per_linter(view, view_has_changed, linter_info):
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
-        task_name = make_good_task_name(linter, view)
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
-        executor = partial(modify_thread_name, task_name, task)
+        executor = partial(modify_thread_name, linter_info, task)
         yield executor
 
 
-def make_good_task_name(linter, view):
-    # type: (Linter, sublime.View) -> str
-    with counter_lock:
-        task_number = next(task_count)
-
-    short_canonical_filename = util.short_canonical_filename(view)
-    return 'LintTask|{}|{}|{}|{}'.format(
-        task_number, linter.name, short_canonical_filename, view.id())
-
-
-def modify_thread_name(name, sink):
-    # type: (str, Callable[[], T]) -> T
+def modify_thread_name(linter_info: LinterInfo, sink: Callable[[], T]) -> T:
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
-    threading.current_thread().name = name
+    threading.current_thread().name = make_good_task_name(linter_info)
     try:
         return sink()
     finally:
         threading.current_thread().name = original_name
+
+
+def make_good_task_name(linter: LinterInfo) -> str:
+    with counter_lock:
+        task_number = next(task_count)
+
+    return 'LintTask|{}|{}|{}|{}'.format(
+        task_number,
+        linter.name,
+        linter.context["short_canonical_filename"],
+        linter.context["view_id"]
+    )
 
 
 def execute_lint_task(linter, code, offsets, view_has_changed):

@@ -420,6 +420,7 @@ def get_view_context(view, additional_context=None):
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
 
+    context['view_id'] = str(view.id())
     context['canonical_filename'] = util.canonical_filename(view)
     context['short_canonical_filename'] = util.short_canonical_filename(view)
 

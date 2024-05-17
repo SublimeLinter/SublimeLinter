@@ -17,6 +17,7 @@ LinterName = str
 LinterSettings = linter_module.LinterSettings
 LintError = persist.LintError
 Reason = str
+ViewContext = linter_module.ViewContext
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class LinterInfo:
     name: LinterName
     klass: type[Linter]
     settings: LinterSettings
+    context: ViewContext
     regions: list[sublime.Region]
     runnable: bool
 
@@ -57,6 +59,7 @@ def assignable_linters_for_view(view, reason):
                 name=name,
                 klass=klass,
                 settings=settings,
+                context=ctx,
                 regions=regions,
                 runnable=can_run_now(view, reason, klass, settings),
             )

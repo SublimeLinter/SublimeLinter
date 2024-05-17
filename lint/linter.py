@@ -19,15 +19,15 @@ from . import persist, util
 from .const import WARNING, ERROR
 
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Any, Callable, Dict, List, Literal, IO, Iterator, Match, MutableMapping,
-        Optional, Pattern, Tuple, Type, Union
-    )
-    from .persist import LintError
+from typing import (
+    Any, Callable, Dict, List, Literal, IO, Iterator, Match, MutableMapping,
+    Optional, Pattern, Tuple, Type, Union, TYPE_CHECKING
+)
+Reason = str
+ViewContext = MutableMapping[str, str]
 
-    Reason = str
+if TYPE_CHECKING:
+    from .persist import LintError
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class LintMatch(dict):
 
     """
 
-    if MYPY:
+    if TYPE_CHECKING:
         match = None       # type: Optional[object]
         filename = None    # type: Optional[str]
         line = None        # type: int
@@ -392,7 +392,7 @@ def _extract_window_variables(window):
 
 
 def get_view_context(view, additional_context=None):
-    # type: (sublime.View, Optional[Mapping]) -> MutableMapping[str, str]
+    # type: (sublime.View, Optional[Mapping]) -> ViewContext
     # Note that we ship a enhanced version for 'folder' if you have multiple
     # folders open in a window. See `guess_project_root_of_view`.
 
@@ -421,6 +421,7 @@ def get_view_context(view, additional_context=None):
         context['file_extension'] = file_extension
 
     context['canonical_filename'] = util.canonical_filename(view)
+    context['short_canonical_filename'] = util.short_canonical_filename(view)
 
     if additional_context:
         context.update(additional_context)
@@ -680,7 +681,7 @@ class Linter(metaclass=LinterMeta):
     name = ''
     logger = None  # type: logging.Logger
 
-    if MYPY:
+    if TYPE_CHECKING:
         _CmdDefinition = Union[str, List[str], Tuple[str, ...]]
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
@@ -1278,7 +1279,7 @@ class Linter(metaclass=LinterMeta):
             )
             raise PermanentError("regex not defined")
 
-        if MYPY:
+        if TYPE_CHECKING:
             assert isinstance(self.regex, Pattern)
             match = None  # type: Optional[Match]
 

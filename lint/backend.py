@@ -1,8 +1,10 @@
+from __future__ import annotations
 import sublime
 
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from contextlib import contextmanager
+from dataclasses import dataclass
 from itertools import chain, count
 from functools import lru_cache, partial
 import hashlib
@@ -17,18 +19,27 @@ from . import events, linter as linter_module, persist, style, util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, Dict, Iterator, List, Optional, Tuple, TypeVar
+    from typing import Callable, Iterator, Optional, TypeVar
+    from typing_extensions import TypeAlias
     from .persist import LintError
     from .elect import LinterInfo
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
 
     T = TypeVar('T')
-    LintResult = List[LintError]
+    LintResult: TypeAlias[list] = "list[LintError]"
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
     FileName = str
     LinterName = str
+    ViewContext = linter_module.ViewContext
+
+
+@dataclass(frozen=True)
+class LintJob:
+    linter_name: LinterName
+    ctx: ViewContext
+    tasks: list[Task[LintResult]]
 
 
 logger = logging.getLogger(__name__)
@@ -43,37 +54,34 @@ counter_lock = threading.Lock()
 
 
 def lint_view(
-    linters,           # type: List[LinterInfo]
+    linters,           # type: list[LinterInfo]
     view,              # type: sublime.View
     view_has_changed,  # type: ViewChangedFn
-    next               # type: Callable[[LinterName, LintResult], None]
+    sink               # type: Callable[[LinterName, LintResult], None]
 ):
     # type: (...) -> None
     """Lint the given view.
 
     This is the top level lint dispatcher. It falls through.
     """
-    lint_tasks = {
-        linter.name: tasks
+    lint_jobs = [
+        LintJob(linter.name, linter.context, tasks)
         for linter in linters
         if (tasks := list(tasks_per_linter(view, view_has_changed, linter)))
-    }
-    warn_excessive_tasks(view, lint_tasks)
+    ]
+    warn_excessive_tasks(lint_jobs)
 
-    for linter_name, tasks in lint_tasks.items():
-        orchestrator.submit(
-            partial(run_tasks, linter_name, view, tasks, next=partial(next, linter_name))
-        )
+    for job in lint_jobs:
+        orchestrator.submit(run_tasks, job, sink)
 
 
-def run_tasks(linter_name, view, tasks, next):
-    # type: (LinterName, sublime.View, List[Task[LintResult]], Callable[[LintResult], None]) -> None
-    with broadcast_lint_runtime(util.canonical_filename(view), linter_name):
+def run_tasks(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+    with broadcast_lint_runtime(job.ctx["canonical_filename"], job.linter_name):
         with remember_runtime(
             "Linting '{}' with {} took {{:.2f}}s"
-            .format(util.short_canonical_filename(view), linter_name)
+            .format(job.ctx["short_canonical_filename"], job.linter_name)
         ):
-            results = run_concurrently(tasks, executor=executor)
+            results = run_concurrently(job.tasks, executor=executor)
 
     if results is None:
         return  # ABORT
@@ -83,27 +91,26 @@ def run_tasks(linter_name, view, tasks, next):
     # We don't want to guarantee that our consumers/views are thread aware.
     # So we merge here into Sublime's shared worker thread. Sublime guarantees
     # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(lambda: next(errors))
+    sublime.set_timeout_async(lambda: sink(job.linter_name, errors))
 
 
-def warn_excessive_tasks(view, uow):
-    # type: (sublime.View, Dict[LinterName, List[Task[LintResult]]]) -> None
-    total_tasks = sum(len(tasks) for tasks in uow.values())
+def warn_excessive_tasks(jobs: list[LintJob]) -> None:
+    total_tasks = sum(len(job.tasks) for job in jobs)
     if total_tasks > 4:
-        linter_info = ", ".join(
-            "{}x {}".format(len(tasks), linter_name)
-            for linter_name, tasks in uow.items()
+        details = ", ".join(
+            "{}x {}".format(len(job.tasks), job.linter_name)
+            for job in jobs
         )
         excess_warning(
             "'{}' puts in total {}(!) tasks on the queue:  {}."
-            .format(util.short_canonical_filename(view), total_tasks, linter_info)
+            .format(jobs[0].ctx["short_canonical_filename"], total_tasks, details)
         )
     else:
-        for linter_name, tasks in uow.items():
-            if len(tasks) > 3:
+        for job in jobs:
+            if len(job.tasks) > 3:
                 excess_warning(
                     "'{}' puts {} {} tasks on the queue."
-                    .format(util.short_canonical_filename(view), len(tasks), linter_name)
+                    .format(job.ctx["short_canonical_filename"], len(job.tasks), job.linter_name)
                 )
 
 
@@ -148,7 +155,7 @@ def modify_thread_name(name, sink):
 
 
 def execute_lint_task(linter, code, offsets, view_has_changed):
-    # type: (Linter, str, Tuple, ViewChangedFn) -> LintResult
+    # type: (Linter, str, tuple, ViewChangedFn) -> LintResult
     try:
         errors = linter.lint(code, view_has_changed)
         finalize_errors(linter, errors, offsets)
@@ -189,7 +196,7 @@ def make_error_uid(error):
 
 
 def finalize_errors(linter, errors, offsets):
-    # type: (Linter, List[LintError], Tuple[int, ...]) -> None
+    # type: (Linter, list[LintError], tuple[int, ...]) -> None
     linter_name = linter.name
     view = linter.view
     eof = view.size()
@@ -231,7 +238,7 @@ def finalize_errors(linter, errors, offsets):
 
 
 def run_concurrently(tasks, executor):
-    # type: (List[Task[T]], ThreadPoolExecutor) -> Optional[List[T]]
+    # type: (list[Task[T]], ThreadPoolExecutor) -> Optional[list[T]]
     work = [executor.submit(task) for task in tasks]
     done, not_done = wait(work, return_when=FIRST_EXCEPTION)
 

@@ -1,15 +1,18 @@
 import sublime
 
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from contextlib import contextmanager
 from itertools import chain, count
 from functools import lru_cache, partial
 import hashlib
 import logging
 import multiprocessing
 import os
+import time
 import threading
 
-from . import linter as linter_module, style, util
+from . import events, linter as linter_module, persist, style, util
 
 
 MYPY = False
@@ -24,6 +27,7 @@ if MYPY:
     LintResult = List[LintError]
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
+    FileName = str
     LinterName = str
 
 
@@ -47,24 +51,30 @@ def lint_view(
     # type: (...) -> None
     """Lint the given view.
 
-    This is the top level lint dispatcher. It is called
-    asynchronously.
+    This is the top level lint dispatcher. It falls through.
     """
     lint_tasks = {
-        linter.name: list(tasks_per_linter(view, view_has_changed, linter))
+        linter.name: tasks
         for linter in linters
+        if (tasks := list(tasks_per_linter(view, view_has_changed, linter)))
     }
     warn_excessive_tasks(view, lint_tasks)
 
-    run_concurrently([
-        partial(run_tasks, tasks, next=partial(next, linter_name))
-        for linter_name, tasks in lint_tasks.items()
-    ], executor=orchestrator)
+    for linter_name, tasks in lint_tasks.items():
+        orchestrator.submit(
+            partial(run_tasks, linter_name, view, tasks, next=partial(next, linter_name))
+        )
 
 
-def run_tasks(tasks, next):
-    # type: (List[Task[LintResult]], Callable[[LintResult], None]) -> None
-    results = run_concurrently(tasks, executor=executor)
+def run_tasks(linter_name, view, tasks, next):
+    # type: (LinterName, sublime.View, List[Task[LintResult]], Callable[[LintResult], None]) -> None
+    with broadcast_lint_runtime(util.canonical_filename(view), linter_name):
+        with remember_runtime(
+            "Linting '{}' with {} took {{:.2f}}s"
+            .format(util.short_canonical_filename(view), linter_name)
+        ):
+            results = run_concurrently(tasks, executor=executor)
+
     if results is None:
         return  # ABORT
 
@@ -235,3 +245,45 @@ def run_concurrently(tasks, executor):
         # actual task/future. But it will also catch 'CancelledError's from
         # the executor machinery.
         return None
+
+
+global_lock = threading.RLock()
+elapsed_runtimes = deque([0.6] * 3, maxlen=10)
+MIN_DEBOUNCE_DELAY = 0.0005
+MAX_AUTOMATIC_DELAY = 2.0
+
+
+def get_delay():
+    # type: () -> float
+    """Return the delay between a lint request and when it will be processed."""
+    runtimes = sorted(elapsed_runtimes)
+    middle = runtimes[len(runtimes) // 2]
+    return max(
+        max(MIN_DEBOUNCE_DELAY, float(persist.settings.get('delay'))),
+        min(MAX_AUTOMATIC_DELAY, middle / 2)
+    )
+
+
+@contextmanager
+def remember_runtime(log_msg):
+    # type: (str) -> Iterator[None]
+    start_time = time.perf_counter()
+
+    yield
+
+    end_time = time.perf_counter()
+    runtime = end_time - start_time
+    logger.info(log_msg.format(runtime))
+
+    with global_lock:
+        elapsed_runtimes.append(runtime)
+
+
+@contextmanager
+def broadcast_lint_runtime(filename, linter_name):
+    # type: (FileName, LinterName) -> Iterator[None]
+    events.broadcast(events.LINT_START, {'filename': filename, 'linter_name': linter_name})
+    try:
+        yield
+    finally:
+        events.broadcast(events.LINT_END, {'filename': filename, 'linter_name': linter_name})

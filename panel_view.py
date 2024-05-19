@@ -259,11 +259,23 @@ def toggle_panel_if_errors(window, filenames):
     if show_panel_on_save == 'never':
         return
 
+    ignored_error_types = persist.settings.get('show_panel_on_save.ignored_error_types')
     errors_by_file = get_window_errors(window, persist.file_errors)
-    has_relevant_errors = (
-        show_panel_on_save == 'window' and errors_by_file
-        or filenames & errors_by_file.keys()
-    )
+
+    if show_panel_on_save == 'window':
+        has_relevant_errors = any(
+            error['error_type'] not in ignored_error_types
+            for errors in errors_by_file.values()
+            for error in errors
+        )
+    elif show_panel_on_save == 'view':
+        has_relevant_errors = any(
+            error["error_type"] not in ignored_error_types
+            for filename in filenames
+            if filename in errors_by_file
+            for error in errors_by_file[filename])
+    else:
+        return
 
     if not panel_is_active(window) and has_relevant_errors:
         window.run_command("show_panel", {"panel": OUTPUT_PANEL})

@@ -141,6 +141,10 @@
             "type":"string",
             "enum": ["never", "view", "window"]
         },
+        "show_panel_on_save.ignored_error_types":{
+            "type":"array",
+            "items":{"type":"string"}
+        },
         "syntax_map":{
             "type":"object"
         },

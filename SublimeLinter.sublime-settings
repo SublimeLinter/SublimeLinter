@@ -163,6 +163,10 @@
     // - never: disable this feature.
     "show_panel_on_save": "never",
 
+    // A list of error types to ignore when showing the output panel on save.
+    // E.g. ["warning"]
+    "show_panel_on_save.ignored_error_types": [],
+
     // DEPRECATED: Not in use! Remove the setting from your User settings
     // to avoid future warnings.
     "statusbar.counters_template": "",

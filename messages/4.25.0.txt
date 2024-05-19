@@ -1,7 +1,7 @@
 SublimeLinter 4.25.0
 
 
---- @WZ-Tong implemeted `show_panel_on_save.ignored_error_types` to suppress
+--- @WZ-Tong implemented `show_panel_on_save.ignored_error_types` to suppress
     the automatic panel popup for certain error types.
 
     You could set it to `["info", "hint"]` for example.

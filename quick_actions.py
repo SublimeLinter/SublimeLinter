@@ -8,12 +8,14 @@ from .lint import util
 
 MYPY = False
 if MYPY:
-    from typing import Callable, List, Optional
-    from mypy_extensions import TypedDict
+    from typing import Callable, List, Optional, TypedDict
 
     LintError = persist.LintError
     QuickAction = quick_fix.QuickAction
-    Event = TypedDict("Event", {"x": float, "y": float})
+
+    class Event(TypedDict):
+        x: float
+        y: float
 
 
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):

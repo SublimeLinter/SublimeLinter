@@ -15,9 +15,8 @@ MYPY = False
 if MYPY:
     from typing import (
         Any, Callable, Collection, Dict, Iterable, List, Optional, Set,
-        Tuple, TypeVar, Union
+        Tuple, TypedDict, TypeVar, Union
     )
-    from mypy_extensions import TypedDict
     from .lint.persist import LintError
 
     T = TypeVar('T')
@@ -25,20 +24,21 @@ if MYPY:
     FileName = persist.FileName
     LinterName = persist.LinterName
     Reason = Optional[str]
-    State_ = TypedDict('State_', {
-        'active_view': Optional[sublime.View],
-        'active_filename': Optional[str],
-        'cursor': int,
-        'panel_opened_automatically': Set[sublime.WindowId]
-    })
-    ErrorsByFile = Dict[FileName, List[LintError]]
-    DrawInfo = TypedDict('DrawInfo', {
-        'panel': sublime.View,
-        'content': str,
-        'errors_from_active_view': List[LintError],
-        'nearby_lines': Union[int, List[int]]
-    }, total=False)
+
+    class State_(TypedDict):
+        active_view: Optional[sublime.View]
+        active_filename: Optional[str]
+        cursor: int
+        panel_opened_automatically: Set[sublime.WindowId]
+
+    class DrawInfo(TypedDict, total=False):
+        panel: sublime.View
+        content: str
+        errors_from_active_view: List[LintError]
+        nearby_lines: Union[int, List[int]]
+
     Action = Callable[[], None]
+    ErrorsByFile = Dict[FileName, List[LintError]]
 
 
 PANEL_NAME = "SublimeLinter"

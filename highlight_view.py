@@ -19,9 +19,8 @@ MYPY = False
 if MYPY:
     from typing import (
         Callable, DefaultDict, Dict, FrozenSet, Hashable, Iterable, List,
-        Mapping, Optional, Set, Tuple, TypeVar, Union
+        Mapping, Optional, Set, Tuple, TypedDict, TypeVar, Union
     )
-    from mypy_extensions import TypedDict
     T = TypeVar('T')
     LintError = persist.LintError
     LinterName = persist.LinterName
@@ -34,14 +33,13 @@ if MYPY:
     ProtectedRegions = List[sublime.Region]
     RegionKey = Union['GutterIcon', 'Squiggle']
 
-    State_ = TypedDict('State_', {
-        'active_view': Optional[sublime.View],
-        'current_sel': Tuple[sublime.Region, ...],
-        'idle_views': Set[sublime.ViewId],
-        'quiet_views': Set[sublime.ViewId],
-        'views_without_phantoms': Set[sublime.ViewId],
-        'views': Set[sublime.ViewId]
-    })
+    class State_(TypedDict):
+        active_view: Optional[sublime.View]
+        current_sel: Tuple[sublime.Region, ...]
+        idle_views: Set[sublime.ViewId]
+        quiet_views: Set[sublime.ViewId]
+        views_without_phantoms: Set[sublime.ViewId]
+        views: Set[sublime.ViewId]
 
     DemotePredicate = Callable[[LintError], bool]
     FilteredErrors = Tuple[List[LintError], List[LintError]]

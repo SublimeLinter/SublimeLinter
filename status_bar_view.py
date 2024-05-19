@@ -6,17 +6,16 @@ from .lint import persist, events, util
 
 MYPY = False
 if MYPY:
-    from typing import Iterable, Optional
-    from mypy_extensions import TypedDict
+    from typing import Iterable, Optional, TypedDict
 
     FileName = str
     LinterName = str
     LintError = persist.LintError
-    State_ = TypedDict('State_', {
-        'active_view': Optional[sublime.View],
-        'active_filename': Optional[FileName],
-        'current_pos': int
-    })
+
+    class State_(TypedDict):
+        active_view: Optional[sublime.View]
+        active_filename: Optional[FileName]
+        current_pos: int
 
 
 STATUS_COUNTER_KEY = "sublime_linter_status_counter"

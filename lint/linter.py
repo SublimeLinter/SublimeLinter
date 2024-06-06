@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache
 import inspect
-from itertools import chain
+from itertools import accumulate, chain
 import logging
 import os
 import re
@@ -146,20 +146,19 @@ class PermanentError(Exception):
 # HTML-file. The tiny `VirtualView` is just enough code, so we can get the
 # source code of a line, the linter reported to be problematic.
 class VirtualView:
-    def __init__(self, code=''):
+    def __init__(self, code: str = ''):
         self._code = code
-        self._newlines = newlines = [0]
-        last = -1
-
-        while True:
-            last = code.find('\n', last + 1)
-
-            if last == -1:
-                break
-
-            newlines.append(last + 1)
-
-        newlines.append(len(code))
+        newlines = list(accumulate(
+            map(len, code.splitlines(keepends=True)),
+            initial=0
+        ))
+        # A trailing "\n" *begins* a new line.
+        # Refer the two interpretations of "split":
+        #   "mypy\n".splitlines(keepends=True) == ['mypy\n']
+        #   "mypy\n".split("\n")               == ['mypy', '']
+        if code.endswith("\n"):
+            newlines.append(len(code))
+        self._newlines = newlines
 
     def full_line(self, line):
         # type: (int) -> Tuple[int, int]

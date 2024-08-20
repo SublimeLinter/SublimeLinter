@@ -138,10 +138,10 @@ Use the [template](https://github.com/SublimeLinter/SublimeLinter-template) to g
 It contains a how-to with all the information you need. Refer to <https://www.sublimelinter.com/en/master/linter_plugin.html> for more detailed information. Of course, take a look at a similar linter plugin and let it inspire you.
 
 
-## Also Support :heart:
+## Also Support ❤️
 
 SublimeLinter is the kind of software that needs active maintenance all the time.
 If you find SublimeLinter helpful and would like to show your appreciation, you can support
-its development by buying me a coffee! :smile::coffee: <https://paypal.me/herrkaste>
+its development by buying me a coffee! 😄☕️ <https://paypal.me/herrkaste>
 
-:smirk:
+😏

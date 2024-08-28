@@ -21,6 +21,7 @@ class RubyLinter(linter.Linter):
     - Support for rbenv and rvm (via rvm-auto-ruby).
 
     """
+    __abstract__ = True
 
     def context_sensitive_executable_path(self, cmd):
         """

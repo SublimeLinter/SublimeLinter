@@ -47,6 +47,7 @@ class PythonLinter(linter.Linter):
     - Searches and sets `project_root` which in turn affects which
       `working_dir` we will use (if not overridden by the user).
     """
+    __abstract__ = True
 
     config_file_names = (".flake8", "pytest.ini", ".pylintrc")
     """File or directory names that would count as marking the root of a project.

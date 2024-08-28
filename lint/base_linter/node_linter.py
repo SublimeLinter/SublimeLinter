@@ -64,6 +64,7 @@ class NodeLinter(linter.Linter):
     By doing so, they automatically get the following features:
 
     """
+    __abstract__ = True
 
     def context_sensitive_executable_path(self, cmd):
         # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]

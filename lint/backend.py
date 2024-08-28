@@ -133,6 +133,7 @@ def extract_lintable_regions(view, selector):
 
 
 def make_good_task_name(linter, view):
+    # type: (Linter, sublime.View) -> str
     with counter_lock:
         task_number = next(task_count)
 
@@ -142,6 +143,7 @@ def make_good_task_name(linter, view):
 
 
 def modify_thread_name(name, sink):
+    # type: (str, Callable[..., T]) -> T
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = name

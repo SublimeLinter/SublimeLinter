@@ -1,11 +1,9 @@
 """This module provides the SublimeLinter plugin class and supporting methods."""
 
-from collections import defaultdict, deque
-from contextlib import contextmanager
+from collections import defaultdict
 from functools import partial
 from itertools import chain
 import logging
-import time
 import threading
 
 import sublime
@@ -27,7 +25,7 @@ from .lint.util import flash
 
 MYPY = False
 if MYPY:
-    from typing import Callable, DefaultDict, Dict, Iterator, List, Optional, Set, Tuple
+    from typing import Callable, DefaultDict, Dict, List, Optional, Set, Tuple
 
     Bid = sublime.BufferId
     LinterName = str
@@ -37,8 +35,6 @@ if MYPY:
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
     ViewChangedFn = Callable[[], bool]
-
-    LinterInfo = elect.LinterInfo
 
 
 logger = logging.getLogger(__name__)
@@ -157,7 +153,6 @@ def other_visible_views():
             yield view
 
 
-global_lock = threading.RLock()
 guard_check_linters_for_view = defaultdict(threading.Lock)  # type: DefaultDict[Bid, threading.Lock]
 buffer_filenames = {}  # type: Dict[Bid, FileName]
 buffer_base_scopes = {}  # type: Dict[Bid, str]
@@ -289,7 +284,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
         return (
             util.is_lintable(self.view)
             and any(
-                info["settings"].get("lint_mode") != "background"
+                info.settings.get("lint_mode") != "background"
                 for info in elect.runnable_linters_for_view(self.view, "on_user_request")
             )
         ) if event else True
@@ -303,7 +298,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
             return
 
         runnable_linters = [
-            info["name"]
+            info.name
             for info in elect.filter_runnable_linters(assignable_linters)
         ]
         if not runnable_linters:
@@ -335,7 +330,7 @@ def hit(view, reason):
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
-    delay = get_delay() if reason == 'on_modified' else 0.0
+    delay = backend.get_delay() if reason == 'on_modified' else 0.0
     logger.info(
         "Delay linting '{}' for {:.2}s"
         .format(util.short_canonical_filename(view), delay)
@@ -348,10 +343,7 @@ def hit(view, reason):
 
 def lint(view, view_has_changed, lock, reason):
     # type: (sublime.View, ViewChangedFn, threading.Lock, Reason) -> None
-    """Lint the view with the given id.
-
-    This function MUST run on a thread because it blocks!
-    """
+    """Lint the view with the given id."""
     if view.settings().get(IS_ENABLED_SWITCH) is False:
         linters = []
     else:
@@ -360,7 +352,7 @@ def lint(view, view_has_changed, lock, reason):
             logger.info("No installed linter matches the view.")
 
     with lock:
-        _assign_linters_to_view(view, {linter['name'] for linter in linters})
+        _assign_linters_to_view(view, {linter.name for linter in linters})
 
     runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:
@@ -378,12 +370,9 @@ def lint(view, view_has_changed, lock, reason):
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    with broadcast_lint_runtime(filename), remember_runtime(
-        "Linting '{}' took {{:.2f}}s".format(util.short_canonical_filename(view))
-    ):
-        sink = partial(
-            group_by_filename_and_update, window, filename, view_has_changed, reason)
-        backend.lint_view(runnable_linters, view, view_has_changed, sink)
+    sink = partial(
+        group_by_filename_and_update, window, filename, view_has_changed, reason)
+    backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
 
 def kill_active_popen_calls(bid):
@@ -562,44 +551,3 @@ def make_view_has_changed_fn(view):
         return False
 
     return view_has_changed
-
-
-elapsed_runtimes = deque([0.6] * 3, maxlen=10)
-MIN_DEBOUNCE_DELAY = 0.0005
-MAX_AUTOMATIC_DELAY = 2.0
-
-
-def get_delay():
-    # type: () -> float
-    """Return the delay between a lint request and when it will be processed."""
-    runtimes = sorted(elapsed_runtimes)
-    middle = runtimes[len(runtimes) // 2]
-    return max(
-        max(MIN_DEBOUNCE_DELAY, float(persist.settings.get('delay'))),
-        min(MAX_AUTOMATIC_DELAY, middle / 2)
-    )
-
-
-@contextmanager
-def remember_runtime(log_msg):
-    # type: (str) -> Iterator[None]
-    start_time = time.perf_counter()
-
-    yield
-
-    end_time = time.perf_counter()
-    runtime = end_time - start_time
-    logger.info(log_msg.format(runtime))
-
-    with global_lock:
-        elapsed_runtimes.append(runtime)
-
-
-@contextmanager
-def broadcast_lint_runtime(filename):
-    # type: (FileName) -> Iterator[None]
-    events.broadcast(events.LINT_START, {'filename': filename})
-    try:
-        yield
-    finally:
-        events.broadcast(events.LINT_END, {'filename': filename})

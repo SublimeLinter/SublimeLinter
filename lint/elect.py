@@ -1,5 +1,7 @@
+from __future__ import annotations
 import sublime
 
+from dataclasses import dataclass
 from functools import lru_cache
 import logging
 import os
@@ -8,21 +10,24 @@ from . import linter as linter_module
 from . import persist
 
 
-MYPY = False
-if MYPY:
-    from typing import Iterable, Iterator, Optional, Type, TypedDict
+from typing import Iterable, Iterator
 
-    Linter = linter_module.Linter
-    LinterName = str
-    LinterSettings = linter_module.LinterSettings
-    LintError = persist.LintError
-    Reason = str
+Linter = linter_module.Linter
+LinterName = str
+LinterSettings = linter_module.LinterSettings
+LintError = persist.LintError
+Reason = str
+ViewContext = linter_module.ViewContext
 
-    class LinterInfo(TypedDict):
-        name: LinterName
-        klass: Type[Linter]
-        settings: LinterSettings
-        runnable: bool
+
+@dataclass(frozen=True)
+class LinterInfo:
+    name: LinterName
+    klass: type[Linter]
+    settings: LinterSettings
+    context: ViewContext
+    regions: list[sublime.Region]
+    runnable: bool
 
 
 logger = logging.getLogger(__name__)
@@ -46,13 +51,18 @@ def assignable_linters_for_view(view, reason):
     ctx = linter_module.get_view_context(view, {'reason': reason})
     for name, klass in persist.linter_classes.items():
         settings = linter_module.get_linter_settings(klass, view, ctx)
-        if klass.can_lint_view(view, settings):
-            yield {
-                'name': name,
-                'klass': klass,
-                'settings': settings,
-                'runnable': can_run_now(view, reason, klass, settings)
-            }
+        if (
+            klass.can_lint_view(view, settings)
+            and (regions := klass.match_selector(view, settings))
+        ):
+            yield LinterInfo(
+                name=name,
+                klass=klass,
+                settings=settings,
+                context=ctx,
+                regions=regions,
+                runnable=can_run_now(view, reason, klass, settings),
+            )
 
 
 def runnable_linters_for_view(view, reason):
@@ -62,16 +72,16 @@ def runnable_linters_for_view(view, reason):
 
 def filter_runnable_linters(linters):
     # type: (Iterable[LinterInfo]) -> Iterator[LinterInfo]
-    return (linter for linter in linters if linter['runnable'])
+    return (linter for linter in linters if linter.runnable)
 
 
 def can_run_now(view, reason, linter, settings):
-    # type: (sublime.View, Reason, Type[Linter], LinterSettings) -> bool
+    # type: (sublime.View, Reason, type[Linter], LinterSettings) -> bool
     return linter.should_lint(view, settings, reason)
 
 
 def flash_once(window, message):
-    # type: (Optional[sublime.Window], str) -> None
+    # type: (sublime.Window | None, str) -> None
     if window:
         _flash_once(window.id(), message)
 

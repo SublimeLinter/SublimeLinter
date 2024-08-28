@@ -1,30 +1,48 @@
+from __future__ import annotations
 import sublime
 
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from contextlib import contextmanager
+from dataclasses import dataclass
 from itertools import chain, count
 from functools import lru_cache, partial
 import hashlib
 import logging
 import multiprocessing
 import os
+import time
 import threading
+import traceback
 
-from . import linter as linter_module, style, util
+from . import events, linter as linter_module, persist, style, util
 
 
 MYPY = False
 if MYPY:
-    from typing import Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
+    from typing import Callable, Iterator, TypeVar
+    from typing_extensions import TypeAlias
     from .persist import LintError
     from .elect import LinterInfo
+    from typing_extensions import ParamSpec
     Linter = linter_module.Linter
     LinterSettings = linter_module.LinterSettings
 
     T = TypeVar('T')
-    LintResult = List[LintError]
+    P = ParamSpec('P')
+    LintResult: TypeAlias[list] = "list[LintError]"
     Task = Callable[[], T]
     ViewChangedFn = Callable[[], bool]
+    FileName = str
     LinterName = str
+    ViewContext = linter_module.ViewContext
+
+
+@dataclass(frozen=True)
+class LintJob:
+    linter_name: LinterName
+    ctx: ViewContext
+    tasks: list[Task[LintResult]]
 
 
 logger = logging.getLogger(__name__)
@@ -39,135 +57,71 @@ counter_lock = threading.Lock()
 
 
 def lint_view(
-    linters,           # type: List[LinterInfo]
+    linters,           # type: list[LinterInfo]
     view,              # type: sublime.View
     view_has_changed,  # type: ViewChangedFn
-    next               # type: Callable[[LinterName, LintResult], None]
+    sink               # type: Callable[[LinterName, LintResult], None]
 ):
     # type: (...) -> None
     """Lint the given view.
 
-    This is the top level lint dispatcher. It is called
-    asynchronously.
+    This is the top level lint dispatcher. It falls through.
     """
-    lint_tasks = {
-        linter['name']: list(tasks_per_linter(view, view_has_changed, linter['klass'], linter['settings']))
+    lint_jobs = [
+        LintJob(linter.name, linter.context, tasks)
         for linter in linters
-    }
-    warn_excessive_tasks(view, lint_tasks)
+        if (tasks := list(tasks_per_linter(view, view_has_changed, linter)))
+    ]
+    warn_excessive_tasks(lint_jobs)
 
-    run_concurrently([
-        partial(run_tasks, tasks, next=partial(next, linter_name))
-        for linter_name, tasks in lint_tasks.items()
-    ], executor=orchestrator)
-
-
-def run_tasks(tasks, next):
-    # type: (List[Task[LintResult]], Callable[[LintResult], None]) -> None
-    results = run_concurrently(tasks, executor=executor)
-    if results is None:
-        return  # ABORT
-
-    errors = list(chain.from_iterable(results))  # flatten and consume
-
-    # We don't want to guarantee that our consumers/views are thread aware.
-    # So we merge here into Sublime's shared worker thread. Sublime guarantees
-    # here to execute all scheduled tasks ordered and sequentially.
-    sublime.set_timeout_async(lambda: next(errors))
+    for job in lint_jobs:
+        # Explicitly catch all unhandled errors because we fire-and-forget!
+        orchestrator.submit(print_all_exceptions(run_job), job, sink)
 
 
-def warn_excessive_tasks(view, uow):
-    # type: (sublime.View, Dict[LinterName, List[Task[LintResult]]]) -> None
-    total_tasks = sum(len(tasks) for tasks in uow.values())
-    if total_tasks > 4:
-        linter_info = ", ".join(
-            "{}x {}".format(len(tasks), linter_name)
-            for linter_name, tasks in uow.items()
-        )
-        excess_warning(
-            "'{}' puts in total {}(!) tasks on the queue:  {}."
-            .format(util.short_canonical_filename(view), total_tasks, linter_info)
-        )
-    else:
-        for linter_name, tasks in uow.items():
-            if len(tasks) > 3:
-                excess_warning(
-                    "'{}' puts {} {} tasks on the queue."
-                    .format(util.short_canonical_filename(view), len(tasks), linter_name)
-                )
-
-
-@lru_cache(4)
-def excess_warning(msg):
-    # type: (str) -> None
-    logger.warning(msg)
-
-
-def tasks_per_linter(view, view_has_changed, linter_class, settings):
-    # type: (sublime.View, ViewChangedFn, Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
-    selector = settings.get('selector')
-    if selector is None:
-        return
-
-    for region in extract_lintable_regions(view, selector):
-        linter = linter_class(view, settings.clone())
+def tasks_per_linter(view, view_has_changed, linter_info):
+    # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
+    for region in linter_info.regions:
+        linter = linter_info.klass(view, linter_info.settings)
         code = view.substr(region)
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
-        # Due to a limitation in python 3.3, we cannot 'name' a thread when
-        # using the ThreadPoolExecutor. (This feature has been introduced
-        # in python 3.6.) So, we do this manually.
-        task_name = make_good_task_name(linter, view)
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
-        executor = partial(modify_thread_name, task_name, task)
+        executor = partial(modify_thread_name, linter_info, task)
         yield executor
 
 
-def extract_lintable_regions(view, selector):
-    # type: (sublime.View, str) -> List[sublime.Region]
-    # Inspecting just the first char is faster
-    if view.score_selector(0, selector):
-        return [sublime.Region(0, view.size())]
-    else:
-        return [region for region in view.find_by_selector(selector)]
-
-
-def make_good_task_name(linter, view):
-    # type: (Linter, sublime.View) -> str
-    with counter_lock:
-        task_number = next(task_count)
-
-    short_canonical_filename = util.short_canonical_filename(view)
-    return 'LintTask|{}|{}|{}|{}'.format(
-        task_number, linter.name, short_canonical_filename, view.id())
-
-
-def modify_thread_name(name, sink):
-    # type: (str, Callable[..., T]) -> T
+def modify_thread_name(linter_info: LinterInfo, sink: Callable[[], T]) -> T:
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
-    threading.current_thread().name = name
+    threading.current_thread().name = make_good_task_name(linter_info)
     try:
         return sink()
     finally:
         threading.current_thread().name = original_name
 
 
+def make_good_task_name(linter: LinterInfo) -> str:
+    with counter_lock:
+        task_number = next(task_count)
+
+    return 'LintTask|{}|{}|{}|{}'.format(
+        task_number,
+        linter.name,
+        linter.context["short_canonical_filename"],
+        linter.context["view_id"]
+    )
+
+
 def execute_lint_task(linter, code, offsets, view_has_changed):
-    # type: (Linter, str, Tuple, ViewChangedFn) -> LintResult
+    # type: (Linter, str, tuple, ViewChangedFn) -> LintResult
     try:
         errors = linter.lint(code, view_has_changed)
         finalize_errors(linter, errors, offsets)
         return errors
     except linter_module.TransientError:
         # For `TransientError`s we want to omit calling the `sink` at all.
-        # Usually achieved by a `return None` (see: `run_tasks`). Here we
-        # throw to abort all other tasks submitted (see: `run_concurrently`).
-        # It's a bit stinky but good enough for our purpose.
-        # Note that `run_concurrently` turns the whole result into a `None`,
-        # making in turn the `result is None` check in `run_tasks` trivial.
-        # If we were to return a `None` just here, we had to check
-        # `None in result` instead. ¯\_(ツ)_/¯
+        # Raise to abort in `run_job`.
         raise
     except linter_module.PermanentError:
         return []  # Empty list here to clear old errors
@@ -178,24 +132,8 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
-PROPERTIES_FOR_UID = (
-    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
-)
-
-
-def make_error_uid(error):
-    # type: (LintError) -> str
-    return hashlib.sha256(
-        ''.join(
-            str(error[k])  # type: ignore
-            for k in PROPERTIES_FOR_UID
-        )
-        .encode('utf-8')
-    ).hexdigest()
-
-
 def finalize_errors(linter, errors, offsets):
-    # type: (Linter, List[LintError], Tuple[int, ...]) -> None
+    # type: (Linter, list[LintError], tuple[int, ...]) -> None
     linter_name = linter.name
     view = linter.view
     eof = view.size()
@@ -236,18 +174,123 @@ def finalize_errors(linter, errors, offsets):
         })
 
 
+PROPERTIES_FOR_UID = (
+    'filename', 'linter', 'line', 'start', 'error_type', 'code', 'msg',
+)
+
+
+def make_error_uid(error):
+    # type: (LintError) -> str
+    return hashlib.sha256(
+        ''.join(
+            str(error[k])  # type: ignore
+            for k in PROPERTIES_FOR_UID
+        )
+        .encode('utf-8')
+    ).hexdigest()
+
+
+def warn_excessive_tasks(jobs: list[LintJob]) -> None:
+    total_tasks = sum(len(job.tasks) for job in jobs)
+    if total_tasks > 4:
+        details = ", ".join(
+            "{}x {}".format(len(job.tasks), job.linter_name)
+            for job in jobs
+        )
+        excess_warning(
+            "'{}' puts in total {}(!) tasks on the queue:  {}."
+            .format(jobs[0].ctx["short_canonical_filename"], total_tasks, details)
+        )
+    else:
+        for job in jobs:
+            if len(job.tasks) > 3:
+                excess_warning(
+                    "'{}' puts {} {} tasks on the queue."
+                    .format(job.ctx["short_canonical_filename"], len(job.tasks), job.linter_name)
+                )
+
+
+@lru_cache(4)
+def excess_warning(msg):
+    # type: (str) -> None
+    logger.warning(msg)
+
+
+def print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
+    def inner(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+    return inner
+
+
+def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+    with broadcast_lint_runtime(job), remember_runtime(job):
+        try:
+            results = run_concurrently(job.tasks, executor=executor)
+        except linter_module.TransientError:
+            return  # ABORT
+        except Exception:
+            traceback.print_exc()
+            return  # ABORT
+
+    errors = list(chain.from_iterable(results))  # flatten and consume
+
+    # We don't want to guarantee that our consumers/views are thread aware.
+    # So we merge here into Sublime's shared worker thread. Sublime guarantees
+    # here to execute all scheduled tasks ordered and sequentially.
+    sublime.set_timeout_async(lambda: sink(job.linter_name, errors))
+
+
 def run_concurrently(tasks, executor):
-    # type: (List[Task[T]], ThreadPoolExecutor) -> Optional[List[T]]
+    # type: (list[Task[T]], ThreadPoolExecutor) -> list[T]
     work = [executor.submit(task) for task in tasks]
     done, not_done = wait(work, return_when=FIRST_EXCEPTION)
 
     for future in not_done:
         future.cancel()
 
+    return [future.result() for future in done]
+
+
+global_lock = threading.RLock()
+elapsed_runtimes = deque([0.6] * 3, maxlen=10)
+MIN_DEBOUNCE_DELAY = 0.0005
+MAX_AUTOMATIC_DELAY = 2.0
+
+
+def get_delay():
+    # type: () -> float
+    """Return the delay between a lint request and when it will be processed."""
+    runtimes = sorted(elapsed_runtimes)
+    middle = runtimes[len(runtimes) // 2]
+    return max(
+        max(MIN_DEBOUNCE_DELAY, float(persist.settings.get('delay'))),
+        min(MAX_AUTOMATIC_DELAY, middle / 2)
+    )
+
+
+@contextmanager
+def remember_runtime(job: LintJob) -> Iterator[None]:
+    start_time = time.perf_counter()
+    yield
+    end_time = time.perf_counter()
+    runtime = end_time - start_time
+    with global_lock:
+        elapsed_runtimes.append(runtime)
+
+    logger.info(
+        "Linting '{}' with {} took {:.2f}s"
+        .format(job.ctx["short_canonical_filename"], job.linter_name, runtime)
+    )
+
+
+@contextmanager
+def broadcast_lint_runtime(job: LintJob) -> Iterator[None]:
+    payload = {'filename': job.ctx["canonical_filename"], 'linter_name': job.linter_name}
+    events.broadcast(events.LINT_START, payload)
     try:
-        return [future.result() for future in done]
-    except Exception:
-        # The catch-all will obviously catch any exceptions coming from the
-        # actual task/future. But it will also catch 'CancelledError's from
-        # the executor machinery.
-        return None
+        yield
+    finally:
+        events.broadcast(events.LINT_END, payload)

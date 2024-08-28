@@ -17,7 +17,7 @@ class TestCloningSettings(DeferrableTestCase):
 
     def test_independent_settings_inherit_settings_from_parent(self):
         settings = linter_module.LinterSettings({}, {})
-        cloneA, cloneB = settings.clone(), settings.clone()
+        cloneA, cloneB = settings.copy(), settings.copy()
 
         self.assertIsNot(cloneA, settings)
         self.assertIsNot(cloneB, settings)
@@ -28,7 +28,7 @@ class TestCloningSettings(DeferrableTestCase):
 
     def test_independent_settings_do_not_share_their_own_settings(self):
         settings = linter_module.LinterSettings({}, {})
-        cloneA, cloneB = settings.clone(), settings.clone()
+        cloneA, cloneB = settings.copy(), settings.copy()
 
         cloneA['a'] = 'foo'
         cloneB['a'] = 'bar'
@@ -37,7 +37,7 @@ class TestCloningSettings(DeferrableTestCase):
 
     def test_parent_context_is_shared_after_cloning_settings(self):
         settings = linter_module.LinterSettings({}, {})
-        cloneA, cloneB = settings.clone().context, settings.clone().context
+        cloneA, cloneB = settings.copy().context, settings.copy().context
 
         self.assertIsNot(cloneA, settings)
         self.assertIsNot(cloneB, settings)
@@ -48,7 +48,7 @@ class TestCloningSettings(DeferrableTestCase):
 
     def test_contexts_are_independent_after_cloning_settings(self):
         settings = linter_module.LinterSettings({}, {})
-        cloneA, cloneB = settings.clone().context, settings.clone().context
+        cloneA, cloneB = settings.copy().context, settings.copy().context
 
         cloneA['a'] = 'foo'
         cloneB['a'] = 'bar'

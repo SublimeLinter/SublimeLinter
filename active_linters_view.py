@@ -47,14 +47,14 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_START)
-def on_begin_linting(filename):
-    # type: (FileName) -> None
+def on_begin_linting(filename, linter_name):
+    # type: (FileName, LinterName) -> None
     State['running'][filename] += 1
 
 
 @events.on(events.LINT_END)
-def on_finished_linting(filename):
-    # type: (FileName) -> None
+def on_finished_linting(filename, linter_name):
+    # type: (FileName, LinterName) -> None
     if State['running'][filename] <= 1:
         State['running'].pop(filename)
     else:

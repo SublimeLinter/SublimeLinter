@@ -1,10 +1,11 @@
+from __future__ import annotations
 from bisect import bisect_right
 from collections import ChainMap, Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache
 import inspect
-from itertools import chain
+from itertools import accumulate, chain
 import logging
 import os
 import re
@@ -18,15 +19,15 @@ from . import persist, util
 from .const import WARNING, ERROR
 
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Any, Callable, Dict, List, IO, Iterator, Match, MutableMapping,
-        Optional, Pattern, Tuple, Type, Union
-    )
-    from .persist import LintError
+from typing import (
+    Any, Callable, Dict, List, Literal, IO, Iterator, Match, MutableMapping,
+    Optional, Pattern, Tuple, Type, Union, TYPE_CHECKING
+)
+Reason = str
+ViewContext = MutableMapping[str, str]
 
-    Reason = str
+if TYPE_CHECKING:
+    from .persist import LintError
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ class LintMatch(dict):
 
     """
 
-    if MYPY:
+    if TYPE_CHECKING:
         match = None       # type: Optional[object]
         filename = None    # type: Optional[str]
         line = None        # type: int
@@ -145,20 +146,19 @@ class PermanentError(Exception):
 # HTML-file. The tiny `VirtualView` is just enough code, so we can get the
 # source code of a line, the linter reported to be problematic.
 class VirtualView:
-    def __init__(self, code=''):
+    def __init__(self, code: str = ''):
         self._code = code
-        self._newlines = newlines = [0]
-        last = -1
-
-        while True:
-            last = code.find('\n', last + 1)
-
-            if last == -1:
-                break
-
-            newlines.append(last + 1)
-
-        newlines.append(len(code))
+        newlines = list(accumulate(
+            map(len, code.splitlines(keepends=True)),
+            initial=0
+        ))
+        # A trailing "\n" *begins* a new line.
+        # Refer the two interpretations of "split":
+        #   "mypy\n".splitlines(keepends=True) == ['mypy\n']
+        #   "mypy\n".split("\n")               == ['mypy', '']
+        if code.endswith("\n"):
+            newlines.append(len(code))
+        self._newlines = newlines
 
     def full_line(self, line):
         # type: (int) -> Tuple[int, int]
@@ -315,7 +315,7 @@ class LinterSettings:
     has = __contains__
     set = __setitem__
 
-    def clone(self):
+    def copy(self):
         # type: () -> LinterSettings
         return self.__class__(
             self.raw_settings,
@@ -391,7 +391,7 @@ def _extract_window_variables(window):
 
 
 def get_view_context(view, additional_context=None):
-    # type: (sublime.View, Optional[Mapping]) -> MutableMapping[str, str]
+    # type: (sublime.View, Optional[Mapping]) -> ViewContext
     # Note that we ship a enhanced version for 'folder' if you have multiple
     # folders open in a window. See `guess_project_root_of_view`.
 
@@ -419,7 +419,9 @@ def get_view_context(view, additional_context=None):
         context['file_base_name'] = file_base_name
         context['file_extension'] = file_extension
 
+    context['view_id'] = str(view.id())
     context['canonical_filename'] = util.canonical_filename(view)
+    context['short_canonical_filename'] = util.short_canonical_filename(view)
 
     if additional_context:
         context.update(additional_context)
@@ -679,7 +681,7 @@ class Linter(metaclass=LinterMeta):
     name = ''
     logger = None  # type: logging.Logger
 
-    if MYPY:
+    if TYPE_CHECKING:
         _CmdDefinition = Union[str, List[str], Tuple[str, ...]]
     # A string, list, tuple or callable that returns a string, list or tuple, containing the
     # command line (with arguments) used to lint.
@@ -763,7 +765,7 @@ class Linter(metaclass=LinterMeta):
     def __init__(self, view, settings):
         # type: (sublime.View, LinterSettings) -> None
         self.view = view
-        self.settings = settings
+        self.settings = settings.copy()
         # Simplify tests which often just pass in a dict instead of
         # real `LinterSettings`.
         self.context = getattr(settings, 'context', {})  # type: MutableMapping[str, str]
@@ -774,8 +776,7 @@ class Linter(metaclass=LinterMeta):
 
         # Ensure instances have their own copy in case a plugin author
         # mangles it.
-        if self.defaults is not None:
-            self.defaults = self.defaults.copy()
+        self.defaults = self.defaults.copy()
 
     @property
     def filename(self):
@@ -1075,9 +1076,6 @@ class Linter(metaclass=LinterMeta):
         if cls.disabled is None and settings.get('disable'):
             return False
 
-        if not cls.matches_selector(view, settings):
-            return False
-
         excludes = settings.get('excludes', [])  # type: Union[str, List[str]]
         if excludes:
             filename = view.file_name() or '<untitled>'
@@ -1097,21 +1095,28 @@ class Linter(metaclass=LinterMeta):
         return True
 
     @classmethod
-    def matches_selector(cls, view, settings):
-        # type: (sublime.View, LinterSettings) -> bool
+    def match_selector(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> List[sublime.Region] | Literal[False]
         selector = settings.get('selector', None)
         if selector is None:
             return False
 
-        # Use `score_selector` so that empty views
-        # select their 'main' linters
         if view.score_selector(0, selector):
-            return True
+            return [sublime.Region(0, view.size())]
 
         if settings.get("enable_cells", False):
-            return bool(view.find_by_selector(selector))
+            return view.find_by_selector(selector)
 
         return False
+
+    @classmethod
+    def matches_selector(cls, view, settings):
+        # type: (sublime.View, LinterSettings) -> bool
+        deprecation_warning(
+            "`cls.matches_selector(view, settings)` is deprecated. "
+            "Use `bool(cls.match_selector(view, settings))` instead."
+        )
+        return bool(cls.match_selector(view, settings))
 
     @classmethod
     def should_lint(cls, view, settings, reason):
@@ -1273,7 +1278,7 @@ class Linter(metaclass=LinterMeta):
             )
             raise PermanentError("regex not defined")
 
-        if MYPY:
+        if TYPE_CHECKING:
             assert isinstance(self.regex, Pattern)
             match = None  # type: Optional[Match]
 

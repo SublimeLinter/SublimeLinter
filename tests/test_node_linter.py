@@ -14,6 +14,7 @@ from SublimeLinter.tests.mockito import (
 import sublime
 from SublimeLinter import lint
 from SublimeLinter.lint import (
+    elect,
     backend,
     linter as linter_module,
     util
@@ -457,9 +458,20 @@ class TestNodeLinters(DeferrableTestCase):
         sink = mock()
         when(sink).__call__(...).thenReturn(None)
         backend.lint_view(
-            [{'name': linter.name, 'klass': linter.__class__, 'settings': linter.settings}],
-            self.view, view_has_changed, sink)
+            [
+                elect.LinterInfo(
+                    name=linter.name,
+                    klass=linter.__class__,
+                    settings=linter.settings,
+                    context=linter.context,
+                    regions=[sublime.Region(0, 10)],
+                    runnable=True
+                )
+            ],
+            self.view, view_has_changed, sink
+        )
 
+        yield AWAIT_WORKER
         yield AWAIT_WORKER
 
         verify(sink).__call__(linter.name, [])

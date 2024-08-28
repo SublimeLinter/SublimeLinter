@@ -14,3 +14,6 @@
 /.gitignore         export-ignore
 /.travis.yml        export-ignore
 /setup.cfg          export-ignore
+
+# Ignore so that Package Control reloading does not fail
+/__init__.py        export-ignore

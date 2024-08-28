@@ -12,21 +12,21 @@ from SublimeLinter.lint.generic_text_command import replace_view_content
 class TestLinterElection(DeferrableTestCase):
     @classmethod
     def setUpClass(cls):
-
-        # make sure we have a window to work with
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("close_windows_when_empty", False)
+        # make sure we have a window to work with
+        sublime.run_command("new_window")
+        cls.window = window = sublime.active_window()
+        cls.addClassCleanup(lambda: window.run_command('close_window'))
 
     @classmethod
     def tearDownClass(cls):
         unstub()
 
     def setUp(self):
-        sublime.run_command("new_window")
-        self.window = sublime.active_window()
+        persist.linter_classes.clear()
 
     def tearDown(self):
-        self.window.run_command('close_window')
         persist.linter_classes.clear()
         unstub()
 

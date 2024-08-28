@@ -107,7 +107,7 @@ def tasks_per_linter(view, view_has_changed, linter_class, settings):
     # type: (sublime.View, ViewChangedFn, Type[Linter], LinterSettings) -> Iterator[Task[LintResult]]
     selector = settings.get('selector')
     if selector is None:
-        return []
+        return
 
     for region in extract_lintable_regions(view, selector):
         linter = linter_class(view, settings.clone())

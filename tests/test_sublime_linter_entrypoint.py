@@ -109,3 +109,59 @@ class TestLinterElection(DeferrableTestCase):
         verify(sublime_linter.logger).info(
             "No installed linter matches the view."
         )
+
+    def test_cells_dont_trigger_by_default(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': 'source.python'}
+            cmd = 'fake_linter_1'
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        view.assign_syntax("scope:text.html.markdown.multimarkdown")
+        replace_view_content(view, MARDOWN_WITH_CELL)
+
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(sublime_linter.backend, times=0).lint_view(...)
+
+    def test_cells_optionally_trigger(self):
+        class FakeLinter(Linter):
+            defaults = {
+                'selector': 'source.python',
+                'enable_cells': True,
+            }
+            cmd = 'fake_linter_1'
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        view.assign_syntax("scope:text.html.markdown.multimarkdown")
+        replace_view_content(view, MARDOWN_WITH_CELL)
+
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(sublime_linter.backend, times=1).lint_view(...)
+
+    def test_cells_forcefully_do_not_trigger(self):
+        class FakeLinter(Linter):
+            defaults = {
+                'selector': 'source.python',
+                'enable_cells': False,
+            }
+            cmd = 'fake_linter_1'
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        view.assign_syntax("scope:text.html.markdown.multimarkdown")
+        replace_view_content(view, MARDOWN_WITH_CELL)
+
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(sublime_linter.backend, times=0).lint_view(...)
+
+
+MARDOWN_WITH_CELL = """\
+Hello
+
+```python
+foo = 2
+```
+
+World!
+"""

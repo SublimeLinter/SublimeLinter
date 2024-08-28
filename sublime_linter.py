@@ -367,6 +367,8 @@ def lint(view, view_has_changed, lock, reason):
     if view_has_changed():  # abort early
         return
 
+    assert window  # now that `view_has_changed` has been checked
+
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 

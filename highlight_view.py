@@ -1055,7 +1055,7 @@ TOOLTIP_TEMPLATE = '''
     <body id="sublimelinter-tooltip">
         <style>{stylesheet}</style>
         <div>{content}</div>
-        <div class="footer"><a href="copy">Copy</a><span>{help_text}</div>
+        <div class="footer"><a href="copy">Copy</a>{help_text}</div>
     </body>
 '''
 QUICK_FIX_HELP = " | Click <span class='icon'>⌦</span> to trigger a quick action"

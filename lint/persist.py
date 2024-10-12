@@ -18,18 +18,21 @@ LinterName = str
 
 
 class LintError(TypedDict, total=False):
+    linter: LinterName
+
+    filename: FileName
     line: int
     start: int
     region: sublime.Region
-    linter: LinterName
     error_type: str
     code: str
     msg: str
-    filename: FileName
+    offending_text: str
+
+    # extensions
     uid: str
     priority: int
     panel_line: tuple[int, int]
-    offending_text: str
 
 
 api_ready = False

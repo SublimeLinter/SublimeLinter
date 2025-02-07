@@ -1,4 +1,3 @@
-from io import StringIO
 import os
 import shutil
 
@@ -16,11 +15,11 @@ from SublimeLinter.tests.mockito import (
 import sublime
 from SublimeLinter import lint
 from SublimeLinter.lint import elect, backend, linter as linter_module, util
-from SublimeLinter.lint.base_linter import composer_linter
+from SublimeLinter.lint.base_linter import php_linter
 
 
 def make_fake_linter(view):
-    class FakeLinter(lint.ComposerLinter):
+    class FakeLinter(lint.PhpLinter):
         cmd = "mylinter"
         defaults = {"selector": "foo"}
 
@@ -83,21 +82,18 @@ class TestPhpLinters(DeferrableTestCase):
         verify(linter.logger).warning(...)
 
     @p.expand([
-            ("/p",),
-            ("/p/a",),
-            ("/p/a/b",),
+        ("/p",),
+        ("/p/a",),
+        ("/p/a/b",),
     ])
     def test_locally_installed(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.normpath(os.path.join(ROOT_DIR, "vendor", "bin"))
-        PRESENT_COMPOSER_FILE = os.path.normpath(os.path.join(ROOT_DIR, "composer.json"))
+        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
+        PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
         spy2(os.path.isdir)
         when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
         spy2(os.path.isfile)
         when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
-        spy2(os.path.getmtime)
-        when(os.path).getmtime(PRESENT_COMPOSER_FILE).thenReturn(12)
-        new_string = lambda *args: StringIO('{"key": "value"}')
-        when(composer_linter.codecs).open(PRESENT_COMPOSER_FILE, ...).thenAnswer(new_string)
+        when(php_linter).read_json_file(PRESENT_COMPOSER_FILE).thenReturn({"key": "value"})
 
         when(self.view).file_name().thenReturn("/p/a/b/f.js")
         linter = make_fake_linter(self.view)
@@ -107,26 +103,24 @@ class TestPhpLinters(DeferrableTestCase):
 
         cmd = linter.get_cmd()
         self.assertEqual(cmd, ["fake.exe"])
-        # surprisingly not implemented:
-        # working_dir = linter.get_working_dir()
-        # self.assertEqual(working_dir, ROOT_DIR)
+        working_dir = linter.get_working_dir()
+        self.assertEqual(working_dir, ROOT_DIR)
 
     @p.expand([
-            ("/p",),
-            ("/p/a",),
-            ("/p/a/b",),
+        ("/p",),
+        ("/p/a",),
+        ("/p/a/b",),
     ])
     def test_executing_bin_script(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.normpath(os.path.join(ROOT_DIR, "vendor", "bin"))
-        PRESENT_COMPOSER_FILE = os.path.normpath(os.path.join(ROOT_DIR, "composer.json"))
+        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
+        PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
         spy2(os.path.isdir)
         when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
         spy2(os.path.isfile)
         when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
-        spy2(os.path.getmtime)
-        when(os.path).getmtime(PRESENT_COMPOSER_FILE).thenReturn(12)
-        new_string = lambda *args: StringIO('{"bin": ["someBin", "./scripts/mylinter"]}')
-        when(composer_linter.codecs).open(PRESENT_COMPOSER_FILE, ...).thenAnswer(new_string)
+        when(php_linter).read_json_file(PRESENT_COMPOSER_FILE).thenReturn(
+            {"bin": ["someBin", "./scripts/mylinter"]}
+        )
 
         when(self.view).file_name().thenReturn("/p/a/b/f.js")
         linter = make_fake_linter(self.view)
@@ -135,20 +129,17 @@ class TestPhpLinters(DeferrableTestCase):
         self.assertEqual(cmd, [os.path.normpath(os.path.join(ROOT_DIR, "scripts/mylinter"))])
 
     @p.expand([
-            ("/p",),
-            ("/p/a",),
-            ("/p/a/b",),
+        ("/p",),
+        ("/p/a",),
+        ("/p/a/b",),
     ])
-    def x_test_cant_read_composer_file(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.normpath(os.path.join(ROOT_DIR, "vendor", "bin"))
-        PRESENT_COMPOSER_FILE = os.path.normpath(os.path.join(ROOT_DIR, "composer.json"))
+    def test_cant_read_composer_file(self, ROOT_DIR):
+        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
+        PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
         spy2(os.path.isdir)
         when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
         spy2(os.path.isfile)
         when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
-        spy2(os.path.getmtime)
-        when(os.path).getmtime(PRESENT_COMPOSER_FILE).thenReturn(12)
-        when(composer_linter.codecs).open(PRESENT_COMPOSER_FILE, ...).thenRaise(Exception)
 
         when(self.view).file_name().thenReturn("/p/a/b/f.js")
         linter = make_fake_linter(self.view)
@@ -170,7 +161,7 @@ class TestPhpLinters(DeferrableTestCase):
         verify(linter.logger).warning(...)
         verify(linter).notify_failure()
 
-    def x_test_disable_if_not_dependency(self):
+    def test_disable_if_not_dependency(self):
         linter = make_fake_linter(self.view)
         linter.settings['disable_if_not_dependency'] = True
 
@@ -189,7 +180,7 @@ class TestPhpLinters(DeferrableTestCase):
         )
         verify(linter).notify_unassign()
 
-    def x_test_disable_if_not_dependency_2(self):
+    def test_disable_if_not_dependency_2(self):
         linter = make_fake_linter(self.view)
         linter.settings['disable_if_not_dependency'] = True
 

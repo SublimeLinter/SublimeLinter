@@ -76,36 +76,28 @@ class PhpLinter(linter.Linter):
         look in vendor/bin for that binary.
         """
         for path in util.paths_upwards_until_home(start_dir):
+            if executable := shutil.which(cmd, path=os.path.join(path, 'vendor', 'bin')):
+                self.context['project_root'] = path
+                return executable
+
             manifest_file = os.path.join(path, 'composer.json')
-            bin_path = os.path.join(path, 'vendor', 'bin')
-            if os.path.isfile(manifest_file) and os.path.isdir(bin_path):
-                manifest_path = path
-                break
-        else:
-            return None
-
-        try:
-            manifest = read_json_file(manifest_file)
-        except Exception as err:
-            self.logger.warning(
-                "We found a 'composer.json' at {}; however, reading it raised\n  {}"
-                .format(manifest_path, str(err))
-            )
-            self.notify_failure()
-            raise linter.PermanentError()
-        else:
-            self.context['project_root'] = manifest_path
-
-            # Edge case: when hacking on the linter itself it is not installed
-            # at e.g. ./vendor/bin/phpcs but ./scripts/phpcs
-            for executable in manifest.get('bin', []):
-                if cmd in executable:
-                    return os.path.normpath(os.path.join(manifest_path, executable))
-
-        for path in util.paths_upwards_until_home(manifest_path):
-            vendor_bin = os.path.join(path, 'vendor', 'bin')
-            if binary := shutil.which(cmd, path=vendor_bin):
-                return binary
+            if os.path.exists(manifest_file):
+                try:
+                    manifest = read_json_file(manifest_file)
+                except Exception as err:
+                    self.logger.warning(
+                        "We found a 'composer.json' at {}; however, reading it raised\n  {}"
+                        .format(path, str(err))
+                    )
+                    self.notify_failure()
+                    raise linter.PermanentError()
+                else:
+                    # Edge case: when hacking on the linter itself it is not installed
+                    # at e.g. ./vendor/bin/phpcs but ./scripts/phpcs
+                    for executable_ in manifest.get('bin', []):
+                        if cmd in executable_:
+                            self.context['project_root'] = path
+                            return os.path.normpath(os.path.join(path, executable_))
 
         return None
 

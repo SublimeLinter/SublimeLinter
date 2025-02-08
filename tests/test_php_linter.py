@@ -89,10 +89,8 @@ class TestPhpLinters(DeferrableTestCase):
     def test_locally_installed(self, ROOT_DIR):
         PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
         PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
-        spy2(os.path.isdir)
-        when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
-        spy2(os.path.isfile)
-        when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
+        spy2(os.path.exists)
+        when(os.path).exists(PRESENT_COMPOSER_FILE).thenReturn(True)
         when(php_linter).read_json_file(PRESENT_COMPOSER_FILE).thenReturn({"key": "value"})
 
         when(self.view).file_name().thenReturn("/p/a/b/f.js")
@@ -112,12 +110,9 @@ class TestPhpLinters(DeferrableTestCase):
         ("/p/a/b",),
     ])
     def test_executing_bin_script(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
         PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
-        spy2(os.path.isdir)
-        when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
-        spy2(os.path.isfile)
-        when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
+        spy2(os.path.exists)
+        when(os.path).exists(PRESENT_COMPOSER_FILE).thenReturn(True)
         when(php_linter).read_json_file(PRESENT_COMPOSER_FILE).thenReturn(
             {"bin": ["someBin", "./scripts/mylinter"]}
         )
@@ -134,12 +129,9 @@ class TestPhpLinters(DeferrableTestCase):
         ("/p/a/b",),
     ])
     def test_cant_read_composer_file(self, ROOT_DIR):
-        PRESENT_BIN_PATH = os.path.join(ROOT_DIR, "vendor", "bin")
         PRESENT_COMPOSER_FILE = os.path.join(ROOT_DIR, "composer.json")
-        spy2(os.path.isdir)
-        when(os.path).isdir(PRESENT_BIN_PATH).thenReturn(True)
-        spy2(os.path.isfile)
-        when(os.path).isfile(PRESENT_COMPOSER_FILE).thenReturn(True)
+        spy2(os.path.exists)
+        when(os.path).exists(PRESENT_COMPOSER_FILE).thenReturn(True)
 
         when(self.view).file_name().thenReturn("/p/a/b/f.js")
         linter = make_fake_linter(self.view)

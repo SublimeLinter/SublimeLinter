@@ -6,6 +6,8 @@
 #   features: []
 #   all-features: false
 #   with-sources: false
+#   generate-hashes: false
+#   universal: false
 
 colorama==0.4.6
     # via sphinx-autobuild

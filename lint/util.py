@@ -3,6 +3,7 @@ from collections import ChainMap
 from contextlib import contextmanager
 from functools import lru_cache, partial, wraps
 from itertools import takewhile
+import json
 import locale
 import logging
 import os
@@ -21,7 +22,7 @@ from .const import IS_ENABLED_SWITCH
 MYPY = False
 if MYPY:
     from typing import (
-        Callable, Iterator, List, MutableMapping, Optional, TypeVar, Union)
+        Any, Callable, Dict, Iterator, List, MutableMapping, Optional, TypeVar, Union)
     from typing_extensions import Concatenate as Con, ParamSpec
     P = ParamSpec('P')
     T = TypeVar('T')
@@ -219,6 +220,18 @@ def short_canonical_filename(view):
 def canonical_filename(view):
     # type: (sublime.View) -> str
     return view.file_name() or '<untitled {}>'.format(view.buffer_id())
+
+
+def read_json_file(path):
+    # type: (str) -> Dict[str, Any]
+    return _read_json_file(path, os.path.getmtime(path))
+
+
+@lru_cache(maxsize=16)
+def _read_json_file(path, _mtime):
+    # type: (str, float) -> Dict[str, Any]
+    with open(path, 'r', encoding='utf8') as f:
+        return json.load(f)
 
 
 def paths_upwards(path):

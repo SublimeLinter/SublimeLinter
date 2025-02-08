@@ -1,12 +1,13 @@
 """This module exports the NodeLinter subclass of Linter."""
 
-from functools import lru_cache
 from itertools import chain
-import json
 import os
 import shutil
 
 from .. import linter, util
+# Compat: `read_json_file` may be used by plugins. Check `eslint` and
+# `xo` for example.
+from ..util import read_json_file
 
 
 MYPY = False
@@ -40,20 +41,6 @@ def is_yarn_project(path, manifest):
         return True
 
     return os.path.exists(os.path.join(path, 'node_modules', '.yarn-integrity'))
-
-
-# `read_json_file` is maybe used by plugins. Check `eslint` and
-# `xo` for example.
-def read_json_file(path):
-    # type: (str) -> Dict[str, Any]
-    return _read_json_file(path, os.path.getmtime(path))
-
-
-@lru_cache(maxsize=4)
-def _read_json_file(path, _mtime):
-    # type: (str, float) -> Dict[str, Any]
-    with open(path, 'r', encoding='utf8') as f:
-        return json.load(f)
 
 
 class NodeLinter(linter.Linter):

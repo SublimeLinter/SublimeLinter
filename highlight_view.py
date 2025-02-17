@@ -471,10 +471,11 @@ def draw(
 
 class GutterIcon(str):
     namespace: str = 'SL.Gutter'
-    scope: str = ''
-    icon: str = ''
     flags: int = sublime.HIDDEN
-    linter_name: str = ''
+
+    linter_name: str
+    scope: str
+    icon: str
 
     def __new__(cls, linter_name: str, scope: str, icon: str) -> GutterIcon:
         key = 'SL.{}.Gutter.|{}|{}'.format(linter_name, scope, icon)
@@ -487,14 +488,15 @@ class GutterIcon(str):
 
 class Squiggle(str):
     namespace: str = 'SL.Squiggle'
-    scope: str = ''
-    alt_scope: str = ''
     icon: str = ''
-    flags: int = 0
-    linter_name: str = ''
-    uid: str = ''
-    demotable: bool = False
-    annotation: str = ""
+
+    linter_name: str
+    uid: str
+    scope: str
+    flags: int
+    demotable: bool
+    alt_scope: str
+    annotation: str
 
     def __new__(
         cls,

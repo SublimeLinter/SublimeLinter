@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sublime
 import sublime_plugin
 
@@ -6,23 +7,24 @@ from itertools import dropwhile, takewhile
 from .lint import persist, util
 from .lint.util import flash
 
+from typing_extensions import Literal
 
-MYPY = False
-if MYPY:
-    from typing import Union
-    from typing_extensions import Literal
 
-    Direction = Union[Literal['next'], Literal['previous']]
+Direction = Literal['next', 'previous']
 
 
 class sublime_linter_goto_error(sublime_plugin.TextCommand):
-    def run(self, edit, direction='next', count=1, wrap=False):
-        # type: (sublime.Edit, Direction, int, bool) -> None
+    def run(
+        self,
+        edit: sublime.Edit,
+        direction: Direction = 'next',
+        count: int = 1,
+        wrap: bool = False
+    ) -> None:
         goto(self.view, direction, count, wrap)
 
 
-def goto(view, direction, count, wrap):
-    # type: (sublime.View, Direction, int, bool) -> None
+def goto(view: sublime.View, direction: Direction, count: int, wrap: bool) -> None:
     filename = util.canonical_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
@@ -87,8 +89,7 @@ class sublime_linter_move_cursor(sublime_plugin.TextCommand):
         self.view.show(point)
 
 
-def move_to(view, point):
-    # type: (sublime.View, int) -> None
+def move_to(view: sublime.View, point: int) -> None:
     add_selection_to_jump_history(view)
     view.run_command('sublime_linter_move_cursor', {'point': point})
 

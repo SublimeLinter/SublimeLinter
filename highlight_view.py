@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict, ChainMap
 from contextlib import contextmanager
 import html
@@ -12,37 +13,34 @@ import sublime_plugin
 
 from .lint import persist, events, style, util, queue, quick_fix
 from .lint.const import PROTECTED_REGIONS_KEY, ERROR, WARNING
-flatten = chain.from_iterable
 
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Callable, DefaultDict, Dict, FrozenSet, Hashable, Iterable, List,
-        Mapping, Optional, Set, Tuple, TypedDict, TypeVar, Union
-    )
-    T = TypeVar('T')
-    LintError = persist.LintError
-    LinterName = persist.LinterName
+from typing import (
+    Callable, FrozenSet, Hashable, Iterable, List, Mapping,
+    Optional, Tuple, TypedDict, TypeVar, Union
+)
+T = TypeVar('T')
+LintError = persist.LintError
+LinterName = persist.LinterName
 
-    Flags = int
-    Icon = str
-    Scope = str
-    Squiggles = Mapping['Squiggle', List[sublime.Region]]
-    GutterIcons = Mapping['GutterIcon', List[sublime.Region]]
-    ProtectedRegions = List[sublime.Region]
-    RegionKey = Union['GutterIcon', 'Squiggle']
+Flags = int
+Icon = str
+Scope = str
+Squiggles = Mapping['Squiggle', List[sublime.Region]]
+GutterIcons = Mapping['GutterIcon', List[sublime.Region]]
+ProtectedRegions = List[sublime.Region]
+RegionKey = Union['GutterIcon', 'Squiggle']
+DemotePredicate = Callable[[LintError], bool]
+FilteredErrors = Tuple[List[LintError], List[LintError]]
 
-    class State_(TypedDict):
-        active_view: Optional[sublime.View]
-        current_sel: Tuple[sublime.Region, ...]
-        idle_views: Set[sublime.ViewId]
-        quiet_views: Set[sublime.ViewId]
-        views_without_phantoms: Set[sublime.ViewId]
-        views: Set[sublime.ViewId]
 
-    DemotePredicate = Callable[[LintError], bool]
-    FilteredErrors = Tuple[List[LintError], List[LintError]]
+class State_(TypedDict):
+    active_view: Optional[sublime.View]
+    current_sel: tuple[sublime.Region, ...]
+    idle_views: set[sublime.ViewId]
+    quiet_views: set[sublime.ViewId]
+    views_without_phantoms: set[sublime.ViewId]
+    views: set[sublime.ViewId]
 
 
 UNDERLINE_FLAGS = (
@@ -72,14 +70,14 @@ MULTILINES = re.compile('(?s)\n(?=.)')
 # https://github.com/sublimehq/sublime_text/issues/137
 SUBLIME_SUPPORTS_WS_SQUIGGLES = int(sublime.version()) >= 4074
 
-State = {
+State: State_ = {
     'active_view': None,
     'current_sel': tuple(),
     'idle_views': set(),
     'quiet_views': set(),
     'views_without_phantoms': set(),
     'views': set()
-}  # type: State_
+}
 
 
 def plugin_loaded():
@@ -96,9 +94,11 @@ def plugin_unloaded():
             undraw(view)
 
 
+flatten = chain.from_iterable
+
+
 @events.on(events.LINT_RESULT)
-def on_lint_result(filename, linter_name, **kwargs):
-    # type: (str, LinterName, object) -> None
+def on_lint_result(filename: str, linter_name: LinterName, **kwargs: object) -> None:
     views = list(all_views_into_file(filename))
     if not views:
         return
@@ -107,8 +107,7 @@ def on_lint_result(filename, linter_name, **kwargs):
 
 
 class UpdateOnLoadController(sublime_plugin.EventListener):
-    def on_load_async(self, view):
-        # type: (sublime.View) -> None
+    def on_load_async(self, view: sublime.View) -> None:
         # update this new view with any errors it currently has
         filename = util.canonical_filename(view)
         errors = persist.file_errors.get(filename)
@@ -121,8 +120,11 @@ class UpdateOnLoadController(sublime_plugin.EventListener):
     on_clone_async = on_load_async
 
 
-def highlight_linter_errors(views, filename, linter_name):
-    # type: (List[sublime.View], str, LinterName) -> None
+def highlight_linter_errors(
+    views: list[sublime.View],
+    filename: str,
+    linter_name: LinterName
+) -> None:
     demote_predicate = get_demote_predicate()
     demote_scope = get_demote_scope()
 
@@ -163,9 +165,9 @@ def highlight_linter_errors(views, filename, linter_name):
             quiet=True,
             idle=vid in State['idle_views']
         )
-        squiggle_regions = ChainMap(
+        squiggle_regions: Squiggles = ChainMap(
             {}, highlight_regions, hidden_highlight_regions  # type: ignore[arg-type]
-        )  # type: Squiggles
+        )
 
         draw(view, linter_name, squiggle_regions, gutter_regions)
         draw_phantoms(view)
@@ -202,19 +204,17 @@ def stable_viewport(view, phantoms):
     view.set_viewport_position((vx, vy), animate=False)
 
 
-def cur_pos(view):
-    # type: (sublime.View) -> sublime.Region
+def cur_pos(view: sublime.View) -> sublime.Region:
     return view.sel()[0]
 
 
-def y_offset(view, cursor):
-    # type: (sublime.View, int) -> float
+def y_offset(view: sublime.View, cursor: int) -> float:
     _, cy = view.text_to_layout(cursor)
     _, vy = view.viewport_position()
     return cy - vy
 
 
-phantoms_per_buffer = {}  # type: Dict[sublime.BufferId, sublime.PhantomSet]
+phantoms_per_buffer: dict[sublime.BufferId, sublime.PhantomSet] = {}
 
 PHANTOM_TEMPLATE = '''
     <body id="sl-inline-phantom">
@@ -235,8 +235,7 @@ PHANTOM_TEMPLATE = '''
 '''
 
 
-def get_phantom_set(view):
-    # type: (sublime.View) -> sublime.PhantomSet
+def get_phantom_set(view: sublime.View) -> sublime.PhantomSet:
     bid = view.buffer_id()
     try:
         return phantoms_per_buffer[bid]
@@ -288,8 +287,7 @@ def format_message_for_phantom(view, error):
     )
 
 
-def phantoms_start_hidden():
-    # type: () -> bool
+def phantoms_start_hidden() -> bool:
     start_hidden = persist.settings.get('highlights.start_hidden') or []
     return start_hidden is True or 'phantoms' in start_hidden
 
@@ -311,8 +309,7 @@ def prepare_phantoms(view, errors):
     ]
 
 
-def update_error_priorities_inline(errors):
-    # type: (List[LintError]) -> None
+def update_error_priorities_inline(errors: list[LintError]) -> None:
     # We need to update `priority` here (although a user will rarely change
     # this setting that often) for correctness. Generally, on views with
     # multiple linters running, we compare new lint results from the
@@ -324,9 +321,11 @@ def update_error_priorities_inline(errors):
         error['priority'] = style.get_value('priority', error, 0)
 
 
-def filter_errors(errors, group_fn):
-    # type: (List[LintError], Callable[[LintError], Hashable]) -> FilteredErrors
-    grouped = defaultdict(list)  # type: DefaultDict[Hashable, List[LintError]]
+def filter_errors(
+    errors: list[LintError],
+    group_fn: Callable[[LintError], Hashable]
+) -> FilteredErrors:
+    grouped: defaultdict[Hashable, list[LintError]] = defaultdict(list)
     for error in errors:
         grouped[group_fn(error)].append(error)
 
@@ -343,20 +342,17 @@ def filter_errors(errors, group_fn):
     return filtered_errors, loosers
 
 
-def by_position(error):
-    # type: (LintError) -> Hashable
+def by_position(error: LintError) -> Hashable:
     return error['line'], error['start'], error['region'].end()
 
 
-def by_line(error):
-    # type: (LintError) -> Hashable
+def by_line(error: LintError) -> Hashable:
     return error['line']
 
 
 def prepare_gutter_data(
-    errors,        # type: List[LintError]
-):
-    # type: (...) -> GutterIcons
+    errors: list[LintError],
+) -> GutterIcons:
     # Compute the icon and scope for the gutter mark from the error.
     # Drop lines for which we don't get a value or for which the user
     # specified 'none'
@@ -382,13 +378,12 @@ def prepare_gutter_data(
 
 
 def prepare_highlights_data(
-    errors,            # type: List[LintError]
-    demote_predicate,  # type: DemotePredicate
-    demote_scope,      # type: str
-    quiet,             # type: bool
-    idle,              # type: bool
-):
-    # type: (...) -> Squiggles
+    errors: list[LintError],
+    demote_predicate: DemotePredicate,
+    demote_scope: str,
+    quiet: bool,
+    idle: bool,
+) -> Squiggles:
     by_region_id = {}
     for error in errors:
         if error.get('revalidate'):
@@ -412,8 +407,7 @@ def prepare_highlights_data(
     return by_region_id
 
 
-def _compute_flags(error):
-    # type: (LintError) -> int
+def _compute_flags(error: LintError) -> int:
     mark_style = style.get_value('mark_style', error, 'none')
     selected_text = error['offending_text']
     if SUBLIME_SUPPORTS_WS_SQUIGGLES:
@@ -437,20 +431,18 @@ def _compute_flags(error):
     return flags
 
 
-def undraw(view):
-    # type: (sublime.View) -> None
+def undraw(view: sublime.View) -> None:
     for key in get_regions_keys(view):
         erase_view_region(view, key)
 
 
 @util.ensure_on_ui_thread
 def draw(
-    view,               # type: sublime.View
-    linter_name,        # type: LinterName
-    highlight_regions,  # type: Squiggles
-    gutter_regions,     # type: GutterIcons
-):
-    # type: (...) -> None
+    view: sublime.View,
+    linter_name: LinterName,
+    highlight_regions: Squiggles,
+    gutter_regions: GutterIcons,
+) -> None:
     """
     Draw code and gutter marks in the given view.
 
@@ -478,14 +470,13 @@ def draw(
 
 
 class GutterIcon(str):
-    namespace = 'SL.Gutter'  # type: str
-    scope = ''  # type: str
-    icon = ''  # type: str
-    flags = sublime.HIDDEN  # type: int
-    linter_name = ''  # type: str
+    namespace: str = 'SL.Gutter'
+    scope: str = ''
+    icon: str = ''
+    flags: int = sublime.HIDDEN
+    linter_name: str = ''
 
-    def __new__(cls, linter_name, scope, icon):
-        # type: (str, str, str) -> GutterIcon
+    def __new__(cls, linter_name: str, scope: str, icon: str) -> GutterIcon:
         key = 'SL.{}.Gutter.|{}|{}'.format(linter_name, scope, icon)
         self = super().__new__(cls, key)
         self.linter_name = linter_name
@@ -495,18 +486,26 @@ class GutterIcon(str):
 
 
 class Squiggle(str):
-    namespace = 'SL.Squiggle'  # type: str
-    scope = ''  # type: str
-    alt_scope = ''  # type: str
-    icon = ''  # type: str
-    flags = 0  # type: int
-    linter_name = ''  # type: str
-    uid = ''  # type: str
-    demotable = False  # type: bool
-    annotation = ""  # type: str
+    namespace: str = 'SL.Squiggle'
+    scope: str = ''
+    alt_scope: str = ''
+    icon: str = ''
+    flags: int = 0
+    linter_name: str = ''
+    uid: str = ''
+    demotable: bool = False
+    annotation: str = ""
 
-    def __new__(cls, linter_name, uid, scope, flags, demotable=False, alt_scope=None, annotation=""):
-        # type: (str, str, str, int, bool, str, str) -> Squiggle
+    def __new__(
+        cls,
+        linter_name: str,
+        uid: str,
+        scope: str,
+        flags: int,
+        demotable: bool = False,
+        alt_scope: str | None = None,
+        annotation: str = ""
+    ) -> Squiggle:
         key = (
             'SL.{}.Highlights.|{}|{}|{}'
             .format(linter_name, uid, scope, flags)
@@ -524,8 +523,7 @@ class Squiggle(str):
         self.annotation = annotation
         return self
 
-    def _replace(self, **overrides):
-        # type: (...) -> Squiggle
+    def _replace(self, **overrides) -> Squiggle:
         base = {
             name: overrides.pop(name, getattr(self, name))
             for name in {
@@ -534,12 +532,10 @@ class Squiggle(str):
         }
         return Squiggle(**base)
 
-    def visible(self):
-        # type: () -> bool
+    def visible(self) -> bool:
         return bool(self.icon or (self.scope and not self.flags == sublime.HIDDEN))
 
-    def intentional_empty(self):
-        # type: () -> bool
+    def intentional_empty(self) -> bool:
         return (
             self.flags & sublime.DRAW_EMPTY_AS_OVERWRITE
             == sublime.DRAW_EMPTY_AS_OVERWRITE
@@ -550,42 +546,35 @@ def get_demote_scope():
     return persist.settings.get('highlights.demote_scope')
 
 
-def get_demote_predicate():
-    # type: () -> DemotePredicate
+def get_demote_predicate() -> DemotePredicate:
     setting = persist.settings.get('highlights.demote_while_editing')
     return getattr(DemotePredicates, setting, DemotePredicates.none)
 
 
 class DemotePredicates:
     @staticmethod
-    def none(error):
-        # type: (LintError) -> bool
+    def none(error: LintError) -> bool:
         return False
 
     @staticmethod
-    def all(error):
-        # type: (LintError) -> bool
+    def all(error: LintError) -> bool:
         return True
 
     @staticmethod
-    def ws_only(error):
-        # type: (LintError) -> bool
+    def ws_only(error: LintError) -> bool:
         return bool(WS_ONLY.search(error['offending_text']))
 
     @staticmethod
-    def some_ws(error):
-        # type: (LintError) -> bool
+    def some_ws(error: LintError) -> bool:
         return bool(SOME_WS.search(error['offending_text']))
     ws_regions = some_ws
 
     @staticmethod
-    def multilines(error):
-        # type: (LintError) -> bool
+    def multilines(error: LintError) -> bool:
         return bool(MULTILINES.search(error['offending_text']))
 
     @staticmethod
-    def warnings(error):
-        # type: (LintError) -> bool
+    def warnings(error: LintError) -> bool:
         return error['error_type'] == WARNING
 
 
@@ -597,11 +586,11 @@ class DemotePredicates:
 try:
     CURRENTSTORE  # type: ignore[used-before-def]
 except NameError:
-    CURRENTSTORE = defaultdict(set)  # type: Dict[sublime.ViewId, Set[RegionKey]]
+    CURRENTSTORE: dict[sublime.ViewId, set[RegionKey]] = defaultdict(set)
 try:
     EVERSTORE  # type: ignore[used-before-def]
 except NameError:
-    EVERSTORE = defaultdict(set)  # type: DefaultDict[sublime.ViewId, Set[RegionKey]]
+    EVERSTORE: defaultdict[sublime.ViewId, set[RegionKey]] = defaultdict(set)
 else:
     # Assign the newly loaded classes to the old regions.
     # On each reload the `id` of our classes change and any
@@ -624,8 +613,7 @@ else:
 
 
 @util.assert_on_ui_thread
-def draw_view_region(view, key, regions):
-    # type: (sublime.View, RegionKey, List[sublime.Region]) -> None
+def draw_view_region(view: sublime.View, key: RegionKey, regions: list[sublime.Region]) -> None:
     if isinstance(key, Squiggle):
         if key.annotation and key.visible():
             annotations = {
@@ -651,32 +639,27 @@ def draw_view_region(view, key, regions):
 
 
 @util.assert_on_ui_thread
-def erase_view_region(view, key):
-    # type: (sublime.View, RegionKey) -> None
+def erase_view_region(view: sublime.View, key: RegionKey) -> None:
     view.erase_regions(key)
     CURRENTSTORE[view.id()].discard(key)
 
 
-def get_regions_keys(view):
-    # type: (sublime.View) -> FrozenSet[RegionKey]
+def get_regions_keys(view: sublime.View) -> FrozenSet[RegionKey]:
     return frozenset(CURRENTSTORE.get(view.id(), set()))
 
 
 @util.assert_on_ui_thread
-def restore_from_everstore(view):
-    # type: (sublime.View) -> None
+def restore_from_everstore(view: sublime.View) -> None:
     vid = view.id()
     CURRENTSTORE[vid] = EVERSTORE[vid].copy()
 
 
 class ZombieController(sublime_plugin.EventListener):
-    def on_text_command(self, view, cmd, args):
-        # type: (sublime.View, str, Dict) -> None
+    def on_text_command(self, view: sublime.View, cmd: str, args: dict) -> None:
         if cmd in ['undo', 'redo_or_repeat']:
             restore_from_everstore(view)
 
-    def on_close(self, view):
-        # type: (sublime.View) -> None
+    def on_close(self, view: sublime.View) -> None:
         sublime.set_timeout_async(lambda: EVERSTORE.pop(view.id(), None))
 
 
@@ -710,8 +693,7 @@ class RevisitErrorRegions(sublime_plugin.EventListener):
 
 
 @util.ensure_on_ui_thread
-def revalidate_regions(view):
-    # type: (sublime.View) -> None
+def revalidate_regions(view: sublime.View) -> None:
     vid = view.id()
     if vid in State['quiet_views']:
         return
@@ -770,8 +752,7 @@ def revalidate_regions(view):
                 draw_view_region(view, key, filtered_regions)
 
 
-def maybe_update_error_store(view):
-    # type: (sublime.View) -> None
+def maybe_update_error_store(view: sublime.View) -> None:
     filename = util.canonical_filename(view)
     errors = persist.file_errors.get(filename)
     if not errors:
@@ -876,8 +857,7 @@ class IdleViewController(sublime_plugin.EventListener):
             )
 
 
-def set_idle(view, idle):
-    # type: (sublime.View, bool) -> None
+def set_idle(view: sublime.View, idle: bool) -> None:
     vid = view.id()
 
     current_idle = vid in State['idle_views']
@@ -891,8 +871,7 @@ def set_idle(view, idle):
 
 
 @util.ensure_on_ui_thread
-def toggle_demoted_regions(view, show):
-    # type: (sublime.View, bool) -> None
+def toggle_demoted_regions(view: sublime.View, show: bool) -> None:
     vid = view.id()
     if vid in State['quiet_views']:
         return
@@ -935,8 +914,7 @@ HIDDEN_SCOPE = ''
 
 
 @util.ensure_on_ui_thread
-def toggle_all_regions(view, show):
-    # type: (sublime.View, bool) -> None
+def toggle_all_regions(view: sublime.View, show: bool) -> None:
     region_keys = get_regions_keys(view)
     for key in region_keys:
         if isinstance(key, Squiggle):
@@ -947,21 +925,31 @@ def toggle_all_regions(view, show):
                 draw_squiggle_invisible(view, key, regions)
 
 
-def draw_squiggle_invisible(view, key, regions):
-    # type: (sublime.View, Squiggle, List[sublime.Region]) -> Squiggle
+def draw_squiggle_invisible(
+    view: sublime.View,
+    key: Squiggle,
+    regions: list[sublime.Region]
+) -> Squiggle:
     return draw_squiggle_with_different_scope(view, key, regions, HIDDEN_SCOPE)
 
 
-def draw_squiggle_with_different_scope(view, key, regions, scope):
-    # type: (sublime.View, Squiggle, List[sublime.Region], str) -> Squiggle
+def draw_squiggle_with_different_scope(
+    view: sublime.View,
+    key: Squiggle,
+    regions: list[sublime.Region],
+    scope: str
+) -> Squiggle:
     new_key = key._replace(scope=scope, alt_scope=key.scope)
     erase_view_region(view, key)
     draw_view_region(view, new_key, regions)
     return new_key
 
 
-def redraw_squiggle(view, key, regions):
-    # type: (sublime.View, Squiggle, List[sublime.Region]) -> Squiggle
+def redraw_squiggle(
+    view: sublime.View,
+    key: Squiggle,
+    regions: list[sublime.Region]
+) -> Squiggle:
     new_key = key._replace(scope=key.alt_scope)
     erase_view_region(view, key)
     draw_view_region(view, new_key, regions)
@@ -971,13 +959,11 @@ def redraw_squiggle(view, key, regions):
 # --------------- UTIL FUNCTIONS ------------------- #
 
 
-def get_current_sel(view):
-    # type: (sublime.View) -> Tuple[sublime.Region, ...]
+def get_current_sel(view: sublime.View) -> tuple[sublime.Region, ...]:
     return tuple(s for s in view.sel())
 
 
-def head(iterable):
-    # type: (Iterable[T]) -> Optional[T]
+def head(iterable: Iterable[T]) -> Optional[T]:
     return next(iter(iterable), None)
 
 
@@ -1061,16 +1047,14 @@ TOOLTIP_TEMPLATE = '''
 QUICK_FIX_HELP = " | Click <span class='icon'>⌦</span> to trigger a quick action"
 
 
-def get_errors_where(filename, fn):
-    # type: (str, Callable[[sublime.Region], bool]) -> List[LintError]
+def get_errors_where(filename: str, fn: Callable[[sublime.Region], bool]) -> list[LintError]:
     return [
         error for error in persist.file_errors[filename]
         if fn(error['region'])
     ]
 
 
-def open_tooltip(view, point, line_report=False):
-    # type: (sublime.View, int, bool) -> None
+def open_tooltip(view: sublime.View, point: int, line_report: bool = False) -> None:
     """Show a tooltip containing all linting errors on a given line."""
     # Leave any existing popup open without replacing it
     # don't let the popup flicker / fight with other packages
@@ -1128,8 +1112,12 @@ def join_msgs_raw(errors):
     )
 
 
-def join_msgs(errors, show_count, width, pt):
-    # type: (List[LintError], bool, int, int) -> Tuple[str, Dict[str, quick_fix.Fix]]
+def join_msgs(
+    errors: list[LintError],
+    show_count: bool,
+    width: int,
+    pt: int
+) -> tuple[str, dict[str, quick_fix.Fix]]:
     if show_count:
         part = '''
             <div class="{classname}">{count} {heading}</div>
@@ -1153,7 +1141,7 @@ def join_msgs(errors, show_count, width, pt):
             return error_type
 
     all_msgs = ""
-    quick_actions = {}  # type: Dict[str, quick_fix.Fix]
+    quick_actions: dict[str, quick_fix.Fix] = {}
     for error_type in sorted(grouped_by_type.keys(), key=sort_by_type):
         errors_by_type = sorted(
             grouped_by_type[error_type],
@@ -1213,6 +1201,5 @@ def join_msgs(errors, show_count, width, pt):
     return all_msgs, quick_actions
 
 
-def escape_text(text):
-    # type: (str) -> str
+def escape_text(text: str) -> str:
     return html.escape(text, quote=False).replace(' ', '&nbsp;')

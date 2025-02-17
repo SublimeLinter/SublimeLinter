@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict
 from functools import lru_cache, partial
 from itertools import chain
@@ -81,6 +82,10 @@ def unzip(zipped):
     return tuple(zip(*zipped))  # type: ignore
 
 
+def do_intersect(a: set, b: Iterable) -> bool:
+    return not a.isdisjoint(b)
+
+
 @events.on(events.LINT_RESULT)
 def on_lint_result(filename, linter_name, reason=None, **kwargs):
     # type: (FileName, LinterName, Reason, Any) -> None
@@ -131,17 +136,17 @@ def execute_on_lint_result_request(linter_name):
     filenames, reasons = unzip(calls)
     _on_lint_result(
         set(filenames),
-        not {'on_save', 'on_user_request'}.isdisjoint(reasons)
+        do_intersect({'on_save', 'on_user_request'}, reasons)
     )
 
 
 def _on_lint_result(filenames, maybe_toggle_panel_automatically):
-    # type: (Set[FileName], bool) -> None
+    # type: (Iterable[FileName], bool) -> None
     for window in sublime.windows():
         panel_open = panel_is_active(window)
         if (
             (panel_open or maybe_toggle_panel_automatically)
-            and filenames & filenames_per_window(window)
+            and do_intersect(filenames_per_window(window), filenames)
         ):
             if panel_open:
                 fill_panel(window)
@@ -217,7 +222,7 @@ class UpdateState(sublime_plugin.EventListener):
         # In background mode most of the time the errors are already up-to-date
         # on save, so we (maybe) show the panel immediately.
         if view_gets_linted_on_modified_event(view):
-            toggle_panel_if_errors(view.window(), {util.canonical_filename(view)})
+            toggle_panel_if_errors(view.window(), [util.canonical_filename(view)])
 
     def on_post_window_command(self, window, command_name, args):
         if command_name == 'hide_panel':
@@ -250,7 +255,7 @@ def view_gets_linted_on_modified_event(view):
 
 
 def toggle_panel_if_errors(window, filenames):
-    # type: (Optional[sublime.Window], Set[FileName]) -> None
+    # type: (Optional[sublime.Window], Iterable[FileName]) -> None
     """Toggle the panel if the view or window has problems, depending on settings."""
     if window is None:
         return

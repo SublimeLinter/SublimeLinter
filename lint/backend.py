@@ -17,25 +17,22 @@ import traceback
 
 from . import events, linter as linter_module, persist, style, util
 
+from typing import Callable, Iterator, TypeVar
+from typing_extensions import TypeAlias
+from .persist import LintError
+from .elect import LinterInfo
+from typing_extensions import ParamSpec
+Linter = linter_module.Linter
+LinterSettings = linter_module.LinterSettings
 
-MYPY = False
-if MYPY:
-    from typing import Callable, Iterator, TypeVar
-    from typing_extensions import TypeAlias
-    from .persist import LintError
-    from .elect import LinterInfo
-    from typing_extensions import ParamSpec
-    Linter = linter_module.Linter
-    LinterSettings = linter_module.LinterSettings
-
-    T = TypeVar('T')
-    P = ParamSpec('P')
-    LintResult: TypeAlias[list] = "list[LintError]"
-    Task = Callable[[], T]
-    ViewChangedFn = Callable[[], bool]
-    FileName = str
-    LinterName = str
-    ViewContext = linter_module.ViewContext
+T = TypeVar('T')
+P = ParamSpec('P')
+LintResult: TypeAlias[list] = "list[LintError]"
+Task = Callable[[], T]
+ViewChangedFn = Callable[[], bool]
+FileName = str
+LinterName = str
+ViewContext = linter_module.ViewContext
 
 
 @dataclass(frozen=True)
@@ -57,12 +54,11 @@ counter_lock = threading.Lock()
 
 
 def lint_view(
-    linters,           # type: list[LinterInfo]
-    view,              # type: sublime.View
-    view_has_changed,  # type: ViewChangedFn
-    sink               # type: Callable[[LinterName, LintResult], None]
-):
-    # type: (...) -> None
+    linters: list[LinterInfo],
+    view: sublime.View,
+    view_has_changed: ViewChangedFn,
+    sink: Callable[[LinterName, LintResult], None]
+) -> None:
     """Lint the given view.
 
     This is the top level lint dispatcher. It falls through.
@@ -79,8 +75,11 @@ def lint_view(
         orchestrator.submit(print_all_exceptions(run_job), job, sink)
 
 
-def tasks_per_linter(view, view_has_changed, linter_info):
-    # type: (sublime.View, ViewChangedFn, LinterInfo) -> Iterator[Task[LintResult]]
+def tasks_per_linter(
+    view: sublime.View,
+    view_has_changed: ViewChangedFn,
+    linter_info: LinterInfo
+) -> Iterator[Task[LintResult]]:
     for region in linter_info.regions:
         linter = linter_info.klass(view, linter_info.settings)
         code = view.substr(region)
@@ -113,8 +112,12 @@ def make_good_task_name(linter: LinterInfo) -> str:
     )
 
 
-def execute_lint_task(linter, code, offsets, view_has_changed):
-    # type: (Linter, str, tuple, ViewChangedFn) -> LintResult
+def execute_lint_task(
+    linter: Linter,
+    code: str,
+    offsets: tuple,
+    view_has_changed: ViewChangedFn
+) -> LintResult:
     try:
         errors = linter.lint(code, view_has_changed)
         finalize_errors(linter, errors, offsets)
@@ -132,8 +135,11 @@ def execute_lint_task(linter, code, offsets, view_has_changed):
         return []  # Empty list here to clear old errors
 
 
-def finalize_errors(linter, errors, offsets):
-    # type: (Linter, list[LintError], tuple[int, ...]) -> None
+def finalize_errors(
+    linter: Linter,
+    errors: list[LintError],
+    offsets: tuple[int, ...]
+) -> None:
     linter_name = linter.name
     view = linter.view
     eof = view.size()
@@ -179,8 +185,7 @@ PROPERTIES_FOR_UID = (
 )
 
 
-def make_error_uid(error):
-    # type: (LintError) -> str
+def make_error_uid(error: LintError) -> str:
     return hashlib.sha256(
         ''.join(
             str(error[k])  # type: ignore
@@ -211,8 +216,7 @@ def warn_excessive_tasks(jobs: list[LintJob]) -> None:
 
 
 @lru_cache(4)
-def excess_warning(msg):
-    # type: (str) -> None
+def excess_warning(msg: str) -> None:
     logger.warning(msg)
 
 
@@ -243,8 +247,7 @@ def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> Non
     sublime.set_timeout_async(lambda: sink(job.linter_name, errors))
 
 
-def run_concurrently(tasks, executor):
-    # type: (list[Task[T]], ThreadPoolExecutor) -> list[T]
+def run_concurrently(tasks: list[Task[T]], executor: ThreadPoolExecutor) -> list[T]:
     work = [executor.submit(task) for task in tasks]
     done, not_done = wait(work, return_when=FIRST_EXCEPTION)
 
@@ -260,8 +263,7 @@ MIN_DEBOUNCE_DELAY = 0.0005
 MAX_AUTOMATIC_DELAY = 2.0
 
 
-def get_delay():
-    # type: () -> float
+def get_delay() -> float:
     """Return the delay between a lint request and when it will be processed."""
     runtimes = sorted(elapsed_runtimes)
     middle = runtimes[len(runtimes) // 2]

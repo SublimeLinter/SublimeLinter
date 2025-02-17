@@ -1,3 +1,4 @@
+from __future__ import annotations
 from contextlib import contextmanager, ExitStack
 from functools import lru_cache, wraps
 import inspect
@@ -7,25 +8,24 @@ import uuid
 import sublime
 import sublime_plugin
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Any, Callable, ContextManager, Dict, Iterator, List, Optional,
-        Tuple, TypeVar
-    )
-    T = TypeVar("T")
-    Callback = Tuple[Callable, Tuple[Any, ...], Dict[str, Any]]
-    ReturnValue = Any
-    WrapperFn = Callable[[sublime.View], ContextManager[None]]
+from typing import Any, Callable, ContextManager, Dict, Iterator, Optional, Tuple, TypeVar
+T = TypeVar("T")
+Callback = Tuple[Callable, Tuple[Any, ...], Dict[str, Any]]
+ReturnValue = Any
+WrapperFn = Callable[[sublime.View], ContextManager[None]]
 
 
 lock = threading.Lock()
-COMMANDS = {}  # type: Dict[str, Callback]
-RESULTS = {}  # type: Dict[str, ReturnValue]
+COMMANDS: dict[str, Callback] = {}
+RESULTS: dict[str, ReturnValue] = {}
 
 
-def run_as_text_command(fn, view, *args, **kwargs):
-    # type: (Callable[..., T], sublime.View, Any, Any) -> Optional[T]
+def run_as_text_command(
+    fn: Callable[..., T],
+    view: sublime.View,
+    *args: Any,
+    **kwargs: Any
+) -> Optional[T]:
     token = uuid.uuid4().hex
     with lock:
         COMMANDS[token] = (fn, (view, ) + args, kwargs)
@@ -39,11 +39,9 @@ def run_as_text_command(fn, view, *args, **kwargs):
     return rv
 
 
-def text_command(fn):
-    # type: (Callable[..., T]) -> Callable[..., T]
+def text_command(fn: Callable[..., T]) -> Callable[..., T]:
     @wraps(fn)
-    def decorated(view, *args, **kwargs):
-        # type: (sublime.View, Any, Any) -> Optional[T]
+    def decorated(view: sublime.View, *args: Any, **kwargs: Any) -> Optional[T]:
         return run_as_text_command(fn, view, *args, **kwargs)
     return decorated  # type: ignore[return-value]
 
@@ -82,8 +80,12 @@ class sl_generic_text_cmd(sublime_plugin.TextCommand):
 
 # `replace_view_content` is a wrapper for `_replace_region` to get some
 # typing support from mypy.
-def replace_view_content(view, text, region=None, wrappers=[]):
-    # type: (sublime.View, str, sublime.Region, List[WrapperFn]) -> None
+def replace_view_content(
+    view: sublime.View,
+    text: str,
+    region: sublime.Region | None = None,
+    wrappers: list[WrapperFn] = []
+) -> None:
     """Replace the content of the view
 
     If no region is given the whole content will get replaced. Otherwise
@@ -93,8 +95,13 @@ def replace_view_content(view, text, region=None, wrappers=[]):
 
 
 @text_command
-def _replace_region(view, edit, text, region=None, wrappers=[]):
-    # type: (sublime.View, sublime.Edit, str, sublime.Region, List[WrapperFn]) -> None
+def _replace_region(
+    view: sublime.View,
+    edit: sublime.Edit,
+    text: str,
+    region: sublime.Region | None = None,
+    wrappers: list[WrapperFn] = []
+) -> None:
     if region is None:
         # If you "replace" (or expand) directly at the cursor,
         # the cursor expands into a selection.
@@ -117,8 +124,7 @@ def _replace_region(view, edit, text, region=None, wrappers=[]):
 
 
 @contextmanager
-def writable_view(view):
-    # type: (sublime.View) -> Iterator[None]
+def writable_view(view: sublime.View) -> Iterator[None]:
     is_read_only = view.is_read_only()
     view.set_read_only(False)
     try:
@@ -128,8 +134,7 @@ def writable_view(view):
 
 
 @contextmanager
-def restore_cursors(view):
-    # type: (sublime.View) -> Iterator[None]
+def restore_cursors(view: sublime.View) -> Iterator[None]:
     save_cursors = [
         (view.rowcol(s.begin()), view.rowcol(s.end()))
         for s in view.sel()
@@ -146,8 +151,7 @@ def restore_cursors(view):
 
 
 @contextmanager
-def stable_viewport(view):
-    # type: (sublime.View) -> Iterator[None]
+def stable_viewport(view: sublime.View) -> Iterator[None]:
     # Ref: https://github.com/SublimeTextIssues/Core/issues/2560
     # See https://github.com/jonlabelle/SublimeJsPrettier/pull/171/files
     # for workaround.

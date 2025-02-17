@@ -1,31 +1,30 @@
+from __future__ import annotations
 import sublime
 import sublime_plugin
 
 from .lint import persist, events, util
 
+from typing import Iterable, Optional, TypedDict
 
-MYPY = False
-if MYPY:
-    from typing import Iterable, Optional, TypedDict
+FileName = str
+LinterName = str
+LintError = persist.LintError
 
-    FileName = str
-    LinterName = str
-    LintError = persist.LintError
 
-    class State_(TypedDict):
-        active_view: Optional[sublime.View]
-        active_filename: Optional[FileName]
-        current_pos: int
+class State_(TypedDict):
+    active_view: Optional[sublime.View]
+    active_filename: Optional[FileName]
+    current_pos: int
 
 
 STATUS_COUNTER_KEY = "sublime_linter_status_counter"
 STATUS_MSG_KEY = "sublime_linter_status_messages"
 
-State = {
+State: State_ = {
     'active_view': None,
     'active_filename': None,
     'current_pos': -1
-}  # type: State_
+}
 
 
 def plugin_loaded():
@@ -87,8 +86,7 @@ def draw(active_view, active_filename, current_pos, **kwargs):
         active_view.erase_status(STATUS_MSG_KEY)
 
 
-def messages_under_cursor(filename, current_pos):
-    # type: (FileName, int) -> str
+def messages_under_cursor(filename: FileName, current_pos: int) -> str:
     message_template = persist.settings.get('statusbar.messages_template')
     if message_template != "":
         msgs = (
@@ -105,16 +103,14 @@ def messages_under_cursor(filename, current_pos):
         return ""
 
 
-def get_errors_under_cursor(filename, cursor):
-    # type: (FileName, int) -> Iterable[LintError]
+def get_errors_under_cursor(filename: FileName, cursor: int) -> Iterable[LintError]:
     return (
         error for error in persist.file_errors.get(filename, [])
         if error['region'].contains(cursor)
     )
 
 
-def get_current_pos(view):
-    # type: (sublime.View) -> int
+def get_current_pos(view: sublime.View) -> int:
     try:
         return view.sel()[0].begin()
     except (AttributeError, IndexError):

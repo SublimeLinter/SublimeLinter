@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 from itertools import chain
@@ -7,45 +8,44 @@ import sublime
 
 from . import persist
 from .generic_text_command import replace_view_content, text_command
+
+
+from typing import (
+    Callable, Iterable, Iterator, List,
+    NamedTuple, Optional, TypeVar
+)
+from typing_extensions import Final, Literal
+T = TypeVar("T")
+S = TypeVar("S")
+LintError = persist.LintError
+LintErrorPredicate = Callable[[LintError], bool]
+
+
+class TextRange(NamedTuple):
+    text: str
+    range: sublime.Region
+
+
+Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
+Fix = Callable[[sublime.View], Iterator[TextRange]]
+
+
 flatten = chain.from_iterable
 
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Callable, DefaultDict, Dict, Iterable, Iterator, List,
-        NamedTuple, Optional, Set, TypeVar, Union
-    )
-    from typing_extensions import Final, Literal
-    T = TypeVar("T")
-    S = TypeVar("S")
-    LintError = persist.LintError
-    TextRange = NamedTuple("TextRange", [("text", str), ("range", sublime.Region)])
-    Fixer = Callable[[LintError, sublime.View], Iterator[TextRange]]
-    Fix = Callable[[sublime.View], Iterator[TextRange]]
-    LintErrorPredicate = Callable[[LintError], bool]
-
-else:
-    from collections import namedtuple
-    TextRange = namedtuple("TextRange", "text range")
-
-
 class QuickAction:
-    def __init__(self, subject, fn, detail, solves):
-        # type: (str, Fix, Optional[str], List[LintError]) -> None
-        self.subject = subject  # type: Final[str]
-        self.fn = fn  # type: Final[Fix]
-        self.detail = detail  # type: Final[Optional[str]]
-        self.solves = solves  # type: Final[List[LintError]]
+    def __init__(self, subject: str, fn: Fix, detail: Optional[str], solves: list[LintError]) -> None:
+        self.subject: Final[str] = subject
+        self.fn: Final[Fix] = fn
+        self.detail: Final[Optional[str]] = detail
+        self.solves: Final[list[LintError]] = solves
 
     @property
-    def description(self):
-        # type: () -> str
+    def description(self) -> str:
         return " — ".join(filter(None, (self.subject, self.detail)))
 
 
-def actions_for_errors(errors, view=None):
-    # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+def actions_for_errors(errors: list[LintError], view: Optional[sublime.View] = None) -> Iterator[QuickAction]:
     grouped = defaultdict(list)
     for error in errors:
         grouped[error['linter']].append(error)
@@ -57,46 +57,37 @@ def actions_for_errors(errors, view=None):
     )
 
 
-def best_action_for_error(error):
-    # type: (LintError) -> Optional[QuickAction]
+def best_action_for_error(error: LintError) -> Optional[QuickAction]:
     return next(actions_for_errors([error]), None)
 
 
-def apply_fix(fix, view):
-    # type: (Fix, sublime.View) -> None
+def apply_fix(fix: Fix, view: sublime.View) -> None:
     edits = fix(view)
     apply_edits(view, edits)
 
 
 @text_command
-def apply_edits(view, edits):
-    # type: (sublime.View, Iterator[TextRange]) -> None
+def apply_edits(view: sublime.View, edits: Iterator[TextRange]) -> None:
     for edit in reversed(sorted(edits, key=lambda edit: edit.range.a)):
         replace_view_content(view, edit.text, edit.range)
 
 
-if MYPY:
-    Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
-    T_provider = TypeVar("T_provider", bound=Provider)
-    T_fixer = TypeVar("T_fixer", bound=Fixer)
+Provider = Callable[[List[LintError], Optional[sublime.View]], Iterator[QuickAction]]
+T_provider = TypeVar("T_provider", bound=Provider)
+T_fixer = TypeVar("T_fixer", bound=Fixer)
 
-PROVIDERS = defaultdict(
-    dict
-)  # type: DefaultDict[str, Dict[str, Provider]]
+PROVIDERS: defaultdict[str, dict[str, Provider]] = defaultdict(dict)
 DEFAULT_SUBJECT = '{linter}: Disable {code}'
 DEFAULT_DETAIL = '{msg}'
 
 
-def namespacy_name(fn):
-    # type: (Callable) -> str
+def namespacy_name(fn: Callable) -> str:
     # TBC: No methods supported, only simple functions!
     return "{}.{}".format(fn.__module__, fn.__name__)
 
 
-def quick_actions_for(linter_name):
-    # type: (str) -> Callable[[T_provider], T_provider]
-    def register(fn):
-        # type: (T_provider) -> T_provider
+def quick_actions_for(linter_name: str) -> Callable[[T_provider], T_provider]:
+    def register(fn: T_provider) -> T_provider:
         ns_name = namespacy_name(fn)
         PROVIDERS[linter_name][ns_name] = fn
         fn.unregister = lambda: PROVIDERS[linter_name].pop(ns_name, None)  # type: ignore[attr-defined]
@@ -110,22 +101,19 @@ FalseFn = lambda _: False
 
 
 def ignore_rules_inline(
-    linter_name,
-    subject=DEFAULT_SUBJECT,
-    detail=DEFAULT_DETAIL,
-    except_for=FalseFn
-):
-    # type: (str, str, str, Union[Set[str], LintErrorPredicate]) -> Callable[[Fixer], Fixer]
+    linter_name: str,
+    subject: str = DEFAULT_SUBJECT,
+    detail: str = DEFAULT_DETAIL,
+    except_for: set[str] | LintErrorPredicate = FalseFn
+) -> Callable[[Fixer], Fixer]:
 
     if callable(except_for):
         except_for_ = except_for
     else:
         except_for_ = lambda e: not e["code"] or e["code"] in except_for
 
-    def register(fn):
-        # type: (Fixer) -> Fixer
-        def make_action(error):
-            # type: (LintError) -> QuickAction
+    def register(fn: Fixer) -> Fixer:
+        def make_action(error: LintError) -> QuickAction:
             return QuickAction(
                 subject.format(**error),
                 partial(fn, error),
@@ -142,12 +130,11 @@ def ignore_rules_inline(
 
 
 def merge_actions_by_code_and_line(
-    make_action,  # type: Callable[[LintError], QuickAction]
-    except_for,   # type: LintErrorPredicate
-    errors,       # type: List[LintError]
-    _view         # type: Optional[sublime.View]
-):
-    # type: (...) -> Iterator[QuickAction]
+    make_action: Callable[[LintError], QuickAction],
+    except_for: LintErrorPredicate,
+    errors: list[LintError],
+    _view: Optional[sublime.View]
+) -> Iterator[QuickAction]:
     """
     Combine multiple errors by line and code.
 
@@ -189,8 +176,7 @@ def merge_actions_by_code_and_line(
                 )
 
 
-def merge_actions(actions):
-    # type: (List[List[QuickAction]]) -> QuickAction
+def merge_actions(actions: list[list[QuickAction]]) -> QuickAction:
     """
     Reduce multiple errors per line to one `QuickAction`.  Assumes that
     executing the first action per line will mute all other errors on that
@@ -207,14 +193,12 @@ def merge_actions(actions):
     )
 
 
-def subject_for_multiple_actions(actions):
-    # type: (List[QuickAction]) -> str
+def subject_for_multiple_actions(actions: list[QuickAction]) -> str:
     solves_count = len(list(flatten(a.solves for a in actions)))
     return "{} ({}x)".format(actions[0].subject, solves_count)
 
 
-def detail_for_multiple_actions(actions):
-    # type: (List[QuickAction]) -> Optional[str]
+def detail_for_multiple_actions(actions: list[QuickAction]) -> Optional[str]:
     detail = next(filter(None, (a.detail for a in actions)), None)
     if not detail:
         return detail
@@ -226,19 +210,16 @@ def detail_for_multiple_actions(actions):
         return detail
 
 
-def group_by(key, iterable):
-    # type: (Callable[[T], S], Iterable[T]) -> DefaultDict[S, List[T]]
+def group_by(key: Callable[[T], S], iterable: Iterable[T]) -> defaultdict[S, list[T]]:
     grouped = defaultdict(list)
     for item in iterable:
         grouped[key(item)].append(item)
     return grouped
 
 
-def provide_fix_for(linter_name, when=TrueFn):
-    # type: (str, LintErrorPredicate) -> Callable[[T_fixer], T_fixer]
+def provide_fix_for(linter_name: str, when: LintErrorPredicate = TrueFn) -> Callable[[T_fixer], T_fixer]:
 
-    def provider_(fixer, errors, _view):
-        # type: (Fixer, List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+    def provider_(fixer: Fixer, errors: list[LintError], _view: Optional[sublime.View]) -> Iterator[QuickAction]:
         return (
             QuickAction(
                 "{linter}: Fix {code} {msg}".format(**error),
@@ -250,8 +231,7 @@ def provide_fix_for(linter_name, when=TrueFn):
             if when(error)
         )
 
-    def register(fn):
-        # type: (T_fixer) -> T_fixer
+    def register(fn: T_fixer) -> T_fixer:
         ns_name = namespacy_name(fn)
         provider = partial(provider_, fn)
         PROVIDERS[linter_name][ns_name] = provider
@@ -260,8 +240,7 @@ def provide_fix_for(linter_name, when=TrueFn):
     return register
 
 
-def fix(linter_name, only_for=set()):
-    # type: (str, Union[str, Set[str]]) -> Callable[[Fixer], Fixer]
+def fix(linter_name: str, only_for: str | set[str] = set()) -> Callable[[Fixer], Fixer]:
     if isinstance(only_for, str):
         only_for = {only_for}
 
@@ -275,8 +254,7 @@ def fix(linter_name, only_for=set()):
 
 
 @ignore_rules_inline("eslint")
-def fix_eslint_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_eslint_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     code = error["code"]
     yield (
@@ -294,8 +272,7 @@ def fix_eslint_error(error, view):
 
 
 @quick_actions_for("eslint")
-def eslint_block_ignorer(errors, view):
-    # type: (List[LintError], Optional[sublime.View]) -> Iterator[QuickAction]
+def eslint_block_ignorer(errors: list[LintError], view: Optional[sublime.View]) -> Iterator[QuickAction]:
     if view and selection_across_multiple_lines(view):
         region = view.sel()[0]
         len_errors = len(errors)
@@ -310,14 +287,12 @@ def eslint_block_ignorer(errors, view):
         )
 
 
-def selection_across_multiple_lines(view):
-    # type: (sublime.View) -> bool
+def selection_across_multiple_lines(view: sublime.View) -> bool:
     s = view.sel()[0]
     return view.rowcol(s.a)[0] != view.rowcol(s.b)[0]
 
 
-def eslint_ignore_block(errors, region, view):
-    # type: (List[LintError], sublime.Region, sublime.View) -> Iterator[TextRange]
+def eslint_ignore_block(errors: list[LintError], region: sublime.Region, view: sublime.View) -> Iterator[TextRange]:
     # Assumes region is not empty.
     codes = {e["code"] for e in errors}
     starting_line = line_from_point(view, region.begin())
@@ -354,8 +329,7 @@ def eslint_ignore_block(errors, region, view):
 
 
 @ignore_rules_inline("stylelint")
-def fix_stylelint_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_stylelint_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     code = error["code"]
     yield (
@@ -372,8 +346,7 @@ def fix_stylelint_error(error, view):
 
 
 @ignore_rules_inline("phpcs")
-def fix_phpcs_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_phpcs_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     code = error["code"]
     yield (
@@ -409,8 +382,7 @@ def fix_phpcs_error(error, view):
     "E265",  # block comment should start with ‘# ‘
     "E266",  # too many leading ‘#’ for block comment
 })
-def fix_flake8_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_flake8_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     code = error["code"]
     yield (
@@ -428,8 +400,7 @@ def fix_flake8_error(error, view):
 
 
 @fix("flake8", {"E261"})
-def fix_e261(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_e261(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     if view.substr(error["region"]) == " ":
         yield TextRange("  ", error["region"])
     else:
@@ -437,14 +408,12 @@ def fix_e261(error, view):
 
 
 @fix("flake8", {"E262", "E265"})
-def fix_e262(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_e262(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     yield TextRange("# ", error["region"])
 
 
 @fix("flake8", {"E266"})
-def fix_e266(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_e266(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     col = error["start"]
     tail_text = line.text[col:]
@@ -456,8 +425,7 @@ def fix_e266(error, view):
 
 
 @provide_fix_for("mypy", lambda e: e["msg"] == 'Unused "type: ignore" comment')
-def fix_mypy_unused_ignore(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_mypy_unused_ignore(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     match = re.search(r"\s*#\s*type:\s*ignore(\[.+])?", line.text)
     if match:
@@ -466,8 +434,7 @@ def fix_mypy_unused_ignore(error, view):
 
 
 @provide_fix_for("mypy", lambda e: e["msg"].startswith('Unused "type: ignore['))
-def fix_mypy_specific_unused_ignore(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_mypy_specific_unused_ignore(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     match = re.search(r"type: ignore\[(?P<codes>.*)\]", error["msg"])
     if match:
@@ -492,8 +459,7 @@ def fix_mypy_specific_unused_ignore(error, view):
         or e["msg"].startswith('Unused "type: ignore')
     )
 )
-def fix_mypy_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_mypy_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     code = error["code"]
     yield (
@@ -520,8 +486,7 @@ def codespell_error_has_exactly_one_suggestion(error):
 
 
 @provide_fix_for("codespell", when=codespell_error_has_exactly_one_suggestion)
-def fix_codespell_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_codespell_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     correction = error["msg"].split(" ==> ")[1]
     yield TextRange(correction, error["region"])
 
@@ -530,8 +495,7 @@ SHELLCHECK_CODE_PATTERN = r"\[(?P<code>SC\d+)\]$"
 
 
 @ignore_rules_inline("shellcheck")
-def fix_shellcheck_error(error, view):
-    # type: (LintError, sublime.View) -> Iterator[TextRange]
+def fix_shellcheck_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
     match = re.search(SHELLCHECK_CODE_PATTERN, error["msg"])
     assert match
@@ -551,45 +515,54 @@ def fix_shellcheck_error(error, view):
     )
 
 
-def line_from_point(view, pt):
-    # type: (sublime.View, int) -> TextRange
+def line_from_point(view: sublime.View, pt: int) -> TextRange:
     line_region = view.line(pt)
     line_content = view.substr(line_region)
     return TextRange(line_content, line_region)
 
 
-def line_error_is_on(view, error):
-    # type: (sublime.View, LintError) -> TextRange
+def line_error_is_on(view: sublime.View, error: LintError) -> TextRange:
     pt = error["region"].begin()
     return line_from_point(view, pt)
 
 
-def read_previous_line(view, line):
-    # type: (sublime.View, TextRange) -> Optional[TextRange]
+def read_previous_line(view: sublime.View, line: TextRange) -> Optional[TextRange]:
     if line.range.a == 0:
         return None
     return line_from_point(view, line.range.a - 1)
 
 
-def read_next_line(view, line):
-    # type: (sublime.View, TextRange) -> Optional[TextRange]
+def read_next_line(view: sublime.View, line: TextRange) -> Optional[TextRange]:
     if line.range.b >= view.size():
         return None
     return line_from_point(view, line.range.b + 1)
 
 
-def extend_existing_comment(search_pattern, joiner, rulenames, line):
-    # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+def extend_existing_comment(
+    search_pattern: str,
+    joiner: str,
+    rulenames: set[str],
+    line: Optional[TextRange]
+) -> TextRange | None:
     return _modify_existing_comment("add", search_pattern, joiner, rulenames, line)
 
 
-def shrink_existing_comment(search_pattern, joiner, rulenames, line):
-    # type: (str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+def shrink_existing_comment(
+    search_pattern: str,
+    joiner: str,
+    rulenames: set[str],
+    line: Optional[TextRange]
+) -> TextRange | None:
     return _modify_existing_comment("remove", search_pattern, joiner, rulenames, line)
 
 
-def _modify_existing_comment(operation, search_pattern, joiner, rulenames, line):
-    # type: (Literal["add", "remove"], str, str, Set[str], Optional[TextRange]) -> Optional[TextRange]
+def _modify_existing_comment(
+    operation: Literal["add", "remove"],
+    search_pattern: str,
+    joiner: str,
+    rulenames: set[str],
+    line: Optional[TextRange]
+) -> TextRange | None:
     if line is None:
         return None
     match = re.search(search_pattern, line.text)
@@ -612,8 +585,7 @@ def _modify_existing_comment(operation, search_pattern, joiner, rulenames, line)
     return None
 
 
-def add_at_eol(text, line):
-    # type: (str, TextRange) -> TextRange
+def add_at_eol(text: str, line: TextRange) -> TextRange:
     line_length = len(line.text.rstrip())
     return TextRange(
         text,
@@ -621,37 +593,31 @@ def add_at_eol(text, line):
     )
 
 
-def add_at_bol(text, line):
-    # type: (str, TextRange) -> TextRange
+def add_at_bol(text: str, line: TextRange) -> TextRange:
     return TextRange(
         text,
         sublime.Region(line.range.a)
     )
 
 
-def insert_preceding_line(text, line):
-    # type: (str, TextRange) -> TextRange
+def insert_preceding_line(text: str, line: TextRange) -> TextRange:
     return add_at_bol(indentation(line) + text + "\n", line)
 
 
-def insert_subsequent_line(text, line):
-    # type: (str, TextRange) -> TextRange
+def insert_subsequent_line(text: str, line: TextRange) -> TextRange:
     return add_at_eol("\n" + indentation(line) + text, line)
 
 
-def indentation_level(line):
-    # type: (TextRange) -> int
+def indentation_level(line: TextRange) -> int:
     return len(line.text) - len(line.text.lstrip())
 
 
-def indentation(line):
-    # type: (TextRange) -> str
+def indentation(line: TextRange) -> str:
     level = indentation_level(line)
     return line.text[:level]
 
 
-def maybe_add_before_string(pattern, text, line):
-    # type: (str, str, TextRange) -> Optional[TextRange]
+def maybe_add_before_string(pattern: str, text: str, line: TextRange) -> Optional[TextRange]:
     match = re.search(pattern, line.text)
     if match:
         start, _ = match.span()

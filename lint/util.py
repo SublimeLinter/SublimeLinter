@@ -1,4 +1,5 @@
 """This module provides general utility methods."""
+from __future__ import annotations
 from collections import ChainMap
 from contextlib import contextmanager
 from functools import lru_cache, partial, wraps
@@ -19,14 +20,12 @@ from . import events
 from .const import IS_ENABLED_SWITCH
 
 
-MYPY = False
-if MYPY:
-    from typing import (
-        Any, Callable, Dict, Iterator, List, MutableMapping, Optional, TypeVar, Union)
-    from typing_extensions import Concatenate as Con, ParamSpec
-    P = ParamSpec('P')
-    T = TypeVar('T')
-    Q = TypeVar('Q', bound=Union[sublime.Window, sublime.View])
+from typing import (
+    Any, Callable, Iterator, MutableMapping, Optional, TypeVar, Union)
+from typing_extensions import Concatenate as Con, ParamSpec
+P = ParamSpec('P')
+T = TypeVar('T')
+Q = TypeVar('Q', bound=Union[sublime.Window, sublime.View])
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +42,7 @@ ERROR_OUTPUT_PANEL = "output." + ERROR_PANEL_NAME
 try:
     UI_THREAD_NAME  # type: ignore[used-before-def]
 except NameError:
-    UI_THREAD_NAME = None  # type: Optional[str]
+    UI_THREAD_NAME: str | None = None
 
 
 @events.on('settings_changed')
@@ -58,8 +57,7 @@ def determine_thread_names():
     sublime.set_timeout(callback)
 
 
-def ensure_on_ui_thread(fn):
-    # type: (Callable[P, T]) -> Callable[P, None]
+def ensure_on_ui_thread(fn: Callable[P, T]) -> Callable[P, None]:
     """Decorate a `fn` to always run on the UI thread
 
     Check at runtime on which thread the code runs and maybe
@@ -68,8 +66,7 @@ def ensure_on_ui_thread(fn):
     return immediately.
     """
     @wraps(fn)
-    def wrapped(*args, **kwargs):
-        # type: (P.args, P.kwargs) -> None
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> None:
         if it_runs_on_ui():
             fn(*args, **kwargs)
         else:
@@ -77,11 +74,9 @@ def ensure_on_ui_thread(fn):
     return wrapped
 
 
-def assert_on_ui_thread(fn):
-    # type: (Callable[P, T]) -> Callable[P, T]
+def assert_on_ui_thread(fn: Callable[P, T]) -> Callable[P, T]:
     @wraps(fn)
-    def wrapped(*args, **kwargs):
-        # type: (P.args, P.kwargs) -> T
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         if it_runs_on_ui():
             return fn(*args, **kwargs)
         msg = "'{}' must be called from the UI thread".format(fn.__name__)
@@ -90,18 +85,15 @@ def assert_on_ui_thread(fn):
     return wrapped
 
 
-def it_runs_on_ui():
-    # type: () -> bool
+def it_runs_on_ui() -> bool:
     return threading.current_thread().name == UI_THREAD_NAME
 
 
-def enqueue_on_ui(fn, *args, **kwargs):
-    # type: (Callable[P, T], P.args, P.kwargs) -> None
+def enqueue_on_ui(fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
     sublime.set_timeout(partial(fn, *args, **kwargs))
 
 
-def ui_block(fn):
-    # type: (Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]
+def ui_block(fn: Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]:
     """Mark a function as UI block and mimic `run_command` behavior.
 
     Annotates a function that takes as its first argument either a `View`
@@ -116,11 +108,9 @@ def ui_block(fn):
     return ensure_on_ui_thread(skip_if_invalid_subject(fn))
 
 
-def skip_if_invalid_subject(fn):
-    # type: (Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]
+def skip_if_invalid_subject(fn: Callable[Con[Q, P], T]) -> Callable[Con[Q, P], None]:
     @wraps(fn)
-    def wrapped(__view_or_window, *args, **kwargs):
-        # type: (Q, P.args, P.kwargs) -> None
+    def wrapped(__view_or_window: Q, *args: P.args, **kwargs: P.kwargs) -> None:
         if __view_or_window.is_valid():
             fn(__view_or_window, *args, **kwargs)
 
@@ -137,16 +127,14 @@ def print_runtime(message):
     print('{} took {}ms [{}]'.format(message, duration, thread_name))
 
 
-def show_message(message, window=None):
-    # type: (str, Optional[sublime.Window]) -> None
+def show_message(message: str, window: Optional[sublime.Window] = None) -> None:
     if window is None:
         window = sublime.active_window()
     _show_message(window, message)
 
 
 @ui_block
-def _show_message(window, message):
-    # type: (sublime.Window, str) -> None
+def _show_message(window: sublime.Window, message: str) -> None:
     if window.active_panel() == ERROR_OUTPUT_PANEL:
         panel = window.find_output_panel(ERROR_PANEL_NAME)
         assert panel
@@ -170,21 +158,18 @@ def _show_message(window, message):
     window.run_command("show_panel", {"panel": ERROR_OUTPUT_PANEL})
 
 
-def close_all_error_panels():
-    # type: () -> None
+def close_all_error_panels() -> None:
     for window in sublime.windows():
         close_error_panel(window)
 
 
-def close_error_panel(window=None):
-    # type: (Optional[sublime.Window]) -> None
+def close_error_panel(window: Optional[sublime.Window] = None) -> None:
     if window is None:
         window = sublime.active_window()
     window.destroy_output_panel(ERROR_PANEL_NAME)
 
 
-def flash(view, msg):
-    # type: (sublime.View, str) -> None
+def flash(view: sublime.View, msg: str) -> None:
     window = view.window() or sublime.active_window()
     window.status_message(msg)
 
@@ -217,25 +202,21 @@ def short_canonical_filename(view):
     )
 
 
-def canonical_filename(view):
-    # type: (sublime.View) -> str
+def canonical_filename(view: sublime.View) -> str:
     return view.file_name() or '<untitled {}>'.format(view.buffer_id())
 
 
-def read_json_file(path):
-    # type: (str) -> Dict[str, Any]
+def read_json_file(path: str) -> dict[str, Any]:
     return _read_json_file(path, os.path.getmtime(path))
 
 
 @lru_cache(maxsize=16)
-def _read_json_file(path, _mtime):
-    # type: (str, float) -> Dict[str, Any]
+def _read_json_file(path: str, _mtime: float) -> dict[str, Any]:
     with open(path, 'r', encoding='utf8') as f:
         return json.load(f)
 
 
-def paths_upwards(path):
-    # type: (str) -> Iterator[str]
+def paths_upwards(path: str) -> Iterator[str]:
     while True:
         yield path
 
@@ -250,8 +231,7 @@ def paths_upwards(path):
         path = next_path
 
 
-def paths_upwards_until_home(path):
-    # type: (str) -> Iterator[str]
+def paths_upwards_until_home(path: str) -> Iterator[str]:
     """Yield paths 'upwards' but stop on HOME (excluding it).
 
     Note: If the starting `path` is not below HOME we yield until
@@ -261,8 +241,7 @@ def paths_upwards_until_home(path):
     return takewhile(lambda p: p != HOME, paths_upwards(path))
 
 
-def get_syntax(view):
-    # type: (sublime.View) -> str
+def get_syntax(view: sublime.View) -> str:
     """
     Return a short syntax name used as a key against "syntax_map"
     and in `get_tempfile_suffix()`.
@@ -273,8 +252,7 @@ def get_syntax(view):
     return settings.get('syntax_map', {}).get(stem, stem)
 
 
-def is_lintable(view):
-    # type: (sublime.View) -> bool
+def is_lintable(view: sublime.View) -> bool:
     """
     Return true when a view is not lintable, e.g. scratch, read_only, etc.
 
@@ -320,8 +298,7 @@ def debug_print_env(path):
     logger.info('PATH:\n{}'.format(textwrap.indent(path.replace(os.pathsep, '\n'), '    ')))
 
 
-def create_environment():
-    # type: () -> MutableMapping[str, str]
+def create_environment() -> MutableMapping[str, str]:
     """Return a dict with os.environ augmented with a better PATH.
 
     Platforms paths are added to PATH by getting the "paths" user settings
@@ -331,14 +308,13 @@ def create_environment():
 
 
 @lru_cache(maxsize=1)
-def get_augmented_path():
-    # type: () -> str
+def get_augmented_path() -> str:
     from . import persist
 
-    paths = [
+    paths: list[str] = [
         os.path.expanduser(path)
         for path in persist.settings.get('paths', {}).get(sublime.platform(), [])
-    ]  # type: List[str]
+    ]
 
     augmented_path = os.pathsep.join(paths + [os.environ['PATH']])
     if logger.isEnabledFor(logging.INFO):
@@ -346,14 +322,12 @@ def get_augmented_path():
     return augmented_path
 
 
-def which(cmd):
-    # type: (str) -> Optional[str]
+def which(cmd: str) -> str | None:
     """Return the full path to an executable searching PATH."""
     return shutil.which(cmd, path=get_augmented_path())
 
 
-def where(executable):
-    # type: (str) -> Iterator[str]
+def where(executable: str) -> Iterator[str]:
     """Yield full paths to given executable."""
     for path in get_augmented_path().split(os.pathsep):
         resolved = shutil.which(executable, path=path)
@@ -398,8 +372,8 @@ class popen_output(str):
     as str and partially the Popen object.
     """
 
-    stdout = ''  # type: Optional[str]
-    stderr = ''  # type: Optional[str]
+    stdout: Optional[str] = ''
+    stderr: Optional[str] = ''
     combined_output = ''
 
     def __new__(cls, proc, stdout, stderr):
@@ -464,8 +438,7 @@ def get_creationflags():
 # misc utils
 
 
-def ensure_list(value):
-    # type: (Union[T, List[T]]) -> List[T]
+def ensure_list(value: T | list[T]) -> list[T]:
     return value if isinstance(value, list) else [value]
 
 

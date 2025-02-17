@@ -33,8 +33,7 @@ class LinterInfo:
 logger = logging.getLogger(__name__)
 
 
-def assignable_linters_for_view(view, reason):
-    # type: (sublime.View, Reason) -> Iterator[LinterInfo]
+def assignable_linters_for_view(view: sublime.View, reason: Reason) -> Iterator[LinterInfo]:
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
@@ -65,29 +64,29 @@ def assignable_linters_for_view(view, reason):
             )
 
 
-def runnable_linters_for_view(view, reason):
-    # type: (sublime.View, Reason) -> Iterator[LinterInfo]
+def runnable_linters_for_view(view: sublime.View, reason: Reason) -> Iterator[LinterInfo]:
     return filter_runnable_linters(assignable_linters_for_view(view, reason))
 
 
-def filter_runnable_linters(linters):
-    # type: (Iterable[LinterInfo]) -> Iterator[LinterInfo]
+def filter_runnable_linters(linters: Iterable[LinterInfo]) -> Iterator[LinterInfo]:
     return (linter for linter in linters if linter.runnable)
 
 
-def can_run_now(view, reason, linter, settings):
-    # type: (sublime.View, Reason, type[Linter], LinterSettings) -> bool
+def can_run_now(
+    view: sublime.View,
+    reason: Reason,
+    linter: type[Linter],
+    settings: LinterSettings
+) -> bool:
     return linter.should_lint(view, settings, reason)
 
 
-def flash_once(window, message):
-    # type: (sublime.Window | None, str) -> None
+def flash_once(window: sublime.Window | None, message: str) -> None:
     if window:
         _flash_once(window.id(), message)
 
 
 @lru_cache()
-def _flash_once(wid, message):
-    # type: (sublime.WindowId, str) -> None
+def _flash_once(wid: sublime.WindowId, message: str) -> None:
     window = sublime.Window(wid)
     window.status_message(message)

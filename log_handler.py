@@ -6,7 +6,7 @@ import sublime
 from .lint import util
 
 
-from typing import cast, DefaultDict, Optional
+from typing import cast
 
 
 DEBUG_FALSE_LEVEL = logging.WARNING
@@ -15,8 +15,8 @@ ERROR_PANEL_LEVEL = logging.ERROR
 
 logger = logging.getLogger('SublimeLinter')
 logger.setLevel(logging.DEBUG)
-handler = None  # type: Optional[logging.Handler]
-error_panel_handler = None  # type: Optional[logging.Handler]
+handler: logging.Handler | None = None
+error_panel_handler: logging.Handler | None = None
 
 
 def plugin_unloaded():
@@ -122,7 +122,7 @@ class TaskNumberFormatter(logging.Formatter):
         return super().format(record)
 
 
-shown_error_messages = defaultdict(set)  # type: DefaultDict[sublime.WindowId, set[str]]
+shown_error_messages: defaultdict[sublime.WindowId, set[str]] = defaultdict(set)
 
 
 class ErrorPanelHandler(logging.Handler):

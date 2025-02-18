@@ -47,18 +47,17 @@ BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 # for each lint_mode. It aims to provide a better visibility to
 # how lint_mode is implemented. The map is supposed to be used in
 # this module only.
-ACCEPTED_REASONS_PER_MODE: dict[str, tuple[str, ...]] = {
-    "manual": ("on_user_request",),
-    "save": ("on_user_request", "on_save"),
-    "load_save": ("on_user_request", "on_save", "on_load"),
-    "background": ("on_user_request", "on_save", "on_load", "on_modified"),
+ACCEPTED_REASONS_PER_MODE: dict[str, list[Reason]] = {
+    "manual":     ["on_user_request"],                                       # noqa: E241
+    "save":       ["on_user_request", "on_save"],                            # noqa: E241
+    "load_save":  ["on_user_request", "on_save", "on_load"],                 # noqa: E241
+    "background": ["on_user_request", "on_save", "on_load", "on_modified"],
 }
-KNOWN_REASONS = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
+KNOWN_REASONS: set[Reason] = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
 COMMON_CAPTURING_NAMES = (
-    "filename", "error_type", "code", "end_line", "end_col"
-) + LEGACY_LINT_MATCH_DEF
+    "filename", "error_type", "code", "end_line", "end_col") + LEGACY_LINT_MATCH_DEF
 
 
 class LintMatch(dict):

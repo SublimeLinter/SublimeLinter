@@ -280,7 +280,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
         return (
             util.is_lintable(self.view)
             and any(
-                info.settings.get("lint_mode") != "background"
+                "on_modified" not in linter_module.get_effective_lint_mode(info.settings)
                 for info in elect.runnable_linters_for_view(self.view, "on_user_request")
             )
         ) if event else True

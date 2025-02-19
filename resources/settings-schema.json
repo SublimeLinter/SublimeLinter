@@ -1,6 +1,25 @@
 {
     "$schema":"http://json-schema.org/draft-04/schema#",
     "type":"object",
+    "definitions": {
+        "lint_mode": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "enum": ["background", "load_save", "manual", "save"]
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["on_save", "on_load", "on_modified"]
+                    },
+                    "uniqueItems": true,
+                    "minItems": 0
+                }
+            ]
+        }
+    },
     "properties":{
         "debug":{
             "type":"boolean"
@@ -31,10 +50,7 @@
                 "enum": ["phantoms", "squiggles"]
             }
         },
-        "lint_mode":{
-            "type":"string",
-            "enum":["background", "load_save", "manual", "save"]
-        },
+        "lint_mode": {"$ref": "#/definitions/lint_mode"},
         "linters":{
             "type":"object",
             "additionalProperties":{
@@ -64,10 +80,7 @@
                             "type": "string"
                         }
                     },
-                    "lint_mode":{
-                        "type":"string",
-                        "enum":["background", "load_save", "manual", "save"]
-                    },
+                    "lint_mode": {"$ref": "#/definitions/lint_mode"},
                     "selector": {
                         "type": "string"
                     },

@@ -804,7 +804,7 @@ def maybe_update_error_store(view: sublime.View) -> None:
     if changed:
         _erase_view_regions(view, regions_to_erase)
         persist.file_errors[filename] = new_errors
-        events.broadcast('updated_error_positions', {'filename': filename})
+        events.broadcast('error_positions_changed', {'filename': filename})
 
 
 @util.ensure_on_ui_thread

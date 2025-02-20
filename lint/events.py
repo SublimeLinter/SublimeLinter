@@ -17,22 +17,22 @@ LINT_RESULT: Literal['lint_result'] = 'lint_result'
 LINT_END: Literal['lint_end'] = 'lint_end'
 FILE_RENAMED: Literal['file_renamed'] = 'file_renamed'
 PLUGIN_LOADED: Literal['plugin_loaded'] = 'plugin_loaded'
-ERROR_POSITIONS_UPDATED: Literal['error_positions_updated'] = 'error_positions_updated'
+ERROR_POSITIONS_CHANGED: Literal['error_positions_changed'] = 'error_positions_changed'
 SETTINGS_CHANGED: Literal['settings_changed'] = 'settings_changed'
 
 
 class LintStartPayload(TypedDict):
-    buffer_id: int
+    filename: str
+    linter_name: str
 
 
 class LintResultPayload(TypedDict):
-    filename: str
-    linter_name: str
     errors: list[LintError]
 
 
 class LintEndPayload(TypedDict):
-    buffer_id: int
+    filename: str
+    linter_name: str
 
 
 class FileRenamedPayload(TypedDict):
@@ -44,7 +44,7 @@ class PluginLoadedPayload(TypedDict, total=False):
     pass
 
 
-class UpdatedErrorPositionsPayload(TypedDict):
+class ErrorPositionsChangedPayload(TypedDict):
     filename: str
 
 
@@ -62,8 +62,8 @@ class FileRenamedHandler(Protocol):
     def __call__(self, **kwargs: Unpack[FileRenamedPayload]) -> None: ...
 class PluginLoadedHandler(Protocol):
     def __call__(self, **kwargs: Unpack[PluginLoadedPayload]) -> None: ...
-class ErrorPositionsUpdatedHandler(Protocol):
-    def __call__(self, **kwargs: Unpack[UpdatedErrorPositionsPayload]) -> None: ...
+class ErrorPositionsChangedHandler(Protocol):
+    def __call__(self, **kwargs: Unpack[ErrorPositionsChangedPayload]) -> None: ...
 class SettingsChangedHandler(Protocol):
     def __call__(self, **kwargs: Unpack[SettingsChangedPayload]) -> None: ...
 
@@ -72,7 +72,7 @@ F = TypeVar('F', bound=Callable)
 Handler = Callable[..., None]
 AnyHandler = Union[
     LintStartHandler, LintResultHandler, LintEndHandler, FileRenamedHandler,
-    PluginLoadedHandler, ErrorPositionsUpdatedHandler, SettingsChangedHandler
+    PluginLoadedHandler, ErrorPositionsChangedHandler, SettingsChangedHandler
 ]
 map_fn_to_topic: Dict[Handler, str] = {}
 listeners: Dict[str, Set[Handler]] = defaultdict(set)
@@ -89,7 +89,7 @@ def subscribe(topic: Literal['file_renamed'], fn: FileRenamedHandler) -> None: .
 @overload
 def subscribe(topic: Literal['plugin_loaded'], fn: PluginLoadedHandler) -> None: ...
 @overload
-def subscribe(topic: Literal['error_positions_updated'], fn: ErrorPositionsUpdatedHandler) -> None: ...
+def subscribe(topic: Literal['error_positions_changed'], fn: ErrorPositionsChangedHandler) -> None: ...
 @overload
 def subscribe(topic: Literal['settings_changed'], fn: SettingsChangedHandler) -> None: ...
 @overload
@@ -109,7 +109,7 @@ def unsubscribe(topic: Literal['file_renamed'], fn: FileRenamedHandler) -> None:
 @overload
 def unsubscribe(topic: Literal['plugin_loaded'], fn: PluginLoadedHandler) -> None: ...
 @overload
-def unsubscribe(topic: Literal['error_positions_updated'], fn: ErrorPositionsUpdatedHandler) -> None: ...
+def unsubscribe(topic: Literal['error_positions_changed'], fn: ErrorPositionsChangedHandler) -> None: ...
 @overload
 def unsubscribe(topic: Literal['settings_changed'], fn: SettingsChangedHandler) -> None: ...
 @overload
@@ -140,7 +140,7 @@ def broadcast(topic: Literal['file_renamed'], payload: FileRenamedPayload) -> No
 @overload
 def broadcast(topic: Literal['plugin_loaded'], payload: PluginLoadedPayload = {}) -> None: ...
 @overload
-def broadcast(topic: Literal['error_positions_updated'], payload: UpdatedErrorPositionsPayload) -> None: ...
+def broadcast(topic: Literal['error_positions_changed'], payload: ErrorPositionsChangedPayload) -> None: ...
 @overload
 def broadcast(topic: Literal['settings_changed'], payload: SettingsChangedPayload) -> None: ...
 @overload
@@ -164,7 +164,7 @@ def on(topic: Literal['file_renamed']) -> Callable[[FileRenamedHandler], FileRen
 @overload
 def on(topic: Literal['plugin_loaded']) -> Callable[[PluginLoadedHandler], PluginLoadedHandler]: ...
 @overload
-def on(topic: Literal['error_positions_updated']) -> Callable[[ErrorPositionsUpdatedHandler], ErrorPositionsUpdatedHandler]: ...
+def on(topic: Literal['error_positions_changed']) -> Callable[[ErrorPositionsChangedHandler], ErrorPositionsChangedHandler]: ...
 @overload
 def on(topic: Literal['settings_changed']) -> Callable[[SettingsChangedHandler], SettingsChangedHandler]: ...
 @overload

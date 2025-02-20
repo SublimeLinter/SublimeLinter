@@ -467,7 +467,7 @@ def update_on_filename_change(old_filename: FileName, new_filename: FileName) ->
         persist.affected_filenames_per_filename[new_filename] = filenames
 
     # notify the views
-    events.broadcast('renamed_file', {
+    events.broadcast('file_renamed', {
         'new_filename': new_filename,
         'old_filename': old_filename
     })

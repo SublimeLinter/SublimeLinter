@@ -384,6 +384,16 @@ def fix_phpcs_error(error: LintError, view: sublime.View) -> Iterator[TextRange]
 })
 def fix_flake8_error(error: LintError, view: sublime.View) -> Iterator[TextRange]:
     line = line_error_is_on(view, error)
+    if error["code"] in ("E302", "E305"):
+        line = read_next_line(view, line) or line
+    elif error["code"] == "E303":
+        match = re.match(r'too many blank lines \((\d+)', error["msg"].strip())
+        if match is not None:
+            count = int(match.group(1))
+            row, _ = view.rowcol(error["region"].begin())
+            pt = view.text_point(row + count, 0)
+            line = line_from_point(view, pt)
+
     code = error["code"]
     yield (
         extend_existing_comment(

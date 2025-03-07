@@ -127,6 +127,9 @@ class LintMatch(dict):
     def __repr__(self):
         return "{}({})".format(type(self).__name__, super().__repr__())
 
+    def fulfills_minimal_requirements(self) -> bool:
+        return bool(self.message and self.line is not None)
+
 
 class TransientError(Exception):
     ...
@@ -1215,16 +1218,8 @@ class Linter(metaclass=LinterMeta):
                 self.name, textwrap.indent(output.strip(), '  ')))
 
         for m in self.find_errors(output):
-            if not m:
-                continue
-
-            if not isinstance(m, LintMatch):  # ensure right type
-                m = LintMatch(*m)  # type: ignore[unreachable]  # backwards compatibility
-
-            if m.message and m.line is not None:
-                error = self.process_match(m, virtual_view)
-                if error:
-                    yield error
+            if error := self.process_match(m, virtual_view):
+                yield error
 
     def find_errors(self, output: str) -> Iterator[LintMatch]:
         """
@@ -1247,6 +1242,14 @@ class Linter(metaclass=LinterMeta):
             assert isinstance(self.regex, Pattern)
             match: Optional[Match] = None
 
+        def _process_match(match: Match) -> LintMatch | None:
+            if lint_match := self.split_match(match):
+                if not isinstance(lint_match, LintMatch):
+                    lint_match = LintMatch(*lint_match)  # type: ignore[unreachable]  # backwards compatibility
+                if lint_match.fulfills_minimal_requirements():
+                    return lint_match
+            return None
+
         if self.multiline:
             matches = list(self.regex.finditer(output))
             if not matches:
@@ -1255,12 +1258,14 @@ class Linter(metaclass=LinterMeta):
                 return
 
             for match in matches:
-                yield self.split_match(match)
+                if lint_match := _process_match(match):
+                    yield lint_match
+
         else:
             for line in output.splitlines():
-                match = self.regex.match(line.rstrip())
-                if match:
-                    yield self.split_match(match)
+                if match := self.regex.match(line.rstrip()):
+                    if lint_match := _process_match(match):
+                        yield lint_match
                 else:
                     self.logger.info(
                         "{}: No match for line: '{}'".format(self.name, line))

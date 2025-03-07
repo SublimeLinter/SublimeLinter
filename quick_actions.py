@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sublime
 import sublime_plugin
 
@@ -6,31 +7,28 @@ from .lint import quick_fix
 from .lint import util
 
 
-MYPY = False
-if MYPY:
-    from typing import Callable, List, Optional, TypedDict
+from typing import Callable, Optional, TypedDict
 
-    LintError = persist.LintError
-    QuickAction = quick_fix.QuickAction
+LintError = persist.LintError
+QuickAction = quick_fix.QuickAction
 
-    class Event(TypedDict):
-        x: float
-        y: float
+
+class Event(TypedDict):
+    x: float
+    y: float
 
 
 class sublime_linter_quick_actions(sublime_plugin.TextCommand):
     def want_event(self):
         return True
 
-    def is_visible(self, event=None, prefer_panel=False):
-        # type: (Event, bool) -> bool
+    def is_visible(self, event: Event = None, prefer_panel: bool = False) -> bool:
         if event:
             return bool(self.available_actions(self.view, event))
         else:
             return len(self.view.sel()) == 1
 
-    def run(self, edit, event=None, prefer_panel=False):
-        # type: (sublime.Edit, Event, bool) -> None
+    def run(self, edit: sublime.Edit, event: Event = None, prefer_panel: bool = False) -> None:
         view = self.view
         window = view.window()
         assert window
@@ -42,8 +40,7 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
             window.status_message("Quick actions don't support multiple selections")
             return
 
-        def on_done(idx):
-            # type: (int) -> None
+        def on_done(idx: int) -> None:
             if idx < 0:
                 return
 
@@ -67,16 +64,14 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
                 on_done
             )
 
-    def available_actions(self, view, event):
-        # type: (sublime.View, Optional[Event]) -> List[QuickAction]
+    def available_actions(self, view: sublime.View, event: Optional[Event]) -> list[QuickAction]:
         errors = self.affected_errors(view, event)
         return sorted(
             list(quick_fix.actions_for_errors(errors, view)),
             key=lambda action: (-len(action.solves), action.description)
         )
 
-    def affected_errors(self, view, event):
-        # type: (sublime.View, Optional[Event]) -> List[LintError]
+    def affected_errors(self, view: sublime.View, event: Optional[Event]) -> list[LintError]:
         if event:
             vector = (event['x'], event['y'])
             point = view.window_to_text(vector)
@@ -107,8 +102,7 @@ class sublime_linter_quick_actions(sublime_plugin.TextCommand):
         )
 
 
-def get_errors_where(filename, fn):
-    # type: (str, Callable[[sublime.Region], bool]) -> List[LintError]
+def get_errors_where(filename: str, fn: Callable[[sublime.Region], bool]) -> list[LintError]:
     return [
         error for error in persist.file_errors[filename]
         if fn(error['region'])

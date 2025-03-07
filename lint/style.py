@@ -1,3 +1,4 @@
+from __future__ import annotations
 from functools import lru_cache
 from itertools import chain
 import logging
@@ -7,16 +8,11 @@ import sublime
 from . import events, persist, util
 
 
-MYPY = False
-if MYPY:
-    from typing import Dict, List, Optional
-
-
 logger = logging.getLogger(__name__)
 
 COLORIZE = True
 WHITE_SCOPE = 'region.whitish'  # hopefully a white color
-DEFAULT_STYLES = None  # type: Optional[List[Dict]]
+DEFAULT_STYLES: list[dict] | None = None
 
 
 @events.on('plugin_loaded')
@@ -108,15 +104,13 @@ def get_default_styles():
     yield from DEFAULT_STYLES
 
 
-def get_icon(error):
-    # type: (persist.LintError) -> str
+def get_icon(error: persist.LintError) -> str:
     linter, code, error_type = error['linter'], error['code'], error['error_type']
     return get_icon_(linter, code, error_type)
 
 
 @lru_cache(maxsize=16)
-def get_icon_(linter, code, error_type):
-    # type: (persist.LinterName, str, str) -> str
+def get_icon_(linter: persist.LinterName, code: str, error_type: str) -> str:
     icon = get_value_('icon', linter, code, error_type, 'none')
 
     if icon in ('circle', 'dot', 'bookmark', 'none'):  # Sublime Text has some default icons
@@ -135,8 +129,7 @@ def get_icon_(linter, code, error_type):
         return 'Packages/SublimeLinter/gutter-themes/{}/{}'.format(theme, icon)
 
 
-def get_icon_scope(error):
-    # type: (persist.LintError) -> str
+def get_icon_scope(error: persist.LintError) -> str:
     if COLORIZE:
         return get_value('scope', error)
     else:

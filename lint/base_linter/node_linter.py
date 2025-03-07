@@ -1,4 +1,5 @@
 """This module exports the NodeLinter subclass of Linter."""
+from __future__ import annotations
 
 from itertools import chain
 import os
@@ -9,14 +10,10 @@ from .. import linter, util
 # `xo` for example.
 from ..util import read_json_file
 
-
-MYPY = False
-if MYPY:
-    from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, Optional, Union
 
 
-def smart_paths_upwards(start_dir):
-    # type: (str) -> Iterator[str]
+def smart_paths_upwards(start_dir: str) -> Iterator[str]:
     # This is special as we also may yield HOME.  This is so because
     # we might have "global" installations there; we don't expect to
     # find a marker file (e.g. "package.json") at HOME.
@@ -27,8 +24,7 @@ def smart_paths_upwards(start_dir):
     )
 
 
-def is_yarn_project(path, manifest):
-    # type: (str, Dict[str, Any]) -> bool
+def is_yarn_project(path: str, manifest: dict[str, Any]) -> bool:
     package_manager = manifest.get('packageManager')
     if isinstance(package_manager, str):
         # When this field was being adopted and hadn't been standardised yet
@@ -53,8 +49,7 @@ class NodeLinter(linter.Linter):
     """
     __abstract__ = True
 
-    def context_sensitive_executable_path(self, cmd):
-        # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]
+    def context_sensitive_executable_path(self, cmd: list[str]) -> tuple[bool, str | list[str] | None]:
         """
         Attempt to locate the npm module specified in cmd.
 
@@ -96,15 +91,13 @@ class NodeLinter(linter.Linter):
 
         return False, None
 
-    def get_start_dir(self):
-        # type: () -> Optional[str]
+    def get_start_dir(self) -> Optional[str]:
         return (
             self.context.get('file_path') or
             self.get_working_dir()
         )
 
-    def find_local_executable(self, start_dir, npm_name):
-        # type: (str, str) -> Union[None, str, List[str]]
+    def find_local_executable(self, start_dir: str, npm_name: str) -> str | list[str] | None:
         paths = smart_paths_upwards(start_dir)
         for path in paths:
             executable = shutil.which(npm_name, path=os.path.join(path, 'node_modules', '.bin'))
@@ -193,8 +186,7 @@ class NodeLinter(linter.Linter):
 
         return None
 
-    def run(self, cmd, code):
-        # type: (Optional[List[str]], str) -> Union[util.popen_output, str]
+    def run(self, cmd: Optional[list[str]], code: str) -> Union[util.popen_output, str]:
         result = super().run(cmd, code)
 
         if cmd and cmd[1:3] == ['run', '--silent'] and len(cmd) >= 4:

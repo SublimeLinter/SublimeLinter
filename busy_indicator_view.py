@@ -10,7 +10,7 @@ import sublime_plugin
 from .lint import events, util
 
 
-from typing import Callable, DefaultDict, Optional, TypedDict, TypeVar
+from typing import Callable, Optional, TypedDict, TypeVar
 from typing_extensions import ParamSpec
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -21,7 +21,7 @@ LinterName = str
 
 class State_(TypedDict):
     active_view: Optional[sublime.View]
-    running: DefaultDict[FileName, dict[LinterName, float]]
+    running: defaultdict[FileName, dict[LinterName, float]]
 
 
 INITIAL_DELAY = 2
@@ -29,10 +29,10 @@ CYCLE_TIME = 200
 TIMEOUT = 20
 STATUS_BUSY_KEY = "sublime_linter_status_busy"
 
-State = {
+State: State_ = {
     'active_view': None,
     'running': defaultdict(dict),
-}  # type: State_
+}
 
 
 def plugin_loaded():
@@ -52,8 +52,7 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_START)
-def on_begin_linting(filename, linter_name):
-    # type: (FileName, LinterName) -> None
+def on_begin_linting(filename: FileName, linter_name: LinterName) -> None:
     State['running'][filename][linter_name] = time.time()
 
     active_view = State['active_view']
@@ -65,8 +64,7 @@ def on_begin_linting(filename, linter_name):
 
 
 @events.on(events.LINT_END)
-def on_finished_linting(filename, linter_name):
-    # type: (FileName, LinterName) -> None
+def on_finished_linting(filename: FileName, linter_name: LinterName) -> None:
     State['running'][filename].pop(linter_name, None)
     if not State['running'][filename]:
         State['running'].pop(filename, None)
@@ -77,8 +75,7 @@ def on_finished_linting(filename, linter_name):
 
 
 class UpdateState(sublime_plugin.EventListener):
-    def on_activated(self, active_view):
-        # type: (sublime.View) -> None
+    def on_activated(self, active_view: sublime.View) -> None:
         if not util.is_lintable(active_view):
             return
 
@@ -98,8 +95,7 @@ indicators = [
 ]
 
 
-def draw(view, filename):
-    # type: (sublime.View, FileName) -> None
+def draw(view: sublime.View, filename: FileName) -> None:
     start_time = min(State['running'].get(filename, {}).values(), default=None)
     now = time.time()
     if start_time and (INITIAL_DELAY <= (now - start_time) < TIMEOUT):
@@ -115,8 +111,7 @@ THROTTLER_TOKENS = {}
 THROTTLER_LOCK = threading.Lock()
 
 
-def throttled_on_args(fn, *args, **kwargs):
-    # type: (Callable[P, T], P.args, P.kwargs) -> Callable[[], None]
+def throttled_on_args(fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> Callable[[], None]:
     key = (fn,) + args
     action = partial(fn, *args, **kwargs)
     with THROTTLER_LOCK:

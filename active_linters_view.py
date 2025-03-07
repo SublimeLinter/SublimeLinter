@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 import threading
@@ -8,7 +9,7 @@ import sublime_plugin
 from .lint import events, persist, util
 
 
-from typing import Callable, Container, DefaultDict, Dict, Iterator, List, Set, TypedDict, TypeVar
+from typing import Callable, Container, Iterator, TypedDict, TypeVar
 from typing_extensions import ParamSpec
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -18,22 +19,22 @@ LinterName = str
 
 
 class State_(TypedDict):
-    assigned_linters_per_file: DefaultDict[FileName, Set[LinterName]]
-    failed_linters_per_file: DefaultDict[FileName, Set[LinterName]]
-    problems_per_file: DefaultDict[FileName, Dict[LinterName, str]]
-    running: DefaultDict[FileName, int]
-    expanded_ok: Set[FileName]
+    assigned_linters_per_file: defaultdict[FileName, set[LinterName]]
+    failed_linters_per_file: defaultdict[FileName, set[LinterName]]
+    problems_per_file: defaultdict[FileName, dict[LinterName, str]]
+    running: defaultdict[FileName, int]
+    expanded_ok: set[FileName]
 
 
-ATTEMPTED_LINTERS = {}  # type: Dict[FileName, Container[LinterName]]
+ATTEMPTED_LINTERS: dict[FileName, Container[LinterName]] = {}
 STATUS_ACTIVE_KEY = 'sublime_linter_status_active'
-State = {
+State: State_ = {
     'assigned_linters_per_file': defaultdict(set),
     'failed_linters_per_file': defaultdict(set),
     'problems_per_file': defaultdict(dict),
     'running': defaultdict(int),
     'expanded_ok': set(),
-}  # type: State_
+}
 
 
 def plugin_unloaded():
@@ -47,22 +48,19 @@ def plugin_unloaded():
 
 
 @events.on(events.LINT_START)
-def on_begin_linting(filename, linter_name):
-    # type: (FileName, LinterName) -> None
+def on_begin_linting(filename: FileName, linter_name: LinterName) -> None:
     State['running'][filename] += 1
 
 
 @events.on(events.LINT_END)
-def on_finished_linting(filename, linter_name):
-    # type: (FileName, LinterName) -> None
+def on_finished_linting(filename: FileName, linter_name: LinterName) -> None:
     if State['running'][filename] <= 1:
         State['running'].pop(filename)
     else:
         State['running'][filename] -= 1
 
 
-def on_first_activate(view):
-    # type: (sublime.View) -> None
+def on_first_activate(view: sublime.View) -> None:
     if not util.is_lintable(view):
         return
 
@@ -71,28 +69,24 @@ def on_first_activate(view):
     draw(view)
 
 
-def on_attempted_linters_changed(filename):
-    # type: (FileName) -> None
+def on_attempted_linters_changed(filename: FileName) -> None:
     force_verbose_format(filename)
     redraw_file_(filename)
 
 
-def force_verbose_format(filename):
-    # type: (FileName) -> None
+def force_verbose_format(filename: FileName) -> None:
     State['expanded_ok'].add(filename)
     enqueue_unset_expanded_ok(filename)
 
 
-def enqueue_unset_expanded_ok(filename, timeout=3000):
-    # type: (FileName, int) -> None
+def enqueue_unset_expanded_ok(filename: FileName, timeout: int = 3000) -> None:
     sublime.set_timeout(
         throttled_on_args(_unset_expanded_ok, filename),
         timeout
     )
 
 
-def _unset_expanded_ok(filename):
-    # type: (FileName) -> None
+def _unset_expanded_ok(filename: FileName) -> None:
     # Keep expanded if linters are running to minimize redraws
     if State['running'].get(filename, 0) > 0:
         enqueue_unset_expanded_ok(filename)
@@ -103,8 +97,7 @@ def _unset_expanded_ok(filename):
 
 
 class sublime_linter_assigned(sublime_plugin.WindowCommand):
-    def run(self, filename, linter_names):
-        # type: (FileName, List[LinterName]) -> None
+    def run(self, filename: FileName, linter_names: list[LinterName]) -> None:
         State['assigned_linters_per_file'][filename] = set(linter_names)
         State['failed_linters_per_file'][filename] = set()
 
@@ -124,8 +117,12 @@ class sublime_linter_failed(sublime_plugin.WindowCommand):
 
 
 @events.on(events.LINT_RESULT)
-def redraw_file(filename, linter_name, errors, **kwargs):
-    # type: (FileName, LinterName, List[persist.LintError], object) -> None
+def redraw_file(
+    filename: FileName,
+    linter_name: LinterName,
+    errors: list[persist.LintError],
+    **kwargs: object
+) -> None:
     problems = State['problems_per_file'][filename]
     if linter_name in State['failed_linters_per_file'][filename]:
         problems[linter_name] = '?'
@@ -156,9 +153,8 @@ def redraw_file(filename, linter_name, errors, **kwargs):
     sublime.set_timeout(lambda: redraw_file_(filename))
 
 
-def count_problems(errors):
-    # type: (List[persist.LintError]) -> Dict[str, int]
-    counters = defaultdict(int)  # type: DefaultDict[str, int]
+def count_problems(errors: list[persist.LintError]) -> dict[str, int]:
+    counters: defaultdict[str, int] = defaultdict(int)
     for error in errors:
         error_type = error['error_type']
         counters[error_type[0]] += 1
@@ -166,14 +162,12 @@ def count_problems(errors):
     return counters
 
 
-def redraw_file_(filename):
-    # type: (FileName) -> None
+def redraw_file_(filename: FileName) -> None:
     for view in views_into_file(filename):
         draw(view)
 
 
-def views_into_file(filename):
-    # type: (FileName) -> Iterator[sublime.View]
+def views_into_file(filename: FileName) -> Iterator[sublime.View]:
     return (
         view
         for window in sublime.windows()
@@ -182,8 +176,7 @@ def views_into_file(filename):
     )
 
 
-def draw(view):
-    # type: (sublime.View) -> None
+def draw(view: sublime.View) -> None:
     if persist.settings.get('statusbar.show_active_linters'):
         filename = util.canonical_filename(view)
         problems = State['problems_per_file'][filename]
@@ -219,8 +212,7 @@ THROTTLER_TOKENS = {}
 THROTTLER_LOCK = threading.Lock()
 
 
-def throttled_on_args(fn, *args, **kwargs):
-    # type: (Callable[P, T], P.args, P.kwargs) -> Callable[[], None]
+def throttled_on_args(fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> Callable[[], None]:
     key = (fn,) + args
     action = partial(fn, *args, **kwargs)
     with THROTTLER_LOCK:
@@ -236,25 +228,22 @@ def throttled_on_args(fn, *args, **kwargs):
     return program
 
 
-ACTIVATED_VIEWS: Set[sublime.View] = set()
+ACTIVATED_VIEWS: set[sublime.View] = set()
 
 
 class OnFirstActivate(sublime_plugin.EventListener):
-    def on_activated(self, view):
-        # type: (sublime.View) -> None
+    def on_activated(self, view: sublime.View) -> None:
         if view in ACTIVATED_VIEWS:
             return
 
         ACTIVATED_VIEWS.add(view)
         on_first_activate(view)
 
-    def on_close(self, view):
-        # type: (sublime.View) -> None
+    def on_close(self, view: sublime.View) -> None:
         ACTIVATED_VIEWS.discard(view)
 
 
-def distinct_mapping(store, key, val):
-    # type: (Dict[T, U], T, U) -> bool
+def distinct_mapping(store: dict[T, U], key: T, val: U) -> bool:
     """Store key/value pair in the `store`; return if the value has changed"""
     previous = store.get(key)
     current = store[key] = val

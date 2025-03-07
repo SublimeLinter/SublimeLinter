@@ -1,4 +1,5 @@
 """This module exports the PythonLinter subclass of Linter."""
+from __future__ import annotations
 
 from functools import lru_cache
 import os
@@ -9,10 +10,7 @@ import sublime
 
 from .. import linter, util
 
-
-MYPY = False
-if MYPY:
-    from typing import List, Optional, Tuple, Union
+from typing import Optional
 
 
 POSIX = sublime.platform() in ('osx', 'linux')
@@ -23,12 +21,10 @@ ROOT_MARKERS = ("setup.cfg", "pyproject.toml", "tox.ini", ".git", ".hg", )
 
 
 class SimplePath(str):
-    def append(self, *parts):
-        # type: (str) -> SimplePath
+    def append(self, *parts: str) -> SimplePath:
         return SimplePath(os.path.join(self, *parts))
 
-    def exists(self):
-        # type: () -> bool
+    def exists(self) -> bool:
         return os.path.exists(self)
 
 
@@ -54,8 +50,7 @@ class PythonLinter(linter.Linter):
     This is always in addition to what `ROOT_MARKERS` in SL core defines.
     """
 
-    def context_sensitive_executable_path(self, cmd):
-        # type: (List[str]) -> Tuple[bool, Union[None, str, List[str]]]
+    def context_sensitive_executable_path(self, cmd: list[str]) -> tuple[bool, str | list[str] | None]:
         """Try to find an executable for a given cmd."""
         # The default implementation will look for a user defined `executable`
         # setting.
@@ -138,8 +133,7 @@ class PythonLinter(linter.Linter):
             )
         return True, executable
 
-    def find_local_executable(self, linter_name):
-        # type: (str) -> Optional[str]
+    def find_local_executable(self, linter_name: str) -> str | None:
         start_dir = self.get_start_dir()
         if start_dir:
             self.logger.info(
@@ -163,15 +157,13 @@ class PythonLinter(linter.Linter):
                 )
         return None
 
-    def get_start_dir(self):
-        # type: () -> Optional[str]
+    def get_start_dir(self) -> str | None:
         return (
             self.context.get('file_path') or
             self.get_working_dir()
         )
 
-    def _nearest_virtual_environment(self, start_dir):
-        # type: (str) -> Tuple[Optional[str], Optional[str]]
+    def _nearest_virtual_environment(self, start_dir: str) -> tuple[Optional[str], Optional[str]]:
         paths = util.paths_upwards_until_home(start_dir)
         root_dir_markers = ROOT_MARKERS + self.config_file_names
         root_dir = None
@@ -208,8 +200,7 @@ class PythonLinter(linter.Linter):
         return root_dir, None
 
 
-def find_python_version(version):
-    # type: (str) -> Optional[str]
+def find_python_version(version: str) -> str | None:
     """Return python binaries on PATH matching a specific version."""
     requested_version = extract_major_minor_version(version)
     for python in util.where('python'):
@@ -220,15 +211,13 @@ def find_python_version(version):
     return None
 
 
-def find_script_by_python_env(python_env_path, script):
-    # type: (str, str) -> Optional[str]
+def find_script_by_python_env(python_env_path: str, script: str) -> str | None:
     """Return full path to a script, given a python environment base dir."""
     full_path = os.path.join(python_env_path, BIN)
     return shutil.which(script, path=full_path)
 
 
-def ask_utility_for_venv(cwd, cmd):
-    # type: (str, Tuple[str, ...]) -> Optional[str]
+def ask_utility_for_venv(cwd: str, cmd: tuple[str, ...]) -> str | None:
     try:
         return _ask_utility_for_venv(cwd, cmd)
     except Exception:
@@ -236,8 +225,7 @@ def ask_utility_for_venv(cwd, cmd):
 
 
 @lru_cache(maxsize=None)
-def _ask_utility_for_venv(cwd, cmd):
-    # type: (str, Tuple[str, ...]) -> str
+def _ask_utility_for_venv(cwd: str, cmd: tuple[str, ...]) -> str:
     return util.check_output(cmd, cwd=cwd).strip().split('\n')[-1]
 
 

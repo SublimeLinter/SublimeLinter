@@ -83,6 +83,7 @@ class Times(object):
                     if invoc.method_name == invocation.method_name
                 ] or
                 invocation.mock.invocations or
+                invocation.mock.stubbed_invocations or
                 ['Nothing']
             )
             raise VerificationError(

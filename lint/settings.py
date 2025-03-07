@@ -3,7 +3,7 @@ import logging
 import sublime
 from . import events, util
 from .const import IS_ENABLED_SWITCH
-from ..vendor.jsonschema import validate, FormatChecker, ValidationError
+from ..vendor.jsonschema import validators, FormatChecker, ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def validate_global_settings():
     return validate_settings(get_settings_objects())
 
 
-def validate_settings(filename_settings_pairs, flat=False):
+def validate_settings(filename_settings_pairs, flat=False) -> bool:
     status_msg = "SublimeLinter - Settings invalid!"
     schema_file = "resources/settings-schema.json"
     schema = util.load_json(schema_file, from_sl_dir=True)
@@ -99,25 +99,14 @@ def validate_settings(filename_settings_pairs, flat=False):
 
     for name, settings in filename_settings_pairs:
         if settings:
-            try:
-                validate(settings, schema, format_checker=FormatChecker())
-            except ValidationError as error:
+            if error_messages := [
+                format_error(error, flat)
+                for error in create_validator(schema).iter_errors(settings)
+            ]:
                 good = False
-                if flat:
-                    path_to_err = '"{}": '.format(
-                        'SublimeLinter.' + '.'.join(error.path)
-                    )
-                else:
-                    path_to_err = (' > '.join(
-                        repr(part)
-                        for part in error.path
-                        if not isinstance(part, int)  # drop array indices
-                    ) + ': ') if error.path else ''
-
                 logger.warning("Invalid settings in '{}'".format(name))
                 util.show_message(
-                    "Invalid settings in '{}':\n"
-                    '{}{}'.format(name, path_to_err, error.message)
+                    "Invalid settings in '{}':\n{}".format(name, "\n".join(error_messages))
                 )
                 window.status_message(status_msg)
 
@@ -229,3 +218,25 @@ def print_deprecation_message(settings):
     util.show_message(
         message.format(formatted_settings)
     )
+
+
+def create_validator(schema):
+    cls = validators.validator_for(schema)
+    cls.check_schema(schema)
+    return cls(schema, format_checker=FormatChecker())
+
+
+def format_error(error: ValidationError, flat: bool) -> str:
+    if flat:
+        path_to_err = '"{}": '.format(
+            'SublimeLinter.' + '.'.join(error.path)
+        )
+    else:
+        path_to_err = (' > '.join(
+            repr(part)
+            for part in error.path
+            if not isinstance(part, int)  # drop array indices
+        ) + ': ') if error.path else ''
+
+    context = "\n".join(map(lambda e: f"    {e.message}", error.context))
+    return f'{path_to_err}{error.message}\n{context}'

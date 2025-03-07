@@ -20,7 +20,7 @@ from .const import WARNING, ERROR
 
 
 from typing import (
-    Any, Callable, List, Literal, IO, Iterator, Match, MutableMapping,
+    Any, Callable, List, Literal, IO, Iterable, Iterator, Match, MutableMapping,
     Optional, Pattern, Tuple, Union, TYPE_CHECKING
 )
 Reason = str
@@ -1156,7 +1156,7 @@ class Linter(metaclass=LinterMeta):
         virtual_view = VirtualView(code)
         return self.filter_errors(self.parse_output(output, virtual_view))
 
-    def filter_errors(self, errors: Iterator[LintError]) -> list[LintError]:
+    def filter_errors(self, errors: Iterable[LintError]) -> list[LintError]:
         filter_patterns = self.settings.get('filter_errors') or []
         if isinstance(filter_patterns, str):
             filter_patterns = [filter_patterns]
@@ -1186,7 +1186,7 @@ class Linter(metaclass=LinterMeta):
             )
         ]
 
-    def parse_output(self, proc: Union[str, util.popen_output], virtual_view: VirtualView) -> Iterator[LintError]:
+    def parse_output(self, proc: Union[str, util.popen_output], virtual_view: VirtualView) -> Iterable[LintError]:
         # Note: We support type str for `proc`. E.g. the user might have
         # implemented `run`.
         if isinstance(proc, util.popen_output):
@@ -1207,7 +1207,7 @@ class Linter(metaclass=LinterMeta):
 
         return self.parse_output_via_regex(output, virtual_view)
 
-    def parse_output_via_regex(self, output: str, virtual_view: VirtualView) -> Iterator[LintError]:
+    def parse_output_via_regex(self, output: str, virtual_view: VirtualView) -> Iterable[LintError]:
         if not output:
             self.logger.info('{}: no output'.format(self.name))
             return
@@ -1221,7 +1221,7 @@ class Linter(metaclass=LinterMeta):
             if error := self.process_match(m, virtual_view):
                 yield error
 
-    def find_errors(self, output: str) -> Iterator[LintMatch]:
+    def find_errors(self, output: str) -> Iterable[LintMatch]:
         """
         Match the linter's regex against the linter output with this generator.
 

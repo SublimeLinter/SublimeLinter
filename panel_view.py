@@ -148,14 +148,14 @@ def _on_lint_result(filenames: Iterable[FileName], maybe_toggle_panel_automatica
                 toggle_panel_if_errors(window, filenames)
 
 
-@events.on('updated_error_positions')
+@events.on('error_positions_changed')
 def on_updated_error_positions(filename, **kwargs):
     for window in sublime.windows():
         if panel_is_active(window) and filename in filenames_per_window(window):
             fill_panel(window)
 
 
-@events.on('renamed_file')
+@events.on('file_renamed')
 def on_renamed_file(new_filename, **kwargs):
     # update all panels that contain this file
     for window in sublime.windows():

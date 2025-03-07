@@ -1,27 +1,49 @@
+from __future__ import annotations
 from collections import defaultdict
 import traceback
 
+from typing import Callable, TypeVar
 
-LINT_START = 'LINT_START'    # (buffer_id)
-LINT_RESULT = 'LINT_RESULT'  # (filename, linter_name, errors)
-LINT_END = 'LINT_END'        # (buffer_id)
+# Note the fancy types in `events.pyi`!
+LINT_START = 'lint_start'
+LINT_RESULT = 'lint_result'
+LINT_END = 'lint_end'
+FILE_RENAMED = 'file_renamed'
+PLUGIN_LOADED = 'plugin_loaded'
+ERROR_POSITIONS_CHANGED = 'error_positions_changed'
+SETTINGS_CHANGED = 'settings_changed'
 
 
-listeners = defaultdict(set)
+Handler = Callable[..., None]
+F = TypeVar('F', bound=Handler)
+map_fn_to_topic: dict[Handler, str] = {}
+listeners: dict[str, set[Handler]] = defaultdict(set)
 
 
-def subscribe(topic, fn):
+def subscribe(topic: str, fn: Handler) -> None:
     listeners[topic].add(fn)
 
 
-def unsubscribe(topic, fn):
+def unsubscribe(topic_or_fn: str | Handler, fn: Handler | None = None) -> None:
+    if isinstance(topic_or_fn, str):
+        topic = topic_or_fn
+        if not fn:
+            raise ValueError("second argument must be given")
+    else:
+        fn = topic_or_fn
+        try:
+            topic = map_fn_to_topic.pop(fn)
+        except KeyError:
+            print(f"unsubscribe: {fn} was not subscribed")
+            return
+
     try:
         listeners[topic].remove(fn)
     except KeyError:
         pass
 
 
-def broadcast(topic, payload={}):
+def broadcast(topic: str, payload: dict = {}):
     for fn in listeners.get(topic, []).copy():
         try:
             fn(**payload)
@@ -29,19 +51,12 @@ def broadcast(topic, payload={}):
             traceback.print_exc()
 
 
-map_fn_to_topic = {}
-
-
-def on(topic):
+def on(topic: str) -> Callable[[F], F]:
     def inner(fn):
         subscribe(topic, fn)
         map_fn_to_topic[fn] = topic
         return fn
-
     return inner
 
 
-def off(fn):
-    topic = map_fn_to_topic.get(fn, None)
-    if topic:
-        unsubscribe(topic, fn)
+off = unsubscribe

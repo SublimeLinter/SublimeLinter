@@ -756,9 +756,6 @@ class Linter(metaclass=LinterMeta):
         # Simplify tests which often just pass in a dict instead of
         # real `LinterSettings`.
         self.context: MutableMapping[str, str] = getattr(settings, 'context', {})
-        # Using `self.env` is deprecated, bc it can have surprising
-        # side-effects for concurrent/async linting. We initialize it here
-        # bc some ruby linters rely on that behavior.
         self.env: dict[str, str] = {}
 
         # Ensure instances have their own copy in case a plugin author

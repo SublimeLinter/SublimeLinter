@@ -1299,7 +1299,7 @@ class Linter(metaclass=LinterMeta):
 
         return error
 
-    def apply_line_base(self, val: Union[int, str, None]) -> Optional[int]:
+    def apply_line_base(self, val: Union[int, str, None]) -> int | None:
         if val is None:
             return None
         try:
@@ -1309,7 +1309,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return v - self.line_col_base[0]
 
-    def apply_col_base(self, val: Union[int, str, None]) -> Optional[int]:
+    def apply_col_base(self, val: Union[int, str, None]) -> int | None:
         if val is None:
             return None
         try:
@@ -1319,7 +1319,7 @@ class Linter(metaclass=LinterMeta):
         else:
             return v - self.line_col_base[1]
 
-    def process_match(self, m: LintMatch, vv: VirtualView) -> Optional[LintError]:
+    def process_match(self, m: LintMatch, vv: VirtualView) -> LintError | None:
         error_type = m.error_type or self.get_error_type(m.error, m.warning)
         code = m.code or m.error or m.warning or ''
 

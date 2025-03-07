@@ -8,7 +8,7 @@ managed = true
 virtual = true
 dev-dependencies = [
     "Sphinx",
-    "flake8==5.*",
+    "flake8>=6",
     "mypy",
     "sphinx-autobuild",
 ]

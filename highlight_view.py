@@ -1153,22 +1153,19 @@ def join_msgs(
         filled_templates = []
         for error in errors_by_type:
             first_line_prefix = "{linter}: ".format(**error)
-            hanging_indent = len(first_line_prefix)
-            first_line_indent = hanging_indent
-            if error.get("code"):
-                action = quick_fix.best_action_for_error(error)
-                if action:
-                    id = uuid.uuid4().hex
-                    quick_actions[id] = action.fn
-                    first_line_prefix += (
-                        '<a class="action icon" href="{action_id}">⌦</a>&nbsp;'
-                        '{code}&nbsp;—&nbsp;'
-                        .format(action_id=id, **error)
-                    )
-                    first_line_indent += len(error["code"]) + 3
-                else:
-                    first_line_prefix += "{code} - ".format(**error)
-                    first_line_indent += len(error["code"]) + 3
+            first_line_indent = hanging_indent = len(first_line_prefix)
+
+            if action := quick_fix.best_action_for_error(error):
+                action_id = uuid.uuid4().hex
+                quick_actions[action_id] = action.fn
+                first_line_prefix += (
+                    f'<a class="action icon" href="{action_id}">⌦</a>&nbsp;'
+                )
+                first_line_indent += 2
+
+            if code := error.get("code"):
+                first_line_prefix += f'{code}&nbsp;—&nbsp;'
+                first_line_indent += len(code) + 3
 
             lines = list(flatten(
                 textwrap.wrap(

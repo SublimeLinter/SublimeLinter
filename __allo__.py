@@ -135,7 +135,7 @@ def on_change() -> None:
 
 
 def installed_sl_plugins() -> Set[str]:
-    return set(
-        p for p in package_control_settings().get('installed_packages', [])  # type: ignore[union-attr]  # stub error
+    return {  # type: ignore[var-annotated]
+        p for p in package_control_settings().get('installed_packages', [])
         if p.startswith("SublimeLinter-")
-    )
+    }

@@ -162,9 +162,9 @@ def finalize_errors(linter, errors, offsets):
 
         error.update({
             'linter': linter_name,
-            'region': region,
             'line': line,
             'start': start,
+            'region': region,
             'offending_text': offending_text,
         })
 

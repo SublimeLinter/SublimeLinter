@@ -407,6 +407,7 @@ def get_view_context(view: sublime.View, additional_context: Optional[Mapping] =
     context['view_id'] = str(view.id())
     context['canonical_filename'] = util.canonical_filename(view)
     context['short_canonical_filename'] = util.short_canonical_filename(view)
+    context['tab_size'] = str(view.settings().get('tab_size', 4))
 
     if additional_context:
         context.update(additional_context)
@@ -1407,12 +1408,15 @@ class Linter(metaclass=LinterMeta):
         normalized_region = sublime.Region(
             region.a, min(vv.size(), max(region.a + 1, region.b))
         )
+        line_content = vv.substr(line_region)
+        tab_size = int(self.context.get("tab_size", 4))
+        humanized_column = col + line_content[:col].count("\t") * (tab_size - 1)
         offending_text = vv.substr(normalized_region)
 
         return {
             "filename": filename,
             "line": line,
-            "start": col,
+            "start": humanized_column,
             "region": normalized_region,
             "error_type": error_type,
             "code": code,

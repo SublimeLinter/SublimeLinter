@@ -13,11 +13,11 @@ To publish your plugin, start a `PR <https://github.com/SublimeLinter/package_co
 Mandatory things
 ----------------
 
-All linter plugins must be subclasses of either ``SublimeLinter.lint.Linter`` or  one of its specialized subclasses, ``SublimeLinter.lint.NodeLinter`` for Node based linters, ``SublimeLinter.lint.PythonLinter`` for Python linters, ``SublimeLinter.lint.RubyLinter`` for Ruby, and finally ``SublimeLinter.lint.ComposerLinter`` for PHP .
+All linter plugins must be subclasses of either ``SublimeLinter.lint.Linter`` or  one of its specialized subclasses, ``SublimeLinter.lint.NodeLinter`` for Node based linters, ``SublimeLinter.lint.PythonLinter`` for Python linters, ``SublimeLinter.lint.RubyLinter`` for Ruby, and finally ``SublimeLinter.lint.PhpLinter`` for PHP .
 
 The specialized subclasses usually provide better lookup for local executables, and may find and set the correct project root directory which in turn should help the linter itself in finding and using their correct configuration files.
 
-Node and Python linters also implement the user setting ``disable_if_not_dependency`` to never use globally installed linters, and Ruby adds support for ``rvm`` and ``bundle``.
+Node, Python, and Php linters also implement the user setting ``disable_if_not_dependency`` to never use globally installed linters, and Ruby adds support for ``rvm`` and ``bundle``.
 
 .. note::
 

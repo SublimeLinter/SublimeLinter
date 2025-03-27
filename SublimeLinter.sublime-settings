@@ -130,7 +130,7 @@
             // to run the linter. It might use 'py.exe' on Windows.
             "python": 3,
 
-            // **Only implemented for NodeLinter and PythonLinter**
+            // **Only implemented for Node-, Python- and PhpLinter**
             // If true, will *not* search for and use a globally installed binary
             "disable_if_not_dependency": false
         }

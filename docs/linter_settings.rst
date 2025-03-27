@@ -42,10 +42,10 @@ Disables the linter, either `true` or `false`.
     Please note that we differentiate three states for `disable`.
 
 
-disable_if_not_dependency - *Python/Node only*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+disable_if_not_dependency - *Python/Node/Php only*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For both, Python and Node, SublimeLinter has sophisticated ways to
+For Python, Node and Php, SublimeLinter has sophisticated ways to
 find *locally* installed tools.
 
 When the `disable_if_not_dependency` setting is set to `true`, SublimeLinter

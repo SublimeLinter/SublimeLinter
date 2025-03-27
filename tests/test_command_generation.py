@@ -355,13 +355,13 @@ class TestLintModeSetting(_BaseTestCase):
         settings = linter_module.get_linter_settings(FakeLinter, self.view)
         self.assertEqual(settings.get('lint_mode'), 'manual')
 
-    def test_use_fallback(self):
+    def test_fallback_to_global_setting(self):
         class FakeLinter(Linter):
             cmd = ('fake_linter_1',)
             defaults = {'selector': None}
 
         settings = linter_module.get_linter_settings(FakeLinter, self.view)
-        self.assertEqual(settings.get('lint_mode'), 'background')
+        self.assertEqual(settings.get('lint_mode'), ['on_load', 'on_modified'])
 
 
 class TestWorkingDirSetting(_BaseTestCase):

@@ -147,6 +147,17 @@ class PythonLinter(linter.Linter):
                 )
                 self.context['project_root'] = root_dir
             if venv:
+                # Set "VIRTUAL_ENV" even if the tool is not installed in it.
+                # A tool either ignores this setting or supports it.
+                self.env.setdefault("VIRTUAL_ENV", venv)
+                self.env.setdefault(
+                    "PATH",
+                    os.pathsep.join(
+                        [os.path.join(venv, BIN)]
+                        + [_path] if (_path := self.context.get("PATH", "")) else []
+                    )
+                )
+
                 executable = find_script_by_python_env(venv, linter_name)
                 if executable:
                     return executable

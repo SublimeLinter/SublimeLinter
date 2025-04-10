@@ -56,11 +56,20 @@
     "kill_old_processes": true,
 
     // Lint Mode determines when the linter is run.
-    // - background: asynchronously on every change
-    // - load_save: when a file is opened and every time it's saved
-    // - manual: only when calling the Lint This View command
-    // - save: only when a file is saved
-    "lint_mode": "background",
+    // Any combination of "on_load", "on_save", and "on_modified" is allowed
+    // here.
+    //
+    // For backwards compatibility, we still support named modes.
+    // These are defined as follows:
+    // - background: ["on_load", "on_save", "on_modified"]
+    // - load_save:  ["on_load", "on_save"]
+    // - save:       ["on_save"]
+    // - manual:     []  # Run only when calling the Lint This View command
+    // E.g.
+    //   "lint_mode": ["on_modified"]
+    //   "lint_mode": "background"
+    //   "lint_mode": []
+    "lint_mode": ["on_load", "on_modified"],
 
     // Linter-specific settings.
     // See also http://www.sublimelinter.com/en/stable/linter_settings.html
@@ -107,7 +116,8 @@
 
             // Lint mode determines when the linter is run. The linter setting
             // will take precedence over the global setting.
-            "lint_mode": "manual",
+            // Refer the detailed description in the global section.
+            "lint_mode": [],
 
             // Determines for which views this linter will run.
             "selector": "",

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache
 import inspect
-from itertools import accumulate, chain
+from itertools import accumulate
 import logging
 import os
 import re
@@ -44,16 +44,24 @@ UTF8_ENV_VARS = {
 BASE_LINT_ENVIRONMENT = ChainMap(UTF8_ENV_VARS, os.environ)
 
 # ACCEPTED_REASONS_PER_MODE defines a list of acceptable reasons
-# for each lint_mode. It aims to provide a better visibility to
-# how lint_mode is implemented. The map is supposed to be used in
-# this module only.
+# for each of the old lint modes.
 ACCEPTED_REASONS_PER_MODE: dict[str, list[Reason]] = {
-    "manual":     ["on_user_request"],                                       # noqa: E241
-    "save":       ["on_user_request", "on_save"],                            # noqa: E241
-    "load_save":  ["on_user_request", "on_save", "on_load"],                 # noqa: E241
-    "background": ["on_user_request", "on_save", "on_load", "on_modified"],
+    "manual":     [],                                     # noqa: E241
+    "save":       ["on_save"],                            # noqa: E241
+    "load_save":  ["on_save", "on_load"],                 # noqa: E241
+    "background": ["on_save", "on_load", "on_modified"],
 }
-KNOWN_REASONS: set[Reason] = set(chain(*ACCEPTED_REASONS_PER_MODE.values()))
+KNOWN_REASONS: set[Reason] = {"on_save", "on_load", "on_modified"}
+
+
+def get_effective_lint_mode(settings) -> set[Reason]:
+    lint_mode: str | list[str] = settings.get('lint_mode')
+    return set(
+        ACCEPTED_REASONS_PER_MODE.get(lint_mode, [lint_mode])
+        if isinstance(lint_mode, str)
+        else lint_mode
+    )
+
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
 COMMON_CAPTURING_NAMES = (
@@ -1093,32 +1101,44 @@ class Linter(metaclass=LinterMeta):
     def should_lint(cls, view: sublime.View, settings: LinterSettings, reason: Reason) -> bool:
         """Decide whether the linter can run at this point in time."""
         # A 'saved-file-only' linter does not run on unsaved views
-        if cls.tempfile_suffix == '-' and (
+        real_file_linter = cls.tempfile_suffix == '-'
+        if real_file_linter and (
             view.is_dirty() or not view.file_name()
         ):
             return False
 
         if reason not in KNOWN_REASONS:  # be open
             cls.logger.info(
-                "{}: Unknown reason '{}' is okay."
+                "{}: Lint reason '{}' is okay."
                 .format(cls.name, reason)
             )
             return True
 
-        lint_mode = settings.get('lint_mode')
-        if lint_mode not in ACCEPTED_REASONS_PER_MODE:
-            cls.logger.warning(
-                "{}: Unknown lint mode '{}'.  "
-                "Check your SublimeLinter settings for typos."
-                .format(cls.name, lint_mode)
-            )
-            return True
+        effective_lint_mode = get_effective_lint_mode(settings)
+        if real_file_linter and "on_modified" in effective_lint_mode:
+            effective_lint_mode.add("on_save")
+        ok = reason in effective_lint_mode
 
-        ok = reason in ACCEPTED_REASONS_PER_MODE[lint_mode]
-        cls.logger.info(
-            "{}: Checking lint mode '{}' vs lint reason '{}'.  {}"
-            .format(cls.name, lint_mode, reason, 'Ok.' if ok else 'Skip.')
-        )
+        for mode_ in effective_lint_mode:
+            if mode_ not in KNOWN_REASONS:
+                cls.logger.warning(
+                    "{}: Unknown lint mode '{}'.  "
+                    "Check your SublimeLinter settings for typos."
+                    .format(cls.name, mode_)
+                )
+                return True
+
+        if cls.logger.isEnabledFor(logging.INFO):
+            lint_mode = settings.get('lint_mode')
+            formatted_mode = (
+                lint_mode
+                if isinstance(lint_mode, str)
+                else ', '.join(lint_mode)
+            )
+            cls.logger.info(
+                "{}: Checking lint mode '{}' vs lint reason '{}'.  {}"
+                .format(cls.name, formatted_mode, reason, 'Ok.' if ok else 'Skip linting.')
+            )
         return ok
 
     def lint(self, code: str, view_has_changed: Callable[[], bool]) -> list[LintError]:

@@ -248,22 +248,6 @@ class TestRegexBasedParsing(_BaseTestCase):
 
         self.assertResult([{'code': CODE}], result)
 
-    def test_compute_humanized_column(self):
-        INPUT = "\t\tThis."  # Note the tabs!
-        OUTPUT = "stdin:1:3 ERROR: The message"
-        self.set_buffer_content(INPUT)
-        linter = self.create_linter()
-        when(linter)._communicate(['fake_linter_1'], INPUT).thenReturn(OUTPUT)
-
-        result = execute_lint_task(linter, INPUT)
-        drop_info_keys(result)
-
-        # Note that 'start' and `region.a` differ!
-        self.assertResult(
-            [{'line': 0, 'start': 8, 'region': sublime.Region(2, 6)}],
-            result,
-        )
-
     @p.expand(
         [
             ((0, 0), "stdin:0:0 ERROR: The message"),

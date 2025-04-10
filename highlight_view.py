@@ -760,7 +760,6 @@ def maybe_update_error_store(view: sublime.View) -> None:
     if not errors:
         return
 
-    tab_size = view.settings().get("tab_size", 4)
     region_keys = get_regions_keys(view)
     uid_key_map = {
         key.uid: key
@@ -794,13 +793,11 @@ def maybe_update_error_store(view: sublime.View) -> None:
             continue
 
         line, start = view.rowcol(region.begin())
-        line_content = view.substr(view.line(region.begin()))
-        column = start + line_content[:start].count("\t") * (tab_size - 1)
         error = error.copy()
         error.update({
             'region': region,
             'line': line,
-            'start': column,
+            'start': start,
         })
         new_errors.append(error)
 

@@ -306,19 +306,19 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
-    def run(self, hint=None, wid=None):
+    def run(self, hint: str = None, wid: sublime.WindowId = None, linter: list[LinterName] = []):
         if hint is None or hint == 'relint':
-            relint_views(wid)
+            relint_views(wid, linter)
         elif hint == 'redraw':
             force_redraw()
 
 
-def relint_views(wid=None):
+def relint_views(wid: sublime.WindowId = None, linter: list[LinterName] = []):
     windows = [sublime.Window(wid)] if wid else sublime.windows()
     for window in windows:
         for view in window.views():
             if view.buffer_id() in persist.assigned_linters and view.is_primary():
-                hit(view, 'relint_views')
+                hit(view, 'relint_views', only_run=linter)
 
 
 def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> None:

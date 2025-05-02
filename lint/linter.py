@@ -652,7 +652,10 @@ def register_linter(name: str, cls: type[Linter]) -> None:
     # synthetic `on_activated_async` events on load.
     if persist.api_ready:
         deprecation_warning.cache_clear()
-        sublime.run_command('sublime_linter_config_changed')
+        sublime.run_command('sublime_linter_config_changed', {
+            'hint': 'relint',
+            'linter': [name]
+        })
         logger.info('{} linter reloaded'.format(name))
 
 

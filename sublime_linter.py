@@ -21,7 +21,7 @@ from .lint import reloader
 from .lint import settings
 from .lint import util
 from .lint.const import IS_ENABLED_SWITCH
-from .lint.util import flash
+from .lint.util import flash, format_items
 
 
 from typing import Callable, Optional
@@ -321,7 +321,7 @@ def relint_views(wid=None):
                 hit(view, 'relint_views')
 
 
-def hit(view: sublime.View, reason: Reason) -> None:
+def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> None:
     """Record an activity that could trigger a lint and enqueue a desire to lint."""
     bid = view.buffer_id()
 
@@ -332,11 +332,17 @@ def hit(view: sublime.View, reason: Reason) -> None:
     )
     lock = guard_check_linters_for_view[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock, reason)
+    fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
     queue.debounce(fn, delay=delay, key=bid)
 
 
-def lint(view: sublime.View, view_has_changed: ViewChangedFn, lock: threading.Lock, reason: Reason) -> None:
+def lint(
+    view: sublime.View,
+    view_has_changed: ViewChangedFn,
+    lock: threading.Lock,
+    reason: Reason,
+    only_run: set[LinterName] = None
+) -> None:
     """Lint the view with the given id."""
     if view.settings().get(IS_ENABLED_SWITCH) is False:
         linters = []
@@ -345,8 +351,19 @@ def lint(view: sublime.View, view_has_changed: ViewChangedFn, lock: threading.Lo
         if not linters:
             logger.info("No installed linter matches the view.")
 
+    next_linter_names = {linter.name for linter in linters}
     with lock:
-        _assign_linters_to_view(view, {linter.name for linter in linters})
+        _assign_linters_to_view(view, next_linter_names)
+
+    if only_run:
+        linters = [linter for linter in linters if linter.name in only_run]
+        if expected_linters_not_actually_assigned := (only_run - next_linter_names):
+            s = "s" if len(expected_linters_not_actually_assigned) > 1 else ""
+            are = "are" if len(expected_linters_not_actually_assigned) > 1 else "is"
+            their_names = format_items(list(expected_linters_not_actually_assigned))
+            logger.info(
+                f"Requested linter{s} {their_names} {are} not assigned to the view."
+            )
 
     runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:

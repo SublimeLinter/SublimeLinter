@@ -127,6 +127,12 @@ def print_runtime(message):
     print('{} took {}ms [{}]'.format(message, duration, thread_name))
 
 
+def format_items(items: list[str], sep: str = ", ", last_sep: str = " and ") -> str:
+    if len(items) == 1:
+        return items[0]
+    return f"{sep.join(items[:-1])}{last_sep}{items[-1]}"
+
+
 def show_message(message: str, window: Optional[sublime.Window] = None) -> None:
     if window is None:
         window = sublime.active_window()

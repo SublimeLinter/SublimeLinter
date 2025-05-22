@@ -1,6 +1,8 @@
 [
-	// Lint this view
+    // Lint this view
     { "keys": ["ctrl+k", "l"], "command": "sublime_linter_lint" },
+    // Supported args:
+    // * run: a list of linters to run. Defaults to all
 
 
     // Show all errors

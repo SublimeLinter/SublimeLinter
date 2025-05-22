@@ -4,7 +4,7 @@ from threading import Lock
 
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
-from SublimeLinter.tests.mockito import unstub, verify, when
+from SublimeLinter.tests.mockito import captor, unstub, verify, when
 
 import sublime
 from SublimeLinter import sublime_linter
@@ -373,6 +373,62 @@ class TestLinterElection(_BaseTestCase):
 
         verify(sublime_linter.logger).info(
             "No installed linter matches the view."
+        )
+
+    def test_only_run_requested_linter(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+
+        selected_linters = captor()
+        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fakelinter"]))
+
+        verify(sublime_linter.backend).lint_view(selected_linters, ...)
+        self.assertEqual(selected_linters.value[0].name, "fakelinter")
+
+    def test_log_if_requested_linter_is_not_assigned(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+
+        when(sublime_linter.logger).info(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke"]))
+
+        verify(sublime_linter.logger).info(
+            "Requested linter fuke is not assigned to the view."
+        )
+
+    def test_log_if_requested_linter_is_not_assigned_format2(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+
+        when(sublime_linter.logger).info(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork"]))
+
+        verify(sublime_linter.logger).info(
+            "Requested linters fork and fuke are not assigned to the view."
+        )
+
+    def test_log_if_requested_linter_is_not_assigned_format3(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': ''}
+            cmd = 'fake_linter_1'
+
+        when(sublime_linter.logger).info(...).thenReturn(None)
+
+        view = self.create_view(self.window)
+        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
+
+        verify(sublime_linter.logger).info(
+            "Requested linters fark, fork and fuke are not assigned to the view."
         )
 
     def test_cells_dont_trigger_by_default(self):

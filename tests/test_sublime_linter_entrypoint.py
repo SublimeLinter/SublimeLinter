@@ -428,7 +428,7 @@ class TestLinterElection(_BaseTestCase):
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
 
         verify(sublime_linter.logger).info(
-            "Requested linters fork, fuke and fark are not assigned to the view."
+            "Requested linters fark, fork and fuke are not assigned to the view."
         )
 
     def test_cells_dont_trigger_by_default(self):

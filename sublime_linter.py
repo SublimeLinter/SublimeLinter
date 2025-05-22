@@ -285,7 +285,10 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
             )
         ) if event else True
 
-    def run(self, edit, event=None):
+    def run(self, edit, event=None, run: list[LinterName] = []):
+        if not isinstance(run, list):
+            run = [run]  # type: ignore[unreachable]
+
         assignable_linters = list(
             elect.assignable_linters_for_view(self.view, "on_user_request")
         )
@@ -293,16 +296,46 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
             flash(self.view, "No linters available for this view")
             return
 
+        if run:
+            assignable_linters = [linter for linter in assignable_linters if linter.name in run]
+            unavailable_linters = set(run) - {linter.name for linter in assignable_linters}
+        else:
+            unavailable_linters = set()
+
         runnable_linters = [
             info.name
             for info in elect.filter_runnable_linters(assignable_linters)
         ]
-        if not runnable_linters:
-            flash(self.view, "No runnable linters, probably save first")
-            return
 
-        flash(self.view, "Running {}".format(", ".join(runnable_linters)))
-        hit(self.view, 'on_user_request')
+        feedback = ". ".join(filter(None, (
+            (
+                "Running {}".format(", ".join(runnable_linters))
+                if runnable_linters else
+                ""
+                if unavailable_linters
+                else "No runnable linters, probably save first"
+            ),
+            (
+                f"Requested {_format_linter_availability_note(unavailable_linters)} "
+                "not available for this view"
+                if unavailable_linters
+                else ""
+            )
+        )))
+        flash(self.view, feedback)
+
+        if not runnable_linters:
+            return
+        hit(self.view, 'on_user_request', only_run=run)
+
+
+def _format_linter_availability_note(unavailable_linters: set[LinterName]) -> str:
+    if not unavailable_linters:
+        return ""
+    s = "s" if len(unavailable_linters) > 1 else ""
+    are = "are" if len(unavailable_linters) > 1 else "is"
+    their_names = format_items(sorted(unavailable_linters))
+    return f"linter{s} {their_names} {are}"
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
@@ -358,11 +391,9 @@ def lint(
     if only_run:
         linters = [linter for linter in linters if linter.name in only_run]
         if expected_linters_not_actually_assigned := (only_run - next_linter_names):
-            s = "s" if len(expected_linters_not_actually_assigned) > 1 else ""
-            are = "are" if len(expected_linters_not_actually_assigned) > 1 else "is"
-            their_names = format_items(list(expected_linters_not_actually_assigned))
             logger.info(
-                f"Requested linter{s} {their_names} {are} not assigned to the view."
+                f"Requested {_format_linter_availability_note(expected_linters_not_actually_assigned)} "
+                "not assigned to the view."
             )
 
     runnable_linters = list(elect.filter_runnable_linters(linters))

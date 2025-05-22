@@ -207,11 +207,26 @@ patterns match, otherwise we keep it.
 lint_mode
 ---------
 Lint Mode determines when the linter is run.
+Any combination of "on_load", "on_save", and "on_modified" is allowed here.
 
-- `background`: asynchronously on every change
-- `load_save`: when a file is opened and every time it's saved
-- `manual`: only when calling the Lint This View command
-- `save`: only when a file is saved
+Some examples:
+
+.. code-block:: json
+
+    {
+        "lint_mode": ["on_load", "on_modified"],
+        "lint_mode": [],  // only run when manually triggered
+    }
+
+
+.. note::
+
+    Don't take the names literally, e.g. "on_modified" also triggers after
+    saving for linters that can only run on saved files.
+
+This used to be a string setting with the following valid values:
+"background", "load_save", "manual", and "save". These are still supported
+for backwards compatibility.
 
 
 .. _selector:

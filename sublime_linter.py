@@ -417,7 +417,7 @@ def lint(
     def sink(linter: LinterName, errors: list[LintError]):
         if view_has_changed():
             return
-        group_by_filename_and_update(window, filename, reason, linter, errors)
+        persist.group_by_filename_and_update(window, filename, reason, linter, errors)
 
     backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
@@ -433,49 +433,6 @@ def kill_active_popen_calls(bid):
     for proc in procs:
         proc.terminate()
         setattr(proc, 'friendly_terminated', True)
-
-
-def group_by_filename_and_update(
-    window: sublime.Window,
-    main_filename: FileName,
-    reason: Reason,
-    linter: LinterName,
-    errors: list[LintError]
-) -> None:
-    """Group lint errors by filename and update them."""
-    grouped: defaultdict[FileName, list[LintError]] = defaultdict(list)
-    for error in errors:
-        grouped[error['filename']].append(error)
-
-    # The contract for a simple linter is that it reports `[errors]` or an
-    # empty list `[]` if the buffer is clean. For linters that report errors
-    # for multiple files we collect information about which files are actually
-    # reported by a given linted file so that we can clean the results.
-    affected_filenames = persist.affected_filenames_per_filename[main_filename]
-    previous_filenames = affected_filenames[linter]
-
-    current_filenames = set(grouped.keys()) - {main_filename}
-    affected_filenames[linter] = current_filenames
-
-    # Basically, we must fake a `[]` response for every filename that is no
-    # longer reported.
-    # For the main view we MUST *always* report an outcome. This is not for
-    # cleanup but functions as a signal that we're done. Merely for the status
-    # bar view.
-    clean_files = previous_filenames - current_filenames
-    for filename in clean_files | {main_filename}:
-        grouped[filename]  # For the side-effect of creating a new empty `list`
-
-    for filename, errors in grouped.items():
-        # Ignore errors of other files if their view is dirty; but still
-        # propagate if there are no errors, t.i. cleanup is allowed even
-        # then.
-        if filename != main_filename and errors:
-            view = window.find_open_file(filename)
-            if view and view.is_dirty():
-                continue
-
-        persist.update_file_errors(filename, linter, errors, reason)
 
 
 def force_redraw():

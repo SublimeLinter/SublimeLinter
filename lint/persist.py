@@ -7,7 +7,7 @@ import threading
 from typing import DefaultDict, Type, TypedDict, TYPE_CHECKING
 
 import sublime
-from . import events
+from . import events, util
 from .settings import Settings
 
 if TYPE_CHECKING:
@@ -55,6 +55,28 @@ affected_filenames_per_filename: \
 
 active_procs: DefaultDict[Bid, list[subprocess.Popen]] = defaultdict(list)
 active_procs_lock = threading.Lock()
+
+
+def assign_linters_to_view(view: sublime.View, next_linters: set[LinterName]) -> None:
+    # We do not want to update `assigned_linters` for detached views bc `on_close`
+    # already has been called at this time.
+    if not view.is_valid():
+        return
+
+    bid = view.buffer_id()
+    filename = util.canonical_filename(view)
+    current_linters = assigned_linters.get(bid, set())
+
+    assigned_linters[bid] = next_linters
+    events.broadcast(events.LINTER_ASSIGNED, {
+        'filename': filename,
+        'linter_names': next_linters
+    })
+
+    affected_files = affected_filenames_per_filename[filename]
+    for linter in (current_linters - next_linters):
+        affected_files.pop(linter, None)
+        update_file_errors(filename, linter, [])
 
 
 def group_by_filename_and_update(

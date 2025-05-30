@@ -796,12 +796,10 @@ class Linter(metaclass=LinterMeta):
 
     def notify_failure(self):
         # Side-effect: the status bar will show `(erred)`
-        window = self.view.window()
-        if window:
-            window.run_command('sublime_linter_failed', {
-                'filename': util.canonical_filename(self.view),
-                'linter_name': self.name
-            })
+        events.broadcast(events.LINTER_FAILED, {
+            'filename': util.canonical_filename(self.view),
+            'linter_name': self.name
+        })
 
     def notify_unassign(self):
         # Side-effect: the status bar will not show the linter at all

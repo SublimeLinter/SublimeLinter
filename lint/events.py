@@ -14,6 +14,7 @@ ERROR_POSITIONS_CHANGED = 'error_positions_changed'
 SETTINGS_CHANGED = 'settings_changed'
 LINTER_ASSIGNED = 'linter_assigned'
 LINTER_UNASSIGNED = 'linter_unassigned'
+LINTER_FAILED = 'linter_failed'
 
 
 Handler = Callable[..., None]

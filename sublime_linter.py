@@ -414,8 +414,11 @@ def lint(
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    sink = partial(
-        group_by_filename_and_update, window, filename, view_has_changed, reason)
+    def sink(linter: LinterName, errors: list[LintError]):
+        if view_has_changed():
+            return
+        group_by_filename_and_update(window, filename, reason, linter, errors)
+
     backend.lint_view(runnable_linters, view, view_has_changed, sink)
 
 
@@ -435,15 +438,11 @@ def kill_active_popen_calls(bid):
 def group_by_filename_and_update(
     window: sublime.Window,
     main_filename: FileName,
-    view_has_changed: ViewChangedFn,
     reason: Reason,
     linter: LinterName,
     errors: list[LintError]
 ) -> None:
     """Group lint errors by filename and update them."""
-    if view_has_changed():  # abort early
-        return
-
     grouped: defaultdict[FileName, list[LintError]] = defaultdict(list)
     for error in errors:
         grouped[error['filename']].append(error)

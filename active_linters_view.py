@@ -96,13 +96,12 @@ def _unset_expanded_ok(filename: FileName) -> None:
     redraw_file_(filename)
 
 
-class sublime_linter_assigned(sublime_plugin.WindowCommand):
-    def run(self, filename: FileName, linter_names: list[LinterName]) -> None:
-        State['assigned_linters_per_file'][filename] = set(linter_names)
-        State['failed_linters_per_file'][filename] = set()
-
-        if attempted_linters_changed(filename, linter_names):
-            on_attempted_linters_changed(filename)
+@events.on(events.LINTER_ASSIGNED)
+def on_linter_assigned(filename: FileName, linter_names: set[LinterName]) -> None:
+    State['assigned_linters_per_file'][filename] = linter_names
+    State['failed_linters_per_file'][filename] = set()
+    if attempted_linters_changed(filename, linter_names):
+        on_attempted_linters_changed(filename)
 
 
 class sublime_linter_unassigned(sublime_plugin.WindowCommand):

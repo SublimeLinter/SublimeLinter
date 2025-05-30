@@ -12,6 +12,7 @@ FILE_RENAMED = 'file_renamed'
 PLUGIN_LOADED = 'plugin_loaded'
 ERROR_POSITIONS_CHANGED = 'error_positions_changed'
 SETTINGS_CHANGED = 'settings_changed'
+LINTER_ASSIGNED = 'linter_assigned'
 
 
 Handler = Callable[..., None]

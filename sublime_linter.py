@@ -469,9 +469,9 @@ def _assign_linters_to_view(view: sublime.View, next_linters: set[LinterName]) -
     current_linters = persist.assigned_linters.get(bid, set())
 
     persist.assigned_linters[bid] = next_linters
-    window.run_command('sublime_linter_assigned', {
+    events.broadcast(events.LINTER_ASSIGNED, {
         'filename': filename,
-        'linter_names': list(next_linters)
+        'linter_names': next_linters
     })
 
     affected_files = persist.affected_filenames_per_filename[filename]

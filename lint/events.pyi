@@ -16,6 +16,7 @@ FILE_RENAMED: Literal['file_renamed']
 PLUGIN_LOADED: Literal['plugin_loaded']
 ERROR_POSITIONS_CHANGED: Literal['error_positions_changed']
 SETTINGS_CHANGED: Literal['settings_changed']
+LINTER_ASSIGNED: Literal['linter_assigned']
 
 
 class LintStartPayload(TypedDict):
@@ -44,6 +45,10 @@ class ErrorPositionsChangedPayload(TypedDict):
 class SettingsChangedPayload(TypedDict):
     settings: Settings
 
+class LinterAssignedPayload(TypedDict):
+    filename: str
+    linter_names: set[str]
+
 
 class LintStartHandler(Protocol):
     def __call__(self, **kwargs: Unpack[LintStartPayload]) -> None: ...
@@ -66,11 +71,15 @@ class ErrorPositionsChangedHandler(Protocol):
 class SettingsChangedHandler(Protocol):
     def __call__(self, **kwargs: Unpack[SettingsChangedPayload]) -> None: ...
 
+class LinterAssignedHandler(Protocol):
+    def __call__(self, **kwargs: Unpack[LinterAssignedPayload]) -> None: ...
+
 
 Handler = Callable[..., None]
 AnyHandler = Union[
     LintStartHandler, LintResultHandler, LintEndHandler, FileRenamedHandler,
-    PluginLoadedHandler, ErrorPositionsChangedHandler, SettingsChangedHandler
+    PluginLoadedHandler, ErrorPositionsChangedHandler, SettingsChangedHandler,
+    LinterAssignedHandler,
 ]
 
 @overload
@@ -88,6 +97,8 @@ def subscribe(topic: Literal['error_positions_changed'], fn: ErrorPositionsChang
 @overload
 def subscribe(topic: Literal['settings_changed'], fn: SettingsChangedHandler) -> None: ...
 @overload
+def subscribe(topic: Literal['linter_assigned'], fn: LinterAssignedHandler) -> None: ...
+@overload
 def subscribe(topic: str, fn: Handler) -> None: ...
 
 @overload
@@ -104,6 +115,8 @@ def unsubscribe(topic: Literal['plugin_loaded'], fn: PluginLoadedHandler) -> Non
 def unsubscribe(topic: Literal['error_positions_changed'], fn: ErrorPositionsChangedHandler) -> None: ...
 @overload
 def unsubscribe(topic: Literal['settings_changed'], fn: SettingsChangedHandler) -> None: ...
+@overload
+def unsubscribe(topic: Literal['linter_assigned'], fn: LinterAssignedHandler) -> None: ...
 @overload
 def unsubscribe(topic: str, fn: Handler) -> None: ...
 @overload
@@ -124,6 +137,8 @@ def broadcast(topic: Literal['error_positions_changed'], payload: ErrorPositions
 @overload
 def broadcast(topic: Literal['settings_changed'], payload: SettingsChangedPayload) -> None: ...
 @overload
+def broadcast(topic: Literal['linter_assigned'], payload: LinterAssignedPayload) -> None: ...
+@overload
 def broadcast(topic: str, payload: dict[str, Any]) -> None: ...
 
 @overload
@@ -140,6 +155,8 @@ def on(topic: Literal['plugin_loaded']) -> Callable[[PluginLoadedHandler], Plugi
 def on(topic: Literal['error_positions_changed']) -> Callable[[ErrorPositionsChangedHandler], ErrorPositionsChangedHandler]: ...
 @overload
 def on(topic: Literal['settings_changed']) -> Callable[[SettingsChangedHandler], SettingsChangedHandler]: ...
+@overload
+def on(topic: Literal['linter_assigned']) -> Callable[[LinterAssignedHandler], LinterAssignedHandler]: ...
 @overload
 def on(topic: str) -> Callable[[Handler], Handler]: ...
 

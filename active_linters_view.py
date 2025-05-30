@@ -104,10 +104,10 @@ def on_linter_assigned(filename: FileName, linter_names: set[LinterName]) -> Non
         on_attempted_linters_changed(filename)
 
 
-class sublime_linter_unassigned(sublime_plugin.WindowCommand):
-    def run(self, filename, linter_name):
-        State['assigned_linters_per_file'][filename].discard(linter_name)
-        State['failed_linters_per_file'][filename].discard(linter_name)
+@events.on(events.LINTER_UNASSIGNED)
+def on_linter_unassigned(filename: FileName, linter_name: LinterName) -> None:
+    State['assigned_linters_per_file'][filename].discard(linter_name)
+    State['failed_linters_per_file'][filename].discard(linter_name)
 
 
 class sublime_linter_failed(sublime_plugin.WindowCommand):

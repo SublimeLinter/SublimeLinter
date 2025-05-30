@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 import sublime
-from . import persist, util
+from . import events, persist, util
 from .const import WARNING, ERROR
 
 
@@ -805,12 +805,10 @@ class Linter(metaclass=LinterMeta):
 
     def notify_unassign(self):
         # Side-effect: the status bar will not show the linter at all
-        window = self.view.window()
-        if window:
-            window.run_command('sublime_linter_unassigned', {
-                'filename': util.canonical_filename(self.view),
-                'linter_name': self.name
-            })
+        events.broadcast(events.LINTER_UNASSIGNED, {
+            'filename': util.canonical_filename(self.view),
+            'linter_name': self.name
+        })
 
     def on_stderr(self, output):
         self.logger.warning('{} output:\n{}'.format(self.name, output))

@@ -24,7 +24,7 @@ from .lint.const import IS_ENABLED_SWITCH
 from .lint.util import flash, format_items
 
 
-from typing import Callable, Optional
+from typing import Callable
 from typing_extensions import TypeAlias
 
 Bid: TypeAlias = "sublime.BufferId"
@@ -180,7 +180,7 @@ class BackendController(sublime_plugin.EventListener):
         # check if the view has been renamed
         renamed_filename = detect_rename(view)
         if renamed_filename:
-            update_on_filename_change(*renamed_filename)
+            persist.record_filename_change(*renamed_filename)
 
         if has_syntax_changed(view):
             hit(view, 'on_load')
@@ -476,49 +476,7 @@ def group_by_filename_and_update(
             if view and view.is_dirty():
                 continue
 
-        update_file_errors(filename, linter, errors, reason)
-
-
-def update_file_errors(
-    filename: FileName,
-    linter: LinterName,
-    errors: list[LintError],
-    reason: Optional[Reason] = None
-) -> None:
-    """Persist lint error changes and broadcast."""
-    update_errors_store(filename, linter, errors)
-    events.broadcast(events.LINT_RESULT, {
-        'filename': filename,
-        'linter_name': linter,
-        'errors': errors,
-        'reason': reason
-    })
-
-
-def update_errors_store(filename: FileName, linter_name: LinterName, errors: list[LintError]) -> None:
-    persist.file_errors[filename] = [
-        error
-        for error in persist.file_errors[filename]
-        if error['linter'] != linter_name
-    ] + errors
-
-
-def update_on_filename_change(old_filename: FileName, new_filename: FileName) -> None:
-    # update the error store
-    if old_filename in persist.file_errors:
-        errors = persist.file_errors.pop(old_filename)
-        persist.file_errors[new_filename] = errors
-
-    # update the affected filenames
-    if old_filename in persist.affected_filenames_per_filename:
-        filenames = persist.affected_filenames_per_filename.pop(old_filename)
-        persist.affected_filenames_per_filename[new_filename] = filenames
-
-    # notify the views
-    events.broadcast('file_renamed', {
-        'new_filename': new_filename,
-        'old_filename': old_filename
-    })
+        persist.update_file_errors(filename, linter, errors, reason)
 
 
 def force_redraw():
@@ -563,7 +521,7 @@ def _assign_linters_to_view(view: sublime.View, next_linters: set[LinterName]) -
     affected_files = persist.affected_filenames_per_filename[filename]
     for linter in (current_linters - next_linters):
         affected_files.pop(linter, None)
-        update_file_errors(filename, linter, [])
+        persist.update_file_errors(filename, linter, [])
 
 
 def make_view_has_changed_fn(view: sublime.View) -> ViewChangedFn:

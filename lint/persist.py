@@ -7,6 +7,7 @@ import threading
 from typing import DefaultDict, Type, TypedDict, TYPE_CHECKING
 
 import sublime
+from . import events
 from .settings import Settings
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 FileName = str
 LinterName = str
+Reason = str
 
 
 class LintError(TypedDict, total=False):
@@ -53,3 +55,45 @@ affected_filenames_per_filename: \
 
 active_procs: DefaultDict[Bid, list[subprocess.Popen]] = defaultdict(list)
 active_procs_lock = threading.Lock()
+
+
+def update_file_errors(
+    filename: FileName,
+    linter: LinterName,
+    errors: list[LintError],
+    reason: Reason | None = None
+) -> None:
+    """Persist lint error changes and broadcast."""
+    update_errors_store(filename, linter, errors)
+    events.broadcast(events.LINT_RESULT, {
+        'filename': filename,
+        'linter_name': linter,
+        'errors': errors,
+        'reason': reason
+    })
+
+
+def update_errors_store(filename: FileName, linter_name: LinterName, errors: list[LintError]) -> None:
+    file_errors[filename] = [
+        error
+        for error in file_errors[filename]
+        if error['linter'] != linter_name
+    ] + errors
+
+
+def record_filename_change(old_filename: FileName, new_filename: FileName) -> None:
+    # update the error store
+    if old_filename in file_errors:
+        errors = file_errors.pop(old_filename)
+        file_errors[new_filename] = errors
+
+    # update the affected filenames
+    if old_filename in affected_filenames_per_filename:
+        filenames = affected_filenames_per_filename.pop(old_filename)
+        affected_filenames_per_filename[new_filename] = filenames
+
+    # notify the views
+    events.broadcast('file_renamed', {
+        'new_filename': new_filename,
+        'old_filename': old_filename
+    })

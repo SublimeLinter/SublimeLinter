@@ -79,7 +79,7 @@ def lint(
     reason: Reason,
     only_run: set[LinterName] = None
 ) -> None:
-    """Lint the view with the given id."""
+    """Lint the given view. """
     if view.settings().get(IS_ENABLED_SWITCH) is False:
         linters = []
     else:
@@ -122,22 +122,9 @@ def lint(
             return
         persist.group_by_filename_and_update(window, filename, reason, linter, errors)
 
-    lint_view(runnable_linters, view, view_has_changed, sink)
-
-
-def lint_view(
-    linters: list[LinterInfo],
-    view: sublime.View,
-    view_has_changed: ViewChangedFn,
-    sink: Callable[[LinterName, LintResult], None]
-) -> None:
-    """Lint the given view.
-
-    This is the top level lint dispatcher. It falls through.
-    """
     lint_jobs = [
         LintJob(linter.name, linter.context, tasks)
-        for linter in linters
+        for linter in runnable_linters
         if (tasks := list(tasks_per_linter(view, view_has_changed, linter)))
     ]
     warn_excessive_tasks(lint_jobs)

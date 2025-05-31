@@ -89,7 +89,7 @@ def lint(
 
     next_linter_names = {linter.name for linter in linters}
     with lock:
-        persist.assign_linters_to_view(view, next_linter_names)
+        persist.assign_linters_to_buffer(view, next_linter_names)
 
     if only_run:
         linters = [linter for linter in linters if linter.name in only_run]

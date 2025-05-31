@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 orchestrator = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
 executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
-guard_check_linters_for_view: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
+locks_per_buffer: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
 
 
 task_count = count(start=1)
@@ -66,7 +66,7 @@ def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> 
         "Delay linting '{}' for {:.2}s"
         .format(util.short_canonical_filename(view), delay)
     )
-    lock = guard_check_linters_for_view[bid]
+    lock = locks_per_buffer[bid]
     view_has_changed = make_view_has_changed_fn(view)
     fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
     queue.debounce(fn, delay=delay, key=bid)

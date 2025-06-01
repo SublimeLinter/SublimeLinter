@@ -2,7 +2,7 @@ from typing import (
     Any, Callable, Protocol, Union,
     Literal, overload, TYPE_CHECKING
 )
-from typing_extensions import TypedDict, Unpack
+from typing_extensions import NotRequired, TypedDict, Unpack
 
 if TYPE_CHECKING:
     from .persist import LintError
@@ -29,6 +29,7 @@ class LintResultPayload(TypedDict):
     filename: str
     linter_name: str
     errors: list[LintError]
+    reason: NotRequired[str | None]
 
 class LintEndPayload(TypedDict):
     filename: str

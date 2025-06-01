@@ -9,16 +9,16 @@ if TYPE_CHECKING:
     from .settings import Settings
 
 
-LINT_START: Literal['lint_start']
-LINT_RESULT: Literal['lint_result']
-LINT_END: Literal['lint_end']
-FILE_RENAMED: Literal['file_renamed']
-PLUGIN_LOADED: Literal['plugin_loaded']
-ERROR_POSITIONS_CHANGED: Literal['error_positions_changed']
-SETTINGS_CHANGED: Literal['settings_changed']
-LINTER_ASSIGNED: Literal['linter_assigned']
-LINTER_UNASSIGNED: Literal['linter_unassigned']
-LINTER_FAILED: Literal['linter_failed']
+LINT_START: Literal['lint_start'] = 'lint_start'
+LINT_RESULT: Literal['lint_result'] = 'lint_result'
+LINT_END: Literal['lint_end'] = 'lint_end'
+FILE_RENAMED: Literal['file_renamed'] = 'file_renamed'
+PLUGIN_LOADED: Literal['plugin_loaded'] = 'plugin_loaded'
+ERROR_POSITIONS_CHANGED: Literal['error_positions_changed'] = 'error_positions_changed'
+SETTINGS_CHANGED: Literal['settings_changed'] = 'settings_changed'
+LINTER_ASSIGNED: Literal['linter_assigned'] = 'linter_assigned'
+LINTER_UNASSIGNED: Literal['linter_unassigned'] = 'linter_unassigned'
+LINTER_FAILED: Literal['linter_failed'] = 'linter_failed'
 
 
 class LintStartPayload(TypedDict):
@@ -167,8 +167,6 @@ def broadcast(topic: Literal['linter_assigned'], payload: LinterAssignedPayload)
 def broadcast(topic: Literal['linter_unassigned'], payload: LinterUnassignedPayload) -> None: ...
 @overload
 def broadcast(topic: Literal['linter_failed'], payload: LinterFailedPayload) -> None: ...
-@overload
-def broadcast(topic: str, payload: dict[str, Any]) -> None: ...
 
 @overload
 def on(topic: Literal['lint_start']) -> Callable[[LintStartHandler], LintStartHandler]: ...

@@ -855,7 +855,7 @@ class IdleViewController(sublime_plugin.EventListener):
             queue.debounce(
                 partial(set_idle, active_view, True),
                 delay=time_to_idle,
-                key='highlights.{}'.format(active_view.id())
+                key=f"highlights.{active_view.id()}"
             )
 
 

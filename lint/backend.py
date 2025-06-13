@@ -69,7 +69,7 @@ def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> 
     lock = locks_per_buffer[bid]
     view_has_changed = make_view_has_changed_fn(view)
     fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
-    queue.debounce(fn, delay=delay, key=bid)
+    queue.debounce(fn, delay=delay, key=f"hit.{bid}")
 
 
 def lint(

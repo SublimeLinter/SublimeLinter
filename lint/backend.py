@@ -122,18 +122,24 @@ def lint(
             return
         persist.group_by_filename_and_update(window, filename, reason, linter, errors)
 
-    lint_view(runnable_linters, view, view_has_changed, sink)
+    form_lint_jobs_and_submit_them(runnable_linters, view, view_has_changed, sink)
 
 
-def lint_view(
+def form_lint_jobs_and_submit_them(
     linters: list[LinterInfo],
     view: sublime.View,
     view_has_changed: ViewChangedFn,
     sink: Callable[[LinterName, LintResult], None]
 ) -> None:
-    """Lint the given view.
+    """Transform [LinterInfo] -> [LintJob] and run them.
 
-    This is the top level lint dispatcher. It falls through.
+    The key point herein is that `LinterInfo` has multiple `.regions` to lint.
+    (One linter should run on multiple parts of the same view.) We transform
+    that to multiple jobs and each job only lints one region so we can
+    parallelize everything (fan-out).  However, we need to join these (fan-in)
+    as our data store must see all errors keyed by linter_name at once.  From
+    the perspective of the data store each new (combined) result *replaces*
+    the previous result.
     """
     lint_jobs = [
         LintJob(linter.name, linter.context, tasks)

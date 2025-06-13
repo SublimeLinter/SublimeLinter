@@ -52,12 +52,12 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
 
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
 
-        verify(sublime_linter.backend).lint_view(...)
+        verify(sublime_linter.backend).lint(...)
 
     @p.expand([
         ('on_user_request',),
@@ -70,10 +70,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend).lint_view(...)
+        verify(sublime_linter.backend).lint(...)
 
     @p.expand([
         (reason, lint_mode, ok)
@@ -162,10 +162,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend, times=1 if ok else 0).lint_view(...)
+        verify(sublime_linter.backend, times=1 if ok else 0).lint(...)
 
     @p.expand([
         ('on_user_request',),
@@ -175,7 +175,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
@@ -196,7 +196,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -219,7 +219,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -232,7 +232,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ('on_load', 'on_save')}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -249,7 +249,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         when(FakeLinter.logger).warning(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), 'on_modified')
@@ -262,10 +262,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': 'unknown'}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), 'on_modified')
-        verify(sublime_linter.backend).lint_view(...)
+        verify(sublime_linter.backend).lint(...)
 
     @p.expand([
         ('on_user_request',),
@@ -279,10 +279,10 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
             tempfile_suffix = 'py'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend).lint_view(...)
+        verify(sublime_linter.backend).lint(...)
 
     @p.expand([
         ('on_user_request',),
@@ -297,13 +297,13 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         when(view).file_name().thenReturn(None)
         when(view).is_dirty().thenReturn(False)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
 
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(sublime_linter.backend, times=0).lint(...)
 
     @p.expand([
         ('on_user_request',),
@@ -318,14 +318,14 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(True)
         sublime_linter.lint(view, lambda: False, Lock(), reason)
 
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(sublime_linter.backend, times=0).lint(...)
 
     @p.expand([
         ('background', True),
@@ -342,14 +342,14 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(False)
         sublime_linter.lint(view, lambda: False, Lock(), "on_save")
 
-        verify(sublime_linter.backend, times=1 if ok else 0).lint_view(...)
+        verify(sublime_linter.backend, times=1 if ok else 0).lint(...)
 
     def test_log_info_if_no_assignable_linter(self):
         class FakeLinter(Linter):
@@ -381,12 +381,12 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
 
         selected_linters = captor()
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
 
         view = self.create_view(self.window)
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fakelinter"]))
 
-        verify(sublime_linter.backend).lint_view(selected_linters, ...)
+        verify(sublime_linter.backend).lint(selected_linters, ...)
         self.assertEqual(selected_linters.value[0].name, "fakelinter")
 
     def test_log_if_requested_linter_is_not_assigned(self):
@@ -435,14 +435,14 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': 'source.python'}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(sublime_linter.backend, times=0).lint(...)
 
     def test_cells_optionally_trigger(self):
         class FakeLinter(Linter):
@@ -451,14 +451,14 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': True,
             }
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=1).lint_view(...)
+        verify(sublime_linter.backend, times=1).lint(...)
 
     def test_cells_forcefully_do_not_trigger(self):
         class FakeLinter(Linter):
@@ -467,14 +467,14 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': False,
             }
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(sublime_linter.backend).lint(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
         sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(sublime_linter.backend, times=0).lint(...)
 
 
 MARDOWN_WITH_CELL = """\

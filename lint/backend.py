@@ -164,16 +164,15 @@ def tasks_per_linter(
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
-        executor = partial(modify_thread_name, linter_info, task)
-        yield executor
+        yield partial(modify_thread_name, linter_info, then_run=task)
 
 
-def modify_thread_name(linter_info: LinterInfo, sink: Callable[[], T]) -> T:
+def modify_thread_name(linter_info: LinterInfo, then_run: Callable[[], T]) -> T:
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = make_good_task_name(linter_info)
     try:
-        return sink()
+        return then_run()
     finally:
         threading.current_thread().name = original_name
 

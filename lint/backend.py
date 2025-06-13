@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import chain, count
-from functools import lru_cache, partial
+from functools import lru_cache, partial, wraps
 import hashlib
 import logging
 import multiprocessing
@@ -147,9 +147,10 @@ def form_lint_jobs_and_submit_them(
     ]
     warn_excessive_tasks(lint_jobs)
 
+    # Catch all unhandled errors because we fire-and-forget!
+    run_job_ = catch_but_print_all_exceptions(run_job)
     for job in lint_jobs:
-        # Explicitly catch all unhandled errors because we fire-and-forget!
-        orchestrator.submit(print_all_exceptions(run_job), job, sink)
+        orchestrator.submit(run_job_, job, sink)
 
 
 def tasks_per_linter(
@@ -297,13 +298,14 @@ def excess_warning(msg: str) -> None:
     logger.warning(msg)
 
 
-def print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
-    def inner(*args, **kwargs):
+def catch_but_print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
+    @wraps(fn)
+    def decorated(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
         except Exception:
             traceback.print_exc()
-    return inner
+    return decorated
 
 
 def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:

@@ -7,8 +7,7 @@ from SublimeLinter.tests.parameterized import parameterized as p
 from SublimeLinter.tests.mockito import captor, unstub, verify, when
 
 import sublime
-from SublimeLinter import sublime_linter
-from SublimeLinter.lint import Linter, persist
+from SublimeLinter.lint import Linter, backend, persist
 from SublimeLinter.lint.generic_text_command import replace_view_content
 
 
@@ -52,12 +51,12 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
 
-        verify(sublime_linter.backend).lint_view(...)
+        verify(backend.orchestrator).submit(...)
 
     @p.expand([
         ('on_user_request',),
@@ -70,10 +69,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), reason)
+        verify(backend.orchestrator).submit(...)
 
     @p.expand([
         (reason, lint_mode, ok)
@@ -162,10 +161,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend, times=1 if ok else 0).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), reason)
+        verify(backend.orchestrator, times=1 if ok else 0).submit(...)
 
     @p.expand([
         ('on_user_request',),
@@ -175,10 +174,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, Lock(), reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Lint reason '{reason}' is okay."
         )
@@ -196,11 +195,11 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, Lock(), reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Checking lint mode '{lint_mode}' vs lint reason '{reason}'.  Ok."
         )
@@ -219,11 +218,11 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, Lock(), reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Checking lint mode '{lint_mode}' vs lint reason '{reason}'.  Skip linting."
         )
@@ -232,11 +231,11 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ('on_load', 'on_save')}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_modified')
+        backend.lint(view, lambda: False, Lock(), 'on_modified')
         verify(FakeLinter.logger).info(
             "fakelinter: Checking lint mode 'on_load, on_save' vs lint reason 'on_modified'.  Skip linting."
         )
@@ -249,10 +248,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).warning(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_modified')
+        backend.lint(view, lambda: False, Lock(), 'on_modified')
         verify(FakeLinter.logger).warning(
             "fakelinter: Unknown lint mode 'unknown'.  "
             "Check your SublimeLinter settings for typos."
@@ -262,10 +261,10 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': 'unknown'}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_modified')
-        verify(sublime_linter.backend).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), 'on_modified')
+        verify(backend.orchestrator).submit(...)
 
     @p.expand([
         ('on_user_request',),
@@ -279,10 +278,10 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
             tempfile_suffix = 'py'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
-        verify(sublime_linter.backend).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), reason)
+        verify(backend.orchestrator).submit(...)
 
     @p.expand([
         ('on_user_request',),
@@ -297,13 +296,13 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
         when(view).file_name().thenReturn(None)
         when(view).is_dirty().thenReturn(False)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, Lock(), reason)
 
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(backend.orchestrator, times=0).submit(...)
 
     @p.expand([
         ('on_user_request',),
@@ -318,14 +317,14 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(True)
-        sublime_linter.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, Lock(), reason)
 
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        verify(backend.orchestrator, times=0).submit(...)
 
     @p.expand([
         ('background', True),
@@ -342,36 +341,36 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(False)
-        sublime_linter.lint(view, lambda: False, Lock(), "on_save")
+        backend.lint(view, lambda: False, Lock(), "on_save")
 
-        verify(sublime_linter.backend, times=1 if ok else 0).lint_view(...)
+        verify(backend.orchestrator, times=1 if ok else 0).submit(...)
 
     def test_log_info_if_no_assignable_linter(self):
         class FakeLinter(Linter):
             defaults = {'selector': 'foobar'}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.logger).info(...).thenReturn(None)
+        when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
 
-        verify(sublime_linter.logger).info(
+        verify(backend.logger).info(
             "No installed linter matches the view."
         )
 
     def test_log_if_no_linter_installed(self):
-        when(sublime_linter.logger).info(...).thenReturn(None)
+        when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
 
-        verify(sublime_linter.logger).info(
+        verify(backend.logger).info(
             "No installed linter matches the view."
         )
 
@@ -380,26 +379,26 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        selected_linters = captor()
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        job = captor()
+        when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fakelinter"]))
+        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fakelinter"]))
 
-        verify(sublime_linter.backend).lint_view(selected_linters, ...)
-        self.assertEqual(selected_linters.value[0].name, "fakelinter")
+        verify(backend.orchestrator).submit(any, job, ...)
+        self.assertEqual(job.value.linter_name, "fakelinter")
 
     def test_log_if_requested_linter_is_not_assigned(self):
         class FakeLinter(Linter):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.logger).info(...).thenReturn(None)
+        when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke"]))
+        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke"]))
 
-        verify(sublime_linter.logger).info(
+        verify(backend.logger).info(
             "Requested linter fuke is not assigned to the view."
         )
 
@@ -408,12 +407,12 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.logger).info(...).thenReturn(None)
+        when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork"]))
+        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork"]))
 
-        verify(sublime_linter.logger).info(
+        verify(backend.logger).info(
             "Requested linters fork and fuke are not assigned to the view."
         )
 
@@ -422,12 +421,12 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(sublime_linter.logger).info(...).thenReturn(None)
+        when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
+        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
 
-        verify(sublime_linter.logger).info(
+        verify(backend.logger).info(
             "Requested linters fark, fork and fuke are not assigned to the view."
         )
 
@@ -435,14 +434,14 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': 'source.python'}
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(backend.orchestrator, times=0).submit(...)
 
     def test_cells_optionally_trigger(self):
         class FakeLinter(Linter):
@@ -451,14 +450,14 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': True,
             }
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=1).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(backend.orchestrator, times=1).submit(...)
 
     def test_cells_forcefully_do_not_trigger(self):
         class FakeLinter(Linter):
@@ -467,14 +466,14 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': False,
             }
             cmd = 'fake_linter_1'
-        when(sublime_linter.backend).lint_view(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        sublime_linter.lint(view, lambda: False, Lock(), 'on_user_request')
-        verify(sublime_linter.backend, times=0).lint_view(...)
+        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        verify(backend.orchestrator, times=0).submit(...)
 
 
 MARDOWN_WITH_CELL = """\

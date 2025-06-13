@@ -229,7 +229,6 @@ class BackendController(sublime_plugin.EventListener):
             persist.file_errors.pop(fn, None)
 
         persist.assigned_linters.pop(bid, None)
-        backend.locks_per_buffer.pop(bid, None)
         buffer_filenames.pop(bid, None)
         buffer_base_scopes.pop(bid, None)
         queue.cleanup(bid)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import sublime
 
-from collections import defaultdict, deque
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 orchestrator = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
 executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
-locks_per_buffer: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
 
 
 task_count = count(start=1)
@@ -66,16 +65,14 @@ def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> 
         "Delay linting '{}' for {:.2}s"
         .format(util.short_canonical_filename(view), delay)
     )
-    lock = locks_per_buffer[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
+    fn = partial(lint, view, view_has_changed, reason, set(only_run))
     queue.debounce(fn, delay=delay, key=f"hit.{bid}")
 
 
 def lint(
     view: sublime.View,
     view_has_changed: ViewChangedFn,
-    lock: threading.Lock,
     reason: Reason,
     only_run: set[LinterName] = None
 ) -> None:
@@ -88,8 +85,7 @@ def lint(
             logger.info("No installed linter matches the view.")
 
     next_linter_names = {linter.name for linter in linters}
-    with lock:
-        persist.assign_linters_to_buffer(view, next_linter_names)
+    persist.assign_linters_to_buffer(view, next_linter_names)
 
     if only_run:
         if expected_linters_not_actually_assigned := (only_run - next_linter_names):

@@ -1,6 +1,5 @@
 import logging
 import os
-from threading import Lock
 
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
@@ -54,7 +53,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
 
         verify(backend.orchestrator).submit(...)
 
@@ -71,7 +70,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
         when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator).submit(...)
 
     @p.expand([
@@ -163,7 +162,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
         when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator, times=1 if ok else 0).submit(...)
 
     @p.expand([
@@ -177,7 +176,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Lint reason '{reason}' is okay."
         )
@@ -199,7 +198,7 @@ class TestLinterElection(_BaseTestCase):
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Checking lint mode '{lint_mode}' vs lint reason '{reason}'.  Ok."
         )
@@ -222,7 +221,7 @@ class TestLinterElection(_BaseTestCase):
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(FakeLinter.logger).info(
             f"fakelinter: Checking lint mode '{lint_mode}' vs lint reason '{reason}'.  Skip linting."
         )
@@ -235,7 +234,7 @@ class TestLinterElection(_BaseTestCase):
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_modified')
+        backend.lint(view, lambda: False, 'on_modified')
         verify(FakeLinter.logger).info(
             "fakelinter: Checking lint mode 'on_load, on_save' vs lint reason 'on_modified'.  Skip linting."
         )
@@ -251,7 +250,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.orchestrator).submit(...).thenReturn(None)
         when(FakeLinter.logger).warning(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_modified')
+        backend.lint(view, lambda: False, 'on_modified')
         verify(FakeLinter.logger).warning(
             "fakelinter: Unknown lint mode 'unknown'.  "
             "Check your SublimeLinter settings for typos."
@@ -263,7 +262,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
         when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_modified')
+        backend.lint(view, lambda: False, 'on_modified')
         verify(backend.orchestrator).submit(...)
 
     @p.expand([
@@ -280,7 +279,7 @@ class TestLinterElection(_BaseTestCase):
             tempfile_suffix = 'py'
         when(backend.orchestrator).submit(...).thenReturn(None)
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator).submit(...)
 
     @p.expand([
@@ -300,7 +299,7 @@ class TestLinterElection(_BaseTestCase):
         view = self.create_view(self.window)
         when(view).file_name().thenReturn(None)
         when(view).is_dirty().thenReturn(False)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
 
         verify(backend.orchestrator, times=0).submit(...)
 
@@ -322,7 +321,7 @@ class TestLinterElection(_BaseTestCase):
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(True)
-        backend.lint(view, lambda: False, Lock(), reason)
+        backend.lint(view, lambda: False, reason)
 
         verify(backend.orchestrator, times=0).submit(...)
 
@@ -346,7 +345,7 @@ class TestLinterElection(_BaseTestCase):
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
         when(view).is_dirty().thenReturn(False)
-        backend.lint(view, lambda: False, Lock(), "on_save")
+        backend.lint(view, lambda: False, "on_save")
 
         verify(backend.orchestrator, times=1 if ok else 0).submit(...)
 
@@ -358,7 +357,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
 
         verify(backend.logger).info(
             "No installed linter matches the view."
@@ -368,7 +367,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
 
         verify(backend.logger).info(
             "No installed linter matches the view."
@@ -383,7 +382,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.orchestrator).submit(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fakelinter"]))
+        backend.lint(view, lambda: False, 'on_user_request', only_run=set(["fakelinter"]))
 
         verify(backend.orchestrator).submit(any, job, ...)
         self.assertEqual(job.value.linter_name, "fakelinter")
@@ -396,7 +395,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke"]))
+        backend.lint(view, lambda: False, 'on_user_request', only_run=set(["fuke"]))
 
         verify(backend.logger).info(
             "Requested linter fuke is not assigned to the view."
@@ -410,7 +409,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork"]))
+        backend.lint(view, lambda: False, 'on_user_request', only_run=set(["fuke", "fork"]))
 
         verify(backend.logger).info(
             "Requested linters fork and fuke are not assigned to the view."
@@ -424,7 +423,7 @@ class TestLinterElection(_BaseTestCase):
         when(backend.logger).info(...).thenReturn(None)
 
         view = self.create_view(self.window)
-        backend.lint(view, lambda: False, Lock(), 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
+        backend.lint(view, lambda: False, 'on_user_request', only_run=set(["fuke", "fork", "fark"]))
 
         verify(backend.logger).info(
             "Requested linters fark, fork and fuke are not assigned to the view."
@@ -440,7 +439,7 @@ class TestLinterElection(_BaseTestCase):
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
         verify(backend.orchestrator, times=0).submit(...)
 
     def test_cells_optionally_trigger(self):
@@ -456,7 +455,7 @@ class TestLinterElection(_BaseTestCase):
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
         verify(backend.orchestrator, times=1).submit(...)
 
     def test_cells_forcefully_do_not_trigger(self):
@@ -472,7 +471,7 @@ class TestLinterElection(_BaseTestCase):
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
         replace_view_content(view, MARDOWN_WITH_CELL)
 
-        backend.lint(view, lambda: False, Lock(), 'on_user_request')
+        backend.lint(view, lambda: False, 'on_user_request')
         verify(backend.orchestrator, times=0).submit(...)
 
 

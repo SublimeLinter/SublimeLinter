@@ -6,9 +6,15 @@ from typing import Callable, Hashable
 
 Key = Hashable
 storage: dict[Key, object] = {}
+noop = lambda: None
 
 
-def debounce(callback: Callable[[], None], delay: float, key: Key) -> Callable[[], None]:
+def debounce(
+    callback: Callable[[], None],
+    delay: float,
+    key: Key,
+    on_cancel: Callable[[], object] = noop
+) -> Callable[[], None]:
     global storage
 
     token = object()
@@ -19,10 +25,13 @@ def debounce(callback: Callable[[], None], delay: float, key: Key) -> Callable[[
     def run():
         if storage.get(key) == token:
             callback()
+        else:
+            on_cancel()
 
     def clear():
         if storage.get(key) == token:
             storage.pop(key)
+            on_cancel()
 
     sublime.set_timeout_async(setup)
     sublime.set_timeout_async(run, int(delay * 1000))

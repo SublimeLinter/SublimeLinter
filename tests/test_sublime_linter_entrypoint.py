@@ -1,3 +1,4 @@
+from concurrent.futures import Future
 import logging
 import os
 
@@ -50,7 +51,7 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
 
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
 
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, 'on_user_request')
@@ -68,7 +69,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator).submit(...)
@@ -160,7 +161,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator, times=1 if ok else 0).submit(...)
@@ -173,7 +174,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': ''}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, reason)
@@ -194,7 +195,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -217,7 +218,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -230,7 +231,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': ('on_load', 'on_save')}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         when(FakeLinter.logger).isEnabledFor(logging.INFO).thenReturn(True)
         when(FakeLinter.logger).info(...).thenReturn(None)
         view = self.create_view(self.window)
@@ -247,7 +248,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         when(FakeLinter.logger).warning(...).thenReturn(None)
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, 'on_modified')
@@ -260,7 +261,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': 'unknown'}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, 'on_modified')
         verify(backend.orchestrator).submit(...)
@@ -277,7 +278,7 @@ class TestLinterElection(_BaseTestCase):
             defaults = {'selector': '', 'lint_mode': ALL_MODES}
             cmd = 'fake_linter_1'
             tempfile_suffix = 'py'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, reason)
         verify(backend.orchestrator).submit(...)
@@ -295,7 +296,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         when(view).file_name().thenReturn(None)
         when(view).is_dirty().thenReturn(False)
@@ -316,7 +317,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
@@ -340,7 +341,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
             tempfile_suffix = '-'
 
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
         view = self.create_view(self.window)
         when(os.path).exists("some_filename.txt").thenReturn(True)
         when(view).file_name().thenReturn("some_filename.txt")
@@ -379,7 +380,7 @@ class TestLinterElection(_BaseTestCase):
             cmd = 'fake_linter_1'
 
         job = captor()
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
 
         view = self.create_view(self.window)
         backend.lint(view, lambda: False, 'on_user_request', only_run=set(["fakelinter"]))
@@ -433,7 +434,7 @@ class TestLinterElection(_BaseTestCase):
         class FakeLinter(Linter):
             defaults = {'selector': 'source.python'}
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
@@ -449,7 +450,7 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': True,
             }
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")
@@ -465,7 +466,7 @@ class TestLinterElection(_BaseTestCase):
                 'enable_cells': False,
             }
             cmd = 'fake_linter_1'
-        when(backend.orchestrator).submit(...).thenReturn(None)
+        when(backend.orchestrator).submit(...).thenReturn(Future())
 
         view = self.create_view(self.window)
         view.assign_syntax("scope:text.html.markdown.multimarkdown")

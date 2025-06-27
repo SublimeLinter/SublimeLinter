@@ -457,7 +457,7 @@ class TestNodeLinters(DeferrableTestCase):
         view_has_changed = lambda: False
         sink = mock()
         when(sink).__call__(...).thenReturn(None)
-        backend.lint_view(
+        backend.form_lint_jobs_and_submit_them(
             [
                 elect.LinterInfo(
                     name=linter.name,

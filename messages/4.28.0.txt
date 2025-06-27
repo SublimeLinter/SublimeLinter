@@ -1,0 +1,26 @@
+SublimeLinter 4.28.0
+====================
+
+SublimeLinter always had lint modes like "background" or "load_save" which
+*describe* on which circumstances a linter may run but are relatively
+coarse-grained.  We now allow a list here with the modes "on_save", "on_load",
+"on_modified" which can be combined as the user wishes.
+Refer https://www.sublimelinter.com/en/master/linter_settings.html#lint-mode
+for more details.
+
+The command `sublime_linter_lint` learned a new arg `run` which specifies
+which linter(s) you want to run.  Previously, always all valid linters for a
+view did run.  This new arg is also used as an optimization when reloading the
+config or a linter class.
+We also expose the related function `hit` to trigger linter runs programmatically.
+
+Announcing https://github.com/kaste/SublimeLinter-any-lsp which is an adapter
+for any LSP server.
+
+
+
+Sincerely,
+💕
+
+
+Yes, I do enjoy coffee:  https://paypal.me/herrkaste

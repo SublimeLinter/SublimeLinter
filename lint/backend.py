@@ -36,6 +36,7 @@ ViewChangedFn = Callable[[], bool]
 FileName = str
 LinterName = str
 Reason = str
+LintResultCallback = Callable[[LinterName, LintResult], None]
 
 
 @dataclass(frozen=True)
@@ -127,7 +128,7 @@ def lint(
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    def sink(linter: LinterName, errors: list[LintError]):
+    def sink(linter: LinterName, errors: LintResult):
         if view_has_changed():
             return
         persist.group_by_filename_and_update(window, filename, reason, linter, errors)
@@ -141,7 +142,7 @@ def form_lint_jobs_and_submit_them(
     linters: list[LinterInfo],
     view: sublime.View,
     view_has_changed: ViewChangedFn,
-    sink: Callable[[LinterName, LintResult], None]
+    sink: LintResultCallback
 ) -> Future[bool]:
     """Transform [LinterInfo] -> [LintJob] and run them.
 
@@ -341,7 +342,7 @@ def catch_but_print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
     return decorated
 
 
-def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+def run_job(job: LintJob, sink: LintResultCallback) -> None:
     with broadcast_lint_runtime(job), remember_runtime(job):
         try:
             results = run_concurrently(job.tasks, executor=executor)

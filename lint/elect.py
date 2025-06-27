@@ -33,7 +33,11 @@ class LinterInfo:
 logger = logging.getLogger(__name__)
 
 
-def assignable_linters_for_view(view: sublime.View, reason: Reason) -> Iterator[LinterInfo]:
+def assignable_linters_for_view(
+    view: sublime.View,
+    reason: Reason,
+    only_run: set[LinterName] = None
+) -> Iterator[LinterInfo]:
     """Check and eventually instantiate linters for a view."""
     bid = view.buffer_id()
 
@@ -60,7 +64,11 @@ def assignable_linters_for_view(view: sublime.View, reason: Reason) -> Iterator[
                 settings=settings,
                 context=ctx,
                 regions=regions,
-                runnable=can_run_now(view, reason, klass, settings),
+                runnable=(
+                    False
+                    if only_run and name not in only_run
+                    else can_run_now(view, reason, klass, settings)
+                ),
             )
 
 

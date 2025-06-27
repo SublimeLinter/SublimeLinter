@@ -83,7 +83,7 @@ def lint(
     if view.settings().get(IS_ENABLED_SWITCH) is False:
         linters = []
     else:
-        linters = list(elect.assignable_linters_for_view(view, reason))
+        linters = list(elect.assignable_linters_for_view(view, reason, only_run))
         if not linters:
             logger.info("No installed linter matches the view.")
 
@@ -92,7 +92,6 @@ def lint(
         persist.assign_linters_to_buffer(view, next_linter_names)
 
     if only_run:
-        linters = [linter for linter in linters if linter.name in only_run]
         if expected_linters_not_actually_assigned := (only_run - next_linter_names):
             logger.info(
                 f"Requested {format_linter_availability_note(expected_linters_not_actually_assigned)} "

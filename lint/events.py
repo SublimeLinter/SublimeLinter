@@ -37,7 +37,6 @@ def unsubscribe(topic_or_fn: str | Handler, fn: Handler | None = None) -> None:
         try:
             topic = map_fn_to_topic.pop(fn)
         except KeyError:
-            print(f"unsubscribe: {fn} was not subscribed")
             return
 
     try:

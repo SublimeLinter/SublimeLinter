@@ -420,8 +420,9 @@ def remember_runtime(job: LintJob) -> Iterator[None]:
 @contextmanager
 def broadcast_lint_runtime(job: LintJob) -> Iterator[None]:
     payload = {'filename': job.ctx["canonical_filename"], 'linter_name': job.linter_name}
-    events.broadcast(events.LINT_START, payload)
+    # mypy fails at structural typing the payload here :rolling_eyes:
+    events.broadcast(events.LINT_START, payload)  # type: ignore[call-overload]
     try:
         yield
     finally:
-        events.broadcast(events.LINT_END, payload)
+        events.broadcast(events.LINT_END, payload)  # type: ignore[call-overload]

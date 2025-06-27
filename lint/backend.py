@@ -1,7 +1,7 @@
 from __future__ import annotations
 import sublime
 
-from collections import deque
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -15,24 +15,27 @@ import time
 import threading
 import traceback
 
-from . import events, linter as linter_module, persist, style, util
+from . import elect, events, linter as linter_module, persist, queue, style, util
+
+from .const import IS_ENABLED_SWITCH
+from .elect import LinterInfo
+from .linter import Linter, ViewContext
+from .persist import LintError
+from .util import format_items
 
 from typing import Callable, Iterator, TypeVar
-from typing_extensions import TypeAlias
-from .persist import LintError
-from .elect import LinterInfo
-from typing_extensions import ParamSpec
-Linter = linter_module.Linter
-LinterSettings = linter_module.LinterSettings
+from typing_extensions import ParamSpec, TypeAlias
+
 
 T = TypeVar('T')
 P = ParamSpec('P')
+Bid: TypeAlias = "sublime.BufferId"
 LintResult: TypeAlias[list] = "list[LintError]"
 Task = Callable[[], T]
 ViewChangedFn = Callable[[], bool]
 FileName = str
 LinterName = str
-ViewContext = linter_module.ViewContext
+Reason = str
 
 
 @dataclass(frozen=True)
@@ -47,21 +50,96 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 orchestrator = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
 executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
+locks_per_buffer: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
 
 
 task_count = count(start=1)
 counter_lock = threading.Lock()
 
 
-def lint_view(
+def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> None:
+    """Record an activity that could trigger a lint and enqueue a desire to lint."""
+    bid = view.buffer_id()
+
+    delay = get_delay() if reason == 'on_modified' else 0.0
+    logger.info(
+        "Delay linting '{}' for {:.2}s"
+        .format(util.short_canonical_filename(view), delay)
+    )
+    lock = locks_per_buffer[bid]
+    view_has_changed = make_view_has_changed_fn(view)
+    fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
+    queue.debounce(fn, delay=delay, key=bid)
+
+
+def lint(
+    view: sublime.View,
+    view_has_changed: ViewChangedFn,
+    lock: threading.Lock,
+    reason: Reason,
+    only_run: set[LinterName] = None
+) -> None:
+    """Lint the given view."""
+    if view.settings().get(IS_ENABLED_SWITCH) is False:
+        linters = []
+    else:
+        linters = list(elect.assignable_linters_for_view(view, reason))
+        if not linters:
+            logger.info("No installed linter matches the view.")
+
+    next_linter_names = {linter.name for linter in linters}
+    with lock:
+        persist.assign_linters_to_buffer(view, next_linter_names)
+
+    if only_run:
+        linters = [linter for linter in linters if linter.name in only_run]
+        if expected_linters_not_actually_assigned := (only_run - next_linter_names):
+            logger.info(
+                f"Requested {format_linter_availability_note(expected_linters_not_actually_assigned)} "
+                "not assigned to the view."
+            )
+
+    runnable_linters = list(elect.filter_runnable_linters(linters))
+    if not runnable_linters:
+        return
+
+    window = view.window()
+    bid = view.buffer_id()
+    filename = util.canonical_filename(view)
+
+    # Very, very unlikely that `view_has_changed` is already True at this
+    # point, but it also implements the kill_switch, so we ask here
+    if view_has_changed():  # abort early
+        return
+
+    assert window  # now that `view_has_changed` has been checked
+
+    if persist.settings.get('kill_old_processes'):
+        kill_active_popen_calls(bid)
+
+    def sink(linter: LinterName, errors: list[LintError]):
+        if view_has_changed():
+            return
+        persist.group_by_filename_and_update(window, filename, reason, linter, errors)
+
+    form_lint_jobs_and_submit_them(runnable_linters, view, view_has_changed, sink)
+
+
+def form_lint_jobs_and_submit_them(
     linters: list[LinterInfo],
     view: sublime.View,
     view_has_changed: ViewChangedFn,
     sink: Callable[[LinterName, LintResult], None]
 ) -> None:
-    """Lint the given view.
+    """Transform [LinterInfo] -> [LintJob] and run them.
 
-    This is the top level lint dispatcher. It falls through.
+    The key point herein is that `LinterInfo` has multiple `.regions` to lint.
+    (One linter could run on multiple parts of the same view.) We transform
+    that to multiple tasks and each task only lints one region so we can
+    parallelize everything (fan-out).  However, we need to join these (fan-in)
+    as our data store must see all errors keyed by linter_name at once.  From
+    the perspective of the data store each new (combined) result *replaces*
+    the previous result.
     """
     lint_jobs = [
         LintJob(linter.name, linter.context, tasks)
@@ -255,6 +333,57 @@ def run_concurrently(tasks: list[Task[T]], executor: ThreadPoolExecutor) -> list
         future.cancel()
 
     return [future.result() for future in done]
+
+
+def format_linter_availability_note(unavailable_linters: set[LinterName]) -> str:
+    if not unavailable_linters:
+        return ""
+    s = "s" if len(unavailable_linters) > 1 else ""
+    are = "are" if len(unavailable_linters) > 1 else "is"
+    their_names = format_items(sorted(unavailable_linters))
+    return f"linter{s} {their_names} {are}"
+
+
+def make_view_has_changed_fn(view: sublime.View) -> ViewChangedFn:
+    initial_change_count = view.change_count()
+
+    def view_has_changed():
+        if persist.kill_switch:
+            window = sublime.active_window()
+            window.status_message(
+                'SublimeLinter upgrade in progress. Aborting lint.')
+            return True
+
+        if view.buffer_id() == 0:
+            logger.info('View detached (no buffer_id). Aborting lint.')
+            return True
+
+        if view.window() is None:
+            logger.info('View detached (no window). Aborting lint.')
+            return True
+
+        if view.change_count() != initial_change_count:
+            logger.info(
+                'Buffer {} inconsistent. Aborting lint.'
+                .format(view.buffer_id()))
+            return True
+
+        return False
+
+    return view_has_changed
+
+
+def kill_active_popen_calls(bid):
+    with persist.active_procs_lock:
+        procs = persist.active_procs[bid][:]
+
+    if procs:
+        logger.info('Friendly terminate: {}'.format(
+            ', '.join('<pid {}>'.format(proc.pid) for proc in procs)
+        ))
+    for proc in procs:
+        proc.terminate()
+        setattr(proc, 'friendly_terminated', True)
 
 
 global_lock = threading.RLock()

@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from functools import partial
 from itertools import chain
 import logging
-import threading
 
 import sublime
 import sublime_plugin
@@ -20,11 +18,10 @@ from .lint import queue
 from .lint import reloader
 from .lint import settings
 from .lint import util
-from .lint.const import IS_ENABLED_SWITCH
-from .lint.util import flash, format_items
+from .lint.util import flash
 
 
-from typing import Callable, Optional
+from typing import Callable
 from typing_extensions import TypeAlias
 
 Bid: TypeAlias = "sublime.BufferId"
@@ -152,7 +149,6 @@ def other_visible_views():
             yield view
 
 
-guard_check_linters_for_view: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
 buffer_filenames: dict[Bid, FileName] = {}
 buffer_base_scopes: dict[Bid, str] = {}
 
@@ -163,7 +159,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        hit(view, 'on_modified')
+        backend.hit(view, 'on_modified')
 
     def on_activated_async(self, view):
         # If the user changes the buffers syntax via the command palette,
@@ -180,10 +176,10 @@ class BackendController(sublime_plugin.EventListener):
         # check if the view has been renamed
         renamed_filename = detect_rename(view)
         if renamed_filename:
-            update_on_filename_change(*renamed_filename)
+            persist.record_filename_change(*renamed_filename)
 
         if has_syntax_changed(view):
-            hit(view, 'on_load')
+            backend.hit(view, 'on_load')
 
     @util.distinct_until_buffer_changed
     def on_post_save_async(self, view):
@@ -203,7 +199,7 @@ class BackendController(sublime_plugin.EventListener):
         if not util.is_lintable(view):
             return
 
-        hit(view, 'on_save')
+        backend.hit(view, 'on_save')
 
     def on_close(self, view: sublime.View) -> None:
         bid = view.buffer_id()
@@ -233,7 +229,7 @@ class BackendController(sublime_plugin.EventListener):
             persist.file_errors.pop(fn, None)
 
         persist.assigned_linters.pop(bid, None)
-        guard_check_linters_for_view.pop(bid, None)
+        backend.locks_per_buffer.pop(bid, None)
         buffer_filenames.pop(bid, None)
         buffer_base_scopes.pop(bid, None)
         queue.cleanup(bid)
@@ -316,7 +312,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
                 else "No runnable linters, probably save first"
             ),
             (
-                f"Requested {_format_linter_availability_note(unavailable_linters)} "
+                f"Requested {backend.format_linter_availability_note(unavailable_linters)} "
                 "not available for this view"
                 if unavailable_linters
                 else ""
@@ -326,16 +322,7 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
 
         if not runnable_linters:
             return
-        hit(self.view, 'on_user_request', only_run=run)
-
-
-def _format_linter_availability_note(unavailable_linters: set[LinterName]) -> str:
-    if not unavailable_linters:
-        return ""
-    s = "s" if len(unavailable_linters) > 1 else ""
-    are = "are" if len(unavailable_linters) > 1 else "is"
-    their_names = format_items(sorted(unavailable_linters))
-    return f"linter{s} {their_names} {are}"
+        backend.hit(self.view, 'on_user_request', only_run=run)
 
 
 class sublime_linter_config_changed(sublime_plugin.ApplicationCommand):
@@ -351,174 +338,7 @@ def relint_views(wid: sublime.WindowId = None, linter: list[LinterName] = []):
     for window in windows:
         for view in window.views():
             if view.buffer_id() in persist.assigned_linters and view.is_primary():
-                hit(view, 'relint_views', only_run=linter)
-
-
-def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> None:
-    """Record an activity that could trigger a lint and enqueue a desire to lint."""
-    bid = view.buffer_id()
-
-    delay = backend.get_delay() if reason == 'on_modified' else 0.0
-    logger.info(
-        "Delay linting '{}' for {:.2}s"
-        .format(util.short_canonical_filename(view), delay)
-    )
-    lock = guard_check_linters_for_view[bid]
-    view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
-    queue.debounce(fn, delay=delay, key=bid)
-
-
-def lint(
-    view: sublime.View,
-    view_has_changed: ViewChangedFn,
-    lock: threading.Lock,
-    reason: Reason,
-    only_run: set[LinterName] = None
-) -> None:
-    """Lint the view with the given id."""
-    if view.settings().get(IS_ENABLED_SWITCH) is False:
-        linters = []
-    else:
-        linters = list(elect.assignable_linters_for_view(view, reason))
-        if not linters:
-            logger.info("No installed linter matches the view.")
-
-    next_linter_names = {linter.name for linter in linters}
-    with lock:
-        _assign_linters_to_view(view, next_linter_names)
-
-    if only_run:
-        linters = [linter for linter in linters if linter.name in only_run]
-        if expected_linters_not_actually_assigned := (only_run - next_linter_names):
-            logger.info(
-                f"Requested {_format_linter_availability_note(expected_linters_not_actually_assigned)} "
-                "not assigned to the view."
-            )
-
-    runnable_linters = list(elect.filter_runnable_linters(linters))
-    if not runnable_linters:
-        return
-
-    window = view.window()
-    bid = view.buffer_id()
-    filename = util.canonical_filename(view)
-
-    # Very, very unlikely that `view_has_changed` is already True at this
-    # point, but it also implements the kill_switch, so we ask here
-    if view_has_changed():  # abort early
-        return
-
-    assert window  # now that `view_has_changed` has been checked
-
-    if persist.settings.get('kill_old_processes'):
-        kill_active_popen_calls(bid)
-
-    sink = partial(
-        group_by_filename_and_update, window, filename, view_has_changed, reason)
-    backend.lint_view(runnable_linters, view, view_has_changed, sink)
-
-
-def kill_active_popen_calls(bid):
-    with persist.active_procs_lock:
-        procs = persist.active_procs[bid][:]
-
-    if procs:
-        logger.info('Friendly terminate: {}'.format(
-            ', '.join('<pid {}>'.format(proc.pid) for proc in procs)
-        ))
-    for proc in procs:
-        proc.terminate()
-        setattr(proc, 'friendly_terminated', True)
-
-
-def group_by_filename_and_update(
-    window: sublime.Window,
-    main_filename: FileName,
-    view_has_changed: ViewChangedFn,
-    reason: Reason,
-    linter: LinterName,
-    errors: list[LintError]
-) -> None:
-    """Group lint errors by filename and update them."""
-    if view_has_changed():  # abort early
-        return
-
-    grouped: defaultdict[FileName, list[LintError]] = defaultdict(list)
-    for error in errors:
-        grouped[error['filename']].append(error)
-
-    # The contract for a simple linter is that it reports `[errors]` or an
-    # empty list `[]` if the buffer is clean. For linters that report errors
-    # for multiple files we collect information about which files are actually
-    # reported by a given linted file so that we can clean the results.
-    affected_filenames = persist.affected_filenames_per_filename[main_filename]
-    previous_filenames = affected_filenames[linter]
-
-    current_filenames = set(grouped.keys()) - {main_filename}
-    affected_filenames[linter] = current_filenames
-
-    # Basically, we must fake a `[]` response for every filename that is no
-    # longer reported.
-    # For the main view we MUST *always* report an outcome. This is not for
-    # cleanup but functions as a signal that we're done. Merely for the status
-    # bar view.
-    clean_files = previous_filenames - current_filenames
-    for filename in clean_files | {main_filename}:
-        grouped[filename]  # For the side-effect of creating a new empty `list`
-
-    for filename, errors in grouped.items():
-        # Ignore errors of other files if their view is dirty; but still
-        # propagate if there are no errors, t.i. cleanup is allowed even
-        # then.
-        if filename != main_filename and errors:
-            view = window.find_open_file(filename)
-            if view and view.is_dirty():
-                continue
-
-        update_file_errors(filename, linter, errors, reason)
-
-
-def update_file_errors(
-    filename: FileName,
-    linter: LinterName,
-    errors: list[LintError],
-    reason: Optional[Reason] = None
-) -> None:
-    """Persist lint error changes and broadcast."""
-    update_errors_store(filename, linter, errors)
-    events.broadcast(events.LINT_RESULT, {
-        'filename': filename,
-        'linter_name': linter,
-        'errors': errors,
-        'reason': reason
-    })
-
-
-def update_errors_store(filename: FileName, linter_name: LinterName, errors: list[LintError]) -> None:
-    persist.file_errors[filename] = [
-        error
-        for error in persist.file_errors[filename]
-        if error['linter'] != linter_name
-    ] + errors
-
-
-def update_on_filename_change(old_filename: FileName, new_filename: FileName) -> None:
-    # update the error store
-    if old_filename in persist.file_errors:
-        errors = persist.file_errors.pop(old_filename)
-        persist.file_errors[new_filename] = errors
-
-    # update the affected filenames
-    if old_filename in persist.affected_filenames_per_filename:
-        filenames = persist.affected_filenames_per_filename.pop(old_filename)
-        persist.affected_filenames_per_filename[new_filename] = filenames
-
-    # notify the views
-    events.broadcast('file_renamed', {
-        'new_filename': new_filename,
-        'old_filename': old_filename
-    })
+                backend.hit(view, 'relint_views', only_run=linter)
 
 
 def force_redraw():
@@ -537,59 +357,3 @@ def group_by_linter(errors: list[LintError]) -> defaultdict[LinterName, list[Lin
         by_linter[error['linter']].append(error)
 
     return by_linter
-
-
-def _assign_linters_to_view(view: sublime.View, next_linters: set[LinterName]) -> None:
-    window = view.window()
-    # It is possible that the user closes the view during debounce time,
-    # in that case `window` will get None and we will just abort. We check
-    # here bc above code is slow enough to make the difference. We don't
-    # pass a valid `window` around bc we do not want to update `assigned_linters`
-    # for detached views as well bc `on_close` already has been called
-    # at this time.
-    if not window:
-        return
-
-    bid = view.buffer_id()
-    filename = util.canonical_filename(view)
-    current_linters = persist.assigned_linters.get(bid, set())
-
-    persist.assigned_linters[bid] = next_linters
-    window.run_command('sublime_linter_assigned', {
-        'filename': filename,
-        'linter_names': list(next_linters)
-    })
-
-    affected_files = persist.affected_filenames_per_filename[filename]
-    for linter in (current_linters - next_linters):
-        affected_files.pop(linter, None)
-        update_file_errors(filename, linter, [])
-
-
-def make_view_has_changed_fn(view: sublime.View) -> ViewChangedFn:
-    initial_change_count = view.change_count()
-
-    def view_has_changed():
-        if persist.kill_switch:
-            window = sublime.active_window()
-            window.status_message(
-                'SublimeLinter upgrade in progress. Aborting lint.')
-            return True
-
-        if view.buffer_id() == 0:
-            logger.info('View detached (no buffer_id). Aborting lint.')
-            return True
-
-        if view.window() is None:
-            logger.info('View detached (no window). Aborting lint.')
-            return True
-
-        if view.change_count() != initial_change_count:
-            logger.info(
-                'Buffer {} inconsistent. Aborting lint.'
-                .format(view.buffer_id()))
-            return True
-
-        return False
-
-    return view_has_changed

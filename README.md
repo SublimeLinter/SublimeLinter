@@ -12,11 +12,6 @@ No linters included: get them via [Package Control](https://packagecontrol.io/se
 ## Installation 
 
 > [!NOTE]
-> The current stable version of Sublime Text, Build 4169, has a bug and cannot install
-> SublimeLinter without requiring a restart.  You're fine if you have a later dev build, e.g.
-> build 4173.
-
-> [!NOTE]
 >
 > We're in a transition phase to the newer ST4 plugin host.  Unless we have
 > more experience for the process, it _may_ be necessary to restart Sublime Text
@@ -37,8 +32,12 @@ as well, examples would be [SublimeLinter-eslint](https://packagecontrol.io/pack
 By default, SublimeLinter will run in the background and most linters support this
 mode so you should get squiggles immediately.
 
-Note that you find all commands we're installing using the Command Palette (<kbd>ctrl<em>+</em>shift<em>+</em>p</kbd>). Just search for `SublimeLinter`. You may find <https://github.com/kaste/SublimeLinter-addon-toggler>
+Note that you find all commands we're installing using the Command Palette
+(<kbd>ctrl<em>+</em>shift<em>+</em>p</kbd>). Just search for `SublimeLinter`.
+You may find <https://github.com/kaste/SublimeLinter-addon-toggler>
 and/or <https://github.com/kaste/SublimeLinter-addon-goto-flash> useful.
+There is also <https://github.com/kaste/SublimeLinter-any-lsp> to integrate LSP
+servers.
 
 
 ## Settings

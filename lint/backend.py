@@ -60,7 +60,8 @@ counter_lock = threading.Lock()
 def hit(
     view: sublime.View,
     reason: Reason,
-    only_run: list[LinterName] = []
+    only_run: list[LinterName] = [],
+    on_result: LintResultCallback = None
 ) -> Future[bool]:
     """Record an activity that could trigger a lint and enqueue a desire to lint.
 
@@ -76,7 +77,7 @@ def hit(
         .format(util.short_canonical_filename(view), delay)
     )
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, reason, set(only_run), f)
+    fn = partial(lint, view, view_has_changed, reason, set(only_run), f, on_result)
     queue.debounce(fn, delay=delay, key=f"hit.{bid}", on_cancel=lambda: f.set_result(False))
     return f
 
@@ -86,7 +87,8 @@ def lint(
     view_has_changed: ViewChangedFn,
     reason: Reason,
     only_run: set[LinterName] = None,
-    parent_future: Future[bool] = None
+    parent_future: Future[bool] = None,
+    on_result: LintResultCallback = None,
 ) -> None:
     """Lint the given view."""
     if view.settings().get(IS_ENABLED_SWITCH) is False:
@@ -128,9 +130,18 @@ def lint(
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
+    if on_result:
+        on_result_ = catch_but_print_all_exceptions(on_result)
+    else:
+        on_result_ = None
+
     def sink(linter: LinterName, errors: LintResult):
         if view_has_changed():
             return
+
+        if on_result_:
+            on_result_(linter, errors)
+
         persist.group_by_filename_and_update(window, filename, reason, linter, errors)
 
     f = form_lint_jobs_and_submit_them(runnable_linters, view, view_has_changed, sink)

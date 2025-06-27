@@ -286,14 +286,13 @@ class sublime_linter_lint(sublime_plugin.TextCommand):
             run = [run]  # type: ignore[unreachable]
 
         assignable_linters = list(
-            elect.assignable_linters_for_view(self.view, "on_user_request")
+            elect.assignable_linters_for_view(self.view, "on_user_request", set(run))
         )
         if not assignable_linters:
             flash(self.view, "No linters available for this view")
             return
 
         if run:
-            assignable_linters = [linter for linter in assignable_linters if linter.name in run]
             unavailable_linters = set(run) - {linter.name for linter in assignable_linters}
         else:
             unavailable_linters = set()

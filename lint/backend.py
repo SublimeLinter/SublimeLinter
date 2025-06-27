@@ -1,12 +1,12 @@
 from __future__ import annotations
 import sublime
 
-from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from collections import deque
+from concurrent.futures import Future, ThreadPoolExecutor, wait, FIRST_EXCEPTION
 from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import chain, count
-from functools import lru_cache, partial
+from functools import lru_cache, partial, wraps
 import hashlib
 import logging
 import multiprocessing
@@ -36,6 +36,7 @@ ViewChangedFn = Callable[[], bool]
 FileName = str
 LinterName = str
 Reason = str
+LintResultCallback = Callable[[LinterName, LintResult], None]
 
 
 @dataclass(frozen=True)
@@ -50,15 +51,24 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = multiprocessing.cpu_count() or 1
 orchestrator = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
 executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
-locks_per_buffer: defaultdict[Bid, threading.Lock] = defaultdict(threading.Lock)
 
 
 task_count = count(start=1)
 counter_lock = threading.Lock()
 
 
-def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> None:
-    """Record an activity that could trigger a lint and enqueue a desire to lint."""
+def hit(
+    view: sublime.View,
+    reason: Reason,
+    only_run: list[LinterName] = [],
+    on_result: LintResultCallback = None
+) -> Future[bool]:
+    """Record an activity that could trigger a lint and enqueue a desire to lint.
+
+    Returns a future that resolves True for success and False if the process
+    gets cancelled internally.
+    """
+    f: Future[bool] = Future()
     bid = view.buffer_id()
 
     delay = get_delay() if reason == 'on_modified' else 0.0
@@ -66,18 +76,19 @@ def hit(view: sublime.View, reason: Reason, only_run: list[LinterName] = []) -> 
         "Delay linting '{}' for {:.2}s"
         .format(util.short_canonical_filename(view), delay)
     )
-    lock = locks_per_buffer[bid]
     view_has_changed = make_view_has_changed_fn(view)
-    fn = partial(lint, view, view_has_changed, lock, reason, set(only_run))
-    queue.debounce(fn, delay=delay, key=bid)
+    fn = partial(lint, view, view_has_changed, reason, set(only_run), f, on_result)
+    queue.debounce(fn, delay=delay, key=f"hit.{bid}", on_cancel=lambda: f.set_result(False))
+    return f
 
 
 def lint(
     view: sublime.View,
     view_has_changed: ViewChangedFn,
-    lock: threading.Lock,
     reason: Reason,
-    only_run: set[LinterName] = None
+    only_run: set[LinterName] = None,
+    parent_future: Future[bool] = None,
+    on_result: LintResultCallback = None,
 ) -> None:
     """Lint the given view."""
     if view.settings().get(IS_ENABLED_SWITCH) is False:
@@ -88,8 +99,7 @@ def lint(
             logger.info("No installed linter matches the view.")
 
     next_linter_names = {linter.name for linter in linters}
-    with lock:
-        persist.assign_linters_to_buffer(view, next_linter_names)
+    persist.assign_linters_to_buffer(view, next_linter_names)
 
     if only_run:
         if expected_linters_not_actually_assigned := (only_run - next_linter_names):
@@ -100,6 +110,8 @@ def lint(
 
     runnable_linters = list(elect.filter_runnable_linters(linters))
     if not runnable_linters:
+        if parent_future:
+            parent_future.set_result(True)
         return
 
     window = view.window()
@@ -109,6 +121,8 @@ def lint(
     # Very, very unlikely that `view_has_changed` is already True at this
     # point, but it also implements the kill_switch, so we ask here
     if view_has_changed():  # abort early
+        if parent_future:
+            parent_future.set_result(False)
         return
 
     assert window  # now that `view_has_changed` has been checked
@@ -116,20 +130,31 @@ def lint(
     if persist.settings.get('kill_old_processes'):
         kill_active_popen_calls(bid)
 
-    def sink(linter: LinterName, errors: list[LintError]):
+    if on_result:
+        on_result_ = catch_but_print_all_exceptions(on_result)
+    else:
+        on_result_ = None
+
+    def sink(linter: LinterName, errors: LintResult):
         if view_has_changed():
             return
+
+        if on_result_:
+            on_result_(linter, errors)
+
         persist.group_by_filename_and_update(window, filename, reason, linter, errors)
 
-    form_lint_jobs_and_submit_them(runnable_linters, view, view_has_changed, sink)
+    f = form_lint_jobs_and_submit_them(runnable_linters, view, view_has_changed, sink)
+    if parent_future:
+        f.add_done_callback(lambda f: parent_future.set_result(True))
 
 
 def form_lint_jobs_and_submit_them(
     linters: list[LinterInfo],
     view: sublime.View,
     view_has_changed: ViewChangedFn,
-    sink: Callable[[LinterName, LintResult], None]
-) -> None:
+    sink: LintResultCallback
+) -> Future[bool]:
     """Transform [LinterInfo] -> [LintJob] and run them.
 
     The key point herein is that `LinterInfo` has multiple `.regions` to lint.
@@ -147,9 +172,31 @@ def form_lint_jobs_and_submit_them(
     ]
     warn_excessive_tasks(lint_jobs)
 
-    for job in lint_jobs:
-        # Explicitly catch all unhandled errors because we fire-and-forget!
-        orchestrator.submit(print_all_exceptions(run_job), job, sink)
+    # Catch all unhandled errors because we fire-and-forget!
+    run_job_ = catch_but_print_all_exceptions(run_job)
+    futures = [
+        orchestrator.submit(run_job_, job, sink)
+        for job in lint_jobs
+    ]
+    return when_all_done(futures)
+
+
+def when_all_done(futures: list[Future]) -> Future[bool]:
+    f: Future[bool] = Future()
+    remaining = len(futures)
+    lock = threading.Lock()
+
+    def on_done(_):
+        nonlocal remaining
+        with lock:
+            remaining -= 1
+            if remaining == 0:
+                f.set_result(True)
+
+    for fut in futures:
+        fut.add_done_callback(on_done)
+
+    return f
 
 
 def tasks_per_linter(
@@ -163,16 +210,15 @@ def tasks_per_linter(
         offsets = view.rowcol(region.begin()) + (region.begin(),)
 
         task = partial(execute_lint_task, linter, code, offsets, view_has_changed)
-        executor = partial(modify_thread_name, linter_info, task)
-        yield executor
+        yield partial(modify_thread_name, linter_info, then_run=task)
 
 
-def modify_thread_name(linter_info: LinterInfo, sink: Callable[[], T]) -> T:
+def modify_thread_name(linter_info: LinterInfo, then_run: Callable[[], T]) -> T:
     original_name = threading.current_thread().name
     # We 'name' our threads, for logging purposes.
     threading.current_thread().name = make_good_task_name(linter_info)
     try:
-        return sink()
+        return then_run()
     finally:
         threading.current_thread().name = original_name
 
@@ -297,16 +343,17 @@ def excess_warning(msg: str) -> None:
     logger.warning(msg)
 
 
-def print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
-    def inner(*args, **kwargs):
+def catch_but_print_all_exceptions(fn: Callable[P, T]) -> Callable[P, T]:
+    @wraps(fn)
+    def decorated(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
         except Exception:
             traceback.print_exc()
-    return inner
+    return decorated
 
 
-def run_job(job: LintJob, sink: Callable[[LinterName, LintResult], None]) -> None:
+def run_job(job: LintJob, sink: LintResultCallback) -> None:
     with broadcast_lint_runtime(job), remember_runtime(job):
         try:
             results = run_concurrently(job.tasks, executor=executor)

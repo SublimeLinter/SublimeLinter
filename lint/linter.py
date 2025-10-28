@@ -1,6 +1,7 @@
 from __future__ import annotations
 from bisect import bisect_right
-from collections import ChainMap, Mapping, Sequence
+from collections import ChainMap
+from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from fnmatch import fnmatch
 from functools import lru_cache

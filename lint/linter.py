@@ -1115,7 +1115,11 @@ class Linter(metaclass=LinterMeta):
             return True
 
         effective_lint_mode = get_effective_lint_mode(settings)
-        if real_file_linter and "on_modified" in effective_lint_mode:
+        # Treat a save as a valid trigger when the user opted into
+        # on_modified. This matches the semantic intent that
+        # "on_modified" means "run on edits", and a save after edits
+        # should not suppress a pending lint.
+        if "on_modified" in effective_lint_mode:
             effective_lint_mode.add("on_save")
         ok = reason in effective_lint_mode
 

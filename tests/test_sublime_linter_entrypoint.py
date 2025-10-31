@@ -75,7 +75,7 @@ class TestLinterElection(_BaseTestCase):
         verify(backend.orchestrator).submit(...)
 
     @p.expand([
-        (reason, lint_mode, ok)
+        (f"{lint_mode}-{reason}-{ok}", reason, lint_mode, ok)
         for lint_mode, reasons in {
             'background': [
                 ('on_user_request', True),
@@ -108,7 +108,7 @@ class TestLinterElection(_BaseTestCase):
             ('on_modified',): [
                 ('on_user_request', True),
                 ('config_changed', True),
-                ('on_save', False),
+                ('on_save', True),
                 ('on_load', False),
                 ('on_modified', True),
             ],
@@ -129,7 +129,7 @@ class TestLinterElection(_BaseTestCase):
             ('on_modified', 'on_load'): [
                 ('on_user_request', True),
                 ('config_changed', True),
-                ('on_save', False),
+                ('on_save', True),
                 ('on_load', True),
                 ('on_modified', True),
             ],
@@ -157,7 +157,7 @@ class TestLinterElection(_BaseTestCase):
         }.items()
         for reason, ok in reasons
     ])
-    def test_background_capable_linter_matches_reason_and_lint_mode(self, reason, lint_mode, ok):
+    def test_background_capable_linter_matches_reason_and_lint_mode(self, _, reason, lint_mode, ok):
         class FakeLinter(Linter):
             defaults = {'selector': '', 'lint_mode': lint_mode}
             cmd = 'fake_linter_1'

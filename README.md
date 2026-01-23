@@ -54,12 +54,12 @@ is in our docs at [sublimelinter.com](https://www.sublimelinter.com/en/latest/li
 
 SublimeLinter comes with some pre-defined keyboard shortcuts. You can customize these via the Package Settings menu.
 
-| Command | Linux & Windows | MacOS |
-|---|---|---|
-| Lint this view | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>l</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>l</kbd> |
-| Open diagnostics panel | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>a</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>a</kbd> |
-| Goto next error | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>n</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>e</kbd> |
-| Goto prev error | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>p</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>e</kbd> |
+| Command                | Linux & Windows                              | MacOS                                                            |
+|:-----------------------|:---------------------------------------------|:-----------------------------------------------------------------|
+| Lint this view         | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>l</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>l</kbd>                    |
+| Open diagnostics panel | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>a</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>a</kbd>                    |
+| Goto next error        | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>n</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>e</kbd>                    |
+| Goto prev error        | <kbd>Ctrl</kbd> + <kbd>k</kbd>, <kbd>p</kbd> | <kbd>Ctrl</kbd> + <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>e</kbd> |
 
 Take also a look at the [default bindings](<https://github.com/SublimeLinter/SublimeLinter/blob/master/keymaps/Default (Windows).sublime-keymap>) because
 we document other commands and have usually some tricks in there too.

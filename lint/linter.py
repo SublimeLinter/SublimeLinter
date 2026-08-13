@@ -1081,7 +1081,7 @@ class Linter(metaclass=LinterMeta):
         if selector is None:
             return False
 
-        if view.score_selector(0, selector):
+        if selector == "*" or view.score_selector(0, selector):
             return [sublime.Region(0, view.size())]
 
         if settings.get("enable_cells", False):

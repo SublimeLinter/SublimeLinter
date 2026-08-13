@@ -58,6 +58,18 @@ class TestLinterElection(_BaseTestCase):
 
         verify(backend.orchestrator).submit(...)
 
+    def test_star_selector_matches_all_views(self):
+        class FakeLinter(Linter):
+            defaults = {'selector': '*'}
+            cmd = 'fake_linter_1'
+
+        when(backend.orchestrator).submit(...).thenReturn(Future())
+
+        view = self.create_view(self.window)
+        backend.lint(view, lambda: False, 'on_user_request')
+
+        verify(backend.orchestrator).submit(...)
+
     @p.expand([
         ('on_user_request',),
         ('config_changed',),

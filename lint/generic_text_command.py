@@ -66,13 +66,14 @@ class sl_generic_text_cmd(sublime_plugin.TextCommand):
         edit = self.view.begin_edit(edit_token, self.name(), cmd_args)
         try:
             if wants_edit_object(fn):
-                return self.run(token, fn, args[0], edit, *args[1:], **kwargs)
+                return self.run_callback(
+                    token, fn, args[0], edit, *args[1:], **kwargs)
             else:
-                return self.run(token, fn, *args, **kwargs)
+                return self.run_callback(token, fn, *args, **kwargs)
         finally:
             self.view.end_edit(edit)
 
-    def run(self, token, fn, *args, **kwargs):
+    def run_callback(self, token, fn, *args, **kwargs):
         rv = fn(*args, **kwargs)
         with lock:
             RESULTS[token] = rv

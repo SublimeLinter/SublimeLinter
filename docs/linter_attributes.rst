@@ -95,7 +95,12 @@ Each linter must at least define the mandatory ``"selector"`` setting, which spe
         "selector": "source.python",
     }
 
-This is the minimum requirement that needs to be set.
+This is the minimum requirement that needs to be set.  To select all views,
+use the special ``"*"`` marker::
+
+    defaults = {
+        "selector": "*",
+    }
 
 Apart from the mandatory setting, you can define internal and external settings.
 

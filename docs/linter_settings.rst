@@ -233,14 +233,12 @@ for backwards compatibility.
 
 selector
 --------
-This defines if when given linter is activated for specific file types.
-It should be a string containing a list of comma separated selectors.
+This setting overrides the file types for which a linter is active. It should
+be a string containing a comma-separated list of scope selectors.
 
-For example, by default yamllint is activated only for YAML files
-(``source.yaml``) files. But we also want to activate it for ansible files,
-which have the ``source.ansible`` scope.
-
-To do that, we can override the selector for this linter:
+For example, by default yamllint is active only for YAML files
+(``source.yaml``). To also activate it for Ansible files, which have the
+``source.ansible`` scope, we can override the selector for this linter:
 
 .. code-block:: json
 
@@ -253,7 +251,8 @@ To do that, we can override the selector for this linter:
     }
 
 To find out what selector to use for given file type, use the
-"Tools > Developer > Show Scope Name" menu entry.
+"Tools > Developer > Show Scope Name" menu entry. The special selector ``*``
+activates the linter for all views.
 
 It's also possible to exclude scopes using the ``-`` operator.
 E.g. to disable embedded code in situation where linting doesn't make sense.
@@ -264,11 +263,6 @@ ESLint can be disabled for HTML `script` tags with the following:
     {
         "selector": "source.js - text.html.basic"
     }
-
-
-.. note::
-
-    The selector setting takes precedence over the deprecated `syntax` property.
 
 
 .. _linter_styles:

@@ -199,8 +199,10 @@ def on_change() -> None:
     if plugin_host_33_disabled():
         additions = set()
     else:
-        for package in additions:
-            create_python_version_file(package)
+        run_tasks(
+            (create_python_version_file, package)
+            for package in additions
+        )
 
     if additions or deletions:
         sublime.set_timeout(check_all_plugins, 5000)

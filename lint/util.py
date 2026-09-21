@@ -21,7 +21,7 @@ from .const import IS_ENABLED_SWITCH
 
 
 from typing import (
-    Any, Callable, Iterator, MutableMapping, Optional, TypeVar, Union)
+    Any, Callable, Iterator, MutableMapping, Optional, Tuple, TypeVar, Union)
 from typing_extensions import Concatenate as Con, ParamSpec
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -184,7 +184,7 @@ def distinct_until_buffer_changed(method):
     # Sublime has problems to hold the distinction between buffers and views.
     # It usually emits multiple identical events if you have multiple views
     # into the same buffer.
-    last_call = None
+    last_call: Optional[Tuple[int, int]] = None
 
     @wraps(method)
     def wrapper(self, view):

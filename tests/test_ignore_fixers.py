@@ -88,7 +88,7 @@ class TestActionReducer(DeferrableTestCase):
             None
 
         actions = actions_for_errors(ERRORS)
-        self.assertEquals(RESULT, [action.description for action in actions])
+        self.assertEqual(RESULT, [action.description for action in actions])
 
 
 class TestIgnoreFixers(DeferrableTestCase):
@@ -175,7 +175,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_flake8_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -226,7 +226,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_mypy_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -247,7 +247,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_mypy_unused_ignore(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -273,7 +273,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_mypy_specific_unused_ignore(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -289,7 +289,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_codespell_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -336,7 +336,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_eslint_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -375,7 +375,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = eslint_ignore_block(errors, REGION, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -397,7 +397,7 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_stylelint_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)
 
     @p.expand([
         (
@@ -419,4 +419,4 @@ class TestIgnoreFixers(DeferrableTestCase):
         edit = fix_shellcheck_error(error, view)
         apply_edits(view, edit)
         view_content = view.substr(sublime.Region(0, view.size()))
-        self.assertEquals(AFTER, view_content)
+        self.assertEqual(AFTER, view_content)

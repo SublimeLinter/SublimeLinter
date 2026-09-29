@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 import subprocess
-import sys
 import threading
 from typing import Collection, DefaultDict, Type, TypedDict, TYPE_CHECKING
 
@@ -58,21 +57,16 @@ active_procs: DefaultDict[Bid, list[subprocess.Popen]] = defaultdict(list)
 active_procs_lock = threading.Lock()
 
 
-def forget_unloaded_linters(disabled_packages: Collection[str] = ()) -> list[LinterName]:
-    """Unregister linters whose plugin is gone, and return their names.
+def forget_linters_of_packages(packages: Collection[str]) -> list[LinterName]:
+    """Unregister the linters that come from `packages`, and return their names.
 
-    A linter plugin is gone if its package is disabled, or if Sublime has
-    unloaded its module (e.g. after the package was removed), which pops the
-    module from `sys.modules`. Nothing else tells us, and the classes would
-    otherwise stay registered and keep linting until Sublime is restarted.
+    Sublime unloads the plugins of disabled packages, but does not tell us, so
+    the classes would otherwise stay registered and keep linting until a restart.
     """
     gone = [
         name
         for name, klass in linter_classes.items()
-        if (
-            klass.__module__ not in sys.modules
-            or klass.plugin_name in disabled_packages
-        )
+        if klass.plugin_name in packages
     ]
     for name in gone:
         del linter_classes[name]

@@ -36,6 +36,10 @@ ViewChangedFn = Callable[[], bool]
 logger = logging.getLogger(__name__)
 flatten = chain.from_iterable
 
+USER_PREFERENCES_FILE = 'Preferences.sublime-settings'
+PACKAGE_CONTROL_PREFERENCES_FILE = 'Package Control.sublime-settings'
+PACKAGES_OBSERVER_KEY = 'SublimeLinter.forget-unloaded-linters'
+
 
 def plugin_loaded():
     log_handler.install()
@@ -68,6 +72,11 @@ def plugin_loaded():
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
 
+    for settings_file in (USER_PREFERENCES_FILE, PACKAGE_CONTROL_PREFERENCES_FILE):
+        sublime.load_settings(settings_file).add_on_change(
+            PACKAGES_OBSERVER_KEY, on_packages_changed
+        )
+
     # Lint the visible views from the active window on startup
     bc = BackendController()
     for view in other_visible_views():
@@ -89,10 +98,40 @@ def plugin_unloaded():
     except ImportError:
         pass
 
+    for settings_file in (USER_PREFERENCES_FILE, PACKAGE_CONTROL_PREFERENCES_FILE):
+        sublime.load_settings(settings_file).clear_on_change(PACKAGES_OBSERVER_KEY)
+
     queue.unload()
     persist.settings.unobserve()
     util.close_all_error_panels()
     events.off(on_settings_changed)
+
+
+def on_packages_changed():
+    # Disabling or removing a package changes `ignored_packages` and Package
+    # Control's settings, sometimes several of them within a short time. Give
+    # Sublime a moment to actually unload the plugin, and merge the changes.
+    sublime.set_timeout_async(forget_unloaded_linters, 1000)
+
+
+def forget_unloaded_linters():
+    """Unregister the linters of disabled or removed packages, and re-lint.
+
+    Sublime does not tell us when a linter plugin goes away, and the class
+    would otherwise stay registered (and keep linting) until a restart.
+    """
+    ignored = set(
+        sublime.load_settings(USER_PREFERENCES_FILE).get('ignored_packages', [])
+    )
+    # Package Control ignores packages temporarily while it upgrades them
+    in_process = set(
+        sublime.load_settings(PACKAGE_CONTROL_PREFERENCES_FILE)
+        .get('in_process_packages', [])
+    )
+
+    if names := persist.forget_unloaded_linters(ignored - in_process):
+        logger.info("Forgot linters of unloaded plugins: {}".format(", ".join(names)))
+        sublime.run_command('sublime_linter_config_changed')
 
 
 @events.on('settings_changed')

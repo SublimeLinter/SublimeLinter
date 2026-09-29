@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 import logging
 import os
-import sys
 
 from . import linter as linter_module
 from . import persist
@@ -34,24 +33,6 @@ class LinterInfo:
 logger = logging.getLogger(__name__)
 
 
-def forget_unloaded_linters() -> None:
-    """Drop linters whose plugin module has been unloaded.
-
-    When a linter package is removed (or disabled), Sublime unloads its plugin
-    module and pops it from `sys.modules`, but nothing tells us. The class would
-    stay in `persist.linter_classes` and keep linting until Sublime is
-    restarted. Views that were linted by such a linter lose it in
-    `assign_linters_to_buffer`, which also clears its errors.
-    """
-    for name, klass in list(persist.linter_classes.items()):
-        if klass.__module__ not in sys.modules:
-            logger.info(
-                "Forgetting linter '{}'; its plugin '{}' is no longer loaded."
-                .format(name, klass.__module__)
-            )
-            del persist.linter_classes[name]
-
-
 def assignable_linters_for_view(
     view: sublime.View,
     reason: Reason,
@@ -69,8 +50,6 @@ def assignable_linters_for_view(
             "{} has become unreachable".format(filename)
         )
         return
-
-    forget_unloaded_linters()
 
     ctx = linter_module.get_view_context(view, {'reason': reason})
     for name, klass in persist.linter_classes.items():

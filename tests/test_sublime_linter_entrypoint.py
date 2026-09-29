@@ -1,6 +1,7 @@
 from concurrent.futures import Future
 import logging
 import os
+import sys
 
 from unittesting import DeferrableTestCase
 from SublimeLinter.tests.parameterized import parameterized as p
@@ -69,6 +70,33 @@ class TestLinterElection(_BaseTestCase):
         backend.lint(view, lambda: False, 'on_user_request')
 
         verify(backend.orchestrator).submit(...)
+
+    def test_linter_of_an_unloaded_plugin_is_forgotten(self):
+        class GoneLinter(Linter):
+            defaults = {'selector': '*'}
+            cmd = 'gone_linter'
+
+        class StillHereLinter(Linter):
+            defaults = {'selector': '*'}
+            cmd = 'still_here_linter'
+
+        # Simulate what Sublime does when a linter package is removed: the
+        # plugin module is dropped from `sys.modules` but the class stays
+        # registered.
+        GoneLinter.__module__ = 'SublimeLinter-gone.linter'
+        self.assertNotIn('SublimeLinter-gone.linter', sys.modules)
+        self.assertIn(GoneLinter.name, persist.linter_classes)
+
+        when(backend.orchestrator).submit(...).thenReturn(Future())
+
+        view = self.create_view(self.window)
+        backend.lint(view, lambda: False, 'on_user_request')
+
+        self.assertNotIn(GoneLinter.name, persist.linter_classes)
+        self.assertIn(StillHereLinter.name, persist.linter_classes)
+        self.assertEqual(
+            persist.assigned_linters[view.buffer_id()], {StillHereLinter.name}
+        )
 
     @p.expand([
         ('on_user_request',),

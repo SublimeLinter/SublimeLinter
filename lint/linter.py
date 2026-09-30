@@ -65,6 +65,8 @@ def get_effective_lint_mode(settings) -> set[Reason]:
 
 
 LEGACY_LINT_MATCH_DEF = ("match", "line", "col", "error", "warning", "message", "near")
+ColumnUnit = Literal['codepoint', 'utf8', 'utf16']
+COLUMN_UNITS: tuple[ColumnUnit, ...] = ('codepoint', 'utf8', 'utf16')
 COMMON_CAPTURING_NAMES = (
     "filename", "error_type", "code", "end_line", "end_col") + LEGACY_LINT_MATCH_DEF
 
@@ -212,6 +214,30 @@ class VirtualView:
     def from_file(filename: str) -> VirtualView:
         """Return a VirtualView with the contents of file."""
         return _virtual_view_from_file(filename, os.path.getmtime(filename))
+
+    def col_from_utf8(self, line: int, col: int) -> int:
+        """Convert a zero-based byte offset to a code-point column.
+
+        Incomplete characters round down; offsets outside the line saturate.
+        """
+        return self._col_from_units(line, col, 'utf8')
+
+    def col_from_utf16(self, line: int, col: int) -> int:
+        """Convert a zero-based UTF-16 offset to a code-point column."""
+        return self._col_from_units(line, col, 'utf16')
+
+    def _col_from_units(self, line: int, col: int, unit: ColumnUnit) -> int:
+        text = self.select_line(line)
+        remaining = max(0, col)
+        for index, char in enumerate(text):
+            width = (
+                len(char.encode('utf-8', 'surrogatepass'))
+                if unit == 'utf8' else 2 if ord(char) > 0xffff else 1
+            )
+            if remaining < width:
+                return index
+            remaining -= width
+        return len(text)
 
 
 @lru_cache(maxsize=128)
@@ -586,6 +612,12 @@ class LinterMeta(type):
         # END CLASS MUTATIONS
 
         # BEGIN VALIDATION
+        if cls.column_unit not in COLUMN_UNITS:
+            logger.error(
+                f"{name} disabled, 'column_unit' must be one of {COLUMN_UNITS}."
+            )
+            cls.disabled = True
+
         if not cls.cmd and cls.cmd is not None:
             logger.error(
                 "{} disabled, 'cmd' must be specified."
@@ -707,6 +739,10 @@ class Linter(metaclass=LinterMeta):
     # numbers. If a linter uses zero-based line numbers or column numbers, the
     # linter class should define this attribute accordingly.
     line_col_base = (1, 1)
+
+    # Units used by the tool for col/end_col. This declares the output format,
+    # not an end-user setting. Conversion happens against source, before clamping.
+    column_unit: ColumnUnit = 'codepoint'
 
     # If the linter executable cannot receive from stdin and requires a temp file,
     # set this attribute to the suffix of the temp file (with or without leading '.').
@@ -1380,24 +1416,28 @@ class Linter(metaclass=LinterMeta):
                 .format(m.line + self.line_col_base[0])
             )
 
+        # Convert local columns against the correct source, before clamping.
+        # Keep m unchanged: its columns remain the raw adapter coordinates.
+        end_line = line if m.end_line is None else max(line, min(m.end_line, vv.max_lines()))
+        col = None if m.col is None else self.convert_column(line, m.col, m, vv)
+        end_col = None if m.end_col is None else self.convert_column(end_line, m.end_col, m, vv)
         line_region = vv.full_line_region(line)
 
         if m.end_line is None and m.end_col is None:
-            _col = None if m.col is None else max(min(m.col, len(line_region) - 1), 0)
+            _col = None if col is None else max(min(col, len(line_region) - 1), 0)
             line, col, end = self.reposition_match(line, _col, m, vv)
             line_region = vv.full_line_region(line)  # read again as `line` might have changed
             region = sublime.Region(line_region.a + col, line_region.a + end)
 
         else:
-            col = 0 if m.col is None else max(min(m.col, len(line_region) - 1), 0)
-            end_line = line if m.end_line is None else max(line, min(m.end_line, vv.max_lines()))
+            col = 0 if col is None else max(min(col, len(line_region) - 1), 0)
             end_line_region = vv.line_region(end_line)
-            end_col = (
+            end = (
                 len(end_line_region)
-                if m.end_col is None
+                if end_col is None
                 else max(
                     col if end_line == line else 0,
-                    min(m.end_col, len(end_line_region))
+                    min(end_col, len(end_line_region))
                 )
             )
 
@@ -1415,14 +1455,14 @@ class Linter(metaclass=LinterMeta):
                         .format(m.end_line)
                     )
 
-            if m.end_col is not None:
-                if end_line == line and m.end_col < col:
+            if end_col is not None:
+                if end_line == line and end_col < col:
                     self.logger.warning(
                         "Reported end_col '{}' is before the start col '{}'."
-                        .format(m.end_col, col)
+                        .format(end_col, col)
                     )
 
-            region = sublime.Region(line_region.a + col, end_line_region.a + end_col)
+            region = sublime.Region(line_region.a + col, end_line_region.a + end)
 
         # ensure a length of 1 but do not exceed eof (`size()`)
         normalized_region = sublime.Region(
@@ -1440,6 +1480,21 @@ class Linter(metaclass=LinterMeta):
             "msg": m.message.strip(),
             "offending_text": offending_text
         }
+
+    def convert_column(self, line: int, col: int, m: LintMatch, vv: VirtualView) -> int:
+        """Convert one raw zero-based column to a code-point offset.
+
+        Called for each present col/end_col before clamping. `line` is its
+        bounded source row; `m` is the unchanged adapter output. Override for
+        mixed-unit tools or source-window coordinates, returning an integer.
+        """
+        if self.column_unit == 'codepoint':
+            return col
+        if self.column_unit == 'utf8':
+            return vv.col_from_utf8(line, col)
+        if self.column_unit == 'utf16':
+            return vv.col_from_utf16(line, col)
+        raise ValueError(f'Unknown column unit: {self.column_unit!r}')
 
     def get_error_type(self, error, warning):
         if error:
@@ -1479,7 +1534,8 @@ class Linter(metaclass=LinterMeta):
     def reposition_match(self, line: int, col: Optional[int], m: LintMatch, vv: VirtualView) -> tuple[int, int, int]:
         """Chance to reposition the error.
 
-        Must return a tuple (line, start, end)
+        Must return a tuple (line, start, end), all in code points.
+        `col` has been converted and clamped; `m.col` retains the raw value.
 
         The default implementation just finds a good `end` or range for the
         given match. E.g. it uses `self.word_re` to select the whole word

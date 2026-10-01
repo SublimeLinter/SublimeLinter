@@ -97,6 +97,15 @@ Only ``message`` and ``line`` are mandatory fields here, but usually you also ca
 
 .. note::
 
+    If the tool reports UTF-8 byte or UTF-16 code-unit columns, declare
+    ``column_unit = "utf8"`` or ``column_unit = "utf16"`` on the class.
+    Existing ``col`` / ``end_col`` groups and parsers can remain unchanged.
+    See :ref:`column_unit` and :ref:`convert_column` for mixed-unit tools
+    and source-window coordinates. Test through ``process_match`` with a
+    ``VirtualView(source)``: parser-only tests cannot verify conversion.
+
+.. note::
+
     If you only report ``col``, SublimeLinter will select the word beginning at that column.  What a word is, is defined by the :ref:`word_re` attribute.
 
 .. note::

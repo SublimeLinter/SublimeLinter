@@ -220,6 +220,33 @@ It filters out deprecation warnings while still keeping other hard errors and
 reports them back to the user.
 
 
+.. _column_unit:
+
+column_unit
+-----------
+This attribute tells SublimeLinter which unit the linter uses for the reported columns.
+Possible values are ``codepoint`` (the default), ``"utf8"`` (bytes), or ``"utf16"``
+(16-bit code units).
+
+.. code-block:: python
+
+    class Tslint(NodeLinter):
+        column_unit = "utf16"
+
+    class Cppcheck(Linter):
+        column_unit = "utf8"
+
+Numeric columns still use :ref:`line_col_base`: base subtraction happens in
+``split_match``, before source-dependent conversion. A nonnumeric ``col``
+capture (e.g. a caret prefix consisting of spaces and tabs) still contributes
+its length without base subtraction, now measured in the declared units.
+Tabs count as one unit; display-cell, grapheme, and expanded-tab columns are
+not supported.
+
+For linters that mix units in their output, yes (!), use the source-aware
+:ref:`convert_column` method which is called for each match.
+
+
 .. _line_col_base:
 
 line_col_base
@@ -314,9 +341,12 @@ Very often linters don't do that and then it's best to omit capturing ``filename
 SublimeLinter will figure out the correct value for you and you don't run into
 problems with unnamed buffers or possibly symlinked files.
 
-You can also capture ``end_line`` and ``end_col``, otherwise the :ref:`word<word_re>` beginning at ``col`` will be highlighted.  How the numbers are interpreted is defined by :ref:`line_col_base`.
+You can also capture ``end_line`` and ``end_col``, otherwise the :ref:`word<word_re>`
+beginning at ``col`` will be highlighted. Their base is defined by :ref:`line_col_base`,
+and their units by :ref:`column_unit`.
 
-If you can't capture the ``error_type`` directly, you may use ``error`` and ``warning`` to set the type.  Alterantively, you fallback to :ref:`default_type`.
+If you can't capture the ``error_type`` directly, you may use ``error`` and ``warning``
+to set the type.  Alternatively, you fallback to :ref:`default_type`.
 
 +------------+-----------------------------------------------------------------+
 | error      | If this is not empty, the error will be marked                  |

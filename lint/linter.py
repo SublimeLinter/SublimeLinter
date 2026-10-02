@@ -1734,14 +1734,13 @@ class Linter(metaclass=LinterMeta):
 
         code_b = code.encode('utf8') if code is not None else None
         uses_stdin = code is not None
-        stdin = subprocess.PIPE if uses_stdin else None
-        stdout = subprocess.PIPE if output_stream & util.STREAM_STDOUT else None
-        stderr = subprocess.PIPE if output_stream & util.STREAM_STDERR else None
 
         try:
             proc = subprocess.Popen(
                 cmd, env=env, cwd=cwd,
-                stdin=stdin, stdout=stdout, stderr=stderr,
+                stdin=subprocess.PIPE if uses_stdin else None,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 startupinfo=util.create_startupinfo(),
                 creationflags=util.get_creationflags()
             )
@@ -1762,7 +1761,7 @@ class Linter(metaclass=LinterMeta):
         bid = view.buffer_id()
         with store_proc_while_running(bid, proc):
             try:
-                out = proc.communicate(code_b)
+                stdout, stderr = proc.communicate(code_b)
 
             except BrokenPipeError as err:
                 friendly_terminated = getattr(proc, 'friendly_terminated', False)
@@ -1793,7 +1792,11 @@ class Linter(metaclass=LinterMeta):
                 if friendly_terminated:
                     raise TransientError('Friendly terminated')
 
-        return util.popen_output(proc, *out)
+        return util.popen_output(
+            proc,
+            stdout if output_stream & util.STREAM_STDOUT else None,
+            stderr if output_stream & util.STREAM_STDERR else None
+        )
 
 
 @contextmanager

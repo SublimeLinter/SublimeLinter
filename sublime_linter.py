@@ -36,6 +36,12 @@ ViewChangedFn = Callable[[], bool]
 logger = logging.getLogger(__name__)
 flatten = chain.from_iterable
 
+PREFERENCES_FILE = 'Preferences.sublime-settings'
+IGNORED_PACKAGES_OBSERVER_KEY = 'SublimeLinter.ignored-packages'
+
+# The packages that were disabled the last time we looked, to compute the delta
+ignored_packages: set[str] = set()
+
 
 def plugin_loaded():
     log_handler.install()
@@ -68,6 +74,12 @@ def plugin_loaded():
     logger.info("debug mode: on")
     logger.info("version: " + util.get_sl_version())
 
+    global ignored_packages
+    ignored_packages = get_ignored_packages()
+    sublime.load_settings(PREFERENCES_FILE).add_on_change(
+        IGNORED_PACKAGES_OBSERVER_KEY, on_preferences_changed
+    )
+
     # Lint the visible views from the active window on startup
     bc = BackendController()
     for view in other_visible_views():
@@ -89,10 +101,33 @@ def plugin_unloaded():
     except ImportError:
         pass
 
+    sublime.load_settings(PREFERENCES_FILE).clear_on_change(IGNORED_PACKAGES_OBSERVER_KEY)
+
     queue.unload()
     persist.settings.unobserve()
     util.close_all_error_panels()
     events.off(on_settings_changed)
+
+
+def get_ignored_packages() -> set[str]:
+    return set(sublime.load_settings(PREFERENCES_FILE).get('ignored_packages', []))
+
+
+def on_preferences_changed():
+    """Unregister the linters of packages that just got disabled, and re-lint.
+
+    Sublime unloads the plugins of disabled packages (Package Control disables a
+    package before it removes or upgrades it), but does not tell us. So the
+    linter classes would stay registered, and keep linting, until a restart.
+    """
+    global ignored_packages
+    current = get_ignored_packages()
+    newly_ignored = current - ignored_packages
+    ignored_packages = current
+
+    if newly_ignored and (names := persist.forget_linters_of_packages(newly_ignored)):
+        logger.info("Forgot linters of disabled packages: {}".format(", ".join(names)))
+        sublime.run_command('sublime_linter_config_changed')
 
 
 @events.on('settings_changed')

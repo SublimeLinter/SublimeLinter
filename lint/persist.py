@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 import subprocess
 import threading
-from typing import DefaultDict, Type, TypedDict, TYPE_CHECKING
+from typing import Collection, DefaultDict, Type, TypedDict, TYPE_CHECKING
 
 import sublime
 from . import events, util
@@ -55,6 +55,23 @@ affected_filenames_per_filename: \
 
 active_procs: DefaultDict[Bid, list[subprocess.Popen]] = defaultdict(list)
 active_procs_lock = threading.Lock()
+
+
+def forget_linters_of_packages(packages: Collection[str]) -> list[LinterName]:
+    """Unregister the linters that come from `packages`, and return their names.
+
+    Sublime unloads the plugins of disabled packages, but does not tell us, so
+    the classes would otherwise stay registered and keep linting until a restart.
+    """
+    gone = [
+        name
+        for name, klass in linter_classes.items()
+        if klass.plugin_name in packages
+    ]
+    for name in gone:
+        del linter_classes[name]
+
+    return gone
 
 
 def assign_linters_to_buffer(view: sublime.View, next_linters: set[LinterName]) -> None:
